@@ -1179,17 +1179,78 @@ function nextWednesday() {
   return d.toISOString().split('T')[0];
 }
 
+/* ----------------------------------------------------------------
+   SESSION — durées d'inactivité max (millisecondes)
+   ---------------------------------------------------------------- */
+const SESSION_TTL = {
+  student: 20 * 60 * 1000,   // 20 minutes
+  admin:   10 * 60 * 1000,   // 10 minutes
+};
+
+let _inactivityTimer = null;
+
 function saveLocal() {
-  localStorage.setItem('ci_user', JSON.stringify(S.user));
-  localStorage.setItem('ci_admin', S.isAdmin ? '1' : '');
+  // sessionStorage : effacé automatiquement à la fermeture de l'onglet/navigateur
+  sessionStorage.setItem('ci_user',        JSON.stringify(S.user));
+  sessionStorage.setItem('ci_admin',       S.isAdmin ? '1' : '');
+  sessionStorage.setItem('ci_lastActivity', Date.now().toString());
 }
 
 function loadLocal() {
   try {
-    const u = localStorage.getItem('ci_user');
-    if (u) S.user = JSON.parse(u);
-    S.isAdmin = !!localStorage.getItem('ci_admin');
-  } catch(e) {}
+    const u    = sessionStorage.getItem('ci_user');
+    const adm  = !!sessionStorage.getItem('ci_admin');
+    const last = parseInt(sessionStorage.getItem('ci_lastActivity') || '0');
+
+    if (!u || !last) return; // rien en session
+
+    // Vérifier si la session n'a pas déjà expiré (page rechargée après idle)
+    const ttl = adm ? SESSION_TTL.admin : SESSION_TTL.student;
+    if (Date.now() - last > ttl) {
+      clearSession();
+      return;
+    }
+
+    S.user    = JSON.parse(u);
+    S.isAdmin = adm;
+  } catch(e) { clearSession(); }
+}
+
+function clearSession() {
+  sessionStorage.removeItem('ci_user');
+  sessionStorage.removeItem('ci_admin');
+  sessionStorage.removeItem('ci_lastActivity');
+}
+
+/* ----------------------------------------------------------------
+   TIMER D'INACTIVITÉ
+   ---------------------------------------------------------------- */
+function startInactivityTimer() {
+  stopInactivityTimer();
+
+  const ttl = S.isAdmin ? SESSION_TTL.admin : SESSION_TTL.student;
+
+  function resetTimer() {
+    if (!S.user) return;  // plus de session, on arrête
+    saveLocal();          // rafraîchit le timestamp à chaque activité
+    clearTimeout(_inactivityTimer);
+    _inactivityTimer = setTimeout(() => {
+      logout('expired');
+    }, ttl);
+  }
+
+  // Écouter toute forme d'activité utilisateur
+  ['click', 'keydown', 'scroll', 'touchstart', 'mousemove'].forEach(evt =>
+    document.addEventListener(evt, resetTimer, { passive: true })
+  );
+
+  // Démarrer le premier timer
+  resetTimer();
+}
+
+function stopInactivityTimer() {
+  clearTimeout(_inactivityTimer);
+  _inactivityTimer = null;
 }
 
 /* ================================================================
@@ -1325,6 +1386,7 @@ function handleAdminLogin() {
     S.isAdmin = true;
     S.user = { id: 'admin', firstName: 'Admin', lastName: '', className: '' };
     saveLocal();
+    startInactivityTimer();
     navigateTo('admin');
     toast('Espace admin 🔑', 'success');
   } else {
@@ -1336,17 +1398,22 @@ function loginAs(student) {
   S.user = { id: student.id, firstName: student.first_name, lastName: student.last_name, className: student.class_name };
   S.isAdmin = false;
   saveLocal();
+  startInactivityTimer();
   navigateTo('home');
 }
 
-function logout() {
+function logout(reason) {
+  stopInactivityTimer();
   S.user = null; S.isAdmin = false; S.films = []; S.votes = new Set();
-  localStorage.removeItem('ci_user'); localStorage.removeItem('ci_admin');
+  clearSession();
   _tmpStudent = null;
   showLS('code');
   document.getElementById('inp-code').value = '';
   document.getElementById('inp-adminpwd').value = '';
   showScreen('login');
+  if (reason === 'expired') {
+    setTimeout(() => toast('⏱ Session expirée — reconnecte-toi', 'error', 4000), 200);
+  }
 }
 
 /* ================================================================
@@ -2082,6 +2149,7 @@ function init() {
   document.getElementById('imp-year').value = CFG.SCHOOL_YEAR;
 
   if (S.user) {
+    startInactivityTimer(); // session restaurée → relancer le timer
     if (S.isAdmin) navigateTo('admin');
     else navigateTo('home');
   } else {
