@@ -503,6 +503,85 @@ button { cursor: pointer; }
 .tmdb-card h4 { font-size: 13.5px; font-weight: 700; margin-bottom: 3px; }
 .tmdb-card p { font-size: 12px; color: var(--text-2); }
 .tmdb-card .tmdb-ov { font-size: 11.5px; color: var(--text-3); margin-top: 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.tmdb-card-hint { font-size: 11px; color: var(--gold); font-weight: 600; margin-top: 6px; letter-spacing: .01em; }
+.tmdb-card:hover .tmdb-card-hint { opacity: .7; }
+
+/* ----------------------------------------------------------------
+   TMDB DETAIL MODAL
+   ---------------------------------------------------------------- */
+#modal-tmdb-detail .sheet {
+  padding: 0; overflow: hidden;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  display: flex; flex-direction: column;
+  max-height: 92vh;
+}
+.tmdb-poster-header {
+  position: relative; width: 100%; height: 215px;
+  background: var(--surface-2); flex-shrink: 0; overflow: hidden;
+}
+.tmdb-poster-header img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.tmdb-poster-header .no-poster-lg {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 64px; color: var(--text-3);
+}
+.tmdb-poster-gradient {
+  position: absolute; bottom: 0; left: 0; right: 0; height: 100px;
+  background: linear-gradient(transparent, var(--surface));
+  pointer-events: none;
+}
+.tmdb-close-btn {
+  position: absolute; top: 12px; right: 12px;
+  width: 34px; height: 34px; border-radius: 50%;
+  background: rgba(0,0,0,.6); backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,.12);
+  color: #fff; font-size: 17px; font-weight: 300;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; line-height: 1;
+}
+.tmdb-detail-scroll {
+  overflow-y: auto; flex: 1;
+  -webkit-overflow-scrolling: touch;
+  padding: 14px 20px 28px;
+}
+.tmdb-d-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 21px; font-weight: 700; line-height: 1.25;
+  margin-bottom: 10px;
+}
+.tmdb-d-meta { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.tmdb-d-rating {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 13px; font-weight: 700; color: var(--gold);
+  background: var(--gold-dim); border: 1px solid rgba(240,165,0,.2);
+  padding: 4px 12px; border-radius: 20px; margin-bottom: 14px;
+}
+.tmdb-d-rating .vote-count { font-size: 11px; color: var(--text-2); font-weight: 400; }
+.tmdb-d-synopsis {
+  font-size: 13.5px; color: var(--text-2); line-height: 1.75;
+  margin-bottom: 16px;
+}
+.tmdb-crew-block { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; }
+.tmdb-crew-row { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; line-height: 1.45; }
+.tmdb-crew-label {
+  color: var(--text-3); font-weight: 700; font-size: 10.5px;
+  text-transform: uppercase; letter-spacing: .06em;
+  min-width: 80px; flex-shrink: 0; padding-top: 2px;
+}
+.tmdb-cast-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.tmdb-cast-chip {
+  background: var(--surface-3); border: 1px solid var(--border);
+  border-radius: 20px; padding: 3px 10px;
+  font-size: 12px; color: var(--text-2);
+}
+.tmdb-d-warning {
+  display: flex; align-items: flex-start; gap: 9px;
+  border-radius: var(--radius-sm); padding: 11px 13px;
+  margin-bottom: 14px; font-size: 13px; font-weight: 500;
+}
+.tmdb-d-warning.warn { background: var(--red-dim); border: 1px solid rgba(232,64,64,.25); color: var(--red); }
+.tmdb-d-warning.info { background: var(--gold-dim); border: 1px solid rgba(240,165,0,.25); color: var(--gold); }
+.tmdb-d-warning.ok   { background: var(--green-dim); border: 1px solid rgba(74,222,128,.25); color: var(--green); }
 
 /* ================================================================
    SESSION SCREEN
@@ -1103,6 +1182,53 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
   </div>
 </div>
 
+<!-- ================================================================
+     MODAL: Fiche détaillée TMDB
+     ================================================================ -->
+<div class="overlay hidden" id="modal-tmdb-detail">
+  <div class="sheet">
+
+    <!-- Loader (pendant le fetch) -->
+    <div id="tmdb-detail-loader" style="padding:48px 0;">
+      <div class="loader"><div class="spinner"></div></div>
+      <p class="text-center text-muted text-sm" style="margin-top:10px;">Chargement de la fiche…</p>
+    </div>
+
+    <!-- Contenu chargé -->
+    <div id="tmdb-detail-body" class="hidden">
+
+      <!-- Poster en haut -->
+      <div class="tmdb-poster-header">
+        <img id="tmdb-d-poster-img" src="" alt="">
+        <div id="tmdb-d-no-poster" class="no-poster-lg hidden">🎬</div>
+        <div class="tmdb-poster-gradient"></div>
+        <button class="tmdb-close-btn" onclick="closeModal('modal-tmdb-detail')">✕</button>
+      </div>
+
+      <!-- Scroll zone -->
+      <div class="tmdb-detail-scroll">
+
+        <div class="tmdb-d-title" id="tmdb-d-title">—</div>
+        <div class="tmdb-d-meta" id="tmdb-d-meta"></div>
+        <div class="tmdb-d-rating hidden" id="tmdb-d-rating"></div>
+
+        <!-- Doublon warning -->
+        <div id="tmdb-d-dupwarn" class="hidden"></div>
+
+        <div class="tmdb-d-synopsis" id="tmdb-d-synopsis"></div>
+
+        <div class="tmdb-crew-block" id="tmdb-d-crew"></div>
+
+        <!-- Bouton d'action (admin ou élève) -->
+        <button id="tmdb-d-action" class="btn btn-gold btn-full btn-lg" style="margin-bottom:10px;">—</button>
+        <button class="btn btn-ghost btn-full btn-sm" onclick="closeModal('modal-tmdb-detail')">Fermer</button>
+
+      </div><!-- /scroll -->
+    </div><!-- /body -->
+
+  </div><!-- /sheet -->
+</div>
+
 </div><!-- /app -->
 
 <script>
@@ -1612,16 +1738,17 @@ async function searchTMDB(ctx) {
     if (!items.length) { el.innerHTML = '<p class="text-sm text-muted text-center" style="padding:16px;">Aucun résultat</p>'; return; }
 
     el.innerHTML = items.map(m => {
-  const payload = encodeURIComponent(JSON.stringify(m)).replace(/'/g, '%27');
+  const year = m.release_date ? m.release_date.split('-')[0] : '';
   return `
-    <div class="tmdb-card" onclick="${isAdmin ? `fillAdminForm('${payload}')` : `selectProposalFilm('${payload}')`}">
+    <div class="tmdb-card" onclick="openTMDBDetail(${m.id}, '${ctx}')">
       ${m.poster_path
         ? `<img src="https://image.tmdb.org/t/p/w200${m.poster_path}" alt="">`
         : `<div class="tmdb-noimg">🎬</div>`}
-      <div>
+      <div style="flex:1;min-width:0;">
         <h4>${m.title}</h4>
-        <p>${m.release_date ? m.release_date.split('-')[0] : ''}</p>
+        <p>${year}</p>
         <div class="tmdb-ov">${m.overview || ''}</div>
+        <div class="tmdb-card-hint">Voir la fiche →</div>
       </div>
     </div>
   `;
@@ -1631,6 +1758,214 @@ async function searchTMDB(ctx) {
   }
 }
 
+/* ----------------------------------------------------------------
+   TMDB DETAIL MODAL — ouverture + fetch complet
+   ---------------------------------------------------------------- */
+let _tmdbCtx   = null;   // 'admin' | 'student'
+let _tmdbMovie = null;   // objet film complet TMDB
+
+async function openTMDBDetail(tmdbId, ctx) {
+  _tmdbCtx = ctx;
+  _tmdbMovie = null;
+
+  // Afficher le loader, cacher le body
+  document.getElementById('tmdb-detail-loader').classList.remove('hidden');
+  document.getElementById('tmdb-detail-body').classList.add('hidden');
+  document.getElementById('modal-tmdb-detail').classList.remove('hidden');
+
+  try {
+    const [detailRes, creditsRes] = await Promise.all([
+      fetch(`https://api.themoviedb.org/3/movie/${tmdbId}?api_key=${CFG.TMDB_KEY}&language=fr-FR`),
+      fetch(`https://api.themoviedb.org/3/movie/${tmdbId}/credits?api_key=${CFG.TMDB_KEY}&language=fr-FR`)
+    ]);
+    const detail  = await detailRes.json();
+    const credits = await creditsRes.json();
+    _tmdbMovie = { ...detail, _credits: credits };
+
+    // Poster
+    const posterImg = document.getElementById('tmdb-d-poster-img');
+    const noPoster  = document.getElementById('tmdb-d-no-poster');
+    if (detail.poster_path) {
+      posterImg.src = `https://image.tmdb.org/t/p/w500${detail.poster_path}`;
+      posterImg.classList.remove('hidden');
+      noPoster.classList.add('hidden');
+    } else {
+      posterImg.classList.add('hidden');
+      noPoster.classList.remove('hidden');
+    }
+
+    // Titre
+    document.getElementById('tmdb-d-title').textContent = detail.title || '—';
+
+    // Badges meta
+    const year     = detail.release_date ? detail.release_date.split('-')[0] : '';
+    const genres   = (detail.genres || []).map(g => g.name).join(', ');
+    const duration = detail.runtime ? `${detail.runtime} min` : '';
+    document.getElementById('tmdb-d-meta').innerHTML =
+      [year, genres, duration].filter(Boolean)
+        .map(t => `<span class="badge badge-muted">${t}</span>`).join('');
+
+    // Note TMDB
+    const ratingEl = document.getElementById('tmdb-d-rating');
+    if (detail.vote_average && detail.vote_count > 10) {
+      ratingEl.innerHTML = `★ ${detail.vote_average.toFixed(1)}/10
+        <span class="vote-count">(${detail.vote_count.toLocaleString('fr-FR')} votes)</span>`;
+      ratingEl.classList.remove('hidden');
+    } else {
+      ratingEl.classList.add('hidden');
+    }
+
+    // Synopsis
+    document.getElementById('tmdb-d-synopsis').textContent =
+      detail.overview || 'Aucun synopsis disponible en français.';
+
+    // Réalisateur + casting
+    const director = (credits.crew || []).find(c => c.job === 'Director');
+    const cast     = (credits.cast || []).slice(0, 6);
+    const crewEl   = document.getElementById('tmdb-d-crew');
+    crewEl.innerHTML = '';
+    if (director) {
+      crewEl.innerHTML += `<div class="tmdb-crew-row">
+        <span class="tmdb-crew-label">Réalisateur</span>
+        <span>${director.name}</span>
+      </div>`;
+    }
+    if (cast.length) {
+      crewEl.innerHTML += `<div class="tmdb-crew-row">
+        <span class="tmdb-crew-label">Avec</span>
+        <div class="tmdb-cast-chips">
+          ${cast.map(a => `<span class="tmdb-cast-chip">${a.name}</span>`).join('')}
+        </div>
+      </div>`;
+    }
+
+    // Vérification doublon
+    await checkDuplicate(detail, ctx);
+
+    // Bouton d'action
+    const actionBtn = document.getElementById('tmdb-d-action');
+    if (ctx === 'admin') {
+      actionBtn.textContent = '🎬 Ajouter au catalogue';
+      actionBtn.onclick = confirmAddFilm;
+    } else {
+      actionBtn.textContent = '💡 Proposer ce film';
+      actionBtn.onclick = confirmProposeFilm;
+    }
+
+    document.getElementById('tmdb-detail-loader').classList.add('hidden');
+    document.getElementById('tmdb-detail-body').classList.remove('hidden');
+
+  } catch(e) {
+    closeModal('modal-tmdb-detail');
+    toast('Impossible de charger la fiche TMDB', 'error');
+  }
+}
+
+async function checkDuplicate(detail, ctx) {
+  const dupEl = document.getElementById('tmdb-d-dupwarn');
+  dupEl.className = 'hidden';
+  dupEl.innerHTML = '';
+
+  try {
+    // Recherche dans le catalogue (par tmdb_id puis par titre similaire)
+    const [{ data: byId }, { data: byTitle }] = await Promise.all([
+      detail.id
+        ? db.from('films').select('id,title,status').eq('tmdb_id', detail.id).maybeSingle()
+        : Promise.resolve({ data: null }),
+      db.from('films').select('id,title,status').ilike('title', detail.title)
+    ]);
+
+    const inCatalogue = byId || (byTitle && byTitle.length > 0);
+
+    if (inCatalogue) {
+      const f = byId || byTitle[0];
+      const isActive = f.status === 'active';
+      dupEl.className = `tmdb-d-warning ${isActive ? 'ok' : 'info'}`;
+      dupEl.innerHTML = isActive
+        ? `✅ <span>Ce film est déjà dans le catalogue et peut être voté.</span>`
+        : `ℹ️ <span>Ce film existe déjà (actuellement archivé : <strong>${f.title}</strong>).</span>`;
+      dupEl.classList.remove('hidden');
+      if (ctx === 'admin') {
+        const btn = document.getElementById('tmdb-d-action');
+        btn.textContent = isActive ? '🎬 Ajouter quand même' : '🔄 Restaurer depuis les archives';
+      }
+      return;
+    }
+
+    // Côté élève : vérifier aussi les propositions
+    if (ctx === 'student' && detail.id) {
+      const { data: proposals } = await db.from('proposals')
+        .select('id,status').eq('tmdb_id', detail.id);
+      const pendingOrAccepted = (proposals || []).find(p =>
+        p.status === 'pending' || p.status === 'accepted');
+      if (pendingOrAccepted) {
+        dupEl.className = 'tmdb-d-warning info';
+        dupEl.innerHTML = `💡 <span>Ce film a déjà été proposé et est ${pendingOrAccepted.status === 'pending' ? 'en attente de validation' : 'accepté par l\'admin'}.</span>`;
+        dupEl.classList.remove('hidden');
+      }
+    }
+  } catch(e) { /* silencieux */ }
+}
+
+async function confirmAddFilm() {
+  if (!_tmdbMovie) return;
+  const m = _tmdbMovie;
+  const btn = document.getElementById('tmdb-d-action');
+  btn.disabled = true;
+  btn.textContent = 'Ajout en cours…';
+
+  const { error } = await db.from('films').insert({
+    title:      m.title,
+    year:       m.release_date ? parseInt(m.release_date.split('-')[0]) : null,
+    duration:   m.runtime || null,
+    genre:      (m.genres || []).map(g => g.name).join(', ') || null,
+    synopsis:   m.overview || null,
+    poster_url: m.poster_path ? `https://image.tmdb.org/t/p/w500${m.poster_path}` : null,
+    tmdb_id:    m.id || null,
+    status:     'active'
+  });
+
+  btn.disabled = false;
+  btn.textContent = '🎬 Ajouter au catalogue';
+
+  if (error) { toast('Erreur : ' + error.message, 'error'); return; }
+
+  closeModal('modal-tmdb-detail');
+  closeModal('modal-add-film');
+  document.getElementById('admin-film-search').value = '';
+  document.getElementById('admin-tmdb-results').innerHTML = '';
+  toast('Film ajouté au catalogue 🎬', 'success');
+  loadAdminFilms();
+}
+
+async function confirmProposeFilm() {
+  if (!_tmdbMovie || !S.user) return;
+  const m = _tmdbMovie;
+  const btn = document.getElementById('tmdb-d-action');
+  btn.disabled = true;
+  btn.textContent = 'Envoi en cours…';
+
+  const { error } = await db.from('proposals').insert({
+    student_id: S.user.id,
+    title:      m.title,
+    tmdb_id:    m.id,
+    poster_url: m.poster_path ? `https://image.tmdb.org/t/p/w500${m.poster_path}` : null,
+    year:       m.release_date ? parseInt(m.release_date.split('-')[0]) : null,
+    synopsis:   m.overview || '',
+    genre:      (m.genres || []).map(g => g.name).join(', ') || null,
+    status:     'pending'
+  });
+
+  btn.disabled = false;
+  btn.textContent = '💡 Proposer ce film';
+
+  if (error) { toast('Erreur lors de la proposition', 'error'); return; }
+  closeModal('modal-tmdb-detail');
+  toast('Proposition envoyée ! L\'admin la validera 📨', 'success');
+  initPropose();
+}
+
+/* les fonctions suivantes sont gardées pour compatibilité (saisie manuelle) */
 function selectProposalFilm(encoded) {
   const m = JSON.parse(decodeURIComponent(encoded));
   _selectedFilm = m;
@@ -1641,6 +1976,28 @@ function selectProposalFilm(encoded) {
   document.getElementById('prop-results').innerHTML = '';
   document.getElementById('prop-search').value = m.title;
   document.getElementById('prop-selected').classList.remove('hidden');
+}
+
+async function fillAdminForm(encoded) {
+  const m = JSON.parse(decodeURIComponent(encoded));
+  let genre = '', duration = '';
+  if (CFG.TMDB_KEY) {
+    try {
+      const r = await fetch(`https://api.themoviedb.org/3/movie/${m.id}?api_key=${CFG.TMDB_KEY}&language=fr-FR`);
+      const d = await r.json();
+      genre = (d.genres || []).map(g => g.name).join(', ');
+      duration = d.runtime || '';
+    } catch(e) {}
+  }
+  document.getElementById('af-title').value    = m.title || '';
+  document.getElementById('af-year').value     = m.release_date ? m.release_date.split('-')[0] : '';
+  document.getElementById('af-duration').value = duration;
+  document.getElementById('af-genre').value    = genre;
+  document.getElementById('af-synopsis').value = m.overview || '';
+  document.getElementById('af-poster').value   = m.poster_path ? `https://image.tmdb.org/t/p/w500${m.poster_path}` : '';
+  document.getElementById('af-tmdbid').value   = m.id || '';
+  document.getElementById('admin-tmdb-results').innerHTML = '';
+  toast('Film sélectionné ✅');
 }
 
 async function submitProposal() {
