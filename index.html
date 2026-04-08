@@ -1,0 +1,2092 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#08080f">
+  <title>🎬 Cinéma Internat</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+/* ================================================================
+   VARIABLES & RESET
+   ================================================================ */
+:root {
+  --bg:          #08080f;
+  --surface:     #111119;
+  --surface-2:   #1a1a28;
+  --surface-3:   #22223a;
+  --border:      #252538;
+  --border-2:    #303050;
+  --gold:        #f0a500;
+  --gold-dim:    rgba(240,165,0,0.12);
+  --gold-glow:   rgba(240,165,0,0.35);
+  --red:         #e84040;
+  --red-dim:     rgba(232,64,64,0.12);
+  --green:       #4ade80;
+  --green-dim:   rgba(74,222,128,0.12);
+  --text:        #f0f0ee;
+  --text-2:      #9090aa;
+  --text-3:      #555570;
+  --radius:      14px;
+  --radius-sm:   9px;
+  --radius-lg:   20px;
+  --nav-h:       66px;
+  --header-h:    58px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+html { height: 100%; scroll-behavior: smooth; }
+
+body {
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+
+img { display: block; max-width: 100%; }
+input, button, textarea, select { font-family: inherit; }
+button { cursor: pointer; }
+
+/* ================================================================
+   LAYOUT
+   ================================================================ */
+#app {
+  min-height: 100vh;
+  max-width: 540px;
+  margin: 0 auto;
+  position: relative;
+}
+
+.screen {
+  min-height: 100vh;
+  padding-bottom: calc(var(--nav-h) + 12px);
+  animation: fadeIn .22s ease;
+}
+
+.screen.no-nav { padding-bottom: 0; }
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+.hidden { display: none !important; }
+
+/* ================================================================
+   TOAST
+   ================================================================ */
+#toast {
+  position: fixed;
+  bottom: calc(var(--nav-h) + 14px);
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--surface-3);
+  border: 1px solid var(--border-2);
+  color: var(--text);
+  padding: 11px 20px;
+  border-radius: 40px;
+  font-size: 13.5px;
+  font-weight: 500;
+  z-index: 2000;
+  opacity: 0;
+  transition: all .28s cubic-bezier(.4,0,.2,1);
+  pointer-events: none;
+  white-space: nowrap;
+  max-width: 88vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: 0 8px 32px rgba(0,0,0,.5);
+}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+#toast.success { border-color: var(--green); color: var(--green); }
+#toast.error { border-color: var(--red); color: var(--red); }
+
+/* ================================================================
+   BOTTOM NAV
+   ================================================================ */
+#bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 540px;
+  height: var(--nav-h);
+  background: rgba(17,17,25,.96);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: stretch;
+  z-index: 300;
+}
+
+.nav-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  background: none;
+  border: none;
+  color: var(--text-3);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .03em;
+  transition: color .2s;
+  padding: 6px 4px;
+  position: relative;
+}
+.nav-btn.active { color: var(--gold); }
+.nav-btn.active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 32px;
+  height: 2px;
+  background: var(--gold);
+  border-radius: 0 0 3px 3px;
+}
+.nav-btn svg { width: 22px; height: 22px; stroke-width: 1.7; }
+
+/* ================================================================
+   SCREEN HEADER
+   ================================================================ */
+.s-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  height: var(--header-h);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 18px;
+  background: rgba(8,8,15,.92);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-bottom: 1px solid var(--border);
+}
+.s-header h1 { font-size: 17px; font-weight: 700; flex: 1; }
+.s-header .back { width: 36px; height: 36px; border-radius: 50%; background: var(--surface-2); border: none; color: var(--text); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; transition: background .2s; }
+.s-header .back:hover { background: var(--surface-3); }
+
+/* ================================================================
+   BUTTONS
+   ================================================================ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 11px 18px;
+  transition: all .18s;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn:disabled { opacity: .45; pointer-events: none; }
+
+.btn-gold { background: var(--gold); color: #1a0e00; }
+.btn-gold:hover { background: #ffc220; transform: translateY(-1px); }
+.btn-gold:active { transform: translateY(0); }
+
+.btn-ghost { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); }
+.btn-ghost:hover { background: var(--surface-3); border-color: var(--border-2); }
+
+.btn-red { background: var(--red-dim); color: var(--red); border: 1px solid rgba(232,64,64,.25); }
+.btn-red:hover { background: rgba(232,64,64,.22); }
+
+.btn-green { background: var(--green-dim); color: var(--green); border: 1px solid rgba(74,222,128,.25); }
+
+.btn-full { width: 100%; }
+.btn-sm { padding: 7px 13px; font-size: 12px; border-radius: 7px; }
+.btn-lg { padding: 14px 22px; font-size: 15px; border-radius: var(--radius); }
+
+.btn-vote-off { background: var(--gold-dim); color: var(--gold); border: 1px solid rgba(240,165,0,.25); }
+.btn-vote-off:hover { background: rgba(240,165,0,.2); }
+.btn-vote-on { background: var(--gold); color: #1a0e00; border: 1px solid var(--gold); }
+
+/* ================================================================
+   FORMS
+   ================================================================ */
+.fgroup { margin-bottom: 15px; }
+.flabel { display: block; font-size: 12px; font-weight: 600; color: var(--text-2); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; }
+.finput, .fselect, .ftextarea {
+  width: 100%;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 15px;
+  font-family: inherit;
+  padding: 12px 14px;
+  outline: none;
+  transition: border-color .18s;
+}
+.finput:focus, .fselect:focus, .ftextarea:focus { border-color: var(--gold); }
+.finput::placeholder { color: var(--text-3); }
+.ftextarea { resize: vertical; min-height: 80px; }
+.fselect { appearance: none; cursor: pointer; }
+
+/* PIN inputs */
+.pins { display: flex; gap: 10px; justify-content: center; }
+.pin {
+  width: 54px; height: 58px;
+  text-align: center;
+  font-size: 26px;
+  font-weight: 800;
+  background: var(--surface-2);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: 'DM Sans', monospace;
+  outline: none;
+  transition: border-color .18s;
+  caret-color: var(--gold);
+}
+.pin:focus { border-color: var(--gold); }
+
+/* ================================================================
+   CARDS
+   ================================================================ */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.card-body { padding: 16px; }
+
+/* Film card */
+.film-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  display: flex;
+  transition: border-color .2s, transform .2s;
+}
+.film-card:hover { border-color: var(--border-2); transform: translateY(-1px); }
+.film-card-poster { width: 88px; flex-shrink: 0; background: var(--surface-2); position: relative; }
+.film-card-poster img { width: 100%; height: 100%; object-fit: cover; }
+.film-card-poster .no-poster {
+  width: 100%; height: 132px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px; color: var(--text-3);
+}
+.film-card-body { flex: 1; padding: 13px 14px; display: flex; flex-direction: column; gap: 7px; overflow: hidden; }
+.film-card-title { font-size: 15px; font-weight: 700; line-height: 1.3; cursor: pointer; }
+.film-card-title:hover { color: var(--gold); }
+.film-card-meta { font-size: 12px; color: var(--text-2); display: flex; gap: 6px; flex-wrap: wrap; }
+.film-card-synopsis {
+  font-size: 12.5px; color: var(--text-2); line-height: 1.5;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.film-card-actions { display: flex; gap: 7px; margin-top: auto; flex-wrap: wrap; }
+
+/* ================================================================
+   BADGES
+   ================================================================ */
+.badge {
+  display: inline-flex; align-items: center;
+  padding: 3px 9px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .03em;
+}
+.badge-gold { background: var(--gold-dim); color: var(--gold); }
+.badge-green { background: var(--green-dim); color: var(--green); }
+.badge-red { background: var(--red-dim); color: var(--red); }
+.badge-muted { background: var(--surface-3); color: var(--text-2); }
+
+/* ================================================================
+   DIVIDER
+   ================================================================ */
+.divider { height: 1px; background: var(--border); margin: 18px 0; }
+
+/* ================================================================
+   LOADER / EMPTY
+   ================================================================ */
+.loader { display: flex; align-items: center; justify-content: center; padding: 44px; }
+.spinner { width: 30px; height: 30px; border: 2.5px solid var(--border-2); border-top-color: var(--gold); border-radius: 50%; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.empty { text-align: center; padding: 48px 24px; color: var(--text-2); }
+.empty .icon { font-size: 44px; margin-bottom: 14px; }
+.empty h3 { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+.empty p { font-size: 13.5px; }
+
+/* ================================================================
+   MODALS (bottom sheet)
+   ================================================================ */
+.overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.72);
+  z-index: 500;
+  display: flex; align-items: flex-end;
+}
+.sheet {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  width: 100%;
+  max-height: 88vh;
+  overflow-y: auto;
+  padding: 18px 20px 28px;
+  -webkit-overflow-scrolling: touch;
+}
+.sheet-handle { width: 38px; height: 4px; background: var(--border-2); border-radius: 2px; margin: 0 auto 20px; }
+.sheet-title { font-size: 18px; font-weight: 700; margin-bottom: 18px; font-family: 'Playfair Display', serif; }
+
+/* ================================================================
+   LOGIN SCREEN
+   ================================================================ */
+#screen-login {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 32px 24px;
+  padding-bottom: 48px;
+  background: radial-gradient(ellipse at 50% 0%, rgba(240,165,0,.07) 0%, transparent 70%);
+}
+
+.login-cinema-icon {
+  font-size: 52px;
+  margin-bottom: 14px;
+  filter: drop-shadow(0 0 24px var(--gold-glow));
+}
+
+.login-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 5px;
+  text-align: center;
+  background: linear-gradient(135deg, #f5f5f0 0%, var(--gold) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.login-sub {
+  font-size: 13.5px;
+  color: var(--text-2);
+  text-align: center;
+  margin-bottom: 36px;
+}
+
+.login-box {
+  width: 100%;
+  max-width: 360px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 26px 22px;
+  box-shadow: 0 24px 64px rgba(0,0,0,.5);
+}
+
+/* ================================================================
+   HOME SCREEN
+   ================================================================ */
+.home-hero {
+  padding: 24px 20px 0;
+  background: linear-gradient(180deg, rgba(240,165,0,.05) 0%, transparent 100%);
+  border-bottom: 1px solid var(--border);
+}
+
+.home-greeting {
+  font-family: 'Playfair Display', serif;
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 3px;
+}
+
+.home-greeting span { color: var(--gold); }
+
+.home-sub { font-size: 13px; color: var(--text-2); margin-bottom: 20px; }
+
+.home-section { padding: 20px 18px 0; }
+.home-section-title { font-size: 11px; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 12px; }
+
+/* Next session banner */
+.session-banner {
+  background: linear-gradient(135deg, #1a1428 0%, #1a1a28 100%);
+  border: 1px solid rgba(240,165,0,.2);
+  border-radius: var(--radius);
+  padding: 18px;
+  cursor: pointer;
+  transition: border-color .2s;
+}
+.session-banner:hover { border-color: var(--gold-glow); }
+.session-banner-date { font-size: 11.5px; color: var(--gold); font-weight: 700; text-transform: uppercase; letter-spacing: .07em; margin-bottom: 6px; }
+.session-banner-film { font-size: 17px; font-weight: 700; font-family: 'Playfair Display', serif; margin-bottom: 10px; }
+
+/* Quick actions grid */
+.quick-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.quick-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  cursor: pointer;
+  transition: all .2s;
+  color: var(--text);
+}
+.quick-btn:hover { border-color: var(--border-2); background: var(--surface-2); transform: translateY(-1px); }
+.quick-btn .qicon { font-size: 22px; }
+.quick-btn .qlabel { font-size: 13px; font-weight: 600; }
+.quick-btn .qsub { font-size: 11px; color: var(--text-3); }
+
+/* ================================================================
+   FILMS SCREEN
+   ================================================================ */
+.films-list {
+  padding: 14px 16px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+
+/* ================================================================
+   FILM DETAIL
+   ================================================================ */
+.detail-poster-wrap { position: relative; }
+.detail-poster { width: 100%; height: 310px; object-fit: cover; }
+.detail-poster-placeholder { width: 100%; height: 310px; background: var(--surface-2); display: flex; align-items: center; justify-content: center; font-size: 64px; color: var(--text-3); }
+.detail-gradient {
+  position: absolute; bottom: 0; left: 0; right: 0; height: 120px;
+  background: linear-gradient(transparent, var(--bg));
+}
+
+.detail-body { padding: 20px 18px; }
+.detail-title { font-family: 'Playfair Display', serif; font-size: 24px; font-weight: 700; margin-bottom: 10px; }
+.detail-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
+.detail-synopsis { font-size: 14.5px; color: var(--text-2); line-height: 1.75; margin-bottom: 24px; }
+
+/* ================================================================
+   PROPOSE SCREEN
+   ================================================================ */
+.propose-body { padding: 18px; }
+.tmdb-results { display: flex; flex-direction: column; gap: 9px; margin-top: 10px; }
+.tmdb-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  display: flex; gap: 12px;
+  padding: 11px;
+  cursor: pointer;
+  transition: border-color .18s;
+}
+.tmdb-card:hover, .tmdb-card.picked { border-color: var(--gold); }
+.tmdb-card.picked { background: var(--gold-dim); }
+.tmdb-card img { width: 46px; height: 69px; object-fit: cover; border-radius: 5px; background: var(--surface-2); flex-shrink: 0; }
+.tmdb-card .tmdb-noimg { width: 46px; height: 69px; background: var(--surface-2); border-radius: 5px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+.tmdb-card h4 { font-size: 13.5px; font-weight: 700; margin-bottom: 3px; }
+.tmdb-card p { font-size: 12px; color: var(--text-2); }
+.tmdb-card .tmdb-ov { font-size: 11.5px; color: var(--text-3); margin-top: 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* ================================================================
+   SESSION SCREEN
+   ================================================================ */
+.sessions-body { padding: 18px; display: flex; flex-direction: column; gap: 11px; }
+
+.session-card-student {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+.sc-date { font-size: 11.5px; color: var(--gold); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 5px; }
+.sc-film { font-size: 16px; font-weight: 700; margin-bottom: 10px; }
+.sc-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+
+/* ================================================================
+   ADMIN SCREEN
+   ================================================================ */
+#screen-admin { padding-bottom: 0; }
+
+.admin-tabs {
+  display: flex;
+  overflow-x: auto;
+  scrollbar-width: none;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 14px;
+  gap: 0;
+}
+.admin-tabs::-webkit-scrollbar { display: none; }
+
+.admin-tab {
+  padding: 13px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-3);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+  margin-bottom: -1px;
+  transition: all .18s;
+}
+.admin-tab.active { color: var(--gold); border-bottom-color: var(--gold); }
+
+.admin-panel { padding: 18px; }
+.admin-panel-title { font-size: 16px; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; }
+
+.admin-list { display: flex; flex-direction: column; gap: 9px; }
+
+.ai { /* admin item */
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 13px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.ai-img { width: 44px; height: 66px; object-fit: cover; border-radius: 5px; background: var(--surface-2); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+.ai-info { flex: 1; overflow: hidden; }
+.ai-title { font-size: 14px; font-weight: 700; margin-bottom: 3px; }
+.ai-sub { font-size: 12px; color: var(--text-2); margin-bottom: 6px; }
+.ai-actions { display: flex; gap: 5px; flex-shrink: 0; flex-direction: column; }
+
+/* Vote bar */
+.vote-bar-row { display: flex; align-items: center; gap: 11px; padding: 12px 13px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.vote-bar-poster { width: 36px; height: 54px; object-fit: cover; border-radius: 4px; background: var(--surface-2); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 16px; overflow: hidden; }
+.vbr-info { flex: 1; }
+.vbr-title { font-size: 13.5px; font-weight: 700; margin-bottom: 5px; }
+.vbr-rank { font-size: 20px; font-weight: 900; color: var(--text-3); width: 22px; flex-shrink: 0; }
+.vbar-track { height: 5px; background: var(--surface-3); border-radius: 3px; }
+.vbar-fill { height: 100%; border-radius: 3px; background: var(--gold); transition: width .6s cubic-bezier(.4,0,.2,1); }
+.vbar-count { font-size: 11px; color: var(--text-2); margin-top: 4px; }
+
+/* Students table */
+.stbl { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.stbl th { text-align: left; padding: 8px 10px; color: var(--text-3); font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; border-bottom: 1px solid var(--border); }
+.stbl td { padding: 9px 10px; border-bottom: 1px solid rgba(37,37,56,.5); }
+.stbl tr:hover td { background: var(--surface-2); }
+
+/* Code pill */
+code { font-family: 'Courier New', monospace; background: var(--surface-3); padding: 2px 7px; border-radius: 5px; font-size: 12px; color: var(--gold); letter-spacing: .05em; }
+
+/* ================================================================
+   RESPONSIVE — DESKTOP ADMIN
+   ================================================================ */
+@media (min-width: 720px) {
+  #app { max-width: 100%; }
+  #bottom-nav { max-width: 540px; }
+
+  #screen-admin {
+    display: grid;
+    grid-template-columns: 190px 1fr;
+    grid-template-rows: var(--header-h) 1fr;
+    min-height: 100vh;
+  }
+  #screen-admin .s-header { grid-column: 1 / -1; }
+
+  .admin-tabs {
+    flex-direction: column;
+    border-bottom: none;
+    border-right: 1px solid var(--border);
+    padding: 14px 0;
+    overflow-x: visible;
+    overflow-y: auto;
+    height: calc(100vh - var(--header-h));
+    position: sticky;
+    top: var(--header-h);
+    align-self: start;
+  }
+  .admin-tab {
+    border-bottom: none;
+    border-left: 2px solid transparent;
+    text-align: left;
+    padding: 11px 18px;
+    margin-bottom: 0;
+    font-size: 13px;
+  }
+  .admin-tab.active { border-left-color: var(--gold); border-bottom-color: transparent; }
+
+  .admin-panels-container {
+    overflow-y: auto;
+    height: calc(100vh - var(--header-h));
+  }
+
+  .films-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; padding: 14px 20px 0; }
+  .detail-poster { height: 420px; }
+}
+
+/* ================================================================
+   UTILS
+   ================================================================ */
+.text-center { text-align: center; }
+.text-sm { font-size: 13px; }
+.text-xs { font-size: 11px; }
+.text-muted { color: var(--text-2); }
+.text-gold { color: var(--gold); }
+.mt-1 { margin-top: 8px; }
+.mt-2 { margin-top: 16px; }
+.mt-3 { margin-top: 24px; }
+.mb-1 { margin-bottom: 8px; }
+.mb-2 { margin-bottom: 16px; }
+.flex { display: flex; }
+.flex-center { display: flex; align-items: center; justify-content: center; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.gap-1 { gap: 8px; }
+.gap-2 { gap: 14px; }
+.fw-bold { font-weight: 700; }
+.w-full { width: 100%; }
+.scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  </style>
+</head>
+<body>
+<div id="app">
+
+<!-- ================================================================
+     TOAST
+     ================================================================ -->
+<div id="toast"></div>
+
+<!-- ================================================================
+     SCREEN: LOGIN
+     ================================================================ -->
+<div class="screen no-nav" id="screen-login">
+  <div class="login-cinema-icon">🎬</div>
+  <div class="login-title">Cinéma Internat</div>
+  <div class="login-sub">Espace élèves · Soirées du mercredi</div>
+
+  <div class="login-box">
+
+    <!-- Étape 1 : saisir le code -->
+    <div id="ls-code">
+      <div class="fgroup">
+        <label class="flabel">Ton code d'accès</label>
+        <input type="text" class="finput" id="inp-code"
+          placeholder="Ex : CIXYZ12"
+          style="text-transform:uppercase;letter-spacing:.1em;font-family:monospace;font-size:18px;font-weight:700;">
+      </div>
+      <button class="btn btn-gold btn-full btn-lg" onclick="handleCode()">Continuer →</button>
+      <div class="divider"></div>
+      <button class="btn btn-ghost btn-full btn-sm" onclick="showLS('admin')">🔑 Accès administrateur</button>
+    </div>
+
+    <!-- Étape 2 : activation (1er accès) -->
+    <div id="ls-activate" class="hidden">
+      <div class="text-center mb-2">
+        <div style="font-size:36px;margin-bottom:10px;">✨</div>
+        <div class="fw-bold" style="font-size:17px;">Premier accès</div>
+        <div class="text-sm text-muted mt-1" id="act-name"></div>
+      </div>
+      <p class="text-sm text-muted text-center mb-2">Choisis un PIN à 4 chiffres pour sécuriser ton compte.</p>
+      <div class="pins mb-2" id="pins-activate">
+        <input type="tel" maxlength="1" class="pin" id="a1">
+        <input type="tel" maxlength="1" class="pin" id="a2">
+        <input type="tel" maxlength="1" class="pin" id="a3">
+        <input type="tel" maxlength="1" class="pin" id="a4">
+      </div>
+      <button class="btn btn-gold btn-full btn-lg" onclick="handleActivate()">Activer mon compte 🎉</button>
+      <button class="btn btn-ghost btn-full btn-sm mt-1" onclick="backCode()">← Retour</button>
+    </div>
+
+    <!-- Étape 3 : connexion (compte existant) -->
+    <div id="ls-pin" class="hidden">
+      <div class="text-center mb-2">
+        <div style="font-size:36px;margin-bottom:10px;">👋</div>
+        <div class="fw-bold" style="font-size:17px;">Bon retour !</div>
+        <div class="text-sm text-muted mt-1" id="login-name"></div>
+      </div>
+      <div class="pins mb-2" id="pins-login">
+        <input type="tel" maxlength="1" class="pin" id="p1">
+        <input type="tel" maxlength="1" class="pin" id="p2">
+        <input type="tel" maxlength="1" class="pin" id="p3">
+        <input type="tel" maxlength="1" class="pin" id="p4">
+      </div>
+      <button class="btn btn-gold btn-full btn-lg" onclick="handleLogin()">Se connecter</button>
+      <button class="btn btn-ghost btn-full btn-sm mt-1" onclick="backCode()">← Retour</button>
+    </div>
+
+    <!-- Accès admin -->
+    <div id="ls-admin" class="hidden">
+      <div class="text-center mb-2">
+        <div style="font-size:36px;margin-bottom:10px;">🔑</div>
+        <div class="fw-bold" style="font-size:17px;">Espace Admin</div>
+      </div>
+      <div class="fgroup">
+        <label class="flabel">Mot de passe</label>
+        <input type="password" class="finput" id="inp-adminpwd" placeholder="••••••••">
+      </div>
+      <button class="btn btn-gold btn-full btn-lg" onclick="handleAdminLogin()">Accéder →</button>
+      <button class="btn btn-ghost btn-full btn-sm mt-1" onclick="backCode()">← Retour</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ================================================================
+     SCREEN: HOME
+     ================================================================ -->
+<div class="screen hidden" id="screen-home">
+  <div class="home-hero">
+    <div class="home-greeting">Salut, <span id="home-uname">toi</span> 👋</div>
+    <div class="home-sub">Soirée cinéma tous les mercredis soir</div>
+  </div>
+
+  <div class="home-section" style="margin-top:20px;">
+    <div class="home-section-title">🎟 Prochaine séance</div>
+    <div id="home-next-session"></div>
+  </div>
+
+  <div class="home-section" style="margin-top:20px;">
+    <div class="home-section-title">Actions rapides</div>
+    <div class="quick-grid">
+      <button class="quick-btn" onclick="navigateTo('films')">
+        <span class="qicon">🗳️</span>
+        <span class="qlabel">Films en vote</span>
+        <span class="qsub">Voter pour un film</span>
+      </button>
+      <button class="quick-btn" onclick="navigateTo('propose')">
+        <span class="qicon">💡</span>
+        <span class="qlabel">Proposer</span>
+        <span class="qsub">Suggérer un film</span>
+      </button>
+      <button class="quick-btn" onclick="navigateTo('session')">
+        <span class="qicon">🎟️</span>
+        <span class="qlabel">S'inscrire</span>
+        <span class="qsub">Réserver sa place</span>
+      </button>
+      <button class="quick-btn" onclick="logout()">
+        <span class="qicon">👤</span>
+        <span class="qlabel">Déconnexion</span>
+        <span class="qsub">Changer de compte</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     SCREEN: FILMS (vote)
+     ================================================================ -->
+<div class="screen hidden" id="screen-films">
+  <div class="s-header">
+    <h1>🎬 Films en vote</h1>
+  </div>
+  <div class="films-list" id="films-list">
+    <div class="loader"><div class="spinner"></div></div>
+  </div>
+</div>
+
+<!-- ================================================================
+     SCREEN: FILM DETAIL
+     ================================================================ -->
+<div class="screen hidden" id="screen-film-detail">
+  <div class="s-header">
+    <button class="back" onclick="goBack()">←</button>
+    <h1 id="detail-htitle">Film</h1>
+  </div>
+  <div id="film-detail-content"></div>
+</div>
+
+<!-- ================================================================
+     SCREEN: PROPOSE
+     ================================================================ -->
+<div class="screen hidden" id="screen-propose">
+  <div class="s-header">
+    <h1>💡 Proposer un film</h1>
+  </div>
+  <div class="propose-body">
+    <p class="text-sm text-muted mb-2">Recherche un film et propose-le. L'admin le validera avant qu'il apparaisse.</p>
+
+    <div class="fgroup">
+      <label class="flabel">Rechercher</label>
+      <div style="display:flex;gap:8px;">
+        <input type="text" class="finput" id="prop-search" placeholder="Titre du film..." style="flex:1;">
+        <button class="btn btn-gold" onclick="searchTMDB('prop')">🔍</button>
+      </div>
+    </div>
+
+    <div id="prop-results" class="tmdb-results"></div>
+
+    <div id="prop-selected" class="hidden">
+      <div class="divider"></div>
+      <div style="display:flex;gap:13px;align-items:flex-start;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:13px;margin-bottom:14px;">
+        <img id="prop-poster" src="" style="width:50px;height:75px;object-fit:cover;border-radius:5px;" alt="">
+        <div>
+          <div class="fw-bold" id="prop-title-disp">—</div>
+          <div class="text-sm text-muted" id="prop-year-disp">—</div>
+        </div>
+      </div>
+      <div class="fgroup">
+        <label class="flabel">Message (optionnel)</label>
+        <textarea class="ftextarea" id="prop-msg" placeholder="Pourquoi ce film ? Un événement particulier ?"></textarea>
+      </div>
+      <button class="btn btn-gold btn-full btn-lg" onclick="submitProposal()">Envoyer ma proposition ✉️</button>
+    </div>
+
+    <div id="prop-manual" class="hidden">
+      <div class="divider"></div>
+      <p class="text-sm text-muted mb-1">Pas de TMDB configuré — saisie manuelle :</p>
+      <div class="fgroup">
+        <label class="flabel">Titre du film</label>
+        <input type="text" class="finput" id="prop-manual-title" placeholder="Titre exact">
+      </div>
+      <button class="btn btn-gold btn-full" onclick="submitManualProposal()">Proposer ce film →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     SCREEN: SESSIONS / INSCRIPTION
+     ================================================================ -->
+<div class="screen hidden" id="screen-session">
+  <div class="s-header">
+    <h1>🎟️ Séances</h1>
+  </div>
+  <div class="sessions-body" id="sessions-body">
+    <div class="loader"><div class="spinner"></div></div>
+  </div>
+</div>
+
+<!-- ================================================================
+     SCREEN: ADMIN
+     ================================================================ -->
+<div class="screen no-nav hidden" id="screen-admin">
+  <div class="s-header">
+    <h1>⚙️ Administration</h1>
+    <button class="btn btn-ghost btn-sm" onclick="logout()">Déconnexion</button>
+  </div>
+
+  <div class="admin-tabs" id="admin-tabs">
+    <button class="admin-tab active" onclick="aTab('films')">🎬 Films</button>
+    <button class="admin-tab" onclick="aTab('votes')">🗳️ Votes</button>
+    <button class="admin-tab" onclick="aTab('proposals')">💡 Propositions</button>
+    <button class="admin-tab" onclick="aTab('sessions')">🎟️ Séances</button>
+    <button class="admin-tab" onclick="aTab('students')">👥 Élèves</button>
+  </div>
+
+  <div class="admin-panels-container">
+
+    <!-- Films panel -->
+    <div class="admin-panel" id="ap-films">
+      <div class="admin-panel-title">
+        Films actifs
+        <button class="btn btn-gold btn-sm" onclick="openModal('modal-add-film')">+ Ajouter</button>
+      </div>
+      <div class="admin-list" id="admin-films-list"><div class="loader"><div class="spinner"></div></div></div>
+    </div>
+
+    <!-- Votes panel -->
+    <div class="admin-panel hidden" id="ap-votes">
+      <div class="admin-panel-title" style="flex-direction:column;align-items:flex-start;gap:4px;">
+        Résultats des votes
+        <span class="text-sm text-muted" style="font-weight:400;">Non visible par les élèves</span>
+      </div>
+      <div class="admin-list" id="admin-votes-list"><div class="loader"><div class="spinner"></div></div></div>
+    </div>
+
+    <!-- Proposals panel -->
+    <div class="admin-panel hidden" id="ap-proposals">
+      <div class="admin-panel-title">Propositions élèves</div>
+      <div class="admin-list" id="admin-proposals-list"><div class="loader"><div class="spinner"></div></div></div>
+    </div>
+
+    <!-- Sessions panel -->
+    <div class="admin-panel hidden" id="ap-sessions">
+      <div class="admin-panel-title">
+        Séances cinéma
+        <button class="btn btn-gold btn-sm" onclick="openModal('modal-create-session')">+ Créer</button>
+      </div>
+      <div class="admin-list" id="admin-sessions-list"><div class="loader"><div class="spinner"></div></div></div>
+    </div>
+
+    <!-- Students panel -->
+    <div class="admin-panel hidden" id="ap-students">
+      <div class="admin-panel-title" style="flex-direction:column;align-items:flex-start;gap:4px;">
+        Gestion des élèves
+        <span class="text-sm text-muted" style="font-weight:400;">Format CSV attendu : <code>prénom,nom,classe</code></span>
+      </div>
+
+      <div class="card" style="margin-bottom:18px;">
+        <div class="card-body">
+          <div class="fgroup">
+            <label class="flabel">Année scolaire</label>
+            <input type="text" class="finput" id="imp-year" placeholder="2024-2025">
+          </div>
+          <div class="fgroup">
+            <label class="flabel">Données CSV</label>
+            <textarea class="ftextarea" id="csv-data" rows="5"
+              placeholder="Jean,Dupont,Terminale A&#10;Marie,Martin,Première B&#10;..."></textarea>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <input type="file" id="csv-file" accept=".csv,.txt" style="display:none;" onchange="onCSVFile(event)">
+            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('csv-file').click()">📁 Charger fichier</button>
+            <button class="btn btn-gold" onclick="importStudents()">Importer les élèves ↑</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="admin-panel-title" id="students-count-label">
+        Élèves
+        <button class="btn btn-ghost btn-sm" onclick="exportCodes()">⬇ Codes CSV</button>
+      </div>
+      <div class="scroll-x">
+        <table class="stbl">
+          <thead><tr><th>Nom / Prénom</th><th>Classe</th><th>Code</th><th>Statut</th></tr></thead>
+          <tbody id="students-tbody"><tr><td colspan="4" style="text-align:center;color:var(--text-3);padding:20px;">Chargement...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /admin-panels-container -->
+</div><!-- /screen-admin -->
+
+<!-- ================================================================
+     BOTTOM NAV
+     ================================================================ -->
+<nav id="bottom-nav" class="hidden">
+  <button class="nav-btn active" id="nav-home" onclick="navigateTo('home')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
+    Accueil
+  </button>
+  <button class="nav-btn" id="nav-films" onclick="navigateTo('films')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="2" y="2" width="20" height="20" rx="2" ry="2"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/><line x1="17" y1="17" x2="22" y2="17"/></svg>
+    Films
+  </button>
+  <button class="nav-btn" id="nav-propose" onclick="navigateTo('propose')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+    Proposer
+  </button>
+  <button class="nav-btn" id="nav-session" onclick="navigateTo('session')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+    Séances
+  </button>
+</nav>
+
+<!-- ================================================================
+     MODAL: Ajouter un film
+     ================================================================ -->
+<div class="overlay hidden" id="modal-add-film">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Ajouter un film</div>
+
+    <div class="fgroup">
+      <label class="flabel">Rechercher via TMDB</label>
+      <div style="display:flex;gap:8px;">
+        <input type="text" class="finput" id="admin-film-search" placeholder="Titre du film..." style="flex:1;">
+        <button class="btn btn-gold" onclick="searchTMDB('admin')">🔍</button>
+      </div>
+    </div>
+    <div id="admin-tmdb-results" class="tmdb-results" style="margin-bottom:10px;"></div>
+
+    <div class="divider" style="margin:12px 0;"></div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;">
+      <div class="fgroup" style="grid-column:1/-1;">
+        <label class="flabel">Titre *</label>
+        <input type="text" class="finput" id="af-title">
+      </div>
+      <div class="fgroup">
+        <label class="flabel">Année</label>
+        <input type="number" class="finput" id="af-year" placeholder="2024">
+      </div>
+      <div class="fgroup">
+        <label class="flabel">Durée (min)</label>
+        <input type="number" class="finput" id="af-duration" placeholder="120">
+      </div>
+      <div class="fgroup" style="grid-column:1/-1;">
+        <label class="flabel">Genre(s)</label>
+        <input type="text" class="finput" id="af-genre" placeholder="Action, Comédie…">
+      </div>
+      <div class="fgroup" style="grid-column:1/-1;">
+        <label class="flabel">Synopsis</label>
+        <textarea class="ftextarea" id="af-synopsis"></textarea>
+      </div>
+      <div class="fgroup" style="grid-column:1/-1;">
+        <label class="flabel">URL Affiche</label>
+        <input type="text" class="finput" id="af-poster" placeholder="https://…">
+      </div>
+    </div>
+    <input type="hidden" id="af-tmdbid">
+
+    <div style="display:flex;gap:10px;margin-top:4px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('modal-add-film')">Annuler</button>
+      <button class="btn btn-gold" style="flex:1;" onclick="saveFilm()">Ajouter ✅</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     MODAL: Créer une séance
+     ================================================================ -->
+<div class="overlay hidden" id="modal-create-session">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Créer une séance</div>
+
+    <div class="fgroup">
+      <label class="flabel">Date *</label>
+      <input type="date" class="finput" id="ses-date">
+    </div>
+    <div class="fgroup">
+      <label class="flabel">Film diffusé</label>
+      <select class="finput fselect" id="ses-film"><option value="">— À définir —</option></select>
+    </div>
+    <div class="fgroup">
+      <label class="flabel">Capacité max</label>
+      <input type="number" class="finput" id="ses-capacity" value="50">
+    </div>
+    <div class="fgroup">
+      <label class="flabel">Notes internes</label>
+      <textarea class="ftextarea" id="ses-notes" placeholder="Ex : Salle B, Popcorn prévu…"></textarea>
+    </div>
+    <div class="fgroup" style="display:flex;align-items:center;gap:10px;">
+      <input type="checkbox" id="ses-open" style="width:18px;height:18px;accent-color:var(--gold);cursor:pointer;">
+      <label for="ses-open" style="font-size:14px;cursor:pointer;">Ouvrir les inscriptions maintenant</label>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-top:6px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('modal-create-session')">Annuler</button>
+      <button class="btn btn-gold" style="flex:1;" onclick="saveSession()">Créer ✅</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     MODAL: Inscrits d'une séance
+     ================================================================ -->
+<div class="overlay hidden" id="modal-registrants">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="modal-reg-title">Inscrits</div>
+    <div id="registrants-content"></div>
+    <button class="btn btn-ghost btn-full mt-2" onclick="closeModal('modal-registrants')">Fermer</button>
+  </div>
+</div>
+
+<!-- ================================================================
+     MODAL: Éditer une séance (admin)
+     ================================================================ -->
+<div class="overlay hidden" id="modal-edit-session">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Modifier la séance</div>
+    <div class="fgroup">
+      <label class="flabel">Film diffusé</label>
+      <select class="finput fselect" id="edit-ses-film"><option value="">— À définir —</option></select>
+    </div>
+    <input type="hidden" id="edit-ses-id">
+    <div style="display:flex;gap:10px;margin-top:6px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('modal-edit-session')">Annuler</button>
+      <button class="btn btn-gold" style="flex:1;" onclick="saveEditSession()">Enregistrer ✅</button>
+    </div>
+  </div>
+</div>
+
+</div><!-- /app -->
+
+<script>
+/* ================================================================
+   CONFIGURATION — modifie ces 4 valeurs avant de déployer
+   ================================================================ */
+const CFG = {
+  SUPABASE_URL:     'https://xvaqvgbiglxsisxsuhdo.supabase.co',    // ← remplace
+  SUPABASE_ANON:    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2YXF2Z2JpZ2x4c2lzeHN1aGRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1OTkwODIsImV4cCI6MjA5MTE3NTA4Mn0.E_811Ht31kpydQTOJujKEZYEECPwtkRThHUYal9rhDM',                       // ← remplace
+  TMDB_KEY:         'c42aea9ea8ccc44cf07e4c965694301b',                               // ← optionnel mais recommandé
+  ADMIN_PWD:        'frejusniceMh*',                     // ← change!
+  SCHOOL_YEAR:      '2024-2025',
+};
+
+/* ================================================================
+   SUPABASE
+   ================================================================ */
+const { createClient } = window.supabase;
+const db = createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON);
+
+/* ================================================================
+   STATE
+   ================================================================ */
+const S = {
+  user: null,       // { id, firstName, lastName, className }
+  isAdmin: false,
+  screen: 'login',
+  prevScreen: null,
+  films: [],
+  votes: new Set(),  // film ids the user voted for
+};
+
+let _tmpStudent = null;
+
+/* ================================================================
+   UTILS
+   ================================================================ */
+function toast(msg, type = '', dur = 3200) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'show' + (type ? ' ' + type : '');
+  setTimeout(() => t.className = '', dur);
+}
+
+async function sha256(str) {
+  const buf = await crypto.subtle.digest('SHA-256',
+    new TextEncoder().encode(str + '__ci_salt_2025__'));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+function genCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let c = 'CI';
+  for (let i = 0; i < 6; i++) c += chars[Math.floor(Math.random() * chars.length)];
+  return c;
+}
+
+function fmtDate(str) {
+  // str is YYYY-MM-DD
+  const d = new Date(str + 'T12:00:00');
+  return d.toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+}
+
+function fmtDateShort(str) {
+  const d = new Date(str + 'T12:00:00');
+  return d.toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric' });
+}
+
+function nextWednesday() {
+  const d = new Date();
+  const day = d.getDay();
+  const diff = ((3 - day) + 7) % 7 || 7;
+  d.setDate(d.getDate() + diff);
+  return d.toISOString().split('T')[0];
+}
+
+function saveLocal() {
+  localStorage.setItem('ci_user', JSON.stringify(S.user));
+  localStorage.setItem('ci_admin', S.isAdmin ? '1' : '');
+}
+
+function loadLocal() {
+  try {
+    const u = localStorage.getItem('ci_user');
+    if (u) S.user = JSON.parse(u);
+    S.isAdmin = !!localStorage.getItem('ci_admin');
+  } catch(e) {}
+}
+
+/* ================================================================
+   NAVIGATION
+   ================================================================ */
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+  document.getElementById('screen-' + id).classList.remove('hidden');
+  S.prevScreen = S.screen;
+  S.screen = id;
+
+  const nav = document.getElementById('bottom-nav');
+  const isStudent = !S.isAdmin && id !== 'login' && id !== 'admin';
+  nav.classList.toggle('hidden', !isStudent);
+
+  // Update nav active state
+  ['home','films','propose','session'].forEach(n => {
+    const el = document.getElementById('nav-' + n);
+    if (el) el.classList.toggle('active', n === id);
+  });
+
+  window.scrollTo(0, 0);
+}
+
+async function navigateTo(id) {
+  showScreen(id);
+  switch(id) {
+    case 'home':    await loadHome(); break;
+    case 'films':   await loadFilms(); break;
+    case 'propose': initPropose(); break;
+    case 'session': await loadSessions(); break;
+    case 'admin':   await loadAdmin(); break;
+  }
+}
+
+function goBack() {
+  if (S.prevScreen) navigateTo(S.prevScreen); else navigateTo('home');
+}
+
+/* ================================================================
+   AUTH
+   ================================================================ */
+function showLS(id) {
+  ['ls-code','ls-activate','ls-pin','ls-admin'].forEach(i =>
+    document.getElementById(i).classList.toggle('hidden', i !== 'ls-' + id));
+  if (id === 'code') return;
+  if (id === 'activate') setupPins('a1','a2','a3','a4');
+  if (id === 'pin')      setupPins('p1','p2','p3','p4');
+  if (id === 'admin')    setTimeout(() => document.getElementById('inp-adminpwd').focus(), 80);
+}
+
+function backCode() { showLS('code'); }
+
+function setupPins(...ids) {
+  ids.forEach((id, i) => {
+    const el = document.getElementById(id);
+    el.value = '';
+    // Clone to remove old listeners
+    const clone = el.cloneNode(true);
+    el.parentNode.replaceChild(clone, el);
+    clone.addEventListener('input', () => {
+      clone.value = clone.value.replace(/\D/g,'').slice(-1);
+      if (clone.value && i < ids.length - 1)
+        document.getElementById(ids[i+1]).focus();
+    });
+    clone.addEventListener('keydown', e => {
+      if (e.key === 'Backspace' && !clone.value && i > 0)
+        document.getElementById(ids[i-1]).focus();
+    });
+    if (i === 0) setTimeout(() => clone.focus(), 80);
+  });
+}
+
+function getPin(...ids) {
+  return ids.map(id => document.getElementById(id).value).join('');
+}
+
+async function handleCode() {
+  const code = document.getElementById('inp-code').value.trim().toUpperCase();
+  if (!code) { toast('Entre ton code d\'accès', 'error'); return; }
+
+  const { data, error } = await db
+    .from('students').select('*')
+    .eq('activation_code', code)
+    .eq('is_active', true)
+    .single();
+
+  if (error || !data) { toast('Code inconnu ou invalide', 'error'); return; }
+
+  _tmpStudent = data;
+
+  if (!data.is_activated) {
+    document.getElementById('act-name').textContent =
+      `Bienvenue ${data.first_name} ${data.last_name} !`;
+    showLS('activate');
+  } else {
+    document.getElementById('login-name').textContent =
+      `${data.first_name} ${data.last_name}`;
+    showLS('pin');
+  }
+}
+
+async function handleActivate() {
+  const pin = getPin('a1','a2','a3','a4');
+  if (pin.length !== 4) { toast('PIN à 4 chiffres requis', 'error'); return; }
+
+  const hash = await sha256(pin);
+  const { error } = await db.from('students').update({
+    is_activated: true,
+    password_hash: hash,
+    activated_at: new Date().toISOString()
+  }).eq('id', _tmpStudent.id);
+
+  if (error) { toast('Erreur d\'activation', 'error'); return; }
+  loginAs(_tmpStudent);
+  toast('Compte activé ! Bienvenue 🎉', 'success');
+}
+
+async function handleLogin() {
+  const pin = getPin('p1','p2','p3','p4');
+  if (pin.length !== 4) { toast('Entre ton PIN à 4 chiffres', 'error'); return; }
+
+  const hash = await sha256(pin);
+  if (hash !== _tmpStudent.password_hash) { toast('PIN incorrect', 'error'); return; }
+
+  loginAs(_tmpStudent);
+  toast(`Bon retour, ${_tmpStudent.first_name} 👋`, 'success');
+}
+
+function handleAdminLogin() {
+  const pwd = document.getElementById('inp-adminpwd').value;
+  if (pwd === CFG.ADMIN_PWD) {
+    S.isAdmin = true;
+    S.user = { id: 'admin', firstName: 'Admin', lastName: '', className: '' };
+    saveLocal();
+    navigateTo('admin');
+    toast('Espace admin 🔑', 'success');
+  } else {
+    toast('Mot de passe incorrect', 'error');
+  }
+}
+
+function loginAs(student) {
+  S.user = { id: student.id, firstName: student.first_name, lastName: student.last_name, className: student.class_name };
+  S.isAdmin = false;
+  saveLocal();
+  navigateTo('home');
+}
+
+function logout() {
+  S.user = null; S.isAdmin = false; S.films = []; S.votes = new Set();
+  localStorage.removeItem('ci_user'); localStorage.removeItem('ci_admin');
+  _tmpStudent = null;
+  showLS('code');
+  document.getElementById('inp-code').value = '';
+  document.getElementById('inp-adminpwd').value = '';
+  showScreen('login');
+}
+
+/* ================================================================
+   HOME
+   ================================================================ */
+async function loadHome() {
+  document.getElementById('home-uname').textContent = S.user?.firstName || 'toi';
+
+  const today = new Date().toISOString().split('T')[0];
+  const { data } = await db.from('cinema_sessions')
+    .select('*, films(title)')
+    .gte('session_date', today)
+    .order('session_date', { ascending: true })
+    .limit(1);
+
+  const el = document.getElementById('home-next-session');
+
+  if (!data?.length) {
+    el.innerHTML = `<div class="session-banner">
+      <div class="session-banner-date">Prochaine séance</div>
+      <div class="session-banner-film" style="color:var(--text-2);font-style:italic;">Aucune séance planifiée</div>
+    </div>`;
+    return;
+  }
+  const s = data[0];
+  el.innerHTML = `<div class="session-banner" onclick="navigateTo('session')">
+    <div class="session-banner-date">📅 ${fmtDateShort(s.session_date)}</div>
+    <div class="session-banner-film">${s.films?.title || '🎬 Film à annoncer'}</div>
+    <span class="badge ${s.registrations_open ? 'badge-green' : 'badge-muted'}">
+      ${s.registrations_open ? '✅ Inscriptions ouvertes' : '⏸ Inscriptions fermées'}
+    </span>
+  </div>`;
+}
+
+/* ================================================================
+   FILMS (student)
+   ================================================================ */
+async function loadFilms() {
+  const list = document.getElementById('films-list');
+  list.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
+
+  const [{ data: films }, { data: votes }] = await Promise.all([
+    db.from('films').select('*').eq('status','active').order('added_at', { ascending: false }),
+    S.user ? db.from('votes').select('film_id').eq('student_id', S.user.id) : { data: [] }
+  ]);
+
+  S.films = films || [];
+  S.votes = new Set((votes || []).map(v => v.film_id));
+  renderFilms();
+}
+
+function renderFilms() {
+  const list = document.getElementById('films-list');
+  if (!S.films.length) {
+    list.innerHTML = `<div class="empty"><div class="icon">🎬</div><h3>Aucun film disponible</h3><p>Des films seront bientôt proposés. Revenez vite !</p></div>`;
+    return;
+  }
+
+  list.innerHTML = S.films.map(f => {
+    const v = S.votes.has(f.id);
+    return `<div class="film-card">
+      <div class="film-card-poster" onclick="openDetail('${f.id}')">
+        ${f.poster_url
+          ? `<img src="${f.poster_url}" alt="${f.title}" loading="lazy" style="height:132px;">`
+          : `<div class="no-poster">🎬</div>`}
+      </div>
+      <div class="film-card-body">
+        <div class="film-card-title" onclick="openDetail('${f.id}')">${f.title}</div>
+        <div class="film-card-meta">
+          ${f.year ? `<span>${f.year}</span>` : ''}
+          ${f.genre ? `<span>· ${f.genre}</span>` : ''}
+          ${f.duration ? `<span>· ${f.duration} min</span>` : ''}
+        </div>
+        <div class="film-card-synopsis">${f.synopsis || 'Synopsis indisponible.'}</div>
+        <div class="film-card-actions">
+          <button class="btn btn-sm btn-ghost" onclick="openDetail('${f.id}')">Voir →</button>
+          <button class="btn btn-sm ${v ? 'btn-vote-on' : 'btn-vote-off'}"
+                  id="vbtn-${f.id}"
+                  onclick="toggleVote('${f.id}')">
+            ${v ? '★ Voté' : '☆ Voter'}
+          </button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function toggleVote(filmId) {
+  const btn = document.getElementById('vbtn-' + filmId);
+  if (btn) btn.disabled = true;
+
+  const had = S.votes.has(filmId);
+
+  if (had) {
+    await db.from('votes').delete()
+      .eq('student_id', S.user.id).eq('film_id', filmId);
+    S.votes.delete(filmId);
+    toast('Vote retiré');
+  } else {
+    const { error } = await db.from('votes').insert({ student_id: S.user.id, film_id: filmId });
+    if (!error) {
+      S.votes.add(filmId);
+      toast('Vote enregistré 🗳️', 'success');
+    }
+  }
+
+  // Update film list button
+  const newHas = S.votes.has(filmId);
+  if (btn) {
+    btn.className = `btn btn-sm ${newHas ? 'btn-vote-on' : 'btn-vote-off'}`;
+    btn.textContent = newHas ? '★ Voté' : '☆ Voter';
+    btn.disabled = false;
+  }
+
+  // Update detail button if visible
+  const dBtn = document.getElementById('detail-vbtn');
+  if (dBtn && S.screen === 'film-detail') {
+    dBtn.className = `btn btn-full btn-lg ${newHas ? 'btn-vote-on' : 'btn-vote-off'}`;
+    dBtn.textContent = newHas ? '★ Tu as voté pour ce film' : '☆ Voter pour ce film';
+  }
+}
+
+/* ================================================================
+   FILM DETAIL
+   ================================================================ */
+function openDetail(filmId) {
+  const f = S.films.find(x => x.id === filmId);
+  if (!f) return;
+
+  document.getElementById('detail-htitle').textContent = f.title;
+  const v = S.votes.has(f.id);
+
+  document.getElementById('film-detail-content').innerHTML = `
+    <div class="detail-poster-wrap">
+      ${f.poster_url
+        ? `<img src="${f.poster_url}" class="detail-poster" alt="${f.title}">`
+        : `<div class="detail-poster-placeholder">🎬</div>`}
+      <div class="detail-gradient"></div>
+    </div>
+    <div class="detail-body">
+      <div class="detail-title">${f.title}</div>
+      <div class="detail-meta">
+        ${f.year ? `<span class="badge badge-muted">${f.year}</span>` : ''}
+        ${f.genre ? `<span class="badge badge-muted">${f.genre}</span>` : ''}
+        ${f.duration ? `<span class="badge badge-muted">${f.duration} min</span>` : ''}
+      </div>
+      <div class="detail-synopsis">${f.synopsis || 'Aucun synopsis disponible pour ce film.'}</div>
+      <button class="btn btn-full btn-lg ${v ? 'btn-vote-on' : 'btn-vote-off'}"
+              id="detail-vbtn"
+              onclick="toggleVote('${f.id}')">
+        ${v ? '★ Tu as voté pour ce film' : '☆ Voter pour ce film'}
+      </button>
+    </div>`;
+
+  showScreen('film-detail');
+}
+
+/* ================================================================
+   PROPOSE (student)
+   ================================================================ */
+let _selectedFilm = null;
+
+function initPropose() {
+  _selectedFilm = null;
+  document.getElementById('prop-search').value = '';
+  document.getElementById('prop-results').innerHTML = '';
+  document.getElementById('prop-selected').classList.add('hidden');
+  document.getElementById('prop-manual').classList.toggle('hidden', !!CFG.TMDB_KEY);
+  if (!CFG.TMDB_KEY) document.getElementById('prop-manual').classList.remove('hidden');
+}
+
+async function searchTMDB(ctx) {
+  const isAdmin = ctx === 'admin';
+  const inputId = isAdmin ? 'admin-film-search' : 'prop-search';
+  const resultsId = isAdmin ? 'admin-tmdb-results' : 'prop-results';
+
+  const q = document.getElementById(inputId).value.trim();
+  if (!q) return;
+
+  if (!CFG.TMDB_KEY) {
+    toast('Clé TMDB non configurée' + (isAdmin ? '' : ' — utilise la saisie manuelle'));
+    if (!isAdmin) document.getElementById('prop-manual').classList.remove('hidden');
+    return;
+  }
+
+  const el = document.getElementById(resultsId);
+  el.innerHTML = '<div class="loader" style="padding:20px;"><div class="spinner"></div></div>';
+
+  try {
+    const r = await fetch(
+      `https://api.themoviedb.org/3/search/movie?api_key=${CFG.TMDB_KEY}&query=${encodeURIComponent(q)}&language=fr-FR`
+    );
+    const data = await r.json();
+    const items = (data.results || []).slice(0, 5);
+
+    if (!items.length) { el.innerHTML = '<p class="text-sm text-muted text-center" style="padding:16px;">Aucun résultat</p>'; return; }
+
+    el.innerHTML = items.map(m => `
+      <div class="tmdb-card" onclick="${isAdmin ? `fillAdminForm(${encodeURIComponent(JSON.stringify(m))})` : `selectProposalFilm(${encodeURIComponent(JSON.stringify(m))})`}">
+        ${m.poster_path
+          ? `<img src="https://image.tmdb.org/t/p/w200${m.poster_path}" alt="">`
+          : `<div class="tmdb-noimg">🎬</div>`}
+        <div>
+          <h4>${m.title}</h4>
+          <p>${m.release_date ? m.release_date.split('-')[0] : ''}</p>
+          <div class="tmdb-ov">${m.overview || ''}</div>
+        </div>
+      </div>
+    `).join('');
+  } catch(e) {
+    el.innerHTML = '<p class="text-sm text-muted text-center" style="padding:16px;">Erreur de recherche</p>';
+  }
+}
+
+function selectProposalFilm(encoded) {
+  const m = JSON.parse(decodeURIComponent(encoded));
+  _selectedFilm = m;
+  const poster = m.poster_path ? `https://image.tmdb.org/t/p/w500${m.poster_path}` : '';
+  document.getElementById('prop-poster').src = poster;
+  document.getElementById('prop-title-disp').textContent = m.title;
+  document.getElementById('prop-year-disp').textContent = m.release_date ? m.release_date.split('-')[0] : '';
+  document.getElementById('prop-results').innerHTML = '';
+  document.getElementById('prop-search').value = m.title;
+  document.getElementById('prop-selected').classList.remove('hidden');
+}
+
+async function submitProposal() {
+  if (!_selectedFilm) { toast('Sélectionne un film d\'abord', 'error'); return; }
+  const m = _selectedFilm;
+  const { error } = await db.from('proposals').insert({
+    student_id: S.user.id,
+    title: m.title,
+    tmdb_id: m.id,
+    poster_url: m.poster_path ? `https://image.tmdb.org/t/p/w500${m.poster_path}` : null,
+    year: m.release_date ? parseInt(m.release_date.split('-')[0]) : null,
+    synopsis: m.overview || '',
+    status: 'pending'
+  });
+  if (error) { toast('Erreur lors de la proposition', 'error'); return; }
+  toast('Proposition envoyée ! L\'admin la validera 📨', 'success');
+  initPropose();
+}
+
+async function submitManualProposal() {
+  const title = document.getElementById('prop-manual-title').value.trim();
+  if (!title) { toast('Entre un titre', 'error'); return; }
+  const { error } = await db.from('proposals').insert({
+    student_id: S.user.id, title, status: 'pending'
+  });
+  if (error) { toast('Erreur', 'error'); return; }
+  toast('Proposition envoyée 📨', 'success');
+  document.getElementById('prop-manual-title').value = '';
+}
+
+/* ================================================================
+   SESSIONS (student)
+   ================================================================ */
+async function loadSessions() {
+  const body = document.getElementById('sessions-body');
+  body.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
+
+  const today = new Date().toISOString().split('T')[0];
+  const [{ data: sessions }, { data: myRegs }] = await Promise.all([
+    db.from('cinema_sessions').select('*, films(title)').gte('session_date', today).order('session_date'),
+    S.user ? db.from('registrations').select('session_id').eq('student_id', S.user.id) : { data: [] }
+  ]);
+
+  const regSet = new Set((myRegs || []).map(r => r.session_id));
+
+  if (!sessions?.length) {
+    body.innerHTML = `<div class="empty"><div class="icon">🎟️</div><h3>Aucune séance prévue</h3><p>Les prochaines séances seront annoncées ici.</p></div>`;
+    return;
+  }
+
+  body.innerHTML = sessions.map(s => {
+    const reg = regSet.has(s.id);
+    const open = s.registrations_open;
+    return `<div class="session-card-student">
+      <div class="sc-date">📅 ${fmtDateShort(s.session_date)}</div>
+      <div class="sc-film">${s.films?.title || '🎬 Film à annoncer'}</div>
+      <div class="sc-footer">
+        <span class="badge ${open ? 'badge-green' : 'badge-muted'}">${open ? 'Inscriptions ouvertes' : 'Fermées'}</span>
+        ${open
+          ? `<button class="btn btn-sm ${reg ? 'btn-red' : 'btn-gold'}" onclick="toggleReg('${s.id}', ${reg})">
+              ${reg ? '❌ Se désinscrire' : '✅ S\'inscrire'}
+             </button>`
+          : (reg ? `<span class="badge badge-green">✅ Inscrit(e)</span>` : '')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function toggleReg(sessionId, isReg) {
+  if (isReg) {
+    await db.from('registrations').delete()
+      .eq('student_id', S.user.id).eq('session_id', sessionId);
+    toast('Désinscription effectuée');
+  } else {
+    const { error } = await db.from('registrations').insert({ student_id: S.user.id, session_id: sessionId });
+    if (!error) toast('Inscription confirmée 🎉', 'success');
+  }
+  await loadSessions();
+}
+
+/* ================================================================
+   ADMIN — TAB SWITCHING
+   ================================================================ */
+const PANELS = ['films','votes','proposals','sessions','students'];
+
+function aTab(tab) {
+  PANELS.forEach((p, i) => {
+    document.querySelectorAll('.admin-tab')[i].classList.toggle('active', p === tab);
+    document.getElementById('ap-' + p).classList.toggle('hidden', p !== tab);
+  });
+  switch(tab) {
+    case 'films':     loadAdminFilms();     break;
+    case 'votes':     loadAdminVotes();     break;
+    case 'proposals': loadAdminProposals(); break;
+    case 'sessions':  loadAdminSessions();  break;
+    case 'students':  loadAdminStudents();  break;
+  }
+}
+
+async function loadAdmin() {
+  document.getElementById('imp-year').value = CFG.SCHOOL_YEAR;
+  aTab('films');
+}
+
+/* ================================================================
+   ADMIN — FILMS
+   ================================================================ */
+async function loadAdminFilms() {
+  const list = document.getElementById('admin-films-list');
+  list.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
+
+  const { data } = await db.from('films').select('*')
+    .in('status',['active','archived']).order('added_at', { ascending: false });
+
+  if (!data?.length) {
+    list.innerHTML = '<div class="empty"><div class="icon">🎬</div><h3>Aucun film</h3></div>'; return;
+  }
+
+  list.innerHTML = data.map(f => `
+    <div class="ai">
+      ${f.poster_url
+        ? `<img src="${f.poster_url}" class="ai-img" alt="">`
+        : `<div class="ai-img">🎬</div>`}
+      <div class="ai-info">
+        <div class="ai-title">${f.title}</div>
+        <div class="ai-sub">${f.year || ''} ${f.genre ? '· ' + f.genre : ''}</div>
+        <div><span class="badge ${f.status === 'active' ? 'badge-green' : 'badge-muted'}">${f.status === 'active' ? '● Actif' : '⊘ Archivé'}</span></div>
+      </div>
+      <div class="ai-actions">
+        ${f.status === 'active'
+          ? `<button class="btn btn-sm btn-ghost" onclick="setFilmStatus('${f.id}','archived')">Archiver</button>`
+          : `<button class="btn btn-sm btn-ghost" onclick="setFilmStatus('${f.id}','active')">Restaurer</button>`}
+        <button class="btn btn-sm btn-red" onclick="deleteFilm('${f.id}')">Suppr.</button>
+      </div>
+    </div>`).join('');
+}
+
+async function setFilmStatus(id, status) {
+  await db.from('films').update({ status }).eq('id', id);
+  toast(status === 'archived' ? 'Film archivé' : 'Film restauré', 'success');
+  loadAdminFilms();
+}
+
+async function deleteFilm(id) {
+  if (!confirm('Supprimer ce film définitivement ?')) return;
+  await db.from('films').delete().eq('id', id);
+  toast('Film supprimé');
+  loadAdminFilms();
+}
+
+async function fillAdminForm(encoded) {
+  const m = JSON.parse(decodeURIComponent(encoded));
+  let genre = '', duration = '';
+  if (CFG.TMDB_KEY) {
+    try {
+      const r = await fetch(`https://api.themoviedb.org/3/movie/${m.id}?api_key=${CFG.TMDB_KEY}&language=fr-FR`);
+      const d = await r.json();
+      genre = (d.genres || []).map(g => g.name).join(', ');
+      duration = d.runtime || '';
+    } catch(e) {}
+  }
+  document.getElementById('af-title').value    = m.title || '';
+  document.getElementById('af-year').value     = m.release_date ? m.release_date.split('-')[0] : '';
+  document.getElementById('af-duration').value = duration;
+  document.getElementById('af-genre').value    = genre;
+  document.getElementById('af-synopsis').value = m.overview || '';
+  document.getElementById('af-poster').value   = m.poster_path ? `https://image.tmdb.org/t/p/w500${m.poster_path}` : '';
+  document.getElementById('af-tmdbid').value   = m.id || '';
+  document.getElementById('admin-tmdb-results').innerHTML = '';
+  toast('Film sélectionné ✅');
+}
+
+async function saveFilm() {
+  const title = document.getElementById('af-title').value.trim();
+  if (!title) { toast('Titre obligatoire', 'error'); return; }
+
+  const { error } = await db.from('films').insert({
+    title,
+    year:      parseInt(document.getElementById('af-year').value) || null,
+    duration:  parseInt(document.getElementById('af-duration').value) || null,
+    genre:     document.getElementById('af-genre').value.trim() || null,
+    synopsis:  document.getElementById('af-synopsis').value.trim() || null,
+    poster_url: document.getElementById('af-poster').value.trim() || null,
+    tmdb_id:   parseInt(document.getElementById('af-tmdbid').value) || null,
+    status: 'active'
+  });
+
+  if (error) { toast('Erreur : ' + error.message, 'error'); return; }
+  closeModal('modal-add-film');
+  toast('Film ajouté 🎬', 'success');
+  loadAdminFilms();
+}
+
+/* ================================================================
+   ADMIN — VOTES
+   ================================================================ */
+async function loadAdminVotes() {
+  const list = document.getElementById('admin-votes-list');
+  list.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
+
+  const [{ data: films }, { data: votes }] = await Promise.all([
+    db.from('films').select('id,title,poster_url').eq('status','active'),
+    db.from('votes').select('film_id')
+  ]);
+
+  if (!films?.length) {
+    list.innerHTML = '<div class="empty"><div class="icon">🗳️</div><h3>Aucun film actif</h3></div>'; return;
+  }
+
+  const counts = {};
+  (votes || []).forEach(v => counts[v.film_id] = (counts[v.film_id] || 0) + 1);
+  const sorted = films.map(f => ({ ...f, n: counts[f.id] || 0 })).sort((a,b) => b.n - a.n);
+  const max = Math.max(...sorted.map(f => f.n), 1);
+
+  list.innerHTML = sorted.map((f, i) => `
+    <div class="vote-bar-row">
+      <div class="vbr-rank">${i + 1}</div>
+      <div class="vote-bar-poster">
+        ${f.poster_url ? `<img src="${f.poster_url}" alt="" style="width:100%;height:100%;object-fit:cover;">` : '🎬'}
+      </div>
+      <div class="vbr-info">
+        <div class="vbr-title">${f.title}</div>
+        <div class="vbar-track"><div class="vbar-fill" style="width:${Math.round(f.n/max*100)}%"></div></div>
+        <div class="vbar-count">${f.n} vote${f.n !== 1 ? 's' : ''}</div>
+      </div>
+    </div>`).join('');
+}
+
+/* ================================================================
+   ADMIN — PROPOSALS
+   ================================================================ */
+async function loadAdminProposals() {
+  const list = document.getElementById('admin-proposals-list');
+  list.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
+
+  const { data } = await db.from('proposals')
+    .select('*, students(first_name, last_name)')
+    .order('proposed_at', { ascending: false });
+
+  if (!data?.length) {
+    list.innerHTML = '<div class="empty"><div class="icon">💡</div><h3>Aucune proposition</h3></div>'; return;
+  }
+
+  list.innerHTML = data.map(p => `
+    <div class="ai">
+      ${p.poster_url ? `<img src="${p.poster_url}" class="ai-img" alt="">` : `<div class="ai-img">🎬</div>`}
+      <div class="ai-info">
+        <div class="ai-title">${p.title} ${p.year ? '(' + p.year + ')' : ''}</div>
+        <div class="ai-sub">Par ${p.students?.first_name || '?'} ${p.students?.last_name || ''}</div>
+        <span class="badge ${p.status === 'pending' ? 'badge-gold' : p.status === 'accepted' ? 'badge-green' : 'badge-red'}">
+          ${p.status === 'pending' ? '⏳ En attente' : p.status === 'accepted' ? '✅ Accepté' : '❌ Refusé'}
+        </span>
+        ${p.status === 'accepted'
+          ? `<button class="btn btn-sm btn-ghost mt-1" onclick="addProposalAsFilm('${p.id}','${p.title.replace(/'/g,"\\'")}','${p.tmdb_id||''}','${p.poster_url||''}',${p.year||'null'},'${(p.synopsis||'').replace(/'/g,"\\'").substring(0,200)}')">+ Ajouter au catalogue</button>`
+          : ''}
+      </div>
+      ${p.status === 'pending' ? `
+        <div class="ai-actions">
+          <button class="btn btn-sm btn-green" onclick="reviewProposal('${p.id}','accepted')">✅</button>
+          <button class="btn btn-sm btn-red" onclick="reviewProposal('${p.id}','rejected')">❌</button>
+        </div>` : ''}
+    </div>`).join('');
+}
+
+async function reviewProposal(id, status) {
+  await db.from('proposals').update({ status, reviewed_at: new Date().toISOString() }).eq('id', id);
+  toast(status === 'accepted' ? 'Proposition acceptée ✅' : 'Proposition refusée', status === 'accepted' ? 'success' : '');
+  loadAdminProposals();
+}
+
+async function addProposalAsFilm(id, title, tmdbId, poster, year, synopsis) {
+  const { error } = await db.from('films').insert({
+    title, tmdb_id: parseInt(tmdbId)||null, poster_url: poster||null,
+    year: year||null, synopsis: synopsis||null, status: 'active'
+  });
+  if (error) { toast('Erreur : ' + error.message, 'error'); return; }
+  toast('Film ajouté au catalogue 🎬', 'success');
+  loadAdminProposals();
+}
+
+/* ================================================================
+   ADMIN — SESSIONS
+   ================================================================ */
+async function loadAdminSessions() {
+  const list = document.getElementById('admin-sessions-list');
+  list.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
+
+  const [{ data: sessions }, { data: regs }] = await Promise.all([
+    db.from('cinema_sessions').select('*, films(title)').order('session_date', { ascending: false }),
+    db.from('registrations').select('session_id')
+  ]);
+
+  if (!sessions?.length) {
+    list.innerHTML = '<div class="empty"><div class="icon">🎟️</div><h3>Aucune séance</h3></div>'; return;
+  }
+
+  const rc = {};
+  (regs || []).forEach(r => rc[r.session_id] = (rc[r.session_id] || 0) + 1);
+
+  list.innerHTML = sessions.map(s => `
+    <div class="ai" style="flex-wrap:wrap;">
+      <div class="ai-info" style="width:100%;margin-bottom:8px;">
+        <div class="ai-title">${fmtDateShort(s.session_date)}</div>
+        <div class="ai-sub">${s.films?.title || '— Film non défini'}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:5px;">
+          <span class="badge ${s.registrations_open ? 'badge-green' : 'badge-muted'}">
+            ${s.registrations_open ? '✅ Ouvertes' : '⏸ Fermées'}
+          </span>
+          <span class="badge badge-muted">👥 ${rc[s.id]||0} inscrits</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button class="btn btn-sm btn-ghost" onclick="toggleSesOpen('${s.id}',${s.registrations_open})">
+          ${s.registrations_open ? 'Fermer inscrip.' : 'Ouvrir inscrip.'}
+        </button>
+        <button class="btn btn-sm btn-ghost" onclick="viewRegistrants('${s.id}','${s.session_date}')">👥 Inscrits</button>
+        <button class="btn btn-sm btn-ghost" onclick="openEditSession('${s.id}')">✏️ Film</button>
+        <button class="btn btn-sm btn-red" onclick="deleteSes('${s.id}')">Suppr.</button>
+      </div>
+    </div>`).join('');
+}
+
+async function toggleSesOpen(id, cur) {
+  await db.from('cinema_sessions').update({ registrations_open: !cur }).eq('id', id);
+  toast(!cur ? 'Inscriptions ouvertes ✅' : 'Inscriptions fermées', 'success');
+  loadAdminSessions();
+}
+
+async function viewRegistrants(sesId, date) {
+  const { data } = await db.from('registrations')
+    .select('*, students(first_name, last_name, class_name)')
+    .eq('session_id', sesId).order('registered_at');
+
+  document.getElementById('modal-reg-title').textContent = `Inscrits — ${fmtDateShort(date)}`;
+
+  const el = document.getElementById('registrants-content');
+  if (!data?.length) {
+    el.innerHTML = '<p class="text-muted text-center" style="padding:20px;">Aucun inscrit</p>';
+  } else {
+    el.innerHTML = `<p class="text-sm text-muted mb-1">${data.length} inscrit${data.length > 1 ? 's' : ''}</p>
+      <div style="display:flex;flex-direction:column;gap:7px;">
+        ${data.map(r => `<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--surface-2);border-radius:8px;">
+          <span style="font-weight:600;font-size:14px;">${r.students?.first_name} ${r.students?.last_name}</span>
+          <span class="badge badge-muted">${r.students?.class_name || '—'}</span>
+        </div>`).join('')}
+      </div>`;
+  }
+  openModal('modal-registrants');
+}
+
+async function openEditSession(id) {
+  document.getElementById('edit-ses-id').value = id;
+  const { data: films } = await db.from('films').select('id,title').eq('status','active');
+  const { data: ses } = await db.from('cinema_sessions').select('film_id').eq('id',id).single();
+  const sel = document.getElementById('edit-ses-film');
+  sel.innerHTML = '<option value="">— À définir —</option>' +
+    (films||[]).map(f => `<option value="${f.id}" ${ses?.film_id === f.id ? 'selected' : ''}>${f.title}</option>`).join('');
+  openModal('modal-edit-session');
+}
+
+async function saveEditSession() {
+  const id = document.getElementById('edit-ses-id').value;
+  const filmId = document.getElementById('edit-ses-film').value;
+  await db.from('cinema_sessions').update({ film_id: filmId || null }).eq('id', id);
+  closeModal('modal-edit-session');
+  toast('Séance mise à jour ✅', 'success');
+  loadAdminSessions();
+}
+
+async function deleteSes(id) {
+  if (!confirm('Supprimer cette séance ?')) return;
+  await db.from('cinema_sessions').delete().eq('id', id);
+  toast('Séance supprimée');
+  loadAdminSessions();
+}
+
+function openCreateSessionModal() {
+  document.getElementById('ses-date').value = nextWednesday();
+  document.getElementById('ses-open').checked = false;
+  document.getElementById('ses-notes').value = '';
+  document.getElementById('ses-capacity').value = '50';
+  db.from('films').select('id,title').eq('status','active').then(({ data }) => {
+    document.getElementById('ses-film').innerHTML = '<option value="">— À définir —</option>' +
+      (data||[]).map(f => `<option value="${f.id}">${f.title}</option>`).join('');
+  });
+  openModal('modal-create-session');
+}
+
+async function saveSession() {
+  const date = document.getElementById('ses-date').value;
+  if (!date) { toast('Sélectionne une date', 'error'); return; }
+  const { error } = await db.from('cinema_sessions').insert({
+    session_date: date,
+    film_id: document.getElementById('ses-film').value || null,
+    registrations_open: document.getElementById('ses-open').checked,
+    max_capacity: parseInt(document.getElementById('ses-capacity').value) || 50,
+    notes: document.getElementById('ses-notes').value.trim() || null
+  });
+  if (error) { toast('Erreur création', 'error'); return; }
+  closeModal('modal-create-session');
+  toast('Séance créée 🎟️', 'success');
+  loadAdminSessions();
+}
+
+/* ================================================================
+   ADMIN — STUDENTS
+   ================================================================ */
+async function loadAdminStudents() {
+  const year = document.getElementById('imp-year').value || CFG.SCHOOL_YEAR;
+  const { data } = await db.from('students').select('*')
+    .eq('school_year', year).order('last_name');
+
+  const tbody = document.getElementById('students-tbody');
+  if (!data?.length) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-3);padding:20px;">Aucun élève importé</td></tr>';
+    document.getElementById('students-count-label').innerHTML =
+      `Élèves <button class="btn btn-ghost btn-sm" onclick="exportCodes()">⬇ Codes CSV</button>`;
+    return;
+  }
+
+  const act = data.filter(s => s.is_activated).length;
+  document.getElementById('students-count-label').innerHTML =
+    `${data.length} élèves · ${act} activé${act > 1 ? 's' : ''}
+     <button class="btn btn-ghost btn-sm" onclick="exportCodes()">⬇ Codes CSV</button>`;
+
+  tbody.innerHTML = data.map(s => `
+    <tr>
+      <td>${s.last_name} ${s.first_name}</td>
+      <td>${s.class_name || '—'}</td>
+      <td><code>${s.activation_code}</code></td>
+      <td><span class="badge ${s.is_activated ? 'badge-green' : 'badge-muted'}">${s.is_activated ? '✓ Activé' : '○ Attente'}</span></td>
+    </tr>`).join('');
+}
+
+function onCSVFile(e) {
+  const f = e.target.files[0];
+  if (!f) return;
+  const r = new FileReader();
+  r.onload = ev => document.getElementById('csv-data').value = ev.target.result;
+  r.readAsText(f, 'UTF-8');
+}
+
+async function importStudents() {
+  const csv = document.getElementById('csv-data').value.trim();
+  const year = document.getElementById('imp-year').value.trim() || CFG.SCHOOL_YEAR;
+  if (!csv) { toast('Colle ou charge un fichier CSV', 'error'); return; }
+
+  const rows = [];
+  for (const line of csv.split('\n')) {
+    const parts = line.split(',').map(p => p.replace(/["']/g,'').trim());
+    if (parts.length < 2) continue;
+    const [fn, ln, cn] = parts;
+    // Skip header
+    if (['prénom','prenom','firstname','first_name','nom'].includes(fn.toLowerCase())) continue;
+    if (!fn || !ln) continue;
+    rows.push({ first_name: fn, last_name: ln, class_name: cn || null, school_year: year, activation_code: genCode(), is_activated: false, is_active: true });
+  }
+
+  if (!rows.length) { toast('Aucun élève détecté', 'error'); return; }
+
+  const { error } = await db.from('students').insert(rows);
+  if (error) { toast('Erreur : ' + error.message, 'error'); return; }
+
+  toast(`${rows.length} élève${rows.length > 1 ? 's' : ''} importé${rows.length > 1 ? 's' : ''} ✅`, 'success');
+  document.getElementById('csv-data').value = '';
+  loadAdminStudents();
+}
+
+function exportCodes() {
+  const year = document.getElementById('imp-year').value || CFG.SCHOOL_YEAR;
+  db.from('students').select('*').eq('school_year', year).order('last_name').then(({ data }) => {
+    if (!data?.length) { toast('Aucun élève à exporter'); return; }
+    const csv = 'Prénom,Nom,Classe,Code,Activé\n' +
+      data.map(s => `${s.first_name},${s.last_name},${s.class_name||''},${s.activation_code},${s.is_activated?'Oui':'Non'}`).join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob(['\uFEFF'+csv], { type:'text/csv;charset=utf-8;' }));
+    a.download = `codes-cinema-${year}.csv`;
+    a.click();
+    toast('Export téléchargé ⬇');
+  });
+}
+
+/* ================================================================
+   MODALS
+   ================================================================ */
+function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+document.querySelectorAll('.overlay').forEach(o =>
+  o.addEventListener('click', e => { if (e.target === o) o.classList.add('hidden'); })
+);
+
+/* ================================================================
+   KEYBOARD HELPERS
+   ================================================================ */
+document.getElementById('inp-code').addEventListener('keydown', e => { if (e.key === 'Enter') handleCode(); });
+document.getElementById('inp-adminpwd').addEventListener('keydown', e => { if (e.key === 'Enter') handleAdminLogin(); });
+document.getElementById('prop-search').addEventListener('keydown', e => { if (e.key === 'Enter') searchTMDB('prop'); });
+document.getElementById('admin-film-search').addEventListener('keydown', e => { if (e.key === 'Enter') searchTMDB('admin'); });
+
+/* ================================================================
+   INIT
+   ================================================================ */
+function init() {
+  loadLocal();
+  document.getElementById('imp-year').value = CFG.SCHOOL_YEAR;
+
+  if (S.user) {
+    if (S.isAdmin) navigateTo('admin');
+    else navigateTo('home');
+  } else {
+    showScreen('login');
+  }
+}
+
+init();
+</script>
+</body>
+</html>
