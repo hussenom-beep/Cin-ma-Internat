@@ -1544,18 +1544,21 @@ async function searchTMDB(ctx) {
 
     if (!items.length) { el.innerHTML = '<p class="text-sm text-muted text-center" style="padding:16px;">Aucun résultat</p>'; return; }
 
-    el.innerHTML = items.map(m => `
-		<div class="tmdb-card" onclick="${isAdmin ? `fillAdminForm('${encodeURIComponent(JSON.stringify(m))}')` : `selectProposalFilm('${encodeURIComponent(JSON.stringify(m))}')`}">
-        ${m.poster_path
-          ? `<img src="https://image.tmdb.org/t/p/w200${m.poster_path}" alt="">`
-          : `<div class="tmdb-noimg">🎬</div>`}
-        <div>
-          <h4>${m.title}</h4>
-          <p>${m.release_date ? m.release_date.split('-')[0] : ''}</p>
-          <div class="tmdb-ov">${m.overview || ''}</div>
-        </div>
+    el.innerHTML = items.map(m => {
+  const payload = encodeURIComponent(JSON.stringify(m)).replace(/'/g, '%27');
+  return `
+    <div class="tmdb-card" onclick="${isAdmin ? `fillAdminForm('${payload}')` : `selectProposalFilm('${payload}')`}">
+      ${m.poster_path
+        ? `<img src="https://image.tmdb.org/t/p/w200${m.poster_path}" alt="">`
+        : `<div class="tmdb-noimg">🎬</div>`}
+      <div>
+        <h4>${m.title}</h4>
+        <p>${m.release_date ? m.release_date.split('-')[0] : ''}</p>
+        <div class="tmdb-ov">${m.overview || ''}</div>
       </div>
-    `).join('');
+    </div>
+  `;
+}).join('');
   } catch(e) {
     el.innerHTML = '<p class="text-sm text-muted text-center" style="padding:16px;">Erreur de recherche</p>';
   }
