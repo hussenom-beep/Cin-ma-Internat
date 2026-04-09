@@ -1693,13 +1693,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
   </div>
 </div>
 
-<!-- ================================================================
-     MODAL: Zoom affiche plein écran
-     ================================================================ -->
-<div id="modal-poster-zoom" class="hidden" onclick="closeModal('modal-poster-zoom')">
-  <button class="pz-close" onclick="closeModal('modal-poster-zoom')">✕</button>
-  <img id="poster-zoom-img" src="" alt="">
-</div>
+
 
 <!-- ================================================================
      MODAL: Détail film d'une proposition (admin)
@@ -1708,8 +1702,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
   <div class="sheet">
     <div class="sheet-handle"></div>
     <div style="display:flex;gap:14px;align-items:flex-start;margin-bottom:16px;">
-      <img id="pd-poster" src="" alt="" style="width:70px;height:105px;object-fit:cover;border-radius:6px;background:var(--surface-2);flex-shrink:0;cursor:zoom-in;"
-           onclick="openPosterZoom(this.src)">
+      <img id="pd-poster" src="" alt="" style="width:70px;height:105px;object-fit:cover;border-radius:6px;background:var(--surface-2);flex-shrink:0;cursor:zoom-in;">
       <div>
         <div style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700;margin-bottom:5px;" id="pd-title">—</div>
         <div class="text-sm text-muted" id="pd-meta">—</div>
@@ -2597,12 +2590,82 @@ async function confirmAddFilm() {
   loadAdminFilms();
 }
 
-/* Zoom affiche plein écran */
-function openPosterZoom(url) {
-  if (!url) return;
-  document.getElementById('poster-zoom-img').src = url;
-  document.getElementById('modal-poster-zoom').classList.remove('hidden');
+let _proposalDraft = null;
+
+function confirmProposeFilm() {
+  if (!_tmdbMovie || !S.user) return;
+
+  const m = _tmdbMovie;
+  _proposalDraft = m;
+
+  const posterUrl = m.poster_path
+    ? `https://image.tmdb.org/t/p/w500${m.poster_path}`
+    : '';
+
+  const posterEl = document.getElementById('pconf-poster');
+  const titleEl  = document.getElementById('pconf-title');
+  const yearEl   = document.getElementById('pconf-year');
+  const commentEl = document.getElementById('pconf-comment');
+
+  posterEl.src = posterUrl;
+  posterEl.style.display = posterUrl ? '' : 'none';
+  titleEl.textContent = m.title || '—';
+  yearEl.textContent = m.release_date ? m.release_date.split('-')[0] : '';
+  commentEl.value = '';
+
+  openModal('modal-propose-confirm');
 }
+
+async function sendProposalConfirmed() {
+  if (!_proposalDraft || !S.user) {
+    toast('Aucun film sélectionné', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('pconf-submit');
+  const m = _proposalDraft;
+  const comment = (document.getElementById('pconf-comment')?.value || '').trim();
+
+  btn.disabled = true;
+  btn.textContent = 'Envoi…';
+
+  const dup = await _checkDuplicateData(m, 'student');
+  if (dup.blocked) {
+    btn.disabled = false;
+    btn.textContent = 'Envoyer ✉️';
+    closeModal('modal-propose-confirm');
+    toast('Ce film n’est plus disponible à la proposition', 'error');
+    return;
+  }
+
+  const { error } = await db.from('proposals').insert({
+    student_id: S.user.id,
+    title: m.title,
+    tmdb_id: m.id || null,
+    poster_url: m.poster_path ? `https://image.tmdb.org/t/p/w500${m.poster_path}` : null,
+    year: m.release_date ? parseInt(m.release_date.split('-')[0]) : null,
+    synopsis: m.overview || '',
+    status: 'pending',
+    student_comment: comment || null
+  });
+
+  btn.disabled = false;
+  btn.textContent = 'Envoyer ✉️';
+
+  if (error) {
+    toast('Erreur lors de la proposition', 'error');
+    return;
+  }
+
+  closeModal('modal-propose-confirm');
+  _proposalDraft = null;
+
+  toast('Proposition envoyée ! L’admin la validera 📨', 'success');
+
+  await loadStudentProposals();
+  navigateTo('propose');
+}
+
 
 /* Historique des propositions de l'élève — filtrées par statut */
 let _historyFilter = 'pending';
@@ -2639,7 +2702,7 @@ async function loadStudentProposals() {
   list.innerHTML = data.map(p => `
     <div class="history-item">
       ${p.poster_url
-        ? `<img src="${p.poster_url}" class="history-poster" alt="" onclick="openPosterZoom('${p.poster_url.replace(/'/g,'%27')}')" style="cursor:zoom-in;">`
+        ? `<img src="${p.poster_url}" class="history-poster" alt=">`
         : `<div class="history-poster-ph">🎬</div>`}
       <div class="history-info">
         <div class="history-film">${p.title}${p.year ? ` <span style="font-weight:400;color:var(--text-3);">(${p.year})</span>` : ''}</div>
@@ -3168,7 +3231,7 @@ async function loadAdminProposals() {
     <div class="ai">
       <div style="flex-shrink:0;">
         ${p.poster_url
-          ? `<img src="${p.poster_url}" class="ai-img" alt="" style="cursor:zoom-in;" onclick="openPosterZoom('${safeUrl}')">`
+          ? `<img src="${p.poster_url}" class="ai-img" alt="" style="cursor:zoom-in;>`
           : `<div class="ai-img">🎬</div>`}
       </div>
       <div class="ai-info">
@@ -3472,8 +3535,6 @@ function openModal(id) {
 }
 function closeModal(id) {
   document.getElementById(id).classList.add('hidden');
-  // Pour le zoom affiche : vider le src pour libérer la mémoire
-  if (id === 'modal-poster-zoom') document.getElementById('poster-zoom-img').src = '';
 }
 
 document.querySelectorAll('.overlay').forEach(o =>
