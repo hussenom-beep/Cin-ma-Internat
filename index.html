@@ -2421,8 +2421,9 @@ async function searchTMDB(ctx) {
 /* ----------------------------------------------------------------
    TMDB DETAIL — écran plein (élève) ou modal (admin)
    ---------------------------------------------------------------- */
-let _tmdbCtx   = null;
-let _tmdbMovie = null;
+let _tmdbCtx            = null;
+let _tmdbMovie          = null;
+let _tmdbProposalNote   = null;
 
 async function openTMDBDetail(tmdbId, ctx) {
   _tmdbCtx   = ctx;
@@ -2550,15 +2551,7 @@ async function _renderTMDBModal(detail, credits) {
   document.getElementById('tmdb-d-synopsis').textContent =
     detail.overview || 'Aucun synopsis disponible en français.';
 
-  const director = (credits.crew || []).find(c => c.job === 'Director');
-  const cast     = (credits.cast || []).slice(0, 6);
-  const crewEl   = document.getElementById('tmdb-d-crew');
-  crewEl.innerHTML = '';
-  if (director) crewEl.innerHTML += `<div class="tmdb-crew-row"><span class="tmdb-crew-label">Réalisateur</span><span>${director.name}</span></div>`;
-  if (cast.length) crewEl.innerHTML += `<div class="tmdb-crew-row"><span class="tmdb-crew-label">Avec</span>
-    <div class="tmdb-cast-chips">${cast.map(a => `<span class="tmdb-cast-chip">${a.name}</span>`).join('')}</div></div>`;
-
-  const actionBtn = document.getElementById('tmdb-d-action');
+	const actionBtn = document.getElementById('tmdb-d-action');
 	const dupEl = document.getElementById('tmdb-d-dupwarn');
 
 	const dup = await _checkDuplicateData(detail, 'admin');
@@ -3366,20 +3359,34 @@ async function acceptProposal(id) {
 }
 
 /* Voir la fiche d'une proposition */
-function openProposalDetail(id) {
+async function openProposalDetail(id) {
   const p = _proposalCache[id];
   if (!p) return;
+
+  // Si on a un TMDB id → vraie fiche TMDB admin
+  if (p.tmdb_id) {
+    _tmdbProposalNote = p.student_comment || null;
+    await openTMDBDetail(p.tmdb_id, 'admin');
+    return;
+  }
+
+  // Fallback ancienne petite fiche
+  _tmdbProposalNote = null;
   document.getElementById('pd-title').textContent    = p.title + (p.year ? ` (${p.year})` : '');
   document.getElementById('pd-meta').textContent     = [p.genre, p.duration ? p.duration + ' min' : ''].filter(Boolean).join(' · ') || '—';
   document.getElementById('pd-synopsis').textContent = p.synopsis || 'Aucun synopsis disponible.';
   const posterEl = document.getElementById('pd-poster');
   posterEl.src   = p.poster_url || '';
   posterEl.style.display = p.poster_url ? '' : 'none';
+
   const cb = document.getElementById('pd-comment-block');
   if (p.student_comment) {
     cb.classList.remove('hidden');
     document.getElementById('pd-comment').textContent = p.student_comment;
-  } else { cb.classList.add('hidden'); }
+  } else {
+    cb.classList.add('hidden');
+  }
+
   openModal('modal-proposal-detail');
 }
 
@@ -3628,8 +3635,12 @@ function openModal(id) {
   }
   document.getElementById(id).classList.remove('hidden');
 }
+
 function closeModal(id) {
   document.getElementById(id).classList.add('hidden');
+  if (id === 'modal-tmdb-detail') {
+    _tmdbProposalNote = null;
+  }
 }
 
 document.querySelectorAll('.overlay').forEach(o =>
