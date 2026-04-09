@@ -3136,7 +3136,7 @@ async function loadAdminVotes() {
   const max = Math.max(...sorted.map(f => f.n), 1);
 
   list.innerHTML = sorted.map((f, i) => `
-    <div class="vote-bar-row" style="cursor:pointer;" onclick="viewFilmVoters('${f.id}', ${JSON.stringify(f.title)})">
+    <div class="vote-bar-row" style="cursor:pointer;" onclick="viewFilmVoters('${f.id}', '${String(f.title).replace(/'/g, "\\'")}')">
       <div class="vbr-rank">${i + 1}</div>
       <div class="vote-bar-poster">
         ${f.poster_url ? `<img src="${f.poster_url}" alt="" style="width:100%;height:100%;object-fit:cover;">` : '🎬'}
