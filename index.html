@@ -914,6 +914,18 @@ button { cursor: pointer; }
 .sc-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
 .sc-actions { display: flex; gap: 7px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
 .sc-capacity { font-size: 11.5px; color: var(--text-3); }
+/* Motif de blocage élève — visible en rouge atténué */
+.sc-ban-reason {
+  font-size: 12px;
+  color: var(--red);
+  background: var(--red-dim);
+  border: 1px solid rgba(232,64,64,.2);
+  border-radius: 6px;
+  padding: 5px 10px;
+  margin-top: 8px;
+  line-height: 1.45;
+  width: 100%;
+}
 
 /* Bloc Nouveautés accueil */
 .home-news-item {
@@ -2586,11 +2598,26 @@ async function handleAdminLogin() {
   toast('Espace admin 🔑', 'success');
 }
 
-function loginAs(student) {
-  S.user = { id: student.id, firstName: student.first_name, lastName: student.last_name, className: student.class_name };
+async function loginAs(student) {
+  // Récupérer last_news_seen_at AVANT de le mettre à jour
+  // C'est la référence pour les nouveautés de cette session
+  const prevSeen = student.last_news_seen_at || null;
+
+  S.user = {
+    id:           student.id,
+    firstName:    student.first_name,
+    lastName:     student.last_name,
+    className:    student.class_name,
+    lastNewsSeen: prevSeen     // repère "dernière connexion" pour loadHomeNews
+  };
   S.isAdmin = false;
   saveLocal();
   startInactivityTimer();
+
+  // Mettre à jour last_news_seen_at maintenant (sera la référence à la prochaine connexion)
+  db.from('students').update({ last_news_seen_at: new Date().toISOString() })
+    .eq('id', student.id).then(() => {}); // fire-and-forget, pas critique
+
   navigateTo('home');
 }
 
@@ -2684,33 +2711,64 @@ async function loadHomeNews() {
   const el = document.getElementById('home-news');
   if (!el || !S.user) return;
 
-  const { data } = await db.from('proposals')
+  // Référence : dernière connexion précédente (null = première connexion, tout est nouveau)
+  const since = S.user.lastNewsSeen || null;
+
+  // Requête proposals nouvelles depuis la dernière connexion
+  let propQuery = db.from('proposals')
     .select('id, status, reviewed_at')
     .eq('student_id', S.user.id)
     .in('status', ['accepted', 'rejected'])
-    .not('reviewed_at', 'is', null)
-    .order('reviewed_at', { ascending: false });
+    .not('reviewed_at', 'is', null);
+  if (since) propQuery = propQuery.gt('reviewed_at', since);
 
-  if (!data?.length) {
-    el.innerHTML = `<div class="home-news-empty">Aucune nouveauté pour le moment.</div>`;
+  // Requête bans depuis la dernière connexion
+  let banQuery = db.from('session_bans')
+    .select('id, banned_at')
+    .eq('student_id', S.user.id);
+  if (since) banQuery = banQuery.gt('banned_at', since);
+
+  const [{ data: proposals }, { data: bans }] = await Promise.all([
+    propQuery,
+    banQuery
+  ]);
+
+  const lines = [];
+
+  if (proposals?.length) {
+    const accepted = proposals.filter(p => p.status === 'accepted').length;
+    const rejected  = proposals.filter(p => p.status === 'rejected').length;
+    if (accepted) {
+      lines.push({
+        icon: '🎬',
+        text: accepted === 1 ? 'Une de tes propositions a été acceptée ✅' : `${accepted} de tes propositions ont été acceptées ✅`,
+        target: 'propose'
+      });
+    }
+    if (rejected) {
+      lines.push({
+        icon: '❌',
+        text: rejected === 1 ? 'Une de tes propositions a été refusée' : `${rejected} de tes propositions ont été refusées`,
+        target: 'propose'
+      });
+    }
+  }
+
+  if (bans?.length) {
+    lines.push({
+      icon: '🚫',
+      text: bans.length === 1 ? 'Tu as été retiré d\'une séance' : `Tu as été retiré de ${bans.length} séances`,
+      target: 'session'
+    });
+  }
+
+  if (!lines.length) {
+    el.innerHTML = `<div class="home-news-empty">Aucune nouveauté depuis ta dernière connexion.</div>`;
     return;
   }
 
-  const accepted = data.filter(p => p.status === 'accepted').length;
-  const rejected  = data.filter(p => p.status === 'rejected').length;
-
-  const lines = [];
-  if (accepted) {
-    const s = accepted === 1 ? 'Une de tes propositions a été acceptée ✅' : `${accepted} de tes propositions ont été acceptées ✅`;
-    lines.push({ icon: '🎬', text: s });
-  }
-  if (rejected) {
-    const s = rejected === 1 ? 'Une de tes propositions a été refusée' : `${rejected} de tes propositions ont été refusées`;
-    lines.push({ icon: '❌', text: s });
-  }
-
   el.innerHTML = lines.map(l => `
-    <div class="home-news-item" onclick="navigateTo('propose')">
+    <div class="home-news-item" onclick="navigateTo('${l.target}')">
       <span class="home-news-icon">${l.icon}</span>
       <span class="home-news-text">${l.text}</span>
       <span class="home-news-arrow">›</span>
@@ -3427,9 +3485,10 @@ async function loadSessions() {
 
     // Bouton action
     let actionBtn = '';
+    let banReasonHtml = '';
     if (banned) {
-      const safeReason = (banMap[s.id] || '').replace(/'/g, '&#39;');
-      actionBtn = `<span class="text-xs" style="color:var(--text-3);font-style:italic;">${safeReason}</span>`;
+      const reason = banMap[s.id] || '';
+      banReasonHtml = `<div class="sc-ban-reason">🚫 Motif : ${reason || 'Inscription non autorisée'}</div>`;
     } else if (reg) {
       actionBtn = `<button class="btn btn-sm btn-red" onclick="toggleReg('${s.id}',true)">❌ Se désinscrire</button>`;
     } else if (!open || full) {
@@ -3448,6 +3507,7 @@ async function loadSessions() {
           ${badgeHtml}
           <span class="sc-capacity">${count} / ${cap}</span>
         </div>
+        ${banReasonHtml}
         <div class="sc-actions">
           ${actionBtn}
           <button class="btn btn-sm btn-ghost" onclick="viewStudentRegistrants('${s.id}','${s.session_date}')">👥 Voir les inscrits</button>
@@ -4238,33 +4298,69 @@ async function toggleSesOpen(id, cur) {
 }
 
 async function viewRegistrants(sesId, date) {
-  const { data } = await db.from('registrations')
-    .select('id, student_id, students(first_name, last_name, class_name)')
-    .eq('session_id', sesId)
-    .order('registered_at');
+  const [{ data: regs }, { data: bans }] = await Promise.all([
+    db.from('registrations')
+      .select('id, student_id, students(first_name, last_name, class_name)')
+      .eq('session_id', sesId)
+      .order('registered_at'),
+    db.from('session_bans')
+      .select('id, student_id, reason, students(first_name, last_name, class_name)')
+      .eq('session_id', sesId)
+  ]);
 
   document.getElementById('modal-reg-title').textContent = `Inscrits — ${fmtDateShort(date)}`;
+  // Stocker sesId pour unbanStudent
+  document.getElementById('modal-registrants').dataset.sesId = sesId;
+  document.getElementById('modal-registrants').dataset.date  = date;
 
   const el = document.getElementById('registrants-content');
-  if (!data?.length) {
-    el.innerHTML = '<p class="text-muted text-center" style="padding:20px;">Aucun inscrit</p>';
-  } else {
-    el.innerHTML = `
-      <p class="text-sm text-muted mb-1">${data.length} inscrit${data.length > 1 ? 's' : ''}</p>
+
+  // Section inscrits
+  const regsHtml = !regs?.length
+    ? '<p class="text-muted text-center" style="padding:14px 0 6px;">Aucun inscrit</p>'
+    : `<p class="text-sm text-muted mb-1">${regs.length} inscrit${regs.length > 1 ? 's' : ''}</p>
+       <div style="display:flex;flex-direction:column;gap:7px;">
+         ${regs.map(r => `
+           <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--surface-2);border-radius:8px;gap:8px;">
+             <div style="flex:1;min-width:0;">
+               <span style="font-weight:600;font-size:14px;">${r.students?.first_name || ''} ${r.students?.last_name || ''}</span>
+               <span class="badge badge-muted" style="margin-left:6px;">${r.students?.class_name || '—'}</span>
+             </div>
+             <button class="btn btn-sm btn-red" onclick="openBanStudent('${sesId}','${r.student_id}')">Retirer</button>
+           </div>`).join('')}
+       </div>`;
+
+  // Section bloqués
+  let bansHtml = '';
+  if (bans?.length) {
+    bansHtml = `<div style="margin-top:18px;">
+      <p class="text-sm text-muted mb-1" style="font-weight:700;color:var(--red);">🚫 Élèves bloqués (${bans.length})</p>
       <div style="display:flex;flex-direction:column;gap:7px;">
-        ${data.map(r => `
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--surface-2);border-radius:8px;gap:8px;">
-            <div style="flex:1;min-width:0;">
-              <span style="font-weight:600;font-size:14px;">${r.students?.first_name || ''} ${r.students?.last_name || ''}</span>
-              <span class="badge badge-muted" style="margin-left:6px;">${r.students?.class_name || '—'}</span>
+        ${bans.map(b => `
+          <div style="background:var(--red-dim);border:1px solid rgba(232,64,64,.2);border-radius:8px;padding:9px 12px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+              <div style="flex:1;min-width:0;">
+                <span style="font-weight:600;font-size:14px;">${b.students?.first_name || ''} ${b.students?.last_name || ''}</span>
+                <span class="badge badge-muted" style="margin-left:6px;">${b.students?.class_name || '—'}</span>
+              </div>
+              <button class="btn btn-sm btn-ghost" onclick="unbanStudent('${sesId}','${b.student_id}','${date}')">Débloquer</button>
             </div>
-            <button class="btn btn-sm btn-red" onclick="openBanStudent('${sesId}','${r.student_id}')">Retirer</button>
-          </div>
-        `).join('')}
-      </div>`;
+            ${b.reason ? `<div style="font-size:12px;color:var(--red);margin-top:5px;font-style:italic;">Motif : ${b.reason}</div>` : ''}
+          </div>`).join('')}
+      </div>
+    </div>`;
   }
 
+  el.innerHTML = regsHtml + bansHtml;
   openModal('modal-registrants');
+}
+
+async function unbanStudent(sessionId, studentId, date) {
+  await db.from('session_bans').delete()
+    .eq('session_id', sessionId).eq('student_id', studentId);
+  toast('Élève débloqué — il peut se réinscrire', 'success');
+  // Recharger la vue
+  await viewRegistrants(sessionId, date);
 }
 
 function openBanStudent(sessionId, studentId) {
