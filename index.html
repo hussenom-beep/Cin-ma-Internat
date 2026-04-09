@@ -589,17 +589,90 @@ button { cursor: pointer; }
 .pin-sm:focus { border-color: var(--gold); }
 
 /* Next session banner */
+/* Carte prochaine séance — version premium avec affiche */
 .session-banner {
+  position: relative;
+  border-radius: var(--radius);
+  overflow: hidden;
+  cursor: pointer;
+  min-height: 160px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
   background: linear-gradient(135deg, #1a1428 0%, #1a1a28 100%);
   border: 1px solid rgba(240,165,0,.2);
-  border-radius: var(--radius);
-  padding: 18px;
-  cursor: pointer;
-  transition: border-color .2s;
+  transition: border-color .2s, transform .18s;
 }
-.session-banner:hover { border-color: var(--gold-glow); }
-.session-banner-date { font-size: 11.5px; color: var(--gold); font-weight: 700; text-transform: uppercase; letter-spacing: .07em; margin-bottom: 6px; }
-.session-banner-film { font-size: 17px; font-weight: 700; font-family: 'Playfair Display', serif; margin-bottom: 10px; }
+.session-banner:hover { border-color: var(--gold-glow); transform: translateY(-1px); }
+.session-banner-poster {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  opacity: .35;
+  pointer-events: none;
+}
+.session-banner-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(8,8,15,.95) 0%, rgba(8,8,15,.6) 55%, rgba(8,8,15,.2) 100%);
+  pointer-events: none;
+}
+.session-banner-body {
+  position: relative;
+  padding: 16px 18px 14px;
+  z-index: 1;
+}
+.session-banner-date { font-size: 11px; color: var(--gold); font-weight: 700; text-transform: uppercase; letter-spacing: .09em; margin-bottom: 5px; }
+.session-banner-film { font-size: 20px; font-weight: 700; font-family: 'Playfair Display', serif; line-height: 1.2; margin-bottom: 10px; }
+.session-banner-footer { display: flex; align-items: center; justify-content: space-between; }
+.session-banner-hint { font-size: 11px; color: var(--text-3); }
+/* Variante vide (sans séance) */
+.session-banner-empty {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px 18px;
+  text-align: center;
+  color: var(--text-3);
+}
+
+/* Modal aide "Ajouter à l'écran d'accueil" */
+.home-install-section { margin-bottom: 18px; }
+.home-install-os {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  margin-bottom: 8px;
+}
+.home-install-steps { display: flex; flex-direction: column; gap: 6px; }
+.home-install-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13.5px;
+  color: var(--text-2);
+  line-height: 1.5;
+}
+.home-install-num {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--surface-3);
+  border: 1px solid var(--border-2);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1px;
+}
 
 /* Quick actions grid */
 .quick-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -1670,6 +1743,11 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
         <span class="pa-text">Changer mon code secret</span>
         <span class="pa-arrow">›</span>
       </button>
+      <button class="profile-action-btn" onclick="openAddToHome()">
+        <span class="pa-icon">📲</span>
+        <span class="pa-text">Ajouter sur l'écran d'accueil</span>
+        <span class="pa-arrow">›</span>
+      </button>
       <button class="profile-action-btn danger" onclick="closeModal('modal-profile');logout();">
         <span class="pa-icon">↪</span>
         <span class="pa-text">Déconnexion</span>
@@ -1679,6 +1757,59 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     <div class="profile-close-row">
       <button class="profile-close-link" onclick="closeModal('modal-profile')">Fermer</button>
     </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     MODAL: Aide "Ajouter à l'écran d'accueil"
+     ================================================================ -->
+<div class="overlay hidden" id="modal-add-to-home">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">📲 Raccourci sur l'écran d'accueil</div>
+    <p class="text-sm text-muted" style="margin-bottom:20px;">Accède à l'application en un clic depuis ton téléphone.</p>
+
+    <!-- iPhone -->
+    <div class="home-install-section">
+      <div class="home-install-os"> iPhone — Safari</div>
+      <div class="home-install-steps">
+        <div class="home-install-step">
+          <span class="home-install-num">1</span>
+          <span>Ouvre cette page dans <strong>Safari</strong></span>
+        </div>
+        <div class="home-install-step">
+          <span class="home-install-num">2</span>
+          <span>Appuie sur le bouton <strong>Partager</strong> (⬆️ en bas de l'écran)</span>
+        </div>
+        <div class="home-install-step">
+          <span class="home-install-num">3</span>
+          <span>Choisis <strong>"Sur l'écran d'accueil"</strong></span>
+        </div>
+      </div>
+    </div>
+
+    <div style="height:1px;background:var(--border);margin:4px 0 18px;"></div>
+
+    <!-- Android -->
+    <div class="home-install-section">
+      <div class="home-install-os"> Android — Chrome</div>
+      <div class="home-install-steps">
+        <div class="home-install-step">
+          <span class="home-install-num">1</span>
+          <span>Ouvre cette page dans <strong>Chrome</strong></span>
+        </div>
+        <div class="home-install-step">
+          <span class="home-install-num">2</span>
+          <span>Appuie sur le menu <strong>⋮</strong> en haut à droite</span>
+        </div>
+        <div class="home-install-step">
+          <span class="home-install-num">3</span>
+          <span>Choisis <strong>"Ajouter à l'écran d'accueil"</strong> ou <strong>"Installer l'application"</strong></span>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn btn-ghost btn-full" style="margin-top:6px;" onclick="closeModal('modal-add-to-home')">Fermer</button>
   </div>
 </div>
 
@@ -2393,7 +2524,10 @@ function loginAs(student) {
   navigateTo('home');
 }
 
-/* Met à jour les initiales dans le bouton profil de l'accueil */
+function openAddToHome() {
+  closeModal('modal-profile');
+  openModal('modal-add-to-home');
+}
 function updateProfileBtn() {
   const btn = document.getElementById('home-profile-btn');
   if (!btn || !S.user) return;
@@ -2425,7 +2559,7 @@ async function loadHome() {
 
   const today = new Date().toISOString().split('T')[0];
   const { data } = await db.from('cinema_sessions')
-    .select('*, films(title)')
+    .select('*, films(title, poster_url)')
     .gte('session_date', today)
     .order('session_date', { ascending: true })
     .limit(1);
@@ -2433,19 +2567,31 @@ async function loadHome() {
   const el = document.getElementById('home-next-session');
 
   if (!data?.length) {
-    el.innerHTML = `<div class="session-banner">
-      <div class="session-banner-date">Prochaine séance</div>
-      <div class="session-banner-film" style="color:var(--text-2);font-style:italic;">Aucune séance planifiée</div>
+    el.innerHTML = `<div class="session-banner-empty">
+      <div style="font-size:28px;margin-bottom:8px;">🎬</div>
+      <div style="font-size:14px;font-weight:600;color:var(--text-2);">Aucune séance planifiée</div>
+      <div style="font-size:12px;margin-top:4px;">Les prochaines séances seront annoncées ici</div>
     </div>`;
     return;
   }
+
   const s = data[0];
+  const poster = s.films?.poster_url || '';
+  const title  = s.films?.title || '🎬 Film à annoncer';
+
   el.innerHTML = `<div class="session-banner" onclick="navigateTo('session')">
-    <div class="session-banner-date">📅 ${fmtDateShort(s.session_date)}</div>
-    <div class="session-banner-film">${s.films?.title || '🎬 Film à annoncer'}</div>
-    <span class="badge ${s.registrations_open ? 'badge-green' : 'badge-muted'}">
-      ${s.registrations_open ? '✅ Inscriptions ouvertes' : '⏸ Inscriptions fermées'}
-    </span>
+    ${poster ? `<img src="${poster}" class="session-banner-poster" alt="">` : ''}
+    <div class="session-banner-overlay"></div>
+    <div class="session-banner-body">
+      <div class="session-banner-date">📅 ${fmtDateShort(s.session_date)}</div>
+      <div class="session-banner-film">${title}</div>
+      <div class="session-banner-footer">
+        <span class="badge ${s.registrations_open ? 'badge-green' : 'badge-muted'}">
+          ${s.registrations_open ? '✅ Inscriptions ouvertes' : '⏸ Inscriptions fermées'}
+        </span>
+        <span class="session-banner-hint">Voir les inscriptions →</span>
+      </div>
+    </div>
   </div>`;
 }
 
@@ -3320,11 +3466,17 @@ async function loadAdminFilms() {
   const status = _filmFilter;
   list.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
 
-  const { data } = await db.from('films').select('*')
-    .eq('status', status).order('added_at', { ascending: false });
+  // Pour l'onglet 'active', on récupère aussi les films 'scheduled'
+  let query = db.from('films').select('*').order('added_at', { ascending: false });
+  if (status === 'active') {
+    query = query.in('status', ['active', 'scheduled']);
+  } else {
+    query = query.eq('status', status);
+  }
+  const { data } = await query;
 
   if (!data?.length) {
-    const labels = { active:'actif', scheduled:'programmé', screened:'diffusé', archived:'archivé' };
+    const labels = { active:'actif', screened:'diffusé', archived:'archivé' };
     list.innerHTML = `<div class="empty"><div class="icon">🎬</div><h3>Aucun film ${labels[status] || ''}</h3></div>`;
     return;
   }
@@ -3332,7 +3484,7 @@ async function loadAdminFilms() {
   const badgeCls = { active:'badge-green', screened:'badge-purple', archived:'badge-muted' };
   const badgeLbl = { active:'● Actif', screened:'✅ Diffusé', archived:'⊘ Archivé' };
 
-  // Pour les films actifs, récupérer les séances futures associées
+  // Pour les films actifs+scheduled, récupérer les séances futures associées
   const today = new Date().toISOString().split('T')[0];
   const filmIds = data.map(f => f.id);
   let sessionMap = {};
@@ -3347,7 +3499,7 @@ async function loadAdminFilms() {
     });
   }
 
-  // Films actifs : programmés en tête (par date de séance asc), puis les autres (ordre d'ajout desc)
+  // Tri : scheduled avec séance en tête (par date asc), puis active sans séance (ordre d'ajout desc)
   let displayData = data;
   if (status === 'active') {
     const withSession    = data.filter(f =>  sessionMap[f.id])
@@ -3357,8 +3509,9 @@ async function loadAdminFilms() {
   }
 
   list.innerHTML = displayData.map(f => {
-    const sessionInfo = sessionMap[f.id];   // { id, date } ou undefined
-    // Actions selon statut
+    const sessionInfo = sessionMap[f.id];
+    const isScheduled = f.status === 'scheduled';
+
     let actions = '';
     if (status === 'active') {
       actions = `
@@ -3370,11 +3523,16 @@ async function loadAdminFilms() {
         <button class="btn btn-sm btn-ghost" onclick="setFilmStatus('${f.id}','active')">↩ Remettre actif</button>
         <button class="btn btn-sm btn-ghost" onclick="openArchiveFilm('${f.id}')">⊘ Archiver</button>
         <button class="btn btn-sm btn-red" onclick="deleteFilm('${f.id}')">Suppr.</button>`;
-    } else { // archived
+    } else {
       actions = `
         <button class="btn btn-sm btn-ghost" onclick="setFilmStatus('${f.id}','active')">↩ Restaurer</button>
         <button class="btn btn-sm btn-red" onclick="deleteFilm('${f.id}')">Suppr.</button>`;
     }
+
+    // Badge statut : pour les films scheduled, on n'affiche que le badge date (pas le vert Actif)
+    const statusBadge = (!isScheduled && badgeCls[f.status])
+      ? `<span class="badge ${badgeCls[f.status]}">${badgeLbl[f.status]}</span>`
+      : '';
 
     const sessionBadge = sessionInfo
       ? `<span class="badge badge-blue" style="margin-top:4px;cursor:pointer;"
@@ -3392,7 +3550,7 @@ async function loadAdminFilms() {
         <div class="ai-title">${f.title}</div>
         <div class="ai-sub">${f.year || ''}${f.genre ? ' · ' + f.genre : ''}${f.screened_at && status === 'screened' ? ' · Vu le ' + fmtDateShort(f.screened_at.split('T')[0]) : ''}</div>
         <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px;">
-          <span class="badge ${badgeCls[f.status] || 'badge-muted'}">${badgeLbl[f.status] || f.status}</span>
+          ${statusBadge}
           ${sessionBadge}
           ${f.archive_reason ? `<span class="text-xs text-muted" style="padding-top:3px;">⊘ ${f.archive_reason}</span>` : ''}
         </div>
@@ -3490,7 +3648,6 @@ async function confirmScheduleFilm() {
     return;
   }
 
-  // Créer la séance — le film reste en 'active', pas de changement de statut
   const { error: sesErr } = await db.from('cinema_sessions').insert({
     session_date:       date,
     film_id:            filmId,
@@ -3499,8 +3656,11 @@ async function confirmScheduleFilm() {
   });
   if (sesErr) { toast('Erreur création séance : ' + sesErr.message, 'error'); return; }
 
+  // Passer le film en 'scheduled'
+  if (filmId) await db.from('films').update({ status: 'scheduled' }).eq('id', filmId);
+
   closeModal('modal-schedule-film');
-  toast('Séance créée 📅 — film visible dans Séances', 'success');
+  toast('Film programmé + séance créée 📅', 'success');
   loadAdminFilms();
 }
 
@@ -3910,6 +4070,12 @@ async function viewRegistrants(sesId, date) {
 async function maybeRestoreFilmToActive(filmId) {
   if (!filmId) return;
 
+  // Ne remettre en active QUE si le film est 'scheduled'
+  // (ne pas toucher aux films screened, archived, etc.)
+  const { data: film } = await db.from('films')
+    .select('id, status').eq('id', filmId).maybeSingle();
+  if (!film || film.status !== 'scheduled') return;
+
   const today = new Date().toISOString().split('T')[0];
 
   const { data: future } = await db.from('cinema_sessions')
@@ -3970,27 +4136,30 @@ async function saveEditSession() {
 
   if (!newDate) { toast('Sélectionne une date', 'error'); return; }
 
-  // Vérifier qu'aucune AUTRE séance n'existe déjà à cette date
   if (await hasSessionOnDate(newDate, id)) {
     toast('Impossible : une séance existe déjà à cette date', 'error');
     return;
   }
 
-  // Mettre à jour la séance (date + film)
   await db.from('cinema_sessions').update({
     session_date: newDate,
     film_id:      newFilmId
   }).eq('id', id);
 
-  // Si le film a changé : remettre l'ancien en active si nécessaire
+  // Gestion des statuts films
   if (prevFilmId && prevFilmId !== newFilmId) {
+    // L'ancien film perd cette séance → le remettre en active si plus aucune séance future
     await maybeRestoreFilmToActive(prevFilmId);
+  }
+  // Le nouveau film (ou le même si inchangé) passe en scheduled
+  if (newFilmId) {
+    await db.from('films').update({ status: 'scheduled' }).eq('id', newFilmId);
   }
 
   closeModal('modal-edit-session');
   toast('Séance mise à jour ✅', 'success');
   loadAdminSessions();
-  loadAdminFilms();   // rafraîchit le badge date dans l'onglet Films
+  loadAdminFilms();
 }
 
 async function deleteSessionFromEditModal() {
@@ -4026,7 +4195,8 @@ function openCreateSessionModal() {
 }
 
 async function saveSession() {
-  const date = document.getElementById('ses-date').value;
+  const date   = document.getElementById('ses-date').value;
+  const filmId = document.getElementById('ses-film').value || null;
   if (!date) { toast('Sélectionne une date', 'error'); return; }
 
   if (await hasSessionOnDate(date)) {
@@ -4035,13 +4205,17 @@ async function saveSession() {
   }
 
   const { error } = await db.from('cinema_sessions').insert({
-    session_date: date,
-    film_id: document.getElementById('ses-film').value || null,
+    session_date:       date,
+    film_id:            filmId,
     registrations_open: document.getElementById('ses-open').checked,
-    max_capacity: parseInt(document.getElementById('ses-capacity').value) || 50,
-    notes: document.getElementById('ses-notes').value.trim() || null
+    max_capacity:       parseInt(document.getElementById('ses-capacity').value) || 50,
+    notes:              document.getElementById('ses-notes').value.trim() || null
   });
   if (error) { toast('Erreur création', 'error'); return; }
+
+  // Si un film est associé, le passer en 'scheduled'
+  if (filmId) await db.from('films').update({ status: 'scheduled' }).eq('id', filmId);
+
   closeModal('modal-create-session');
   toast('Séance créée 🎟️', 'success');
   loadAdminSessions();
