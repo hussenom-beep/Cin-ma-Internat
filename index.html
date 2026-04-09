@@ -3177,11 +3177,24 @@ function openScheduleFilm(id) {
   openModal('modal-schedule-film');
 }
 
+/* Vérifie si une séance existe déjà à cette date (optionnellement exclure une séance par son id) */
+async function hasSessionOnDate(date, excludeSessionId = null) {
+  let query = db.from('cinema_sessions').select('id').eq('session_date', date);
+  if (excludeSessionId) query = query.neq('id', excludeSessionId);
+  const { data } = await query.limit(1);
+  return !!(data && data.length > 0);
+}
+
 async function confirmScheduleFilm() {
   const filmId  = document.getElementById('sched-film-id').value;
   const date    = document.getElementById('sched-date').value;
   const regOpen = document.getElementById('sched-open').checked;
   if (!date) { toast('Sélectionne une date', 'error'); return; }
+
+  if (await hasSessionOnDate(date)) {
+    toast('Impossible : une séance existe déjà à cette date', 'error');
+    return;
+  }
 
   // Créer la séance — le film reste en 'active', pas de changement de statut
   const { error: sesErr } = await db.from('cinema_sessions').insert({
@@ -3697,6 +3710,12 @@ function openCreateSessionModal() {
 async function saveSession() {
   const date = document.getElementById('ses-date').value;
   if (!date) { toast('Sélectionne une date', 'error'); return; }
+
+  if (await hasSessionOnDate(date)) {
+    toast('Impossible : une séance existe déjà à cette date', 'error');
+    return;
+  }
+
   const { error } = await db.from('cinema_sessions').insert({
     session_date: date,
     film_id: document.getElementById('ses-film').value || null,
