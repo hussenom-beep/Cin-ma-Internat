@@ -778,12 +778,12 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       </div>
       <p class="text-sm text-muted text-center mb-2">Choisis un code secret à 6 chiffres.</p>
       <div class="pins mb-2" id="pins-activate">
-        <input type="password" inputmode="numeric" maxlength="1" class="pin" id="a1">
-        <input type="password" inputmode="numeric" maxlength="1" class="pin" id="a2">
-        <input type="password" inputmode="numeric" maxlength="1" class="pin" id="a3">
-        <input type="password" inputmode="numeric" maxlength="1" class="pin" id="a4">
-        <input type="password" inputmode="numeric" maxlength="1" class="pin" id="a5">
-        <input type="password" inputmode="numeric" maxlength="1" class="pin" id="a6">
+        <input type="text" inputmode="numeric" maxlength="1" class="pin" id="a1" autocomplete="off">
+		<input type="text" inputmode="numeric" maxlength="1" class="pin" id="a2" autocomplete="off">
+		<input type="text" inputmode="numeric" maxlength="1" class="pin" id="a3" autocomplete="off">
+		<input type="text" inputmode="numeric" maxlength="1" class="pin" id="a4" autocomplete="off">
+		<input type="text" inputmode="numeric" maxlength="1" class="pin" id="a5" autocomplete="off">
+		<input type="text" inputmode="numeric" maxlength="1" class="pin" id="a6" autocomplete="off">
       </div>
       <button class="btn btn-gold btn-full btn-lg" onclick="handleActivate()">Activer mon compte 🎉</button>
       <button class="btn btn-ghost btn-full btn-sm mt-1" onclick="backCode()">← Retour</button>
@@ -797,12 +797,12 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
         <div class="text-sm text-muted mt-1" id="login-name"></div>
       </div>
       <div class="pins mb-2" id="pins-login">
-        <input type="password" inputmode="numeric" maxlength="1" class="pin" id="p1">
-        <input type="password" inputmode="numeric" maxlength="1" class="pin" id="p2">
-        <input type="password" inputmode="numeric" maxlength="1" class="pin" id="p3">
-        <input type="password" inputmode="numeric" maxlength="1" class="pin" id="p4">
-        <input type="password" inputmode="numeric" maxlength="1" class="pin" id="p5">
-        <input type="password" inputmode="numeric" maxlength="1" class="pin" id="p6">
+        <input type="text" inputmode="numeric" maxlength="1" class="pin" id="p1" autocomplete="off">
+		<input type="text" inputmode="numeric" maxlength="1" class="pin" id="p2" autocomplete="off">
+		<input type="text" inputmode="numeric" maxlength="1" class="pin" id="p3" autocomplete="off">
+		<input type="text" inputmode="numeric" maxlength="1" class="pin" id="p4" autocomplete="off">
+		<input type="text" inputmode="numeric" maxlength="1" class="pin" id="p5" autocomplete="off">
+		<input type="text" inputmode="numeric" maxlength="1" class="pin" id="p6" autocomplete="off">
       </div>
       <button class="btn btn-gold btn-full btn-lg" onclick="handleLogin()">Se connecter</button>
       <button class="btn btn-ghost btn-full btn-sm mt-1" onclick="backCode()">← Retour</button>
