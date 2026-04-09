@@ -1118,15 +1118,34 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
         <div class="fw-bold" style="font-size:17px;">Premier accès</div>
         <div class="text-sm text-muted mt-1" id="act-name"></div>
       </div>
-      <p class="text-sm text-muted text-center mb-2">Choisis un code secret à 6 chiffres.</p>
-      <div class="pins mb-2" id="pins-activate">
-        <input type="text" inputmode="numeric" maxlength="1" class="pin" id="a1" autocomplete="off">
-		<input type="text" inputmode="numeric" maxlength="1" class="pin" id="a2" autocomplete="off">
-		<input type="text" inputmode="numeric" maxlength="1" class="pin" id="a3" autocomplete="off">
-		<input type="text" inputmode="numeric" maxlength="1" class="pin" id="a4" autocomplete="off">
-		<input type="text" inputmode="numeric" maxlength="1" class="pin" id="a5" autocomplete="off">
-		<input type="text" inputmode="numeric" maxlength="1" class="pin" id="a6" autocomplete="off">
+      <p class="text-sm text-muted text-center mb-2">Choisis un code à 6 chiffres, puis confirme-le.</p>
+
+      <!-- Rangée 1 : saisie du code (visible) -->
+      <div style="margin-bottom:14px;">
+        <div class="text-xs text-muted text-center mb-1" style="letter-spacing:.05em;text-transform:uppercase;font-weight:700;">Ton code</div>
+        <div class="pins" id="pins-activate">
+          <input type="text" inputmode="numeric" maxlength="1" class="pin" id="a1" autocomplete="off">
+          <input type="text" inputmode="numeric" maxlength="1" class="pin" id="a2" autocomplete="off">
+          <input type="text" inputmode="numeric" maxlength="1" class="pin" id="a3" autocomplete="off">
+          <input type="text" inputmode="numeric" maxlength="1" class="pin" id="a4" autocomplete="off">
+          <input type="text" inputmode="numeric" maxlength="1" class="pin" id="a5" autocomplete="off">
+          <input type="text" inputmode="numeric" maxlength="1" class="pin" id="a6" autocomplete="off">
+        </div>
       </div>
+
+      <!-- Rangée 2 : confirmation du code (visible) -->
+      <div style="margin-bottom:18px;">
+        <div class="text-xs text-muted text-center mb-1" style="letter-spacing:.05em;text-transform:uppercase;font-weight:700;">Confirme ton code</div>
+        <div class="pins" id="pins-confirm">
+          <input type="text" inputmode="numeric" maxlength="1" class="pin" id="c1" autocomplete="off">
+          <input type="text" inputmode="numeric" maxlength="1" class="pin" id="c2" autocomplete="off">
+          <input type="text" inputmode="numeric" maxlength="1" class="pin" id="c3" autocomplete="off">
+          <input type="text" inputmode="numeric" maxlength="1" class="pin" id="c4" autocomplete="off">
+          <input type="text" inputmode="numeric" maxlength="1" class="pin" id="c5" autocomplete="off">
+          <input type="text" inputmode="numeric" maxlength="1" class="pin" id="c6" autocomplete="off">
+        </div>
+      </div>
+
       <button class="btn btn-gold btn-full btn-lg" onclick="handleActivate()">Activer mon compte 🎉</button>
       <button class="btn btn-ghost btn-full btn-sm mt-1" onclick="backCode()">← Retour</button>
     </div>
@@ -2068,13 +2087,63 @@ function showLS(id) {
   ['ls-code','ls-activate','ls-pin','ls-admin'].forEach(i =>
     document.getElementById(i).classList.toggle('hidden', i !== 'ls-' + id));
   if (id === 'code') return;
-  // PIN à 6 chiffres
-  if (id === 'activate') setupPins('a1','a2','a3','a4','a5','a6');
-  if (id === 'pin')      setupPins('p1','p2','p3','p4','p5','p6');
-  if (id === 'admin')    setTimeout(() => document.getElementById('inp-adminpwd').focus(), 80);
+  // Activation : deux rangées visibles (chiffres affichés, pas de pastilles)
+  if (id === 'activate') {
+    setupVisiblePins('a1','a2','a3','a4','a5','a6');
+    setupVisiblePins('c1','c2','c3','c4','c5','c6');
+  }
+  if (id === 'pin')   setupPins('p1','p2','p3','p4','p5','p6');
+  if (id === 'admin') setTimeout(() => document.getElementById('inp-adminpwd').focus(), 80);
 }
 
 function backCode() { showLS('code'); }
+
+/* Saisie visible pour la création du code (chiffre affiché, pas de pastille).
+   Même navigation que setupPins mais sans masquage. */
+function setupVisiblePins(...ids) {
+  ids.forEach((id, i) => {
+    const el = document.getElementById(id);
+    el.value = '';
+
+    // Cloner pour supprimer les anciens listeners
+    const clone = el.cloneNode(true);
+    clone.value = '';
+    el.parentNode.replaceChild(clone, el);
+
+    clone.addEventListener('input', () => {
+      const digit = clone.value.replace(/\D/g, '').slice(-1);
+      clone.value = digit;   // affiche le chiffre tel quel
+      if (digit && i < ids.length - 1) {
+        document.getElementById(ids[i + 1]).focus();
+      }
+    });
+
+    clone.addEventListener('keydown', e => {
+      if (e.key === 'Backspace') {
+        if (clone.value) {
+          clone.value = '';
+          e.preventDefault();
+          return;
+        }
+        if (i > 0) {
+          const prev = document.getElementById(ids[i - 1]);
+          prev.value = '';
+          prev.focus();
+          e.preventDefault();
+        }
+      }
+    });
+
+    clone.addEventListener('paste', e => e.preventDefault());
+
+    if (i === 0) setTimeout(() => clone.focus(), 80);
+  });
+}
+
+/* Lit un code visible (valeur directe, pas dataset.real) */
+function getVisiblePin(...ids) {
+  return ids.map(id => (document.getElementById(id).value || '').trim()).join('');
+}
 
 function setupPins(...ids) {
   ids.forEach((id, i) => {
@@ -2201,19 +2270,37 @@ async function handleCode() {
   }
 }
 
-// Activation — PIN 6 chiffres
+// Activation — code visible saisi deux fois avec confirmation
 async function handleActivate() {
-  const pin = getPin('a1','a2','a3','a4','a5','a6');
-  if (pin.length !== 6) { toast('Code secret à 6 chiffres requis', 'error'); return; }
+  const pin     = getVisiblePin('a1','a2','a3','a4','a5','a6');
+  const confirm = getVisiblePin('c1','c2','c3','c4','c5','c6');
+
+  if (pin.length !== 6) {
+    toast('Saisis un code à 6 chiffres', 'error');
+    setupVisiblePins('a1','a2','a3','a4','a5','a6');
+    setupVisiblePins('c1','c2','c3','c4','c5','c6');
+    return;
+  }
+  if (confirm.length !== 6) {
+    toast('Confirme ton code dans la 2e rangée', 'error');
+    setupVisiblePins('c1','c2','c3','c4','c5','c6');
+    return;
+  }
+  if (pin !== confirm) {
+    toast('Les deux codes ne correspondent pas', 'error');
+    setupVisiblePins('a1','a2','a3','a4','a5','a6');
+    setupVisiblePins('c1','c2','c3','c4','c5','c6');
+    return;
+  }
 
   const hash = await sha256(pin);
   const { error } = await db.from('students').update({
-    is_activated: true,
+    is_activated:  true,
     password_hash: hash,
-    activated_at: new Date().toISOString()
+    activated_at:  new Date().toISOString()
   }).eq('id', _tmpStudent.id);
 
-  if (error) { toast('Erreur d\'activation', 'error'); return; }
+  if (error) { toast("Erreur d'activation", 'error'); return; }
   loginAs(_tmpStudent);
   toast('Compte activé ! Bienvenue 🎉', 'success');
 }
