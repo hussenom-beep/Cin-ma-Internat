@@ -2602,7 +2602,7 @@ async function _checkDuplicateData(detail, ctx) {
     if (detail.id) {
       const { data: proposals } = await db.from('proposals')
         .select('id,status').eq('tmdb_id', detail.id);
-      const existing = (proposals || []).find(p => p.status === 'pending' || p.status === 'accepted');
+      const existing = (proposals || []).find(p => p.status === 'pending');
       if (existing) {
         return {
           blocked: true,
