@@ -10,9 +10,9 @@
 
 	<!-- Favicons / icônes -->
 	<link rel="icon" type="image/png" sizes="32x32" href="favicon-cinema.png">
-	<link rel="icon" type="image/png" sizes="192x192" href="favicon-cinema.png">
-	<link rel="apple-touch-icon" sizes="180x180" href="favicon-cinema.png">
 	<link rel="shortcut icon" href="favicon-cinema.png">
+	<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+	<link rel="manifest" href="site.webmanifest">
 
 	<!-- Android / PWA -->
 	<link rel="manifest" href="site.webmanifest">
@@ -2492,11 +2492,23 @@ async function _renderTMDBModal(detail, credits) {
   if (cast.length) crewEl.innerHTML += `<div class="tmdb-crew-row"><span class="tmdb-crew-label">Avec</span>
     <div class="tmdb-cast-chips">${cast.map(a => `<span class="tmdb-cast-chip">${a.name}</span>`).join('')}</div></div>`;
 
-  await checkDuplicate(detail, 'admin');
-
   const actionBtn = document.getElementById('tmdb-d-action');
-  actionBtn.textContent = '🎬 Ajouter au catalogue';
-  actionBtn.onclick = confirmAddFilm;
+	const dupEl = document.getElementById('tmdb-d-dupwarn');
+
+	const dup = await _checkDuplicateData(detail, 'admin');
+
+	dupEl.className = 'hidden';
+	dupEl.innerHTML = '';
+
+	if (dup.msg) {
+	dupEl.className = `tmdb-d-warning ${dup.cls}`;
+	dupEl.innerHTML = `<span>${dup.msg}</span>`;
+	dupEl.classList.remove('hidden');
+}
+
+	actionBtn.disabled = false;
+	actionBtn.textContent = '🎬 Ajouter au catalogue';
+	actionBtn.onclick = confirmAddFilm;
 
   document.getElementById('tmdb-detail-loader').classList.add('hidden');
   document.getElementById('tmdb-detail-body').classList.remove('hidden');
