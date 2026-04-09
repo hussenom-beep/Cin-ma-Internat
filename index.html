@@ -1158,7 +1158,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       <label class="flabel">Rechercher</label>
       <div style="display:flex;gap:8px;">
         <input type="text" class="finput" id="prop-search" placeholder="Titre du film..." style="flex:1;">
-        <button class="btn btn-gold" onclick="searchTMDB('prop')">🔍</button>
+        <button class="btn btn-gold" onclick="searchTMDB('student')">🔍</button>
       </div>
     </div>
 
@@ -3613,7 +3613,7 @@ async function handleChangePIN() {
    ================================================================ */
 document.getElementById('inp-code').addEventListener('keydown', e => { if (e.key === 'Enter') handleCode(); });
 document.getElementById('inp-adminpwd').addEventListener('keydown', e => { if (e.key === 'Enter') handleAdminLogin(); });
-document.getElementById('prop-search').addEventListener('keydown', e => { if (e.key === 'Enter') searchTMDB('prop'); });
+document.getElementById('prop-search').addEventListener('keydown', e => { if (e.key === 'Enter') searchTMDB('student'); });
 document.getElementById('admin-film-search').addEventListener('keydown', e => { if (e.key === 'Enter') searchTMDB('admin'); });
 
 /* ----------------------------------------------------------------
