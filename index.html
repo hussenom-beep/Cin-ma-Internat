@@ -1498,6 +1498,17 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
         <div class="tmdb-crew-block" id="tmdb-d-crew"></div>
 
         <!-- Bouton d'action (admin ou élève) — le commentaire se saisit dans la 2e étape -->
+
+        <!-- Zone proposition : commentaire élève + Accepter/Refuser (visible seulement depuis une proposition) -->
+        <div id="tmdb-d-proposal-comment" class="hidden" style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 13px;margin-bottom:12px;">
+          <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;">Commentaire élève</div>
+          <div id="tmdb-d-proposal-comment-text" style="font-size:13px;color:var(--text);line-height:1.6;"></div>
+        </div>
+        <div id="tmdb-d-proposal-actions" class="hidden" style="display:flex;gap:8px;margin-bottom:10px;">
+          <button class="btn btn-green" style="flex:1;" onclick="acceptProposalFromTMDB()">✅ Accepter</button>
+          <button class="btn btn-red"   style="flex:1;" onclick="rejectProposalFromTMDB()">❌ Refuser</button>
+        </div>
+
         <button id="tmdb-d-action" class="btn btn-gold btn-full btn-lg" style="margin-bottom:10px;">—</button>
         <button class="btn btn-ghost btn-full btn-sm" onclick="closeModal('modal-tmdb-detail')">Fermer</button>
 
@@ -2424,6 +2435,7 @@ async function searchTMDB(ctx) {
 let _tmdbCtx            = null;
 let _tmdbMovie          = null;
 let _tmdbProposalNote   = null;
+let _tmdbProposalId     = null;   // ID proposition si ouvert depuis une proposition admin
 
 async function openTMDBDetail(tmdbId, ctx) {
   _tmdbCtx   = ctx;
@@ -2569,6 +2581,29 @@ actionBtn.textContent = dup.msg ? '🚫 Déjà au catalogue' : '🎬 Ajouter au 
 actionBtn.disabled = !!dup.msg;
 actionBtn.onclick = dup.msg ? null : confirmAddFilm;
 
+  // --- Contexte proposition ou film catalogue ---
+  const proposalCommentEl  = document.getElementById('tmdb-d-proposal-comment');
+  const proposalCommentTxt = document.getElementById('tmdb-d-proposal-comment-text');
+  const proposalActionsEl  = document.getElementById('tmdb-d-proposal-actions');
+
+  if (_tmdbProposalId) {
+    // Ouvert depuis une proposition : masquer "Ajouter", montrer Accepter/Refuser
+    actionBtn.classList.add('hidden');
+    if (_tmdbProposalNote) {
+      proposalCommentTxt.textContent = _tmdbProposalNote;
+      proposalCommentEl.classList.remove('hidden');
+    } else {
+      proposalCommentEl.classList.add('hidden');
+    }
+    proposalActionsEl.style.display = 'flex';
+    proposalActionsEl.classList.remove('hidden');
+  } else {
+    // Ouvert depuis un film catalogue : affichage normal
+    actionBtn.classList.remove('hidden');
+    proposalCommentEl.classList.add('hidden');
+    proposalActionsEl.classList.add('hidden');
+  }
+
   document.getElementById('tmdb-detail-loader').classList.add('hidden');
   document.getElementById('tmdb-detail-body').classList.remove('hidden');
 }
@@ -2654,6 +2689,22 @@ async function confirmAddFilm() {
   document.getElementById('admin-tmdb-results').innerHTML = '';
   toast('Film ajouté au catalogue 🎬', 'success');
   loadAdminFilms();
+}
+
+/* Depuis fiche TMDB proposition admin : accepter */
+async function acceptProposalFromTMDB() {
+  const pid = _tmdbProposalId;
+  if (!pid) return;
+  closeModal('modal-tmdb-detail');   // reset _tmdbProposalId via closeModal
+  await acceptProposal(pid);
+}
+
+/* Depuis fiche TMDB proposition admin : refuser */
+function rejectProposalFromTMDB() {
+  const pid = _tmdbProposalId;
+  if (!pid) return;
+  closeModal('modal-tmdb-detail');   // reset _tmdbProposalId via closeModal
+  openRejectProposal(pid);
 }
 
 let _proposalDraft = null;
@@ -2997,21 +3048,22 @@ async function loadAdminFilms() {
   let sessionMap = {};
   if (status === 'active' && filmIds.length) {
     const { data: sessions } = await db.from('cinema_sessions')
-      .select('film_id, session_date')
+      .select('id, film_id, session_date')
       .in('film_id', filmIds)
       .gte('session_date', today)
       .order('session_date', { ascending: true });
     (sessions || []).forEach(s => {
-      if (!sessionMap[s.film_id]) sessionMap[s.film_id] = s.session_date;
+      if (!sessionMap[s.film_id]) sessionMap[s.film_id] = { id: s.id, date: s.session_date };
     });
   }
 
   list.innerHTML = data.map(f => {
+    const sessionInfo = sessionMap[f.id];   // { id, date } ou undefined
     // Actions selon statut
     let actions = '';
     if (status === 'active') {
       actions = `
-        <button class="btn btn-sm btn-ghost" onclick="openScheduleFilm('${f.id}')">📅 Créer séance</button>
+        ${!sessionInfo ? `<button class="btn btn-sm btn-ghost" onclick="openScheduleFilm('${f.id}')">📅 Créer séance</button>` : ''}
         <button class="btn btn-sm btn-ghost" onclick="openArchiveFilm('${f.id}')">⊘ Archiver</button>
         <button class="btn btn-sm btn-red" onclick="deleteFilm('${f.id}')">Suppr.</button>`;
     } else if (status === 'screened') {
@@ -3025,9 +3077,10 @@ async function loadAdminFilms() {
         <button class="btn btn-sm btn-red" onclick="deleteFilm('${f.id}')">Suppr.</button>`;
     }
 
-    const sessionDate = sessionMap[f.id];
-    const sessionBadge = sessionDate
-      ? `<span class="badge badge-blue" style="margin-top:4px;">📅 ${fmtDateShort(sessionDate)}</span>` : '';
+    const sessionBadge = sessionInfo
+      ? `<span class="badge badge-blue" style="margin-top:4px;cursor:pointer;"
+           onclick="openEditSession('${sessionInfo.id}','','${f.id}')">📅 ${fmtDateShort(sessionInfo.date)}</span>`
+      : '';
 
     return `
     <div class="ai" data-film-id="${f.id}">
@@ -3064,12 +3117,13 @@ let _adminFilmCache = {};
 async function openAdminFilmDetail(data) {
   if (typeof data === 'string') data = JSON.parse(data);
   _adminFilmCache[data.id] = data;
+  _tmdbProposalId   = null;   // pas depuis une proposition
+  _tmdbProposalNote = null;
 
   if (data.tmdb_id) {
     await openTMDBDetail(data.tmdb_id, 'admin');
     return;
   }
-
   _openFilmDetailModal(data);
 }
 
@@ -3082,12 +3136,13 @@ async function openAdminFilmDetailById(id) {
     data = f;
     _adminFilmCache[id] = f;
   }
+  _tmdbProposalId   = null;   // pas depuis une proposition
+  _tmdbProposalNote = null;
 
   if (data.tmdb_id) {
     await openTMDBDetail(data.tmdb_id, 'admin');
     return;
   }
-
   _openFilmDetailModal(data);
 }
 
@@ -3389,15 +3444,17 @@ async function openProposalDetail(id) {
   const p = _proposalCache[id];
   if (!p) return;
 
-  // Si on a un TMDB id → vraie fiche TMDB admin
+  // Si on a un TMDB id → vraie fiche TMDB admin avec boutons proposition
   if (p.tmdb_id) {
     _tmdbProposalNote = p.student_comment || null;
+    _tmdbProposalId   = p.id;
     await openTMDBDetail(p.tmdb_id, 'admin');
     return;
   }
 
-  // Fallback ancienne petite fiche
+  // Fallback ancienne petite fiche (sans TMDB)
   _tmdbProposalNote = null;
+  _tmdbProposalId   = null;
   document.getElementById('pd-title').textContent    = p.title + (p.year ? ` (${p.year})` : '');
   document.getElementById('pd-meta').textContent     = [p.genre, p.duration ? p.duration + ' min' : ''].filter(Boolean).join(' · ') || '—';
   document.getElementById('pd-synopsis').textContent = p.synopsis || 'Aucun synopsis disponible.';
@@ -3439,95 +3496,8 @@ async function confirmRejectProposal() {
    ADMIN — SESSIONS
    ================================================================ */
 async function loadAdminSessions() {
-  const list = document.getElementById('admin-sessions-list');
-  list.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
-
-  const [{ data: sessions }, { data: regs }] = await Promise.all([
-    db.from('cinema_sessions').select('*, films(title)').order('session_date', { ascending: false }),
-    db.from('registrations').select('session_id')
-  ]);
-
-  if (!sessions?.length) {
-    list.innerHTML = '<div class="empty"><div class="icon">🎟️</div><h3>Aucune séance</h3></div>'; return;
-  }
-
-  const rc = {};
-  (regs || []).forEach(r => rc[r.session_id] = (rc[r.session_id] || 0) + 1);
-
-  list.innerHTML = sessions.map(s => `
-    <div class="ai" style="flex-wrap:wrap;">
-      <div class="ai-info" style="width:100%;margin-bottom:8px;">
-        <div class="ai-title">${fmtDateShort(s.session_date)}</div>
-        <div class="ai-sub">${s.films?.title || '— Film non défini'}</div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:5px;">
-          <span class="badge ${s.registrations_open ? 'badge-green' : 'badge-muted'}">
-            ${s.registrations_open ? '✅ Ouvertes' : '⏸ Fermées'}
-          </span>
-          <span class="badge badge-muted">👥 ${rc[s.id]||0} inscrits</span>
-        </div>
-      </div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;">
-        <button class="btn btn-sm btn-ghost" onclick="toggleSesOpen('${s.id}',${s.registrations_open})">
-          ${s.registrations_open ? 'Fermer inscrip.' : 'Ouvrir inscrip.'}
-        </button>
-        <button class="btn btn-sm btn-ghost" onclick="viewRegistrants('${s.id}','${s.session_date}')">👥 Inscrits</button>
-        <button class="btn btn-sm btn-ghost" onclick="openEditSession('${s.id}')">✏️ Film</button>
-        <button class="btn btn-sm btn-red" onclick="deleteSes('${s.id}')">Suppr.</button>
-      </div>
-    </div>`).join('');
-}
-
-async function toggleSesOpen(id, cur) {
-  await db.from('cinema_sessions').update({ registrations_open: !cur }).eq('id', id);
-  toast(!cur ? 'Inscriptions ouvertes ✅' : 'Inscriptions fermées', 'success');
-  loadAdminSessions();
-}
-
-async function viewRegistrants(sesId, date) {
-  const { data } = await db.from('registrations')
-    .select('*, students(first_name, last_name, class_name)')
-    .eq('session_id', sesId).order('registered_at');
-
-  document.getElementById('modal-reg-title').textContent = `Inscrits — ${fmtDateShort(date)}`;
-
-  const el = document.getElementById('registrants-content');
-  if (!data?.length) {
-    el.innerHTML = '<p class="text-muted text-center" style="padding:20px;">Aucun inscrit</p>';
-  } else {
-    el.innerHTML = `<p class="text-sm text-muted mb-1">${data.length} inscrit${data.length > 1 ? 's' : ''}</p>
-      <div style="display:flex;flex-direction:column;gap:7px;">
-        ${data.map(r => `<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--surface-2);border-radius:8px;">
-          <span style="font-weight:600;font-size:14px;">${r.students?.first_name} ${r.students?.last_name}</span>
-          <span class="badge badge-muted">${r.students?.class_name || '—'}</span>
-        </div>`).join('')}
-      </div>`;
-  }
-  openModal('modal-registrants');
-}
-
-/* ----------------------------------------------------------------
-   Utilitaire : remet un film en 'active' s'il n'a plus
-   de séance future et s'il était 'scheduled'
-   ---------------------------------------------------------------- */
-async function maybeRestoreFilmToActive(filmId) {
-  if (!filmId) return;
-  try {
-    const { data: film } = await db.from('films')
-      .select('id, status').eq('id', filmId).maybeSingle();
-    if (!film || film.status !== 'scheduled') return;
-
-    const today = new Date().toISOString().split('T')[0];
-    const { data: future } = await db.from('cinema_sessions')
-      .select('id').eq('film_id', filmId).gte('session_date', today).limit(1);
-
-    if (!future?.length) {
-      await db.from('films').update({ status: 'active' }).eq('id', filmId);
-    }
-  } catch(e) { /* silencieux */ }
-}
-
-async function loadAdminSessions() {
-  await cleanupPastSessions();
+  await checkScheduledFilms();    // 1. transitions films → screened EN PREMIER
+  await cleanupPastSessions();    // 2. suppression séances passées ENSUITE
 
   const list = document.getElementById('admin-sessions-list');
   list.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
@@ -3559,7 +3529,7 @@ async function loadAdminSessions() {
           <span class="badge ${s.registrations_open ? 'badge-green' : 'badge-muted'}">
             ${s.registrations_open ? '✅ Ouvertes' : '⏸ Fermées'}
           </span>
-          <span class="badge badge-muted">👥 ${rc[s.id]||0} inscrits</span>
+          <span class="badge badge-muted">👥 ${rc[s.id]||0} inscrit${(rc[s.id]||0) > 1 ? 's' : ''}</span>
         </div>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
@@ -3752,6 +3722,7 @@ function closeModal(id) {
   document.getElementById(id).classList.add('hidden');
   if (id === 'modal-tmdb-detail') {
     _tmdbProposalNote = null;
+    _tmdbProposalId   = null;
   }
 }
 
