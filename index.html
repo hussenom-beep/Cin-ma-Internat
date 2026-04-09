@@ -3011,7 +3011,7 @@ async function loadAdminFilms() {
     return `
     <div class="ai" data-film-id="${f.id}">
       <div style="flex-shrink:0;cursor:pointer;"
-           onclick="openAdminFilmDetail(${JSON.stringify({ id:f.id, title:f.title, year:f.year, genre:f.genre, duration:f.duration, synopsis:f.synopsis, poster_url:f.poster_url, screened_at:f.screened_at, archive_reason:f.archive_reason }).replace(/"/g,'&quot;')})">
+           onclick="openAdminFilmDetail(${JSON.stringify({ id:f.id, tmdb_id:f.tmdb_id, title:f.title, year:f.year, genre:f.genre, duration:f.duration, synopsis:f.synopsis, poster_url:f.poster_url, screened_at:f.screened_at, archive_reason:f.archive_reason }).replace(/"/g,'&quot;')})">
         ${f.poster_url ? `<img src="${f.poster_url}" class="ai-img" alt="">` : `<div class="ai-img">🎬</div>`}
       </div>
       <div class="ai-info" style="cursor:pointer;"
@@ -3039,9 +3039,15 @@ async function setFilmStatus(id, status) {
 let _adminFilmCache = {};
 
 /* Ouvre la fiche admin depuis les données en cache (passées via data-attribute) */
-function openAdminFilmDetail(data) {
+async function openAdminFilmDetail(data) {
   if (typeof data === 'string') data = JSON.parse(data);
   _adminFilmCache[data.id] = data;
+
+  if (data.tmdb_id) {
+    await openTMDBDetail(data.tmdb_id, 'admin');
+    return;
+  }
+
   _openFilmDetailModal(data);
 }
 
@@ -3054,6 +3060,12 @@ async function openAdminFilmDetailById(id) {
     data = f;
     _adminFilmCache[id] = f;
   }
+
+  if (data.tmdb_id) {
+    await openTMDBDetail(data.tmdb_id, 'admin');
+    return;
+  }
+
   _openFilmDetailModal(data);
 }
 
