@@ -1490,6 +1490,25 @@ function getPin(...ids) {
   return ids.map(id => document.getElementById(id).dataset.real || '').join('');
 }
 
+function openPinKeyboard(firstPinId) {
+  const el = document.getElementById(firstPinId);
+  if (!el) return;
+
+  const tryFocus = () => {
+    el.focus({ preventScroll: true });
+    try { el.click(); } catch(e) {}
+  };
+
+  // tentative immédiate
+  tryFocus();
+
+  // petite relance pour iPhone / Safari
+  requestAnimationFrame(() => {
+    tryFocus();
+    setTimeout(tryFocus, 60);
+  });
+}
+
 async function handleCode() {
   const code = document.getElementById('inp-code').value.trim().toUpperCase();
   if (!code) { toast('Entre ton code d\'accès', 'error'); return; }
@@ -1508,10 +1527,12 @@ async function handleCode() {
     document.getElementById('act-name').textContent =
       `Bienvenue ${data.first_name} ${data.last_name} !`;
     showLS('activate');
+    openPinKeyboard('a1');
   } else {
     document.getElementById('login-name').textContent =
       `${data.first_name} ${data.last_name}`;
     showLS('pin');
+    openPinKeyboard('p1');
   }
 }
 
