@@ -251,13 +251,11 @@ button { cursor: pointer; }
   background: var(--surface-2);
   border: 2px solid var(--border);
   border-radius: var(--radius-sm);
-  color: transparent;          /* masquer les chiffres visuellement */
-  text-shadow: 0 0 0 var(--text); /* astuce : le texte reste mais invisible */
+  color: var(--text);
   font-family: 'DM Sans', monospace;
   outline: none;
   transition: border-color .18s;
-  caret-color: transparent;    /* pas de curseur visible */
-  -webkit-text-security: disc; /* sur Safari/iOS : affiche des points */
+  caret-color: transparent;
 }
 .pin:focus { border-color: var(--gold); }
 
@@ -2520,7 +2518,7 @@ document.getElementById('admin-film-search').addEventListener('keydown', e => { 
     _pressTimer = setTimeout(() => {
       _pressTimer = null;
       showLS('admin');
-    }, 5000);
+    }, 4000);
   }
 
   function cancelPress() {
