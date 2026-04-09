@@ -404,10 +404,16 @@ button { cursor: pointer; }
    HOME SCREEN
    ================================================================ */
 .home-hero {
-  padding: 24px 20px 0;
+  padding: 20px 20px 0;
   background: linear-gradient(180deg, rgba(240,165,0,.05) 0%, transparent 100%);
   border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
 }
+
+.home-hero-text { flex: 1; min-width: 0; }
 
 .home-greeting {
   font-family: 'Playfair Display', serif;
@@ -419,6 +425,60 @@ button { cursor: pointer; }
 .home-greeting span { color: var(--gold); }
 
 .home-sub { font-size: 13px; color: var(--text-2); margin-bottom: 20px; }
+
+/* Bouton profil — cercle discret en haut à droite du hero */
+.home-profile-btn {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  border: 1.5px solid var(--border);
+  color: var(--text-2);
+  font-size: 18px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: border-color .18s, color .18s;
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+.home-profile-btn:hover { border-color: var(--gold); color: var(--gold); }
+
+/* Modal profil élève */
+.profile-info-block {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  margin-bottom: 20px;
+}
+.profile-info-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px 0;
+  font-size: 14px;
+}
+.profile-info-row:not(:last-child) { border-bottom: 1px solid var(--border); }
+.profile-info-label { color: var(--text-3); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+.profile-info-value { font-weight: 600; }
+
+/* Changement de PIN — cases 6 chiffres dans modal */
+.pin-change-block { display: flex; flex-direction: column; gap: 18px; }
+.pin-change-label { font-size: 12px; font-weight: 700; color: var(--text-2); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; }
+.pins-sm { display: flex; gap: 6px; justify-content: center; }
+.pin-sm {
+  width: 40px; height: 46px;
+  text-align: center;
+  font-size: 18px; font-weight: 800;
+  background: var(--surface-2);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: transparent;
+  text-shadow: 0 0 0 var(--text);
+  -webkit-text-security: disc;
+  font-family: 'DM Sans', monospace;
+  outline: none;
+  transition: border-color .18s;
+  caret-color: transparent;
+}
+.pin-sm:focus { border-color: var(--gold); }
 
 .home-section { padding: 20px 18px 0; }
 .home-section-title { font-size: 11px; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 12px; }
@@ -830,8 +890,12 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
      ================================================================ -->
 <div class="screen hidden" id="screen-home">
   <div class="home-hero">
-    <div class="home-greeting">Salut, <span id="home-uname">toi</span> 👋</div>
-    <div class="home-sub">Soirée cinéma tous les mercredis soir</div>
+    <div class="home-hero-text">
+      <div class="home-greeting">Salut, <span id="home-uname">toi</span> 👋</div>
+      <div class="home-sub">Soirée cinéma tous les mercredis soir</div>
+    </div>
+    <!-- Bouton profil élève — haut à droite -->
+    <button class="home-profile-btn" onclick="openModal('modal-profile')" title="Mon profil">👤</button>
   </div>
 
   <div class="home-section" style="margin-top:20px;">
@@ -839,28 +903,24 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     <div id="home-next-session"></div>
   </div>
 
-  <div class="home-section" style="margin-top:20px;">
+  <!-- Actions rapides allégées : 3 boutons utiles, sans doublon déconnexion -->
+  <div class="home-section" style="margin-top:20px;padding-bottom:12px;">
     <div class="home-section-title">Actions rapides</div>
     <div class="quick-grid">
       <button class="quick-btn" onclick="navigateTo('films')">
         <span class="qicon">🗳️</span>
         <span class="qlabel">Films en vote</span>
-        <span class="qsub">Voter pour un film</span>
+        <span class="qsub">Voir &amp; voter</span>
       </button>
       <button class="quick-btn" onclick="navigateTo('propose')">
         <span class="qicon">💡</span>
         <span class="qlabel">Proposer</span>
         <span class="qsub">Suggérer un film</span>
       </button>
-      <button class="quick-btn" onclick="navigateTo('session')">
+      <button class="quick-btn" style="grid-column:1/-1;" onclick="navigateTo('session')">
         <span class="qicon">🎟️</span>
-        <span class="qlabel">S'inscrire</span>
-        <span class="qsub">Réserver sa place</span>
-      </button>
-      <button class="quick-btn" onclick="logout()">
-        <span class="qicon">👤</span>
-        <span class="qlabel">Déconnexion</span>
-        <span class="qsub">Changer de compte</span>
+        <span class="qlabel">Prochaine séance</span>
+        <span class="qsub">S'inscrire ou se désinscrire</span>
       </button>
     </div>
   </div>
@@ -1230,6 +1290,97 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     </div><!-- /body -->
 
   </div><!-- /sheet -->
+</div>
+
+<!-- ================================================================
+     MODAL: Profil élève
+     ================================================================ -->
+<div class="overlay hidden" id="modal-profile">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Mon profil</div>
+
+    <!-- Infos de l'élève connecté -->
+    <div class="profile-info-block">
+      <div class="profile-info-row">
+        <span class="profile-info-label">Prénom</span>
+        <span class="profile-info-value" id="prof-firstname">—</span>
+      </div>
+      <div class="profile-info-row">
+        <span class="profile-info-label">Nom</span>
+        <span class="profile-info-value" id="prof-lastname">—</span>
+      </div>
+      <div class="profile-info-row">
+        <span class="profile-info-label">Classe</span>
+        <span class="profile-info-value" id="prof-class">—</span>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <button class="btn btn-ghost btn-full" onclick="openChangePIN()">🔐 Changer mon code secret</button>
+      <button class="btn btn-red btn-full" onclick="closeModal('modal-profile');logout();">↪ Déconnexion</button>
+    </div>
+
+    <button class="btn btn-ghost btn-full btn-sm" style="margin-top:10px;" onclick="closeModal('modal-profile')">Fermer</button>
+  </div>
+</div>
+
+<!-- ================================================================
+     MODAL: Changement de PIN (6 chiffres)
+     ================================================================ -->
+<div class="overlay hidden" id="modal-change-pin">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Changer mon code secret</div>
+
+    <div class="pin-change-block">
+
+      <!-- PIN actuel -->
+      <div>
+        <div class="pin-change-label">Code actuel</div>
+        <div class="pins-sm" id="pins-old">
+          <input type="password" inputmode="numeric" maxlength="1" class="pin-sm" id="o1">
+          <input type="password" inputmode="numeric" maxlength="1" class="pin-sm" id="o2">
+          <input type="password" inputmode="numeric" maxlength="1" class="pin-sm" id="o3">
+          <input type="password" inputmode="numeric" maxlength="1" class="pin-sm" id="o4">
+          <input type="password" inputmode="numeric" maxlength="1" class="pin-sm" id="o5">
+          <input type="password" inputmode="numeric" maxlength="1" class="pin-sm" id="o6">
+        </div>
+      </div>
+
+      <!-- Nouveau PIN -->
+      <div>
+        <div class="pin-change-label">Nouveau code (6 chiffres)</div>
+        <div class="pins-sm" id="pins-new">
+          <input type="password" inputmode="numeric" maxlength="1" class="pin-sm" id="n1">
+          <input type="password" inputmode="numeric" maxlength="1" class="pin-sm" id="n2">
+          <input type="password" inputmode="numeric" maxlength="1" class="pin-sm" id="n3">
+          <input type="password" inputmode="numeric" maxlength="1" class="pin-sm" id="n4">
+          <input type="password" inputmode="numeric" maxlength="1" class="pin-sm" id="n5">
+          <input type="password" inputmode="numeric" maxlength="1" class="pin-sm" id="n6">
+        </div>
+      </div>
+
+      <!-- Confirmation -->
+      <div>
+        <div class="pin-change-label">Confirmer le nouveau code</div>
+        <div class="pins-sm" id="pins-confirm">
+          <input type="password" inputmode="numeric" maxlength="1" class="pin-sm" id="c1">
+          <input type="password" inputmode="numeric" maxlength="1" class="pin-sm" id="c2">
+          <input type="password" inputmode="numeric" maxlength="1" class="pin-sm" id="c3">
+          <input type="password" inputmode="numeric" maxlength="1" class="pin-sm" id="c4">
+          <input type="password" inputmode="numeric" maxlength="1" class="pin-sm" id="c5">
+          <input type="password" inputmode="numeric" maxlength="1" class="pin-sm" id="c6">
+        </div>
+      </div>
+
+    </div><!-- /pin-change-block -->
+
+    <div style="display:flex;gap:10px;margin-top:22px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('modal-change-pin')">Annuler</button>
+      <button class="btn btn-gold" style="flex:1;" onclick="handleChangePIN()">Confirmer ✅</button>
+    </div>
+  </div>
 </div>
 
 </div><!-- /app -->
@@ -2542,12 +2693,80 @@ function exportCodes() {
 /* ================================================================
    MODALS
    ================================================================ */
-function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+function openModal(id) {
+  // Remplir les infos profil à chaque ouverture
+  if (id === 'modal-profile' && S.user) {
+    document.getElementById('prof-firstname').textContent = S.user.firstName || '—';
+    document.getElementById('prof-lastname').textContent  = S.user.lastName  || '—';
+    document.getElementById('prof-class').textContent     = S.user.className  || '—';
+  }
+  document.getElementById(id).classList.remove('hidden');
+}
 function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
 
 document.querySelectorAll('.overlay').forEach(o =>
   o.addEventListener('click', e => { if (e.target === o) o.classList.add('hidden'); })
 );
+
+/* ================================================================
+   PROFIL ÉLÈVE — CHANGEMENT DE PIN
+   ================================================================ */
+
+/* setupSmPins : même logique que setupPins mais pour les cases .pin-sm */
+function setupSmPins(...ids) {
+  ids.forEach((id, i) => {
+    const el = document.getElementById(id);
+    el.value = '';
+    const clone = el.cloneNode(true);
+    el.parentNode.replaceChild(clone, el);
+    clone.addEventListener('input', () => {
+      clone.value = clone.value.replace(/\D/g,'').slice(-1);
+      if (clone.value && i < ids.length - 1)
+        document.getElementById(ids[i+1]).focus();
+    });
+    clone.addEventListener('keydown', e => {
+      if (e.key === 'Backspace' && !clone.value && i > 0)
+        document.getElementById(ids[i-1]).focus();
+    });
+    if (i === 0) setTimeout(() => clone.focus(), 80);
+  });
+}
+
+/* Ouvre le modal changement de PIN et initialise les cases */
+function openChangePIN() {
+  closeModal('modal-profile');
+  setupSmPins('o1','o2','o3','o4','o5','o6');
+  setupSmPins('n1','n2','n3','n4','n5','n6');
+  setupSmPins('c1','c2','c3','c4','c5','c6');
+  openModal('modal-change-pin');
+}
+
+/* Validation + mise à jour du hash en base */
+async function handleChangePIN() {
+  const oldPin  = getPin('o1','o2','o3','o4','o5','o6');
+  const newPin  = getPin('n1','n2','n3','n4','n5','n6');
+  const confPin = getPin('c1','c2','c3','c4','c5','c6');
+
+  if (oldPin.length !== 6)  { toast('Saisis ton code actuel complet (6 chiffres)', 'error'); return; }
+  if (newPin.length !== 6)  { toast('Le nouveau code doit faire 6 chiffres', 'error'); return; }
+  if (newPin !== confPin)   { toast('Les deux nouveaux codes ne correspondent pas', 'error'); return; }
+
+  // Vérifier que l'ancien PIN est correct
+  const oldHash = await sha256(oldPin);
+  const { data: student } = await db.from('students').select('password_hash').eq('id', S.user.id).single();
+  if (!student || oldHash !== student.password_hash) {
+    toast('Code actuel incorrect', 'error');
+    return;
+  }
+
+  // Mettre à jour le hash en base
+  const newHash = await sha256(newPin);
+  const { error } = await db.from('students').update({ password_hash: newHash }).eq('id', S.user.id);
+  if (error) { toast('Erreur lors de la mise à jour', 'error'); return; }
+
+  closeModal('modal-change-pin');
+  toast('Code secret mis à jour ✅', 'success');
+}
 
 /* ================================================================
    KEYBOARD HELPERS
