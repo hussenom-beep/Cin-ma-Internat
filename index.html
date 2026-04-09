@@ -462,7 +462,7 @@ button { cursor: pointer; }
 .home-profile-btn:hover { background: rgba(240,165,0,.22); border-color: var(--gold); }
 
 .home-section { padding: 20px 18px 0; }
-.home-section-title { font-size: 11px; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 12px; }
+.home-section-title { font-size: 13px; font-weight: 700; color: var(--text-2); text-transform: uppercase; letter-spacing: .07em; margin-bottom: 12px; }
 
 /* ----------------------------------------------------------------
    PROFIL ÉLÈVE — modal premium
@@ -1505,10 +1505,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 
     <!-- Sessions panel -->
     <div class="admin-panel hidden" id="ap-sessions">
-      <div class="admin-panel-title">
-        Séances cinéma
-        <button class="btn btn-gold btn-sm" onclick="openModal('modal-create-session')">+ Créer</button>
-      </div>
+      <div class="admin-panel-title">Séances cinéma</div>
       <div class="admin-list" id="admin-sessions-list"><div class="loader"><div class="spinner"></div></div></div>
     </div>
 
@@ -2711,10 +2708,9 @@ async function loadHomeNews() {
   const el = document.getElementById('home-news');
   if (!el || !S.user) return;
 
-  // Référence : dernière connexion précédente (null = première connexion, tout est nouveau)
   const since = S.user.lastNewsSeen || null;
 
-  // Requête proposals nouvelles depuis la dernière connexion
+  // Propositions depuis la dernière connexion
   let propQuery = db.from('proposals')
     .select('id, status, reviewed_at')
     .eq('student_id', S.user.id)
@@ -2722,15 +2718,21 @@ async function loadHomeNews() {
     .not('reviewed_at', 'is', null);
   if (since) propQuery = propQuery.gt('reviewed_at', since);
 
-  // Requête bans depuis la dernière connexion
+  // Blocages depuis la dernière connexion
   let banQuery = db.from('session_bans')
     .select('id, banned_at')
     .eq('student_id', S.user.id);
   if (since) banQuery = banQuery.gt('banned_at', since);
 
-  const [{ data: proposals }, { data: bans }] = await Promise.all([
-    propQuery,
-    banQuery
+  // Déblocages depuis la dernière connexion
+  let unbanQuery = db.from('student_events')
+    .select('id, created_at')
+    .eq('student_id', S.user.id)
+    .eq('event_type', 'session_unbanned');
+  if (since) unbanQuery = unbanQuery.gt('created_at', since);
+
+  const [{ data: proposals }, { data: bans }, { data: unbans }] = await Promise.all([
+    propQuery, banQuery, unbanQuery
   ]);
 
   const lines = [];
@@ -2738,29 +2740,29 @@ async function loadHomeNews() {
   if (proposals?.length) {
     const accepted = proposals.filter(p => p.status === 'accepted').length;
     const rejected  = proposals.filter(p => p.status === 'rejected').length;
-    if (accepted) {
-      lines.push({
-        icon: '🎬',
-        text: accepted === 1 ? 'Une de tes propositions a été acceptée ✅' : `${accepted} de tes propositions ont été acceptées ✅`,
-        target: 'propose'
-      });
-    }
-    if (rejected) {
-      lines.push({
-        icon: '❌',
-        text: rejected === 1 ? 'Une de tes propositions a été refusée' : `${rejected} de tes propositions ont été refusées`,
-        target: 'propose'
-      });
-    }
-  }
-
-  if (bans?.length) {
-    lines.push({
-      icon: '🚫',
-      text: bans.length === 1 ? 'Tu as été retiré d\'une séance' : `Tu as été retiré de ${bans.length} séances`,
-      target: 'session'
+    if (accepted) lines.push({
+      icon: '🎬',
+      text: accepted === 1 ? 'Une de tes propositions a été acceptée ✅' : `${accepted} de tes propositions ont été acceptées ✅`,
+      target: 'propose'
+    });
+    if (rejected) lines.push({
+      icon: '❌',
+      text: rejected === 1 ? 'Une de tes propositions a été refusée' : `${rejected} de tes propositions ont été refusées`,
+      target: 'propose'
     });
   }
+
+  if (bans?.length) lines.push({
+    icon: '🚫',
+    text: bans.length === 1 ? "Tu as été retiré d'une séance" : `Tu as été retiré de ${bans.length} séances`,
+    target: 'session'
+  });
+
+  if (unbans?.length) lines.push({
+    icon: '✅',
+    text: unbans.length === 1 ? "Tu peux de nouveau t'inscrire à une séance" : `Tu as été débloqué pour ${unbans.length} séances`,
+    target: 'session'
+  });
 
   if (!lines.length) {
     el.innerHTML = `<div class="home-news-empty">Aucune nouveauté depuis ta dernière connexion.</div>`;
@@ -3446,7 +3448,7 @@ async function loadSessions() {
 
   const today = new Date().toISOString().split('T')[0];
   const [{ data: sessions }, { data: myRegs }, { data: myBans }] = await Promise.all([
-    db.from('cinema_sessions').select('*, films(title, poster_url)').gte('session_date', today).order('session_date'),
+    db.from('cinema_sessions').select('*, films(id, title, poster_url, tmdb_id)').gte('session_date', today).order('session_date'),
     S.user ? db.from('registrations').select('session_id').eq('student_id', S.user.id) : { data: [] },
     S.user ? db.from('session_bans').select('session_id, reason').eq('student_id', S.user.id) : { data: [] }
   ]);
@@ -3497,7 +3499,12 @@ async function loadSessions() {
       actionBtn = `<button class="btn btn-sm btn-gold" onclick="toggleReg('${s.id}',false)">✅ S'inscrire</button>`;
     }
 
-    return `<div class="session-card-student">
+    const filmClickAttr = s.films?.tmdb_id
+      ? `onclick="openTMDBDetail(${s.films.tmdb_id},'student')"`
+      : (s.films?.id ? `onclick="openSessionFilmDetail('${s.films.id}')"` : '');
+    const cardCursor = (s.films?.tmdb_id || s.films?.id) ? 'cursor:pointer;' : '';
+
+    return `<div class="session-card-student" style="${cardCursor}" ${filmClickAttr}>
       ${poster ? `<img src="${poster}" class="sc-poster" alt="">` : ''}
       <div class="sc-overlay"></div>
       <div class="sc-body">
@@ -3508,13 +3515,26 @@ async function loadSessions() {
           <span class="sc-capacity">${count} / ${cap}</span>
         </div>
         ${banReasonHtml}
-        <div class="sc-actions">
+        <div class="sc-actions" onclick="event.stopPropagation()">
           ${actionBtn}
           <button class="btn btn-sm btn-ghost" onclick="viewStudentRegistrants('${s.id}','${s.session_date}')">👥 Voir les inscrits</button>
         </div>
       </div>
     </div>`;
   }).join('');
+}
+
+/* Ouvre la fiche film depuis une carte de séance (film sans tmdb_id) */
+async function openSessionFilmDetail(filmId) {
+  const { data: f } = await db.from('films').select('*').eq('id', filmId).single();
+  if (!f) return;
+  if (f.tmdb_id) { await openTMDBDetail(f.tmdb_id, 'student'); return; }
+  // Fallback : injecter dans l'écran film-detail existant
+  const existing = S.films.find(x => x.id === filmId);
+  if (existing) { openDetail(filmId); return; }
+  // Film non chargé dans S.films (ex: scheduled) → petite fiche rapide
+  S.films = [f]; S.votes = S.votes || new Set();
+  openDetail(filmId);
 }
 
 async function toggleReg(sessionId, isReg) {
@@ -4356,10 +4376,19 @@ async function viewRegistrants(sesId, date) {
 }
 
 async function unbanStudent(sessionId, studentId, date) {
+  // Supprimer le blocage
   await db.from('session_bans').delete()
     .eq('session_id', sessionId).eq('student_id', studentId);
+
+  // Créer une nouveauté côté élève
+  await db.from('student_events').insert({
+    student_id: studentId,
+    session_id: sessionId,
+    event_type: 'session_unbanned',
+    message:    'Tu peux de nouveau t\'inscrire à une séance'
+  });
+
   toast('Élève débloqué — il peut se réinscrire', 'success');
-  // Recharger la vue
   await viewRegistrants(sessionId, date);
 }
 
