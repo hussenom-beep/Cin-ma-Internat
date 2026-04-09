@@ -470,9 +470,7 @@ button { cursor: pointer; }
   background: var(--surface-2);
   border: 2px solid var(--border);
   border-radius: var(--radius-sm);
-  color: transparent;
-  text-shadow: 0 0 0 var(--text);
-  -webkit-text-security: disc;
+  color: var(--text);
   font-family: 'DM Sans', monospace;
   outline: none;
   transition: border-color .18s;
@@ -1339,12 +1337,12 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       <div>
         <div class="pin-change-label">Code actuel</div>
         <div class="pins-sm" id="pins-old">
-          <input type="password" inputmode="numeric" maxlength="1" class="pin-sm" id="o1">
-          <input type="password" inputmode="numeric" maxlength="1" class="pin-sm" id="o2">
-          <input type="password" inputmode="numeric" maxlength="1" class="pin-sm" id="o3">
-          <input type="password" inputmode="numeric" maxlength="1" class="pin-sm" id="o4">
-          <input type="password" inputmode="numeric" maxlength="1" class="pin-sm" id="o5">
-          <input type="password" inputmode="numeric" maxlength="1" class="pin-sm" id="o6">
+        <input type="text" inputmode="numeric" maxlength="1" class="pin-sm" id="o1" autocomplete="off">
+		<input type="text" inputmode="numeric" maxlength="1" class="pin-sm" id="o2" autocomplete="off">
+		<input type="text" inputmode="numeric" maxlength="1" class="pin-sm" id="o3" autocomplete="off">
+		<input type="text" inputmode="numeric" maxlength="1" class="pin-sm" id="o4" autocomplete="off">
+		<input type="text" inputmode="numeric" maxlength="1" class="pin-sm" id="o5" autocomplete="off">
+		<input type="text" inputmode="numeric" maxlength="1" class="pin-sm" id="o6" autocomplete="off">
         </div>
       </div>
 
@@ -1352,12 +1350,12 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       <div>
         <div class="pin-change-label">Nouveau code (6 chiffres)</div>
         <div class="pins-sm" id="pins-new">
-          <input type="password" inputmode="numeric" maxlength="1" class="pin-sm" id="n1">
-          <input type="password" inputmode="numeric" maxlength="1" class="pin-sm" id="n2">
-          <input type="password" inputmode="numeric" maxlength="1" class="pin-sm" id="n3">
-          <input type="password" inputmode="numeric" maxlength="1" class="pin-sm" id="n4">
-          <input type="password" inputmode="numeric" maxlength="1" class="pin-sm" id="n5">
-          <input type="password" inputmode="numeric" maxlength="1" class="pin-sm" id="n6">
+        <input type="text" inputmode="numeric" maxlength="1" class="pin-sm" id="n1" autocomplete="off">
+		<input type="text" inputmode="numeric" maxlength="1" class="pin-sm" id="n2" autocomplete="off">
+		<input type="text" inputmode="numeric" maxlength="1" class="pin-sm" id="n3" autocomplete="off">
+		<input type="text" inputmode="numeric" maxlength="1" class="pin-sm" id="n4" autocomplete="off">
+		<input type="text" inputmode="numeric" maxlength="1" class="pin-sm" id="n5" autocomplete="off">
+		<input type="text" inputmode="numeric" maxlength="1" class="pin-sm" id="n6" autocomplete="off">
         </div>
       </div>
 
@@ -1365,12 +1363,12 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       <div>
         <div class="pin-change-label">Confirmer le nouveau code</div>
         <div class="pins-sm" id="pins-confirm">
-          <input type="password" inputmode="numeric" maxlength="1" class="pin-sm" id="c1">
-          <input type="password" inputmode="numeric" maxlength="1" class="pin-sm" id="c2">
-          <input type="password" inputmode="numeric" maxlength="1" class="pin-sm" id="c3">
-          <input type="password" inputmode="numeric" maxlength="1" class="pin-sm" id="c4">
-          <input type="password" inputmode="numeric" maxlength="1" class="pin-sm" id="c5">
-          <input type="password" inputmode="numeric" maxlength="1" class="pin-sm" id="c6">
+        <input type="text" inputmode="numeric" maxlength="1" class="pin-sm" id="c1" autocomplete="off">
+		<input type="text" inputmode="numeric" maxlength="1" class="pin-sm" id="c2" autocomplete="off">
+		<input type="text" inputmode="numeric" maxlength="1" class="pin-sm" id="c3" autocomplete="off">
+		<input type="text" inputmode="numeric" maxlength="1" class="pin-sm" id="c4" autocomplete="off">
+		<input type="text" inputmode="numeric" maxlength="1" class="pin-sm" id="c5" autocomplete="off">
+		<input type="text" inputmode="numeric" maxlength="1" class="pin-sm" id="c6" autocomplete="off">
         </div>
       </div>
 
@@ -2717,20 +2715,51 @@ function setupSmPins(...ids) {
   ids.forEach((id, i) => {
     const el = document.getElementById(id);
     el.value = '';
+    el.dataset.real = '';
+
     const clone = el.cloneNode(true);
+    clone.value = '';
+    clone.dataset.real = '';
     el.parentNode.replaceChild(clone, el);
+
     clone.addEventListener('input', () => {
-      clone.value = clone.value.replace(/\D/g,'').slice(-1);
-      if (clone.value && i < ids.length - 1)
-        document.getElementById(ids[i+1]).focus();
+      const digit = clone.value.replace(/\D/g, '').slice(-1);
+
+      if (!digit) {
+        clone.value = '';
+        clone.dataset.real = '';
+        return;
+      }
+
+      clone.dataset.real = digit;
+      clone.value = '•';
+
+      if (i < ids.length - 1) {
+        document.getElementById(ids[i + 1]).focus();
+      }
     });
+
     clone.addEventListener('keydown', e => {
-      if (e.key === 'Backspace' && !clone.value && i > 0)
-        document.getElementById(ids[i-1]).focus();
+      if (e.key === 'Backspace') {
+        if (clone.dataset.real) {
+          clone.dataset.real = '';
+          clone.value = '';
+          e.preventDefault();
+          return;
+        }
+        if (i > 0) {
+          const prev = document.getElementById(ids[i - 1]);
+          prev.dataset.real = '';
+          prev.value = '';
+          prev.focus();
+          e.preventDefault();
+        }
+      }
     });
-    if (i === 0) setTimeout(() => clone.focus(), 80);
+
+    clone.addEventListener('paste', e => e.preventDefault());
   });
-}
+}}
 
 /* Ouvre le modal changement de PIN et initialise les cases */
 function openChangePIN() {
@@ -2739,19 +2768,26 @@ function openChangePIN() {
   setupSmPins('n1','n2','n3','n4','n5','n6');
   setupSmPins('c1','c2','c3','c4','c5','c6');
   openModal('modal-change-pin');
+  setTimeout(() => {
+    const first = document.getElementById('o1');
+    if (first) first.focus();
+  }, 80);
 }
 
 /* Validation + mise à jour du hash en base */
 async function handleChangePIN() {
-  const oldPin  = getPin('o1','o2','o3','o4','o5','o6');
-  const newPin  = getPin('n1','n2','n3','n4','n5','n6');
-  const confPin = getPin('c1','c2','c3','c4','c5','c6');
+  const readSmPin = (...ids) =>
+    ids.map(id => document.getElementById(id).dataset.real || '').join('');
+
+  const oldPin  = readSmPin('o1','o2','o3','o4','o5','o6');
+  const newPin  = readSmPin('n1','n2','n3','n4','n5','n6');
+  const confPin = readSmPin('c1','c2','c3','c4','c5','c6');
 
   if (oldPin.length !== 6)  { toast('Saisis ton code actuel complet (6 chiffres)', 'error'); return; }
   if (newPin.length !== 6)  { toast('Le nouveau code doit faire 6 chiffres', 'error'); return; }
+  if (confPin.length !== 6) { toast('Confirme le nouveau code complet (6 chiffres)', 'error'); return; }
   if (newPin !== confPin)   { toast('Les deux nouveaux codes ne correspondent pas', 'error'); return; }
 
-  // Vérifier que l'ancien PIN est correct
   const oldHash = await sha256(oldPin);
   const { data: student } = await db.from('students').select('password_hash').eq('id', S.user.id).single();
   if (!student || oldHash !== student.password_hash) {
@@ -2759,7 +2795,6 @@ async function handleChangePIN() {
     return;
   }
 
-  // Mettre à jour le hash en base
   const newHash = await sha256(newPin);
   const { error } = await db.from('students').update({ password_hash: newHash }).eq('id', S.user.id);
   if (error) { toast('Erreur lors de la mise à jour', 'error'); return; }
