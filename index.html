@@ -1447,16 +1447,21 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
   <div class="sheet">
     <div class="sheet-handle"></div>
     <div class="sheet-title">Modifier la séance</div>
+    <input type="hidden" id="edit-ses-id">
+    <input type="hidden" id="edit-ses-prev-film">
+    <div class="fgroup">
+      <label class="flabel">Date de la séance</label>
+      <input type="date" class="finput" id="edit-ses-date">
+    </div>
     <div class="fgroup">
       <label class="flabel">Film diffusé</label>
       <select class="finput fselect" id="edit-ses-film"><option value="">— À définir —</option></select>
     </div>
-    <input type="hidden" id="edit-ses-id">
-    <input type="hidden" id="edit-ses-prev-film">
     <div style="display:flex;gap:10px;margin-top:6px;">
       <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('modal-edit-session')">Annuler</button>
       <button class="btn btn-gold" style="flex:1;" onclick="saveEditSession()">Enregistrer ✅</button>
     </div>
+    <button class="btn btn-red btn-full" style="margin-top:10px;" onclick="deleteSessionFromEditModal()">🗑 Supprimer cette séance</button>
   </div>
 </div>
 
@@ -3607,14 +3612,28 @@ async function cancelSes(id, filmId) {
 async function openEditSession(id, currentTitle, currentFilmId) {
   document.getElementById('edit-ses-id').value = id;
   document.getElementById('edit-ses-prev-film').value = currentFilmId || '';
-  // Inclure les films actifs ET scheduled dans la liste
+
+  // Charger la date actuelle de la séance depuis Supabase
+  const { data: ses } = await db.from('cinema_sessions')
+    .select('session_date, film_id')
+    .eq('id', id)
+    .single();
+
+  document.getElementById('edit-ses-date').value = ses?.session_date || '';
+
+  // Si currentFilmId n'a pas été transmis, le lire depuis la séance
+  const effectiveFilmId = currentFilmId || ses?.film_id || '';
+  document.getElementById('edit-ses-prev-film').value = effectiveFilmId;
+
+  // Charger la liste des films actifs + scheduled
   const { data: films } = await db.from('films')
     .select('id,title')
     .in('status', ['active', 'scheduled'])
     .order('title');
   const sel = document.getElementById('edit-ses-film');
   sel.innerHTML = '<option value="">— À définir —</option>' +
-    (films||[]).map(f => `<option value="${f.id}" ${f.id === currentFilmId ? 'selected' : ''}>${f.title}</option>`).join('');
+    (films||[]).map(f => `<option value="${f.id}" ${f.id === effectiveFilmId ? 'selected' : ''}>${f.title}</option>`).join('');
+
   openModal('modal-edit-session');
 }
 
@@ -3622,9 +3641,15 @@ async function saveEditSession() {
   const id         = document.getElementById('edit-ses-id').value;
   const newFilmId  = document.getElementById('edit-ses-film').value || null;
   const prevFilmId = document.getElementById('edit-ses-prev-film').value || null;
+  const newDate    = document.getElementById('edit-ses-date').value;
 
-  // Mettre à jour la séance
-  await db.from('cinema_sessions').update({ film_id: newFilmId }).eq('id', id);
+  if (!newDate) { toast('Sélectionne une date', 'error'); return; }
+
+  // Mettre à jour la séance (date + film)
+  await db.from('cinema_sessions').update({
+    session_date: newDate,
+    film_id:      newFilmId
+  }).eq('id', id);
 
   // Si le film a changé : remettre l'ancien en active si nécessaire
   if (prevFilmId && prevFilmId !== newFilmId) {
@@ -3634,6 +3659,27 @@ async function saveEditSession() {
   closeModal('modal-edit-session');
   toast('Séance mise à jour ✅', 'success');
   loadAdminSessions();
+  loadAdminFilms();   // rafraîchit le badge date dans l'onglet Films
+}
+
+async function deleteSessionFromEditModal() {
+  const id     = document.getElementById('edit-ses-id').value;
+  const filmId = document.getElementById('edit-ses-prev-film').value || null;
+
+  if (!confirm('Supprimer cette séance ? Cette action est irréversible.')) return;
+
+  closeModal('modal-edit-session');
+
+  // Supprimer inscriptions + séance
+  await db.from('registrations').delete().eq('session_id', id);
+  await db.from('cinema_sessions').delete().eq('id', id);
+
+  // Remettre le film en actif si nécessaire
+  if (filmId) await maybeRestoreFilmToActive(filmId);
+
+  toast('Séance supprimée — film remis en actif si nécessaire', 'success');
+  loadAdminSessions();
+  loadAdminFilms();   // badge date disparaît dans l'onglet Films
 }
 
 function openCreateSessionModal() {
