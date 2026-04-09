@@ -241,21 +241,23 @@ button { cursor: pointer; }
 .ftextarea { resize: vertical; min-height: 80px; }
 .fselect { appearance: none; cursor: pointer; }
 
-/* PIN inputs */
-.pins { display: flex; gap: 10px; justify-content: center; }
+/* PIN inputs — 6 cases, taille ajustée pour tenir sur mobile */
+.pins { display: flex; gap: 7px; justify-content: center; }
 .pin {
-  width: 54px; height: 58px;
+  width: 44px; height: 52px;
   text-align: center;
-  font-size: 26px;
+  font-size: 22px;
   font-weight: 800;
   background: var(--surface-2);
   border: 2px solid var(--border);
   border-radius: var(--radius-sm);
-  color: var(--text);
+  color: transparent;          /* masquer les chiffres visuellement */
+  text-shadow: 0 0 0 var(--text); /* astuce : le texte reste mais invisible */
   font-family: 'DM Sans', monospace;
   outline: none;
   transition: border-color .18s;
-  caret-color: var(--gold);
+  caret-color: transparent;    /* pas de curseur visible */
+  -webkit-text-security: disc; /* sur Safari/iOS : affiche des points */
 }
 .pin:focus { border-color: var(--gold); }
 
@@ -751,7 +753,8 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
      SCREEN: LOGIN
      ================================================================ -->
 <div class="screen no-nav" id="screen-login">
-  <div class="login-cinema-icon">🎬</div>
+  <!-- logo : appui long 5s = accès admin caché -->
+  <div class="login-cinema-icon" id="login-logo">🎬</div>
   <div class="login-title">Cinéma Internat</div>
   <div class="login-sub">Espace élèves · Soirées du mercredi</div>
 
@@ -766,29 +769,29 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
           style="text-transform:uppercase;letter-spacing:.1em;font-family:monospace;font-size:18px;font-weight:700;">
       </div>
       <button class="btn btn-gold btn-full btn-lg" onclick="handleCode()">Continuer →</button>
-      <div class="divider"></div>
-      <button class="btn btn-ghost btn-full btn-sm" onclick="showLS('admin')">🔑 Accès administrateur</button>
     </div>
 
-    <!-- Étape 2 : activation (1er accès) -->
+    <!-- Étape 2 : activation (1er accès) — PIN 6 chiffres masqués -->
     <div id="ls-activate" class="hidden">
       <div class="text-center mb-2">
         <div style="font-size:36px;margin-bottom:10px;">✨</div>
         <div class="fw-bold" style="font-size:17px;">Premier accès</div>
         <div class="text-sm text-muted mt-1" id="act-name"></div>
       </div>
-      <p class="text-sm text-muted text-center mb-2">Choisis un PIN à 4 chiffres pour sécuriser ton compte.</p>
+      <p class="text-sm text-muted text-center mb-2">Choisis un code secret à 6 chiffres.</p>
       <div class="pins mb-2" id="pins-activate">
-        <input type="tel" maxlength="1" class="pin" id="a1">
-        <input type="tel" maxlength="1" class="pin" id="a2">
-        <input type="tel" maxlength="1" class="pin" id="a3">
-        <input type="tel" maxlength="1" class="pin" id="a4">
+        <input type="password" inputmode="numeric" maxlength="1" class="pin" id="a1">
+        <input type="password" inputmode="numeric" maxlength="1" class="pin" id="a2">
+        <input type="password" inputmode="numeric" maxlength="1" class="pin" id="a3">
+        <input type="password" inputmode="numeric" maxlength="1" class="pin" id="a4">
+        <input type="password" inputmode="numeric" maxlength="1" class="pin" id="a5">
+        <input type="password" inputmode="numeric" maxlength="1" class="pin" id="a6">
       </div>
       <button class="btn btn-gold btn-full btn-lg" onclick="handleActivate()">Activer mon compte 🎉</button>
       <button class="btn btn-ghost btn-full btn-sm mt-1" onclick="backCode()">← Retour</button>
     </div>
 
-    <!-- Étape 3 : connexion (compte existant) -->
+    <!-- Étape 3 : connexion (compte existant) — PIN 6 chiffres masqués -->
     <div id="ls-pin" class="hidden">
       <div class="text-center mb-2">
         <div style="font-size:36px;margin-bottom:10px;">👋</div>
@@ -796,16 +799,18 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
         <div class="text-sm text-muted mt-1" id="login-name"></div>
       </div>
       <div class="pins mb-2" id="pins-login">
-        <input type="tel" maxlength="1" class="pin" id="p1">
-        <input type="tel" maxlength="1" class="pin" id="p2">
-        <input type="tel" maxlength="1" class="pin" id="p3">
-        <input type="tel" maxlength="1" class="pin" id="p4">
+        <input type="password" inputmode="numeric" maxlength="1" class="pin" id="p1">
+        <input type="password" inputmode="numeric" maxlength="1" class="pin" id="p2">
+        <input type="password" inputmode="numeric" maxlength="1" class="pin" id="p3">
+        <input type="password" inputmode="numeric" maxlength="1" class="pin" id="p4">
+        <input type="password" inputmode="numeric" maxlength="1" class="pin" id="p5">
+        <input type="password" inputmode="numeric" maxlength="1" class="pin" id="p6">
       </div>
       <button class="btn btn-gold btn-full btn-lg" onclick="handleLogin()">Se connecter</button>
       <button class="btn btn-ghost btn-full btn-sm mt-1" onclick="backCode()">← Retour</button>
     </div>
 
-    <!-- Accès admin -->
+    <!-- Accès admin — caché, accessible uniquement via appui long sur le logo -->
     <div id="ls-admin" class="hidden">
       <div class="text-center mb-2">
         <div style="font-size:36px;margin-bottom:10px;">🔑</div>
@@ -1423,8 +1428,9 @@ function showLS(id) {
   ['ls-code','ls-activate','ls-pin','ls-admin'].forEach(i =>
     document.getElementById(i).classList.toggle('hidden', i !== 'ls-' + id));
   if (id === 'code') return;
-  if (id === 'activate') setupPins('a1','a2','a3','a4');
-  if (id === 'pin')      setupPins('p1','p2','p3','p4');
+  // PIN à 6 chiffres
+  if (id === 'activate') setupPins('a1','a2','a3','a4','a5','a6');
+  if (id === 'pin')      setupPins('p1','p2','p3','p4','p5','p6');
   if (id === 'admin')    setTimeout(() => document.getElementById('inp-adminpwd').focus(), 80);
 }
 
@@ -1434,7 +1440,7 @@ function setupPins(...ids) {
   ids.forEach((id, i) => {
     const el = document.getElementById(id);
     el.value = '';
-    // Clone to remove old listeners
+    // Clone pour supprimer les anciens listeners
     const clone = el.cloneNode(true);
     el.parentNode.replaceChild(clone, el);
     clone.addEventListener('input', () => {
@@ -1479,9 +1485,10 @@ async function handleCode() {
   }
 }
 
+// Activation — PIN 6 chiffres
 async function handleActivate() {
-  const pin = getPin('a1','a2','a3','a4');
-  if (pin.length !== 4) { toast('PIN à 4 chiffres requis', 'error'); return; }
+  const pin = getPin('a1','a2','a3','a4','a5','a6');
+  if (pin.length !== 6) { toast('Code secret à 6 chiffres requis', 'error'); return; }
 
   const hash = await sha256(pin);
   const { error } = await db.from('students').update({
@@ -1495,12 +1502,13 @@ async function handleActivate() {
   toast('Compte activé ! Bienvenue 🎉', 'success');
 }
 
+// Connexion — PIN 6 chiffres
 async function handleLogin() {
-  const pin = getPin('p1','p2','p3','p4');
-  if (pin.length !== 4) { toast('Entre ton PIN à 4 chiffres', 'error'); return; }
+  const pin = getPin('p1','p2','p3','p4','p5','p6');
+  if (pin.length !== 6) { toast('Entre ton code secret à 6 chiffres', 'error'); return; }
 
   const hash = await sha256(pin);
-  if (hash !== _tmpStudent.password_hash) { toast('PIN incorrect', 'error'); return; }
+  if (hash !== _tmpStudent.password_hash) { toast('Code incorrect', 'error'); return; }
 
   loginAs(_tmpStudent);
   toast(`Bon retour, ${_tmpStudent.first_name} 👋`, 'success');
@@ -2497,6 +2505,41 @@ document.getElementById('inp-code').addEventListener('keydown', e => { if (e.key
 document.getElementById('inp-adminpwd').addEventListener('keydown', e => { if (e.key === 'Enter') handleAdminLogin(); });
 document.getElementById('prop-search').addEventListener('keydown', e => { if (e.key === 'Enter') searchTMDB('prop'); });
 document.getElementById('admin-film-search').addEventListener('keydown', e => { if (e.key === 'Enter') searchTMDB('admin'); });
+
+/* ----------------------------------------------------------------
+   APPUI LONG 5 SECONDES SUR LE LOGO — accès admin caché
+   Aucun retour visuel pendant l'appui, déclenchement silencieux.
+   ---------------------------------------------------------------- */
+(function initLogoLongPress() {
+  const logo = document.getElementById('login-logo');
+  let _pressTimer = null;
+
+  function startPress(e) {
+    // Ne démarrer que si on est sur l'écran de saisie du code
+    if (document.getElementById('ls-code').classList.contains('hidden')) return;
+    _pressTimer = setTimeout(() => {
+      _pressTimer = null;
+      showLS('admin');
+    }, 5000);
+  }
+
+  function cancelPress() {
+    if (_pressTimer) { clearTimeout(_pressTimer); _pressTimer = null; }
+  }
+
+  // Souris (desktop)
+  logo.addEventListener('mousedown',  startPress);
+  logo.addEventListener('mouseup',    cancelPress);
+  logo.addEventListener('mouseleave', cancelPress);
+
+  // Tactile (mobile)
+  logo.addEventListener('touchstart',  startPress,  { passive: true });
+  logo.addEventListener('touchend',    cancelPress, { passive: true });
+  logo.addEventListener('touchcancel', cancelPress, { passive: true });
+
+  // Empêcher le menu contextuel sur appui long mobile (inutile ici mais propre)
+  logo.addEventListener('contextmenu', e => e.preventDefault());
+})();
 
 /* ================================================================
    INIT
