@@ -1157,9 +1157,10 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     <div class="fgroup">
       <label class="flabel">Rechercher</label>
       <div style="display:flex;gap:8px;">
-        <input type="text" class="finput" id="prop-search" placeholder="Titre du film..." style="flex:1;">
-        <button class="btn btn-gold" onclick="searchTMDB('student')">🔍</button>
-      </div>
+			<input type="text" class="finput" id="prop-search" placeholder="Titre du film..." style="flex:1;">
+			<input type="number" class="finput" id="prop-year" placeholder="Année" style="width:96px;flex-shrink:0;">
+			<button class="btn btn-gold" onclick="searchTMDB('student')">🔍</button>
+	</div>
     </div>
 
     <div id="prop-results" class="tmdb-results"></div>
@@ -1340,9 +1341,10 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     <div class="fgroup">
       <label class="flabel">Rechercher via TMDB</label>
       <div style="display:flex;gap:8px;">
-        <input type="text" class="finput" id="admin-film-search" placeholder="Titre du film..." style="flex:1;">
-        <button class="btn btn-gold" onclick="searchTMDB('admin')">🔍</button>
-      </div>
+			<input type="text" class="finput" id="admin-film-search" placeholder="Titre du film..." style="flex:1;">
+			<input type="number" class="finput" id="admin-film-year" placeholder="Année" style="width:96px;flex-shrink:0;">
+			<button class="btn btn-gold" onclick="searchTMDB('admin')">🔍</button>
+	  </div>
     </div>
     <div id="admin-tmdb-results" class="tmdb-results" style="margin-bottom:10px;"></div>
 
@@ -2329,11 +2331,14 @@ function initPropose() {
 }
 
 async function searchTMDB(ctx) {
-  const isAdmin = ctx === 'admin';
-  const inputId = isAdmin ? 'admin-film-search' : 'prop-search';
+  const isAdmin   = ctx === 'admin';
+  const inputId   = isAdmin ? 'admin-film-search' : 'prop-search';
+  const yearId    = isAdmin ? 'admin-film-year' : 'prop-year';
   const resultsId = isAdmin ? 'admin-tmdb-results' : 'prop-results';
 
   const q = document.getElementById(inputId).value.trim();
+  const year = document.getElementById(yearId)?.value.trim();
+
   if (!q) return;
 
   if (!CFG.TMDB_KEY) {
@@ -2346,30 +2351,68 @@ async function searchTMDB(ctx) {
   el.innerHTML = '<div class="loader" style="padding:20px;"><div class="spinner"></div></div>';
 
   try {
-    const r = await fetch(
-      `https://api.themoviedb.org/3/search/movie?api_key=${CFG.TMDB_KEY}&query=${encodeURIComponent(q)}&language=fr-FR`
-    );
-    const data = await r.json();
-    const items = (data.results || []).slice(0, 5);
+    const params = new URLSearchParams({
+      api_key: CFG.TMDB_KEY,
+      query: q,
+      language: 'fr-FR',
+      include_adult: 'false'
+    });
 
-    if (!items.length) { el.innerHTML = '<p class="text-sm text-muted text-center" style="padding:16px;">Aucun résultat</p>'; return; }
+    if (year) params.set('year', year);
+
+    const r = await fetch(`https://api.themoviedb.org/3/search/movie?${params.toString()}`);
+    const data = await r.json();
+
+    const norm = s => (s || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim();
+
+    const queryNorm = norm(q);
+
+    const scored = (data.results || []).map(m => {
+      const titleNorm = norm(m.title);
+      let score = 0;
+
+      if (titleNorm === queryNorm) score += 1000;
+      else if (titleNorm.startsWith(queryNorm)) score += 500;
+      else if (titleNorm.includes(queryNorm)) score += 200;
+
+      if (m.poster_path) score += 80;
+      if (m.popularity) score += Math.min(m.popularity, 120);
+      if (m.vote_count) score += Math.min(m.vote_count / 10, 50);
+
+      if (year && m.release_date && m.release_date.startsWith(year)) score += 400;
+
+      return { ...m, _score: score };
+    });
+
+    const items = scored
+      .sort((a, b) => b._score - a._score)
+      .slice(0, 8);
+
+    if (!items.length) {
+      el.innerHTML = '<p class="text-sm text-muted text-center" style="padding:16px;">Aucun résultat</p>';
+      return;
+    }
 
     el.innerHTML = items.map(m => {
-  const year = m.release_date ? m.release_date.split('-')[0] : '';
-  return `
-    <div class="tmdb-card" onclick="openTMDBDetail(${m.id}, '${ctx}')">
-      ${m.poster_path
-        ? `<img src="https://image.tmdb.org/t/p/w200${m.poster_path}" alt="">`
-        : `<div class="tmdb-noimg">🎬</div>`}
-      <div style="flex:1;min-width:0;">
-        <h4>${m.title}</h4>
-        <p>${year}</p>
-        <div class="tmdb-ov">${m.overview || ''}</div>
-        <div class="tmdb-card-hint">Voir la fiche →</div>
-      </div>
-    </div>
-  `;
-}).join('');
+      const yearTxt = m.release_date ? m.release_date.split('-')[0] : '';
+      return `
+        <div class="tmdb-card" onclick="openTMDBDetail(${m.id}, '${ctx}')">
+          ${m.poster_path
+            ? `<img src="https://image.tmdb.org/t/p/w200${m.poster_path}" alt="">`
+            : `<div class="tmdb-noimg">🎬</div>`}
+          <div style="flex:1;min-width:0;">
+            <h4>${m.title}</h4>
+            <p>${yearTxt || 'Année inconnue'}</p>
+            <div class="tmdb-ov">${m.overview || ''}</div>
+            <div class="tmdb-card-hint">Voir la fiche →</div>
+          </div>
+        </div>
+      `;
+    }).join('');
   } catch(e) {
     el.innerHTML = '<p class="text-sm text-muted text-center" style="padding:16px;">Erreur de recherche</p>';
   }
@@ -3716,6 +3759,8 @@ document.getElementById('inp-code').addEventListener('keydown', e => { if (e.key
 document.getElementById('inp-adminpwd').addEventListener('keydown', e => { if (e.key === 'Enter') handleAdminLogin(); });
 document.getElementById('prop-search').addEventListener('keydown', e => { if (e.key === 'Enter') searchTMDB('student'); });
 document.getElementById('admin-film-search').addEventListener('keydown', e => { if (e.key === 'Enter') searchTMDB('admin'); });
+document.getElementById('prop-year')?.addEventListener('keydown', e => { if (e.key === 'Enter') searchTMDB('student'); });
+document.getElementById('admin-film-year')?.addEventListener('keydown', e => { if (e.key === 'Enter') searchTMDB('admin'); });
 
 /* ----------------------------------------------------------------
    APPUI LONG 5 SECONDES SUR LE LOGO — accès admin caché
