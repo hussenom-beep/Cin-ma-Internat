@@ -984,8 +984,48 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 .fw-bold { font-weight: 700; }
 .w-full { width: 100%; }
 .scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+/* Barre de recherche admin Films */
+.admin-film-search-wrap {
+  padding: 10px 14px 4px;
+  position: relative;
+}
+.admin-film-search-wrap input {
+  width: 100%;
+  padding-left: 34px;
+  box-sizing: border-box;
+}
+.admin-film-search-icon {
+  position: absolute;
+  left: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 14px;
+  color: var(--text-3);
+  pointer-events: none;
+}
+
+/* Badge compteur propositions en attente */
+.admin-tab-wrap { position: relative; display: inline-flex; }
+.pending-badge {
+  position: absolute;
+  top: 2px;
+  right: -4px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  background: var(--gold);
+  color: #000;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  pointer-events: none;
+}
   </style>
-</head>
 <body>
 <div id="app">
 
@@ -1214,7 +1254,10 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
   <div class="admin-tabs" id="admin-tabs">
     <button class="admin-tab active" onclick="aTab('films')">🎬 Films</button>
     <button class="admin-tab" onclick="aTab('votes')">🗳️ Votes</button>
-    <button class="admin-tab" onclick="aTab('proposals')">💡 Propositions</button>
+    <div class="admin-tab-wrap">
+      <button class="admin-tab" onclick="aTab('proposals')">💡 Propositions</button>
+      <span class="pending-badge hidden" id="pending-proposals-badge">0</span>
+    </div>
     <button class="admin-tab" onclick="aTab('sessions')">🎟️ Séances</button>
     <button class="admin-tab" onclick="aTab('students')">👥 Élèves</button>
   </div>
@@ -1232,6 +1275,13 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
         <button class="sub-tab active" onclick="filterFilms('active')">● Actifs</button>
         <button class="sub-tab" onclick="filterFilms('screened')">✅ Vus</button>
         <button class="sub-tab" onclick="filterFilms('archived')">⊘ Archivés</button>
+      </div>
+      <!-- Recherche rapide dans la liste films -->
+      <div class="admin-film-search-wrap">
+        <span class="admin-film-search-icon">🔍</span>
+        <input type="text" class="finput" id="admin-film-filter"
+               placeholder="Rechercher un film…"
+               oninput="filterAdminFilmList(this.value)">
       </div>
       <div class="admin-list" id="admin-films-list"><div class="loader"><div class="spinner"></div></div></div>
     </div>
@@ -2930,13 +2980,45 @@ const PANELS = ['films','votes','proposals','sessions','students'];
 // État courant des sous-onglets
 let _filmFilter     = 'active';
 let _proposalFilter = 'pending';
+let _adminFilmSearch = '';   // filtre texte dans l'onglet Films
 
 function filterFilms(status) {
   _filmFilter = status;
+  _adminFilmSearch = '';
+  const el = document.getElementById('admin-film-filter');
+  if (el) el.value = '';
   document.querySelectorAll('#film-subtabs .sub-tab').forEach((btn, i) => {
     btn.classList.toggle('active', ['active','screened','archived'][i] === status);
   });
   loadAdminFilms();
+}
+
+/* Filtre la liste films en temps réel (côté DOM, sans requête réseau) */
+function filterAdminFilmList(q) {
+  _adminFilmSearch = q.trim().toLowerCase();
+  const items = document.querySelectorAll('#admin-films-list .ai');
+  let visible = 0;
+  items.forEach(item => {
+    const title  = (item.querySelector('.ai-title')?.textContent  || '').toLowerCase();
+    const sub    = (item.querySelector('.ai-sub')?.textContent    || '').toLowerCase();
+    const match  = !_adminFilmSearch || title.includes(_adminFilmSearch) || sub.includes(_adminFilmSearch);
+    item.style.display = match ? '' : 'none';
+    if (match) visible++;
+  });
+  // Empty state si aucun résultat
+  let emptyEl = document.getElementById('admin-film-filter-empty');
+  if (!visible && _adminFilmSearch) {
+    if (!emptyEl) {
+      emptyEl = document.createElement('div');
+      emptyEl.id = 'admin-film-filter-empty';
+      emptyEl.className = 'empty';
+      emptyEl.innerHTML = '<div class="icon">🔍</div><h3>Aucun film trouvé</h3>';
+      document.getElementById('admin-films-list').appendChild(emptyEl);
+    }
+    emptyEl.style.display = '';
+  } else if (emptyEl) {
+    emptyEl.style.display = 'none';
+  }
 }
 
 function filterProposals(status) {
@@ -2965,6 +3047,7 @@ async function loadAdmin() {
   document.getElementById('imp-year').value = CFG.SCHOOL_YEAR;
   await checkScheduledFilms();
   await cleanupPastSessions();
+  refreshPendingProposalsBadge();   // badge propositions en attente
   aTab('films');
 }
 
@@ -3373,6 +3456,23 @@ async function viewFilmVoters(filmId, filmTitle) {
 // Cache des propositions pour éviter le JSON inline dans les onclick
 let _proposalCache = {};
 
+/* Badge compteur propositions en attente */
+async function refreshPendingProposalsBadge() {
+  try {
+    const { count } = await db.from('proposals')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'pending');
+    const badge = document.getElementById('pending-proposals-badge');
+    if (!badge) return;
+    if (count > 0) {
+      badge.textContent = count;
+      badge.classList.remove('hidden');
+    } else {
+      badge.classList.add('hidden');
+    }
+  } catch(e) { /* silencieux */ }
+}
+
 async function loadAdminProposals() {
   const list   = document.getElementById('admin-proposals-list');
   const status = _proposalFilter;
@@ -3387,10 +3487,10 @@ async function loadAdminProposals() {
   if (!data?.length) {
     const lbls = { pending:'en attente', accepted:'acceptée', rejected:'refusée' };
     list.innerHTML = `<div class="empty"><div class="icon">💡</div><h3>Aucune proposition ${lbls[status] || ''}</h3></div>`;
+    refreshPendingProposalsBadge();
     return;
   }
 
-  // Stocker dans le cache — évite tout JSON dans onclick
   data.forEach(p => { _proposalCache[p.id] = p; });
 
   list.innerHTML = data.map(p => {
@@ -3403,7 +3503,6 @@ async function loadAdminProposals() {
       extra += `<div class="text-sm text-muted mt-1">💬 ${p.student_comment}</div>`;
     }
     const hasDetail = p.poster_url || p.synopsis;
-    const safeUrl   = (p.poster_url || '').replace(/'/g, '%27');
 
     return `
     <div class="ai">
@@ -3425,6 +3524,8 @@ async function loadAdminProposals() {
         </div>` : ''}
     </div>`;
   }).join('');
+
+  refreshPendingProposalsBadge();
 }
 
 /* Accepter une proposition — utilise le cache, pas de JSON dans onclick */
@@ -3454,10 +3555,29 @@ async function acceptProposal(id) {
 
   await db.from('proposals').update({ status: 'accepted', reviewed_at: new Date().toISOString() }).eq('id', id);
   toast('Proposition acceptée — film ajouté ✅', 'success');
+  refreshPendingProposalsBadge();
   loadAdminProposals();
 }
 
-/* Voir la fiche d'une proposition */
+/* Refus avec raison */
+function openRejectProposal(id) {
+  document.getElementById('reject-prop-id').value = id;
+  document.getElementById('reject-reason-text').value = '';
+  openModal('modal-reject-reason');
+}
+
+async function confirmRejectProposal() {
+  const id     = document.getElementById('reject-prop-id').value;
+  const reason = document.getElementById('reject-reason-text').value.trim();
+  await db.from('proposals').update({
+    status: 'rejected', admin_refusal_reason: reason || null,
+    reviewed_at: new Date().toISOString()
+  }).eq('id', id);
+  closeModal('modal-reject-reason');
+  toast('Proposition refusée', '');
+  refreshPendingProposalsBadge();
+  loadAdminProposals();
+}
 async function openProposalDetail(id) {
   const p = _proposalCache[id];
   if (!p) return;
@@ -3489,25 +3609,6 @@ async function openProposalDetail(id) {
   }
 
   openModal('modal-proposal-detail');
-}
-
-/* Refus avec raison */
-function openRejectProposal(id) {
-  document.getElementById('reject-prop-id').value = id;
-  document.getElementById('reject-reason-text').value = '';
-  openModal('modal-reject-reason');
-}
-
-async function confirmRejectProposal() {
-  const id     = document.getElementById('reject-prop-id').value;
-  const reason = document.getElementById('reject-reason-text').value.trim();
-  await db.from('proposals').update({
-    status: 'rejected', admin_refusal_reason: reason || null,
-    reviewed_at: new Date().toISOString()
-  }).eq('id', id);
-  closeModal('modal-reject-reason');
-  toast('Proposition refusée', '');
-  loadAdminProposals();
 }
 
 /* ================================================================
@@ -3657,6 +3758,12 @@ async function saveEditSession() {
   const newDate    = document.getElementById('edit-ses-date').value;
 
   if (!newDate) { toast('Sélectionne une date', 'error'); return; }
+
+  // Vérifier qu'aucune AUTRE séance n'existe déjà à cette date
+  if (await hasSessionOnDate(newDate, id)) {
+    toast('Impossible : une séance existe déjà à cette date', 'error');
+    return;
+  }
 
   // Mettre à jour la séance (date + film)
   await db.from('cinema_sessions').update({
