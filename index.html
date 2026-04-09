@@ -1164,22 +1164,6 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 
     <div id="prop-results" class="tmdb-results"></div>
 
-    <div id="prop-selected" class="hidden">
-      <div class="divider"></div>
-      <div style="display:flex;gap:13px;align-items:flex-start;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:13px;margin-bottom:14px;">
-        <img id="prop-poster" src="" style="width:50px;height:75px;object-fit:cover;border-radius:5px;" alt="">
-        <div>
-          <div class="fw-bold" id="prop-title-disp">—</div>
-          <div class="text-sm text-muted" id="prop-year-disp">—</div>
-        </div>
-      </div>
-      <div class="fgroup">
-        <label class="flabel">Message (optionnel)</label>
-        <textarea class="ftextarea" id="prop-msg" placeholder="Pourquoi ce film ? Un événement particulier ?"></textarea>
-      </div>
-      <button class="btn btn-gold btn-full btn-lg" onclick="submitProposal()">Envoyer ma proposition ✉️</button>
-    </div>
-
     <div id="prop-manual" class="hidden">
       <div class="divider"></div>
       <p class="text-sm text-muted mb-1">Pas de TMDB configuré — saisie manuelle :</p>
@@ -1438,6 +1422,14 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 <!-- ================================================================
      MODAL: Inscrits d'une séance
      ================================================================ -->
+<div class="overlay hidden" id="modal-voters">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="modal-voters-title">Votes</div>
+    <div id="modal-voters-content"></div>
+    <button class="btn btn-ghost btn-full mt-2" onclick="closeModal('modal-voters')">Fermer</button>
+  </div>
+</div>
 <div class="overlay hidden" id="modal-registrants">
   <div class="sheet">
     <div class="sheet-handle"></div>
@@ -1702,7 +1694,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
   <div class="sheet">
     <div class="sheet-handle"></div>
     <div style="display:flex;gap:14px;align-items:flex-start;margin-bottom:16px;">
-      <img id="pd-poster" src="" alt="" style="width:70px;height:105px;object-fit:cover;border-radius:6px;background:var(--surface-2);flex-shrink:0;cursor:zoom-in;">
+      <img id="pd-poster" src="" alt="" style="width:70px;height:105px;object-fit:cover;border-radius:6px;background:var(--surface-2);flex-shrink:0;">
       <div>
         <div style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700;margin-bottom:5px;" id="pd-title">—</div>
         <div class="text-sm text-muted" id="pd-meta">—</div>
@@ -2293,7 +2285,6 @@ function initPropose() {
   _selectedFilm = null;
   document.getElementById('prop-search').value = '';
   document.getElementById('prop-results').innerHTML = '';
-  document.getElementById('prop-selected').classList.add('hidden');
   document.getElementById('prop-manual').classList.toggle('hidden', !!CFG.TMDB_KEY);
   if (!CFG.TMDB_KEY) document.getElementById('prop-manual').classList.remove('hidden');
 }
@@ -2702,7 +2693,7 @@ async function loadStudentProposals() {
   list.innerHTML = data.map(p => `
     <div class="history-item">
       ${p.poster_url
-        ? `<img src="${p.poster_url}" class="history-poster" alt=">`
+        ? `<img src="${p.poster_url}" class="history-poster" alt="">`
         : `<div class="history-poster-ph">🎬</div>`}
       <div class="history-info">
         <div class="history-film">${p.title}${p.year ? ` <span style="font-weight:400;color:var(--text-3);">(${p.year})</span>` : ''}</div>
@@ -2714,18 +2705,6 @@ async function loadStudentProposals() {
     </div>`).join('');
 }
 
-/* les fonctions suivantes sont gardées pour compatibilité (saisie manuelle) */
-function selectProposalFilm(encoded) {
-  const m = JSON.parse(decodeURIComponent(encoded));
-  _selectedFilm = m;
-  const poster = m.poster_path ? `https://image.tmdb.org/t/p/w500${m.poster_path}` : '';
-  document.getElementById('prop-poster').src = poster;
-  document.getElementById('prop-title-disp').textContent = m.title;
-  document.getElementById('prop-year-disp').textContent = m.release_date ? m.release_date.split('-')[0] : '';
-  document.getElementById('prop-results').innerHTML = '';
-  document.getElementById('prop-search').value = m.title;
-  document.getElementById('prop-selected').classList.remove('hidden');
-}
 
 async function fillAdminForm(encoded) {
   const m = JSON.parse(decodeURIComponent(encoded));
@@ -2747,25 +2726,6 @@ async function fillAdminForm(encoded) {
   document.getElementById('af-tmdbid').value   = m.id || '';
   document.getElementById('admin-tmdb-results').innerHTML = '';
   toast('Film sélectionné ✅');
-}
-
-async function submitProposal() {
-  if (!_selectedFilm) { toast('Sélectionne un film d\'abord', 'error'); return; }
-  const m = _selectedFilm;
-  const comment = (document.getElementById('prop-msg')?.value || '').trim();
-  const { error } = await db.from('proposals').insert({
-    student_id:      S.user.id,
-    title:           m.title,
-    tmdb_id:         m.id,
-    poster_url:      m.poster_path ? `https://image.tmdb.org/t/p/w500${m.poster_path}` : null,
-    year:            m.release_date ? parseInt(m.release_date.split('-')[0]) : null,
-    synopsis:        m.overview || '',
-    status:          'pending',
-    student_comment: comment || null
-  });
-  if (error) { toast('Erreur lors de la proposition', 'error'); return; }
-  toast('Proposition envoyée ! L\'admin la validera 📨', 'success');
-  initPropose();
 }
 
 async function submitManualProposal() {
@@ -3166,26 +3126,58 @@ async function loadAdminVotes() {
   ]);
 
   if (!films?.length) {
-    list.innerHTML = '<div class="empty"><div class="icon">🗳️</div><h3>Aucun film actif</h3></div>'; return;
+    list.innerHTML = '<div class="empty"><div class="icon">🗳️</div><h3>Aucun film actif</h3></div>';
+    return;
   }
 
   const counts = {};
   (votes || []).forEach(v => counts[v.film_id] = (counts[v.film_id] || 0) + 1);
-  const sorted = films.map(f => ({ ...f, n: counts[f.id] || 0 })).sort((a,b) => b.n - a.n);
+  const sorted = films.map(f => ({ ...f, n: counts[f.id] || 0 })).sort((a, b) => b.n - a.n);
   const max = Math.max(...sorted.map(f => f.n), 1);
 
   list.innerHTML = sorted.map((f, i) => `
-    <div class="vote-bar-row">
+    <div class="vote-bar-row" style="cursor:pointer;" onclick="viewFilmVoters('${f.id}', ${JSON.stringify(f.title)})">
       <div class="vbr-rank">${i + 1}</div>
       <div class="vote-bar-poster">
         ${f.poster_url ? `<img src="${f.poster_url}" alt="" style="width:100%;height:100%;object-fit:cover;">` : '🎬'}
       </div>
       <div class="vbr-info">
         <div class="vbr-title">${f.title}</div>
-        <div class="vbar-track"><div class="vbar-fill" style="width:${Math.round(f.n/max*100)}%"></div></div>
+        <div class="vbar-track"><div class="vbar-fill" style="width:${Math.round(f.n / max * 100)}%"></div></div>
         <div class="vbar-count">${f.n} vote${f.n !== 1 ? 's' : ''}</div>
       </div>
     </div>`).join('');
+}
+
+async function viewFilmVoters(filmId, filmTitle) {
+  const titleEl = document.getElementById('modal-voters-title');
+  const contentEl = document.getElementById('modal-voters-content');
+
+  titleEl.textContent = `Votes — ${filmTitle}`;
+  contentEl.innerHTML = '<div class="loader" style="padding:24px;"><div class="spinner"></div></div>';
+  openModal('modal-voters');
+
+  const { data, error } = await db
+    .from('votes')
+    .select('students(first_name, last_name, class_name)')
+    .eq('film_id', filmId);
+
+  if (error || !data?.length) {
+    contentEl.innerHTML = '<p class="text-muted text-center" style="padding:20px;">Aucun vote pour ce film.</p>';
+    return;
+  }
+
+  contentEl.innerHTML = `
+    <p class="text-sm text-muted mb-1">${data.length} vote${data.length > 1 ? 's' : ''}</p>
+    <div style="display:flex;flex-direction:column;gap:7px;">
+      ${data.map(v => `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--surface-2);border-radius:8px;">
+          <span style="font-weight:600;font-size:14px;">${v.students?.first_name || ''} ${v.students?.last_name || ''}</span>
+          <span class="badge badge-muted">${v.students?.class_name || '—'}</span>
+        </div>
+      `).join('')}
+    </div>
+  `;
 }
 
 /* ================================================================
@@ -3231,7 +3223,7 @@ async function loadAdminProposals() {
     <div class="ai">
       <div style="flex-shrink:0;">
         ${p.poster_url
-          ? `<img src="${p.poster_url}" class="ai-img" alt="" style="cursor:zoom-in;>`
+          ? `<img src="${p.poster_url}" class="ai-img" alt="">`
           : `<div class="ai-img">🎬</div>`}
       </div>
       <div class="ai-info">
