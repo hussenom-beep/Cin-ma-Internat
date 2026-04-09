@@ -1008,10 +1008,10 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     <!-- Étape 1 : saisir le code -->
     <div id="ls-code">
       <div class="fgroup">
-        <label class="flabel">Ton code d'accès</label>
+        <label class="flabel">Ton identifiant</label>
         <input type="text" class="finput" id="inp-code"
-          placeholder="Ex : CIXYZ12"
-          style="text-transform:uppercase;letter-spacing:.1em;font-family:monospace;font-size:18px;font-weight:700;">
+          placeholder="Ex : prénom.nom"
+          style="text-transform:none;letter-spacing:0;font-family:'DM Sans',system-ui,sans-serif;font-size:18px;font-weight:700;">
       </div>
       <button class="btn btn-gold btn-full btn-lg" onclick="handleCode()">Continuer →</button>
     </div>
@@ -1298,7 +1298,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       </div>
       <div class="scroll-x">
         <table class="stbl">
-          <thead><tr><th>Nom / Prénom</th><th>Classe</th><th>Code</th><th>Statut</th></tr></thead>
+          <thead><tr><th>Nom / Prénom</th><th>Classe</th><th>Identifiant</th><th>Statut</th></tr></thead>
           <tbody id="students-tbody"><tr><td colspan="4" style="text-align:center;color:var(--text-3);padding:20px;">Chargement...</td></tr></tbody>
         </table>
       </div>
@@ -1791,6 +1791,22 @@ function genCode() {
   return c;
 }
 
+function normalizeLoginPart(str) {
+  return (str || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '.')
+    .replace(/^\.+|\.+$/g, '')
+    .replace(/\.{2,}/g, '.');
+}
+
+function buildLoginIdentifier(firstName, lastName) {
+  const first = normalizeLoginPart(firstName);
+  const last  = normalizeLoginPart(lastName);
+  return [first, last].filter(Boolean).join('.');
+}
+
 function fmtDate(str) {
   // str is YYYY-MM-DD
   const d = new Date(str + 'T12:00:00');
@@ -2012,16 +2028,39 @@ function openPinKeyboard(firstPinId) {
 }
 
 async function handleCode() {
-  const code = document.getElementById('inp-code').value.trim().toUpperCase();
-  if (!code) { toast('Entre ton code d\'accès', 'error'); return; }
+  const raw = document.getElementById('inp-code').value.trim();
+  const login = raw.toLowerCase();
 
-  const { data, error } = await db
-    .from('students').select('*')
-    .eq('activation_code', code)
+  if (!raw) {
+    toast('Entre ton identifiant', 'error');
+    return;
+  }
+
+  let data = null;
+  let error = null;
+
+  // 1) Nouveau système : login_identifier
+  ({ data, error } = await db
+    .from('students')
+    .select('*')
+    .eq('login_identifier', login)
     .eq('is_active', true)
-    .single();
+    .single());
 
-  if (error || !data) { toast('Code inconnu ou invalide', 'error'); return; }
+  // 2) Compat transition : ancien activation_code
+  if (error || !data) {
+    ({ data, error } = await db
+      .from('students')
+      .select('*')
+      .eq('activation_code', raw.toUpperCase())
+      .eq('is_active', true)
+      .single());
+  }
+
+  if (error || !data) {
+    toast('Identifiant inconnu ou invalide', 'error');
+    return;
+  }
 
   _tmpStudent = data;
 
@@ -3457,7 +3496,7 @@ async function loadAdminStudents() {
     <tr>
       <td>${s.last_name} ${s.first_name}</td>
       <td>${s.class_name || '—'}</td>
-      <td><code>${s.activation_code}</code></td>
+      <td><code>${s.login_identifier || s.activation_code}</code></td>
       <td><span class="badge ${s.is_activated ? 'badge-green' : 'badge-muted'}">${s.is_activated ? '✓ Activé' : '○ Attente'}</span></td>
     </tr>`).join('');
 }
@@ -3483,7 +3522,16 @@ async function importStudents() {
     // Skip header
     if (['prénom','prenom','firstname','first_name','nom'].includes(fn.toLowerCase())) continue;
     if (!fn || !ln) continue;
-    rows.push({ first_name: fn, last_name: ln, class_name: cn || null, school_year: year, activation_code: genCode(), is_activated: false, is_active: true });
+    rows.push({
+  first_name: fn,
+  last_name: ln,
+  class_name: cn || null,
+  school_year: year,
+  login_identifier: buildLoginIdentifier(fn, ln),
+  activation_code: genCode(),
+  is_activated: false,
+  is_active: true
+});
   }
 
   if (!rows.length) { toast('Aucun élève détecté', 'error'); return; }
