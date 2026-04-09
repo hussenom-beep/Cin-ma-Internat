@@ -3079,7 +3079,7 @@ async function loadAdminFilms() {
 
     const sessionBadge = sessionInfo
       ? `<span class="badge badge-blue" style="margin-top:4px;cursor:pointer;"
-           onclick="openEditSession('${sessionInfo.id}','','${f.id}')">📅 ${fmtDateShort(sessionInfo.date)}</span>`
+           onclick="event.stopPropagation(); openEditSession('${sessionInfo.id}','','${f.id}')">📅 ${fmtDateShort(sessionInfo.date)}</span>`
       : '';
 
     return `
@@ -3542,6 +3542,55 @@ async function loadAdminSessions() {
       </div>
     </div>`
   ).join('');
+}
+
+async function toggleSesOpen(id, cur) {
+  await db.from('cinema_sessions').update({ registrations_open: !cur }).eq('id', id);
+  toast(!cur ? 'Inscriptions ouvertes ✅' : 'Inscriptions fermées', 'success');
+  loadAdminSessions();
+}
+
+async function viewRegistrants(sesId, date) {
+  const { data } = await db.from('registrations')
+    .select('*, students(first_name, last_name, class_name)')
+    .eq('session_id', sesId)
+    .order('registered_at');
+
+  document.getElementById('modal-reg-title').textContent = `Inscrits — ${fmtDateShort(date)}`;
+
+  const el = document.getElementById('registrants-content');
+  if (!data?.length) {
+    el.innerHTML = '<p class="text-muted text-center" style="padding:20px;">Aucun inscrit</p>';
+  } else {
+    el.innerHTML = `
+      <p class="text-sm text-muted mb-1">${data.length} inscrit${data.length > 1 ? 's' : ''}</p>
+      <div style="display:flex;flex-direction:column;gap:7px;">
+        ${data.map(r => `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--surface-2);border-radius:8px;">
+            <span style="font-weight:600;font-size:14px;">${r.students?.first_name || ''} ${r.students?.last_name || ''}</span>
+            <span class="badge badge-muted">${r.students?.class_name || '—'}</span>
+          </div>
+        `).join('')}
+      </div>`;
+  }
+
+  openModal('modal-registrants');
+}
+
+async function maybeRestoreFilmToActive(filmId) {
+  if (!filmId) return;
+
+  const today = new Date().toISOString().split('T')[0];
+
+  const { data: future } = await db.from('cinema_sessions')
+    .select('id')
+    .eq('film_id', filmId)
+    .gte('session_date', today)
+    .limit(1);
+
+  if (!future?.length) {
+    await db.from('films').update({ status: 'active' }).eq('id', filmId);
+  }
 }
 
 async function cancelSes(id, filmId) {
