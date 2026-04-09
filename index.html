@@ -7,6 +7,22 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#08080f">
   <title>🎬 Cinéma Internat</title>
+
+	<!-- Favicons / icônes -->
+	<link rel="icon" type="image/png" sizes="32x32" href="favicon-cinema.png">
+	<link rel="icon" type="image/png" sizes="192x192" href="favicon-cinema.png">
+	<link rel="apple-touch-icon" sizes="180x180" href="favicon-cinema.png">
+	<link rel="shortcut icon" href="favicon-cinema.png">
+
+	<!-- Android / PWA -->
+	<link rel="manifest" href="site.webmanifest">
+	<meta name="theme-color" content="#08080f">
+	<meta name="mobile-web-app-capable" content="yes">
+
+	<!-- iPhone -->
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+	<meta name="apple-mobile-web-app-title" content="Cinéma Internat">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -724,7 +740,10 @@ button { cursor: pointer; }
 
 /* Historique propositions élève */
 .history-section { margin-top: 22px; padding: 0 0 20px; }
-.history-title { font-size: 11px; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 12px; padding: 0 18px; }
+.history-title { font-size: 11px; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 10px; padding: 0 18px; }
+.history-subtabs { display: flex; gap: 0; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 3px; margin: 0 18px 12px; }
+.history-subtab { flex: 1; padding: 7px 6px; border-radius: calc(var(--radius-sm) - 2px); font-size: 11.5px; font-weight: 700; color: var(--text-3); background: none; border: none; cursor: pointer; transition: all .18s; font-family: inherit; white-space: nowrap; }
+.history-subtab.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,.35); }
 .history-item {
   display: flex; gap: 11px; align-items: flex-start;
   padding: 12px 18px;
@@ -1114,6 +1133,18 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 </div>
 
 <!-- ================================================================
+     SCREEN: TMDB DETAIL (élève — plein écran scrollable)
+     ================================================================ -->
+<div class="screen hidden no-nav" id="screen-tmdb-detail">
+  <div class="s-header">
+    <button class="back" onclick="goBack()">←</button>
+    <h1 id="tmdb-screen-title" style="font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Film</h1>
+  </div>
+  <!-- Contenu injecté par openTMDBDetail pour ctx=student -->
+  <div id="tmdb-screen-content" style="padding-bottom:32px;"></div>
+</div>
+
+<!-- ================================================================
      SCREEN: PROPOSE
      ================================================================ -->
 <div class="screen hidden" id="screen-propose">
@@ -1163,6 +1194,11 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
   <!-- Historique des propositions de l'élève -->
   <div class="history-section" id="prop-history-section">
     <div class="history-title">Mes propositions</div>
+    <div class="history-subtabs">
+      <button class="history-subtab active" onclick="filterStudentHistory('pending')">⏳ En attente</button>
+      <button class="history-subtab" onclick="filterStudentHistory('accepted')">✅ Acceptées</button>
+      <button class="history-subtab" onclick="filterStudentHistory('rejected')">❌ Refusées</button>
+    </div>
     <div id="prop-history-list">
       <div class="loader" style="padding:24px;"><div class="spinner"></div></div>
     </div>
@@ -1685,6 +1721,31 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       <div style="font-size:13px;color:var(--text);" id="pd-comment">—</div>
     </div>
     <button class="btn btn-ghost btn-full" onclick="closeModal('modal-proposal-detail')">Fermer</button>
+  </div>
+</div>
+
+<!-- ================================================================
+     MODAL: Programmer un film (date + création séance auto)
+     ================================================================ -->
+<div class="overlay hidden" id="modal-schedule-film">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">📅 Programmer ce film</div>
+    <input type="hidden" id="sched-film-id">
+    <div style="font-size:14px;font-weight:600;color:var(--text-2);margin-bottom:14px;" id="sched-film-title"></div>
+    <div class="fgroup">
+      <label class="flabel">Date de projection *</label>
+      <input type="date" class="finput" id="sched-date">
+    </div>
+    <div class="fgroup" style="display:flex;align-items:center;gap:10px;">
+      <input type="checkbox" id="sched-open" checked style="width:18px;height:18px;accent-color:var(--gold);cursor:pointer;">
+      <label for="sched-open" style="font-size:14px;cursor:pointer;">Ouvrir les inscriptions maintenant</label>
+    </div>
+    <p class="text-sm text-muted" style="margin-bottom:14px;">Une séance sera créée automatiquement et le film passera en "Programmé".</p>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('modal-schedule-film')">Annuler</button>
+      <button class="btn btn-gold" style="flex:1;" onclick="confirmScheduleFilm()">Programmer ✅</button>
+    </div>
   </div>
 </div>
 
@@ -2292,19 +2353,27 @@ async function searchTMDB(ctx) {
 }
 
 /* ----------------------------------------------------------------
-   TMDB DETAIL MODAL — ouverture + fetch complet
+   TMDB DETAIL — écran plein (élève) ou modal (admin)
    ---------------------------------------------------------------- */
-let _tmdbCtx   = null;   // 'admin' | 'student'
-let _tmdbMovie = null;   // objet film complet TMDB
+let _tmdbCtx   = null;
+let _tmdbMovie = null;
 
 async function openTMDBDetail(tmdbId, ctx) {
-  _tmdbCtx = ctx;
+  _tmdbCtx   = ctx;
   _tmdbMovie = null;
 
-  // Afficher le loader, cacher le body
-  document.getElementById('tmdb-detail-loader').classList.remove('hidden');
-  document.getElementById('tmdb-detail-body').classList.add('hidden');
-  document.getElementById('modal-tmdb-detail').classList.remove('hidden');
+  if (ctx === 'student') {
+    // Élève → vrai écran plein pour scroll naturel mobile
+    document.getElementById('tmdb-screen-title').textContent = 'Chargement…';
+    document.getElementById('tmdb-screen-content').innerHTML =
+      '<div class="loader" style="padding:60px;"><div class="spinner"></div></div>';
+    showScreen('tmdb-detail');
+  } else {
+    // Admin → modal existant (conservé tel quel)
+    document.getElementById('tmdb-detail-loader').classList.remove('hidden');
+    document.getElementById('tmdb-detail-body').classList.add('hidden');
+    document.getElementById('modal-tmdb-detail').classList.remove('hidden');
+  }
 
   try {
     const [detailRes, creditsRes] = await Promise.all([
@@ -2313,98 +2382,129 @@ async function openTMDBDetail(tmdbId, ctx) {
     ]);
     const detail  = await detailRes.json();
     const credits = await creditsRes.json();
-    _tmdbMovie = { ...detail, _credits: credits };
+    _tmdbMovie    = { ...detail, _credits: credits };
 
-    // Poster
-    const posterImg = document.getElementById('tmdb-d-poster-img');
-    const noPoster  = document.getElementById('tmdb-d-no-poster');
-    if (detail.poster_path) {
-      posterImg.src = `https://image.tmdb.org/t/p/w500${detail.poster_path}`;
-      posterImg.classList.remove('hidden');
-      noPoster.classList.add('hidden');
+    if (ctx === 'student') {
+      await _renderTMDBScreen(detail, credits);
     } else {
-      posterImg.classList.add('hidden');
-      noPoster.classList.remove('hidden');
+      await _renderTMDBModal(detail, credits);
     }
-
-    // Titre
-    document.getElementById('tmdb-d-title').textContent = detail.title || '—';
-
-    // Badges meta
-    const year     = detail.release_date ? detail.release_date.split('-')[0] : '';
-    const genres   = (detail.genres || []).map(g => g.name).join(', ');
-    const duration = detail.runtime ? `${detail.runtime} min` : '';
-    document.getElementById('tmdb-d-meta').innerHTML =
-      [year, genres, duration].filter(Boolean)
-        .map(t => `<span class="badge badge-muted">${t}</span>`).join('');
-
-    // Note TMDB
-    const ratingEl = document.getElementById('tmdb-d-rating');
-    if (detail.vote_average && detail.vote_count > 10) {
-      ratingEl.innerHTML = `★ ${detail.vote_average.toFixed(1)}/10
-        <span class="vote-count">(${detail.vote_count.toLocaleString('fr-FR')} votes)</span>`;
-      ratingEl.classList.remove('hidden');
-    } else {
-      ratingEl.classList.add('hidden');
-    }
-
-    // Synopsis
-    document.getElementById('tmdb-d-synopsis').textContent =
-      detail.overview || 'Aucun synopsis disponible en français.';
-
-    // Réalisateur + casting
-    const director = (credits.crew || []).find(c => c.job === 'Director');
-    const cast     = (credits.cast || []).slice(0, 6);
-    const crewEl   = document.getElementById('tmdb-d-crew');
-    crewEl.innerHTML = '';
-    if (director) {
-      crewEl.innerHTML += `<div class="tmdb-crew-row">
-        <span class="tmdb-crew-label">Réalisateur</span>
-        <span>${director.name}</span>
-      </div>`;
-    }
-    if (cast.length) {
-      crewEl.innerHTML += `<div class="tmdb-crew-row">
-        <span class="tmdb-crew-label">Avec</span>
-        <div class="tmdb-cast-chips">
-          ${cast.map(a => `<span class="tmdb-cast-chip">${a.name}</span>`).join('')}
-        </div>
-      </div>`;
-    }
-
-    // Vérification doublon
-    await checkDuplicate(detail, ctx);
-
-    // Bouton d'action
-    const actionBtn = document.getElementById('tmdb-d-action');
-    if (ctx === 'admin') {
-      actionBtn.textContent = '🎬 Ajouter au catalogue';
-      actionBtn.onclick = confirmAddFilm;
-    } else {
-      actionBtn.textContent = '💡 Proposer ce film';
-      actionBtn.onclick = confirmProposeFilm;
-    }
-
-    document.getElementById('tmdb-detail-loader').classList.add('hidden');
-    document.getElementById('tmdb-detail-body').classList.remove('hidden');
-
   } catch(e) {
-    closeModal('modal-tmdb-detail');
-    toast('Impossible de charger la fiche TMDB', 'error');
+    if (ctx === 'student') {
+      document.getElementById('tmdb-screen-content').innerHTML =
+        '<div class="empty"><div class="icon">⚠️</div><h3>Impossible de charger la fiche</h3></div>';
+    } else {
+      closeModal('modal-tmdb-detail');
+      toast('Impossible de charger la fiche TMDB', 'error');
+    }
   }
 }
 
-async function checkDuplicate(detail, ctx) {
-  const dupEl = document.getElementById('tmdb-d-dupwarn');
-  dupEl.className = 'hidden';
-  dupEl.innerHTML = '';
+/* Rendu dans l'écran plein (élève) */
+async function _renderTMDBScreen(detail, credits) {
+  document.getElementById('tmdb-screen-title').textContent = detail.title || '—';
+
+  const year     = detail.release_date ? detail.release_date.split('-')[0] : '';
+  const genres   = (detail.genres || []).map(g => g.name).join(', ');
+  const duration = detail.runtime ? `${detail.runtime} min` : '';
+  const director = (credits.crew || []).find(c => c.job === 'Director');
+  const cast     = (credits.cast || []).slice(0, 6);
+
+  // Vérification doublon
+  const { blocked, msg, cls } = await _checkDuplicateData(detail, 'student');
+
+  const ratingHtml = (detail.vote_average && detail.vote_count > 10)
+    ? `<div class="tmdb-d-rating" style="margin-bottom:14px;">★ ${detail.vote_average.toFixed(1)}/10
+        <span class="vote-count">(${detail.vote_count.toLocaleString('fr-FR')} votes)</span></div>`
+    : '';
+
+  const dupHtml = msg
+    ? `<div class="tmdb-d-warning ${cls}" style="margin-bottom:14px;"><span>${msg}</span></div>` : '';
+
+  const crewHtml = [
+    director ? `<div class="tmdb-crew-row"><span class="tmdb-crew-label">Réalisateur</span><span>${director.name}</span></div>` : '',
+    cast.length ? `<div class="tmdb-crew-row"><span class="tmdb-crew-label">Avec</span>
+      <div class="tmdb-cast-chips">${cast.map(a => `<span class="tmdb-cast-chip">${a.name}</span>`).join('')}</div></div>` : ''
+  ].filter(Boolean).join('');
+
+  document.getElementById('tmdb-screen-content').innerHTML = `
+    <div class="detail-poster-wrap">
+      ${detail.poster_path
+        ? `<img src="https://image.tmdb.org/t/p/w500${detail.poster_path}" class="detail-poster" alt="${detail.title}">`
+        : `<div class="detail-poster-placeholder">🎬</div>`}
+      <div class="detail-gradient"></div>
+    </div>
+    <div class="detail-body">
+      <div class="detail-title">${detail.title}</div>
+      <div class="detail-meta">
+        ${year ? `<span class="badge badge-muted">${year}</span>` : ''}
+        ${genres ? `<span class="badge badge-muted">${genres}</span>` : ''}
+        ${duration ? `<span class="badge badge-muted">${duration}</span>` : ''}
+      </div>
+      ${ratingHtml}
+      ${dupHtml}
+      <div class="tmdb-d-synopsis" style="margin-bottom:16px;">${detail.overview || 'Aucun synopsis disponible.'}</div>
+      <div class="tmdb-crew-block" style="margin-bottom:20px;">${crewHtml}</div>
+      <button id="tmdb-screen-action"
+              class="btn btn-gold btn-full btn-lg"
+              style="margin-bottom:10px;"
+              ${blocked ? 'disabled' : ''}
+              onclick="confirmProposeFilm()">
+        ${blocked ? '🚫 Non disponible' : '💡 Proposer ce film'}
+      </button>
+    </div>`;
+}
+
+/* Rendu dans le modal (admin) */
+async function _renderTMDBModal(detail, credits) {
+  const posterImg = document.getElementById('tmdb-d-poster-img');
+  const noPoster  = document.getElementById('tmdb-d-no-poster');
+  if (detail.poster_path) {
+    posterImg.src = `https://image.tmdb.org/t/p/w500${detail.poster_path}`;
+    posterImg.classList.remove('hidden'); noPoster.classList.add('hidden');
+  } else {
+    posterImg.classList.add('hidden'); noPoster.classList.remove('hidden');
+  }
+
+  document.getElementById('tmdb-d-title').textContent = detail.title || '—';
+
+  const year     = detail.release_date ? detail.release_date.split('-')[0] : '';
+  const genres   = (detail.genres || []).map(g => g.name).join(', ');
+  const duration = detail.runtime ? `${detail.runtime} min` : '';
+  document.getElementById('tmdb-d-meta').innerHTML =
+    [year, genres, duration].filter(Boolean).map(t => `<span class="badge badge-muted">${t}</span>`).join('');
+
+  const ratingEl = document.getElementById('tmdb-d-rating');
+  if (detail.vote_average && detail.vote_count > 10) {
+    ratingEl.innerHTML = `★ ${detail.vote_average.toFixed(1)}/10
+      <span class="vote-count">(${detail.vote_count.toLocaleString('fr-FR')} votes)</span>`;
+    ratingEl.classList.remove('hidden');
+  } else { ratingEl.classList.add('hidden'); }
+
+  document.getElementById('tmdb-d-synopsis').textContent =
+    detail.overview || 'Aucun synopsis disponible en français.';
+
+  const director = (credits.crew || []).find(c => c.job === 'Director');
+  const cast     = (credits.cast || []).slice(0, 6);
+  const crewEl   = document.getElementById('tmdb-d-crew');
+  crewEl.innerHTML = '';
+  if (director) crewEl.innerHTML += `<div class="tmdb-crew-row"><span class="tmdb-crew-label">Réalisateur</span><span>${director.name}</span></div>`;
+  if (cast.length) crewEl.innerHTML += `<div class="tmdb-crew-row"><span class="tmdb-crew-label">Avec</span>
+    <div class="tmdb-cast-chips">${cast.map(a => `<span class="tmdb-cast-chip">${a.name}</span>`).join('')}</div></div>`;
+
+  await checkDuplicate(detail, 'admin');
+
   const actionBtn = document.getElementById('tmdb-d-action');
+  actionBtn.textContent = '🎬 Ajouter au catalogue';
+  actionBtn.onclick = confirmAddFilm;
 
-  // Réinitialiser le blocage
-  actionBtn.disabled = false;
+  document.getElementById('tmdb-detail-loader').classList.add('hidden');
+  document.getElementById('tmdb-detail-body').classList.remove('hidden');
+}
 
+/* Retourne { blocked, msg, cls } — utilisé par _renderTMDBScreen */
+async function _checkDuplicateData(detail, ctx) {
   try {
-    // Vérification catalogue (tmdb_id puis titre)
     const [{ data: byId }, { data: byTitle }] = await Promise.all([
       detail.id
         ? db.from('films').select('id,title,status').eq('tmdb_id', detail.id).maybeSingle()
@@ -2413,97 +2513,37 @@ async function checkDuplicate(detail, ctx) {
     ]);
 
     const inCatalogue = byId || (byTitle && byTitle.length > 0);
-
     if (inCatalogue) {
       const f = inCatalogue.id ? inCatalogue : byTitle[0];
-      const blockStatuses = ['active', 'scheduled', 'screened'];
-      const isBlocking    = ctx === 'student' && blockStatuses.includes(f.status);
-
-      const msgMap = {
-        active:    { cls: 'ok',   txt: '✅ Ce film est déjà dans le catalogue et peut être voté.' },
-        scheduled: { cls: 'info', txt: '📅 Ce film est déjà programmé pour une prochaine séance.' },
-        screened:  { cls: 'info', txt: '🎬 Ce film a déjà été diffusé lors d\'une séance précédente.' },
-        archived:  { cls: 'info', txt: '⊘ Ce film existe déjà (actuellement archivé).' },
+      const blockStatuses = ['active','scheduled','screened'];
+      const isBlocking = blockStatuses.includes(f.status);
+      const msgs = {
+        active:    { cls:'ok',   txt:'✅ Ce film est déjà dans le catalogue.' },
+        scheduled: { cls:'info', txt:'📅 Ce film est déjà programmé pour une prochaine séance.' },
+        screened:  { cls:'info', txt:'🎬 Ce film a déjà été diffusé.' },
+        archived:  { cls:'info', txt:'⊘ Ce film existe mais est archivé.' },
       };
-      const { cls, txt } = msgMap[f.status] || { cls:'info', txt:`ℹ️ Ce film existe déjà.` };
-      dupEl.className = `tmdb-d-warning ${cls}`;
-      dupEl.innerHTML = `<span>${txt}</span>`;
-      dupEl.classList.remove('hidden');
-
-      if (ctx === 'admin') {
-        actionBtn.textContent = f.status === 'archived' ? '🔄 Restaurer depuis les archives' : '🎬 Ajouter quand même';
-      } else if (isBlocking) {
-        // VRAI BLOCAGE côté élève
-        actionBtn.disabled = true;
-        actionBtn.textContent = '🚫 Déjà disponible';
-      }
-      return;
+      const { cls, txt } = msgs[f.status] || { cls:'info', txt:'ℹ️ Ce film existe déjà.' };
+      return { blocked: isBlocking, msg: txt, cls };
     }
 
-    // Côté élève : vérifier propositions existantes (bloquant si pending/accepted)
-    if (ctx === 'student' && detail.id) {
+    // Vérifier propositions (GLOBAL — tous élèves)
+    if (detail.id) {
       const { data: proposals } = await db.from('proposals')
-        .select('id,status').eq('student_id', S.user.id).eq('tmdb_id', detail.id);
-      const myExisting = (proposals || []).find(p => p.status === 'pending' || p.status === 'accepted');
-      if (myExisting) {
-        dupEl.className = 'tmdb-d-warning warn';
-        dupEl.innerHTML = `<span>💡 Tu as déjà proposé ce film (${myExisting.status === 'pending' ? 'en attente de validation' : 'accepté'}).</span>`;
-        dupEl.classList.remove('hidden');
-        actionBtn.disabled = true;
-        actionBtn.textContent = '🚫 Déjà proposé';
+        .select('id,status').eq('tmdb_id', detail.id);
+      const existing = (proposals || []).find(p => p.status === 'pending' || p.status === 'accepted');
+      if (existing) {
+        return {
+          blocked: true,
+          msg: `💡 Ce film a déjà été proposé (${existing.status === 'pending' ? 'en attente de validation' : 'déjà accepté'}).`,
+          cls: 'warn'
+        };
       }
     }
   } catch(e) { /* silencieux */ }
+  return { blocked: false, msg: null, cls: '' };
 }
 
-/* Étape 1 : ouvre la fiche TMDB (consulter)
-   Étape 2 : clic "Proposer" → ouvre modal-propose-confirm */
-function confirmProposeFilm() {
-  if (!_tmdbMovie) return;
-  const m = _tmdbMovie;
-  // Remplir le mini-modal de confirmation
-  document.getElementById('pconf-title').textContent = m.title;
-  document.getElementById('pconf-year').textContent  = m.release_date ? m.release_date.split('-')[0] : '';
-  const posterUrl = m.poster_path ? `https://image.tmdb.org/t/p/w500${m.poster_path}` : '';
-  const img = document.getElementById('pconf-poster');
-  img.src   = posterUrl;
-  img.style.display = posterUrl ? '' : 'none';
-  document.getElementById('pconf-comment').value = '';
-  document.getElementById('pconf-submit').disabled = false;
-  openModal('modal-propose-confirm');
-}
-
-/* Envoi effectif de la proposition (depuis modal-propose-confirm) */
-async function sendProposalConfirmed() {
-  if (!_tmdbMovie || !S.user) return;
-  const m       = _tmdbMovie;
-  const comment = document.getElementById('pconf-comment').value.trim();
-  const btn     = document.getElementById('pconf-submit');
-  btn.disabled  = true;
-  btn.textContent = 'Envoi…';
-
-  const { error } = await db.from('proposals').insert({
-    student_id:      S.user.id,
-    title:           m.title,
-    tmdb_id:         m.id,
-    poster_url:      m.poster_path ? `https://image.tmdb.org/t/p/w500${m.poster_path}` : null,
-    year:            m.release_date ? parseInt(m.release_date.split('-')[0]) : null,
-    synopsis:        m.overview || '',
-    genre:           (m.genres || []).map(g => g.name).join(', ') || null,
-    status:          'pending',
-    student_comment: comment || null
-  });
-
-  btn.disabled = false;
-  btn.textContent = 'Envoyer ✉️';
-
-  if (error) { toast('Erreur lors de la proposition', 'error'); return; }
-  closeModal('modal-propose-confirm');
-  closeModal('modal-tmdb-detail');
-  toast('Proposition envoyée 📨', 'success');
-  initPropose();
-  await loadStudentProposals();
-}
 
 async function confirmAddFilm() {
   if (!_tmdbMovie) return;
@@ -2543,18 +2583,32 @@ function openPosterZoom(url) {
   document.getElementById('modal-poster-zoom').classList.remove('hidden');
 }
 
-/* Historique des propositions de l'élève connecté */
+/* Historique des propositions de l'élève — filtrées par statut */
+let _historyFilter = 'pending';
+
+function filterStudentHistory(status) {
+  _historyFilter = status;
+  document.querySelectorAll('.history-subtab').forEach((btn, i) => {
+    btn.classList.toggle('active', ['pending','accepted','rejected'][i] === status);
+  });
+  loadStudentProposals();
+}
+
 async function loadStudentProposals() {
-  const list = document.getElementById('prop-history-list');
+  const list   = document.getElementById('prop-history-list');
+  const status = _historyFilter;
   if (!list || !S.user) return;
+  list.innerHTML = '<div class="loader" style="padding:24px;"><div class="spinner"></div></div>';
 
   const { data } = await db.from('proposals')
     .select('id,title,poster_url,year,status,proposed_at,admin_refusal_reason')
     .eq('student_id', S.user.id)
+    .eq('status', status)
     .order('proposed_at', { ascending: false });
 
   if (!data?.length) {
-    list.innerHTML = '<p class="text-sm text-muted" style="padding:0 18px 4px;color:var(--text-3);">Aucune proposition pour l\'instant.</p>';
+    const lbls = { pending:'en attente', accepted:'acceptée', rejected:'refusée' };
+    list.innerHTML = `<p class="text-sm text-muted" style="padding:0 18px 4px;color:var(--text-3);">Aucune proposition ${lbls[status] || ''} pour l'instant.</p>`;
     return;
   }
 
@@ -2567,7 +2621,7 @@ async function loadStudentProposals() {
         ? `<img src="${p.poster_url}" class="history-poster" alt="" onclick="openPosterZoom('${p.poster_url.replace(/'/g,'%27')}')" style="cursor:zoom-in;">`
         : `<div class="history-poster-ph">🎬</div>`}
       <div class="history-info">
-        <div class="history-film">${p.title}${p.year ? ' <span style="font-weight:400;color:var(--text-3);">('+p.year+')</span>' : ''}</div>
+        <div class="history-film">${p.title}${p.year ? ` <span style="font-weight:400;color:var(--text-3);">(${p.year})</span>` : ''}</div>
         <div style="margin:4px 0;"><span class="badge ${badgeCls[p.status] || 'badge-muted'}">${badgeLbl[p.status] || p.status}</span></div>
         ${p.status === 'rejected' && p.admin_refusal_reason
           ? `<div class="history-reason">Raison : ${p.admin_refusal_reason}</div>` : ''}
@@ -2733,7 +2787,36 @@ function aTab(tab) {
 
 async function loadAdmin() {
   document.getElementById('imp-year').value = CFG.SCHOOL_YEAR;
+  await checkScheduledFilms();   // auto-transition programmé → vu si date dépassée
   aTab('films');
+}
+
+/* Auto-transition : films scheduled dont la séance est passée → screened */
+async function checkScheduledFilms() {
+  try {
+    const { data: scheduled } = await db.from('films')
+      .select('id').eq('status', 'scheduled');
+    if (!scheduled?.length) return;
+
+    const today = new Date().toISOString().split('T')[0];
+
+    for (const film of scheduled) {
+      const { data: sessions } = await db.from('cinema_sessions')
+        .select('id, session_date')
+        .eq('film_id', film.id)
+        .lt('session_date', today)   // date de séance < aujourd'hui
+        .order('session_date', { ascending: false })
+        .limit(1);
+
+      if (sessions?.length) {
+        const ses = sessions[0];
+        await db.from('films').update({
+          status:      'screened',
+          screened_at: new Date(ses.session_date + 'T12:00:00').toISOString()
+        }).eq('id', film.id);
+      }
+    }
+  } catch(e) { /* silencieux — ne bloque pas le chargement */ }
 }
 
 /* ================================================================
@@ -2761,7 +2844,7 @@ async function loadAdminFilms() {
     let actions = '';
     if (status === 'active') {
       actions = `
-        <button class="btn btn-sm btn-ghost" onclick="setFilmScheduled('${f.id}')">📅 Programmer</button>
+        <button class="btn btn-sm btn-ghost" onclick="openScheduleFilm('${f.id}')">📅 Programmer</button>
         <button class="btn btn-sm btn-ghost" onclick="openMarkScreened('${f.id}')">✅ Vu</button>
         <button class="btn btn-sm btn-ghost" onclick="openArchiveFilm('${f.id}')">⊘ Archiver</button>
         <button class="btn btn-sm btn-red" onclick="deleteFilm('${f.id}')">Suppr.</button>`;
@@ -2782,12 +2865,13 @@ async function loadAdminFilms() {
     }
 
     return `
-    <div class="ai">
-      <div style="flex-shrink:0;${f.poster_url ? 'cursor:zoom-in;' : ''}"
-           onclick="${f.poster_url ? `openPosterZoom('${f.poster_url.replace(/'/g,'%27')}')` : ''}">
+    <div class="ai" data-film-id="${f.id}">
+      <div style="flex-shrink:0;cursor:pointer;"
+           onclick="openAdminFilmDetail(${JSON.stringify({ id:f.id, title:f.title, year:f.year, genre:f.genre, duration:f.duration, synopsis:f.synopsis, poster_url:f.poster_url, screened_at:f.screened_at, archive_reason:f.archive_reason }).replace(/"/g,'&quot;')})">
         ${f.poster_url ? `<img src="${f.poster_url}" class="ai-img" alt="">` : `<div class="ai-img">🎬</div>`}
       </div>
-      <div class="ai-info">
+      <div class="ai-info" style="cursor:pointer;"
+           onclick="openAdminFilmDetailById('${f.id}')">
         <div class="ai-title">${f.title}</div>
         <div class="ai-sub">${f.year || ''}${f.genre ? ' · ' + f.genre : ''}${f.screened_at && status === 'screened' ? ' · Vu le ' + fmtDateShort(f.screened_at.split('T')[0]) : ''}</div>
         <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px;">
@@ -2807,9 +2891,74 @@ async function setFilmStatus(id, status) {
   loadAdminFilms();
 }
 
-async function setFilmScheduled(id) {
-  await db.from('films').update({ status: 'scheduled' }).eq('id', id);
-  toast('Film programmé 📅', 'success');
+/* Cache films admin pour les fiches rapides */
+let _adminFilmCache = {};
+
+/* Ouvre la fiche admin depuis les données en cache (passées via data-attribute) */
+function openAdminFilmDetail(data) {
+  if (typeof data === 'string') data = JSON.parse(data);
+  _adminFilmCache[data.id] = data;
+  _openFilmDetailModal(data);
+}
+
+/* Ouvre la fiche admin en retrouvant depuis le cache (via id) */
+async function openAdminFilmDetailById(id) {
+  let data = _adminFilmCache[id];
+  if (!data) {
+    const { data: f } = await db.from('films').select('*').eq('id', id).single();
+    if (!f) return;
+    data = f;
+    _adminFilmCache[id] = f;
+  }
+  _openFilmDetailModal(data);
+}
+
+/* Remplit et ouvre modal-proposal-detail comme fiche film admin */
+function _openFilmDetailModal(f) {
+  document.getElementById('pd-title').textContent    = f.title + (f.year ? ` (${f.year})` : '');
+  document.getElementById('pd-meta').textContent     = [f.genre, f.duration ? f.duration + ' min' : ''].filter(Boolean).join(' · ') || '—';
+  document.getElementById('pd-synopsis').textContent = f.synopsis || 'Aucun synopsis disponible.';
+  const posterEl = document.getElementById('pd-poster');
+  posterEl.src   = f.poster_url || '';
+  posterEl.style.display = f.poster_url ? '' : 'none';
+  // Masquer le bloc commentaire élève (uniquement pour propositions)
+  document.getElementById('pd-comment-block').classList.add('hidden');
+  openModal('modal-proposal-detail');
+}
+
+/* Programmer : ouvre modal avec date → crée séance auto */
+function openScheduleFilm(id) {
+  // Trouver le titre depuis les données déjà chargées
+  const item = document.querySelector(`#admin-films-list .ai-title`);
+  // On passe le titre via data-attribute dans le HTML (ajouté dans loadAdminFilms)
+  const titleEl = document.querySelector(`[data-film-id="${id}"] .ai-title`);
+  document.getElementById('sched-film-id').value = id;
+  document.getElementById('sched-film-title').textContent = titleEl ? titleEl.textContent : '';
+  document.getElementById('sched-date').value = nextWednesday();
+  document.getElementById('sched-open').checked = true;
+  openModal('modal-schedule-film');
+}
+
+async function confirmScheduleFilm() {
+  const filmId  = document.getElementById('sched-film-id').value;
+  const date    = document.getElementById('sched-date').value;
+  const regOpen = document.getElementById('sched-open').checked;
+  if (!date) { toast('Sélectionne une date', 'error'); return; }
+
+  // Créer la séance automatiquement
+  const { error: sesErr } = await db.from('cinema_sessions').insert({
+    session_date:       date,
+    film_id:            filmId,
+    registrations_open: regOpen,
+    max_capacity:       50
+  });
+  if (sesErr) { toast('Erreur création séance : ' + sesErr.message, 'error'); return; }
+
+  // Passer le film en scheduled
+  await db.from('films').update({ status: 'scheduled' }).eq('id', filmId);
+
+  closeModal('modal-schedule-film');
+  toast('Film programmé + séance créée 📅', 'success');
   loadAdminFilms();
 }
 
