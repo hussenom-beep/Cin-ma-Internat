@@ -2497,18 +2497,18 @@ async function _renderTMDBModal(detail, credits) {
 
 	const dup = await _checkDuplicateData(detail, 'admin');
 
-	dupEl.className = 'hidden';
-	dupEl.innerHTML = '';
+dupEl.className = 'hidden';
+dupEl.innerHTML = '';
 
-	if (dup.msg) {
-	dupEl.className = `tmdb-d-warning ${dup.cls}`;
-	dupEl.innerHTML = `<span>${dup.msg}</span>`;
-	dupEl.classList.remove('hidden');
+if (dup.msg) {
+  dupEl.className = `tmdb-d-warning ${dup.cls}`;
+  dupEl.innerHTML = `<span>${dup.msg}</span>`;
+  dupEl.classList.remove('hidden');
 }
 
-	actionBtn.disabled = false;
-	actionBtn.textContent = '🎬 Ajouter au catalogue';
-	actionBtn.onclick = confirmAddFilm;
+actionBtn.textContent = dup.msg ? '🚫 Déjà au catalogue' : '🎬 Ajouter au catalogue';
+actionBtn.disabled = !!dup.msg;
+actionBtn.onclick = dup.msg ? null : confirmAddFilm;
 
   document.getElementById('tmdb-detail-loader').classList.add('hidden');
   document.getElementById('tmdb-detail-body').classList.remove('hidden');
@@ -2561,6 +2561,15 @@ async function confirmAddFilm() {
   if (!_tmdbMovie) return;
   const m = _tmdbMovie;
   const btn = document.getElementById('tmdb-d-action');
+
+  const dup = await _checkDuplicateData(m, 'admin');
+  if (dup.msg) {
+    toast('Ce film est déjà dans le catalogue', 'error');
+    btn.disabled = true;
+    btn.textContent = '🚫 Déjà au catalogue';
+    return;
+  }
+
   btn.disabled = true;
   btn.textContent = 'Ajout en cours…';
 
@@ -2711,6 +2720,8 @@ async function submitManualProposal() {
    SESSIONS (student)
    ================================================================ */
 async function loadSessions() {
+  await cleanupPastSessions();
+
   const body = document.getElementById('sessions-body');
   body.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
 
@@ -2800,6 +2811,7 @@ function aTab(tab) {
 async function loadAdmin() {
   document.getElementById('imp-year').value = CFG.SCHOOL_YEAR;
   await checkScheduledFilms();   // auto-transition programmé → vu si date dépassée
+  await cleanupPastSessions();   // suppression des séances passées
   aTab('films');
 }
 
@@ -2830,7 +2842,24 @@ async function checkScheduledFilms() {
     }
   } catch(e) { /* silencieux — ne bloque pas le chargement */ }
 }
+async function cleanupPastSessions() {
+  try {
+    const today = new Date().toISOString().split('T')[0];
 
+    const { data: oldSessions } = await db.from('cinema_sessions')
+      .select('id')
+      .lt('session_date', today);
+
+    if (!oldSessions?.length) return;
+
+    const ids = oldSessions.map(s => s.id);
+
+    await db.from('registrations').delete().in('session_id', ids);
+    await db.from('cinema_sessions').delete().in('id', ids);
+  } catch(e) {
+    console.error('cleanupPastSessions error', e);
+  }
+}
 /* ================================================================
    ADMIN — FILMS
    ================================================================ */
@@ -2856,15 +2885,13 @@ async function loadAdminFilms() {
     let actions = '';
     if (status === 'active') {
       actions = `
-        <button class="btn btn-sm btn-ghost" onclick="openScheduleFilm('${f.id}')">📅 Programmer</button>
-        <button class="btn btn-sm btn-ghost" onclick="openMarkScreened('${f.id}')">✅ Vu</button>
-        <button class="btn btn-sm btn-ghost" onclick="openArchiveFilm('${f.id}')">⊘ Archiver</button>
-        <button class="btn btn-sm btn-red" onclick="deleteFilm('${f.id}')">Suppr.</button>`;
+		<button class="btn btn-sm btn-ghost" onclick="openScheduleFilm('${f.id}')">📅 Programmer</button>
+		<button class="btn btn-sm btn-ghost" onclick="openArchiveFilm('${f.id}')">⊘ Archiver</button>
+		<button class="btn btn-sm btn-red" onclick="deleteFilm('${f.id}')">Suppr.</button>`;
     } else if (status === 'scheduled') {
       actions = `
-        <button class="btn btn-sm btn-ghost" onclick="setFilmStatus('${f.id}','active')">↩ Remettre actif</button>
-        <button class="btn btn-sm btn-ghost" onclick="openMarkScreened('${f.id}')">✅ Marquer vu</button>
-        <button class="btn btn-sm btn-red" onclick="deleteFilm('${f.id}')">Suppr.</button>`;
+		<button class="btn btn-sm btn-ghost" onclick="setFilmStatus('${f.id}','active')">↩ Remettre actif</button>
+		<button class="btn btn-sm btn-red" onclick="deleteFilm('${f.id}')">Suppr.</button>`;
     } else if (status === 'screened') {
       actions = `
         <button class="btn btn-sm btn-ghost" onclick="setFilmStatus('${f.id}','active')">↩ Remettre actif</button>
