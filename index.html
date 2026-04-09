@@ -779,6 +779,30 @@ button { cursor: pointer; }
 }
 .admin-tab.active { color: var(--gold); border-bottom-color: var(--gold); }
 
+/* Sous-onglets filtres (dans un panel admin) */
+.sub-tabs {
+  display: flex; gap: 0;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 3px;
+  margin-bottom: 16px;
+}
+.sub-tab {
+  flex: 1; padding: 7px 6px;
+  border-radius: calc(var(--radius-sm) - 2px);
+  font-size: 11.5px; font-weight: 700;
+  color: var(--text-3); background: none; border: none;
+  cursor: pointer; transition: all .18s;
+  font-family: inherit; white-space: nowrap;
+  letter-spacing: .01em;
+}
+.sub-tab.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,.35); }
+
+/* Badges statuts films */
+.badge-blue    { background: rgba(96,165,250,.12); color: #60a5fa; border: 1px solid rgba(96,165,250,.22); }
+.badge-purple  { background: rgba(167,139,250,.12); color: #a78bfa; border: 1px solid rgba(167,139,250,.22); }
+
 .admin-panel { padding: 18px; }
 .admin-panel-title { font-size: 16px; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; }
 
@@ -1116,8 +1140,15 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     <!-- Films panel -->
     <div class="admin-panel" id="ap-films">
       <div class="admin-panel-title">
-        Films actifs
+        Films
         <button class="btn btn-gold btn-sm" onclick="openModal('modal-add-film')">+ Ajouter</button>
+      </div>
+      <!-- Sous-onglets filtres statuts -->
+      <div class="sub-tabs" id="film-subtabs">
+        <button class="sub-tab active" onclick="filterFilms('active')">● Actifs</button>
+        <button class="sub-tab" onclick="filterFilms('scheduled')">📅 Prog.</button>
+        <button class="sub-tab" onclick="filterFilms('screened')">✅ Vus</button>
+        <button class="sub-tab" onclick="filterFilms('archived')">⊘ Archivés</button>
       </div>
       <div class="admin-list" id="admin-films-list"><div class="loader"><div class="spinner"></div></div></div>
     </div>
@@ -1134,6 +1165,12 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     <!-- Proposals panel -->
     <div class="admin-panel hidden" id="ap-proposals">
       <div class="admin-panel-title">Propositions élèves</div>
+      <!-- Sous-onglets filtres statuts -->
+      <div class="sub-tabs" id="prop-subtabs">
+        <button class="sub-tab active" onclick="filterProposals('pending')">⏳ En attente</button>
+        <button class="sub-tab" onclick="filterProposals('accepted')">✅ Acceptées</button>
+        <button class="sub-tab" onclick="filterProposals('rejected')">❌ Refusées</button>
+      </div>
       <div class="admin-list" id="admin-proposals-list"><div class="loader"><div class="spinner"></div></div></div>
     </div>
 
@@ -1367,6 +1404,16 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 
         <div class="tmdb-crew-block" id="tmdb-d-crew"></div>
 
+        <!-- Commentaire élève (affiché uniquement côté élève, caché admin) -->
+        <div id="tmdb-d-comment-block" class="hidden">
+          <div class="fgroup" style="margin-bottom:14px;">
+            <label class="flabel">Ton message (optionnel)</label>
+            <textarea class="ftextarea" id="tmdb-d-comment"
+              placeholder="Pourquoi tu proposes ce film ? Un événement particulier ?"
+              rows="3"></textarea>
+          </div>
+        </div>
+
         <!-- Bouton d'action (admin ou élève) -->
         <button id="tmdb-d-action" class="btn btn-gold btn-full btn-lg" style="margin-bottom:10px;">—</button>
         <button class="btn btn-ghost btn-full btn-sm" onclick="closeModal('modal-tmdb-detail')">Fermer</button>
@@ -1464,6 +1511,65 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     <div style="display:flex;gap:10px;margin-top:22px;">
       <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('modal-change-pin')">Annuler</button>
       <button class="btn btn-gold" style="flex:1;" onclick="handleChangePIN()">Confirmer ✅</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     MODAL: Refuser une proposition (raison optionnelle)
+     ================================================================ -->
+<div class="overlay hidden" id="modal-reject-reason">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Refuser la proposition</div>
+    <input type="hidden" id="reject-prop-id">
+    <div class="fgroup">
+      <label class="flabel">Raison du refus (optionnel)</label>
+      <textarea class="ftextarea" id="reject-reason-text"
+        placeholder="Ex : Film déjà vu, pas adapté, hors contexte…" rows="3"></textarea>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:6px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('modal-reject-reason')">Annuler</button>
+      <button class="btn btn-red" style="flex:1;" onclick="confirmRejectProposal()">Refuser ❌</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     MODAL: Archiver un film (raison optionnelle)
+     ================================================================ -->
+<div class="overlay hidden" id="modal-archive-reason">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Archiver ce film</div>
+    <input type="hidden" id="archive-film-id">
+    <div class="fgroup">
+      <label class="flabel">Raison de l'archivage (optionnel)</label>
+      <textarea class="ftextarea" id="archive-reason-text"
+        placeholder="Ex : Hors saison, réservé pour plus tard, droits…" rows="3"></textarea>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:6px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('modal-archive-reason')">Annuler</button>
+      <button class="btn btn-gold" style="flex:1;" onclick="confirmArchiveFilm()">Archiver ✅</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     MODAL: Marquer un film comme diffusé (date)
+     ================================================================ -->
+<div class="overlay hidden" id="modal-mark-screened">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Marquer comme diffusé</div>
+    <input type="hidden" id="screened-film-id">
+    <div class="fgroup">
+      <label class="flabel">Date de diffusion</label>
+      <input type="date" class="finput" id="screened-date">
+    </div>
+    <div style="display:flex;gap:10px;margin-top:6px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('modal-mark-screened')">Annuler</button>
+      <button class="btn btn-gold" style="flex:1;" onclick="confirmMarkScreened()">Confirmer ✅</button>
     </div>
   </div>
 </div>
@@ -2179,8 +2285,15 @@ async function checkDuplicate(detail, ctx) {
   dupEl.className = 'hidden';
   dupEl.innerHTML = '';
 
+  // Afficher/cacher le champ commentaire élève
+  const commentBlock = document.getElementById('tmdb-d-comment-block');
+  if (commentBlock) {
+    commentBlock.classList.toggle('hidden', ctx !== 'student');
+    document.getElementById('tmdb-d-comment').value = '';
+  }
+
   try {
-    // Recherche dans le catalogue (par tmdb_id puis par titre similaire)
+    // Recherche dans le catalogue par tmdb_id puis par titre
     const [{ data: byId }, { data: byTitle }] = await Promise.all([
       detail.id
         ? db.from('films').select('id,title,status').eq('tmdb_id', detail.id).maybeSingle()
@@ -2191,29 +2304,33 @@ async function checkDuplicate(detail, ctx) {
     const inCatalogue = byId || (byTitle && byTitle.length > 0);
 
     if (inCatalogue) {
-      const f = byId || byTitle[0];
-      const isActive = f.status === 'active';
-      dupEl.className = `tmdb-d-warning ${isActive ? 'ok' : 'info'}`;
-      dupEl.innerHTML = isActive
-        ? `✅ <span>Ce film est déjà dans le catalogue et peut être voté.</span>`
-        : `ℹ️ <span>Ce film existe déjà (actuellement archivé : <strong>${f.title}</strong>).</span>`;
+      const f = inCatalogue.id ? inCatalogue : byTitle[0];
+      const msgMap = {
+        active:    { cls: 'ok',   txt: `✅ Ce film est déjà dans le catalogue et peut être voté.` },
+        scheduled: { cls: 'info', txt: `📅 Ce film est déjà programmé pour une prochaine séance.` },
+        screened:  { cls: 'info', txt: `🎬 Ce film a déjà été diffusé lors d'une séance précédente.` },
+        archived:  { cls: 'info', txt: `⊘ Ce film existe déjà (actuellement archivé).` },
+      };
+      const { cls, txt } = msgMap[f.status] || { cls:'info', txt:`ℹ️ Ce film existe déjà (${f.status}).` };
+      dupEl.className = `tmdb-d-warning ${cls}`;
+      dupEl.innerHTML = `<span>${txt}</span>`;
       dupEl.classList.remove('hidden');
+
       if (ctx === 'admin') {
         const btn = document.getElementById('tmdb-d-action');
-        btn.textContent = isActive ? '🎬 Ajouter quand même' : '🔄 Restaurer depuis les archives';
+        btn.textContent = f.status === 'archived' ? '🔄 Restaurer depuis les archives' : '🎬 Ajouter quand même';
       }
       return;
     }
 
-    // Côté élève : vérifier aussi les propositions
+    // Côté élève : vérifier aussi les propositions existantes
     if (ctx === 'student' && detail.id) {
       const { data: proposals } = await db.from('proposals')
         .select('id,status').eq('tmdb_id', detail.id);
-      const pendingOrAccepted = (proposals || []).find(p =>
-        p.status === 'pending' || p.status === 'accepted');
-      if (pendingOrAccepted) {
+      const existing = (proposals || []).find(p => p.status === 'pending' || p.status === 'accepted');
+      if (existing) {
         dupEl.className = 'tmdb-d-warning info';
-        dupEl.innerHTML = `💡 <span>Ce film a déjà été proposé et est ${pendingOrAccepted.status === 'pending' ? 'en attente de validation' : 'accepté par l\'admin'}.</span>`;
+        dupEl.innerHTML = `<span>💡 Ce film a déjà été proposé (${existing.status === 'pending' ? 'en attente de validation' : 'accepté par l\'admin'}).</span>`;
         dupEl.classList.remove('hidden');
       }
     }
@@ -2258,15 +2375,19 @@ async function confirmProposeFilm() {
   btn.disabled = true;
   btn.textContent = 'Envoi en cours…';
 
+  // Récupérer le commentaire optionnel de l'élève
+  const comment = (document.getElementById('tmdb-d-comment')?.value || '').trim();
+
   const { error } = await db.from('proposals').insert({
-    student_id: S.user.id,
-    title:      m.title,
-    tmdb_id:    m.id,
-    poster_url: m.poster_path ? `https://image.tmdb.org/t/p/w500${m.poster_path}` : null,
-    year:       m.release_date ? parseInt(m.release_date.split('-')[0]) : null,
-    synopsis:   m.overview || '',
-    genre:      (m.genres || []).map(g => g.name).join(', ') || null,
-    status:     'pending'
+    student_id:      S.user.id,
+    title:           m.title,
+    tmdb_id:         m.id,
+    poster_url:      m.poster_path ? `https://image.tmdb.org/t/p/w500${m.poster_path}` : null,
+    year:            m.release_date ? parseInt(m.release_date.split('-')[0]) : null,
+    synopsis:        m.overview || '',
+    genre:           (m.genres || []).map(g => g.name).join(', ') || null,
+    status:          'pending',
+    student_comment: comment || null
   });
 
   btn.disabled = false;
@@ -2316,14 +2437,16 @@ async function fillAdminForm(encoded) {
 async function submitProposal() {
   if (!_selectedFilm) { toast('Sélectionne un film d\'abord', 'error'); return; }
   const m = _selectedFilm;
+  const comment = (document.getElementById('prop-msg')?.value || '').trim();
   const { error } = await db.from('proposals').insert({
-    student_id: S.user.id,
-    title: m.title,
-    tmdb_id: m.id,
-    poster_url: m.poster_path ? `https://image.tmdb.org/t/p/w500${m.poster_path}` : null,
-    year: m.release_date ? parseInt(m.release_date.split('-')[0]) : null,
-    synopsis: m.overview || '',
-    status: 'pending'
+    student_id:      S.user.id,
+    title:           m.title,
+    tmdb_id:         m.id,
+    poster_url:      m.poster_path ? `https://image.tmdb.org/t/p/w500${m.poster_path}` : null,
+    year:            m.release_date ? parseInt(m.release_date.split('-')[0]) : null,
+    synopsis:        m.overview || '',
+    status:          'pending',
+    student_comment: comment || null
   });
   if (error) { toast('Erreur lors de la proposition', 'error'); return; }
   toast('Proposition envoyée ! L\'admin la validera 📨', 'success');
@@ -2396,6 +2519,27 @@ async function toggleReg(sessionId, isReg) {
    ================================================================ */
 const PANELS = ['films','votes','proposals','sessions','students'];
 
+// État courant des sous-onglets
+let _filmFilter     = 'active';
+let _proposalFilter = 'pending';
+
+function filterFilms(status) {
+  _filmFilter = status;
+  // Met à jour les classes active sur les sous-onglets films
+  document.querySelectorAll('#film-subtabs .sub-tab').forEach((btn, i) => {
+    btn.classList.toggle('active', ['active','scheduled','screened','archived'][i] === status);
+  });
+  loadAdminFilms();
+}
+
+function filterProposals(status) {
+  _proposalFilter = status;
+  document.querySelectorAll('#prop-subtabs .sub-tab').forEach((btn, i) => {
+    btn.classList.toggle('active', ['pending','accepted','rejected'][i] === status);
+  });
+  loadAdminProposals();
+}
+
 function aTab(tab) {
   PANELS.forEach((p, i) => {
     document.querySelectorAll('.admin-tab')[i].classList.toggle('active', p === tab);
@@ -2419,38 +2563,112 @@ async function loadAdmin() {
    ADMIN — FILMS
    ================================================================ */
 async function loadAdminFilms() {
-  const list = document.getElementById('admin-films-list');
+  const list   = document.getElementById('admin-films-list');
+  const status = _filmFilter;
   list.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
 
   const { data } = await db.from('films').select('*')
-    .in('status',['active','archived']).order('added_at', { ascending: false });
+    .eq('status', status).order('added_at', { ascending: false });
 
   if (!data?.length) {
-    list.innerHTML = '<div class="empty"><div class="icon">🎬</div><h3>Aucun film</h3></div>'; return;
+    const labels = { active:'actif', scheduled:'programmé', screened:'diffusé', archived:'archivé' };
+    list.innerHTML = `<div class="empty"><div class="icon">🎬</div><h3>Aucun film ${labels[status] || ''}</h3></div>`;
+    return;
   }
 
-  list.innerHTML = data.map(f => `
+  const badgeCls = { active:'badge-green', scheduled:'badge-blue', screened:'badge-purple', archived:'badge-muted' };
+  const badgeLbl = { active:'● Actif', scheduled:'📅 Programmé', screened:'✅ Diffusé', archived:'⊘ Archivé' };
+
+  list.innerHTML = data.map(f => {
+    // Actions selon statut
+    let actions = '';
+    if (status === 'active') {
+      actions = `
+        <button class="btn btn-sm btn-ghost" onclick="setFilmScheduled('${f.id}')">📅 Programmer</button>
+        <button class="btn btn-sm btn-ghost" onclick="openMarkScreened('${f.id}')">✅ Vu</button>
+        <button class="btn btn-sm btn-ghost" onclick="openArchiveFilm('${f.id}')">⊘ Archiver</button>
+        <button class="btn btn-sm btn-red" onclick="deleteFilm('${f.id}')">Suppr.</button>`;
+    } else if (status === 'scheduled') {
+      actions = `
+        <button class="btn btn-sm btn-ghost" onclick="setFilmStatus('${f.id}','active')">↩ Remettre actif</button>
+        <button class="btn btn-sm btn-ghost" onclick="openMarkScreened('${f.id}')">✅ Marquer vu</button>
+        <button class="btn btn-sm btn-red" onclick="deleteFilm('${f.id}')">Suppr.</button>`;
+    } else if (status === 'screened') {
+      actions = `
+        <button class="btn btn-sm btn-ghost" onclick="setFilmStatus('${f.id}','active')">↩ Remettre actif</button>
+        <button class="btn btn-sm btn-ghost" onclick="openArchiveFilm('${f.id}')">⊘ Archiver</button>
+        <button class="btn btn-sm btn-red" onclick="deleteFilm('${f.id}')">Suppr.</button>`;
+    } else { // archived
+      actions = `
+        <button class="btn btn-sm btn-ghost" onclick="setFilmStatus('${f.id}','active')">↩ Restaurer</button>
+        <button class="btn btn-sm btn-red" onclick="deleteFilm('${f.id}')">Suppr.</button>`;
+    }
+
+    return `
     <div class="ai">
-      ${f.poster_url
-        ? `<img src="${f.poster_url}" class="ai-img" alt="">`
-        : `<div class="ai-img">🎬</div>`}
+      ${f.poster_url ? `<img src="${f.poster_url}" class="ai-img" alt="">` : `<div class="ai-img">🎬</div>`}
       <div class="ai-info">
         <div class="ai-title">${f.title}</div>
-        <div class="ai-sub">${f.year || ''} ${f.genre ? '· ' + f.genre : ''}</div>
-        <div><span class="badge ${f.status === 'active' ? 'badge-green' : 'badge-muted'}">${f.status === 'active' ? '● Actif' : '⊘ Archivé'}</span></div>
+        <div class="ai-sub">${f.year || ''}${f.genre ? ' · ' + f.genre : ''}${f.screened_at && status === 'screened' ? ' · Vu le ' + fmtDateShort(f.screened_at.split('T')[0]) : ''}</div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px;">
+          <span class="badge ${badgeCls[f.status] || 'badge-muted'}">${badgeLbl[f.status] || f.status}</span>
+          ${f.archive_reason ? `<span class="text-xs text-muted" style="padding-top:3px;">⊘ ${f.archive_reason}</span>` : ''}
+        </div>
       </div>
-      <div class="ai-actions">
-        ${f.status === 'active'
-          ? `<button class="btn btn-sm btn-ghost" onclick="setFilmStatus('${f.id}','archived')">Archiver</button>`
-          : `<button class="btn btn-sm btn-ghost" onclick="setFilmStatus('${f.id}','active')">Restaurer</button>`}
-        <button class="btn btn-sm btn-red" onclick="deleteFilm('${f.id}')">Suppr.</button>
-      </div>
-    </div>`).join('');
+      <div class="ai-actions">${actions}</div>
+    </div>`;
+  }).join('');
 }
 
 async function setFilmStatus(id, status) {
   await db.from('films').update({ status }).eq('id', id);
-  toast(status === 'archived' ? 'Film archivé' : 'Film restauré', 'success');
+  const lbl = { active:'Actif', scheduled:'Programmé', screened:'Diffusé', archived:'Archivé' };
+  toast(`Film → ${lbl[status] || status}`, 'success');
+  loadAdminFilms();
+}
+
+async function setFilmScheduled(id) {
+  await db.from('films').update({ status: 'scheduled' }).eq('id', id);
+  toast('Film programmé 📅', 'success');
+  loadAdminFilms();
+}
+
+/* Ouvre modal archiver avec raison */
+function openArchiveFilm(id) {
+  document.getElementById('archive-film-id').value = id;
+  document.getElementById('archive-reason-text').value = '';
+  openModal('modal-archive-reason');
+}
+
+async function confirmArchiveFilm() {
+  const id     = document.getElementById('archive-film-id').value;
+  const reason = document.getElementById('archive-reason-text').value.trim();
+  await db.from('films').update({
+    status: 'archived',
+    archive_reason: reason || null
+  }).eq('id', id);
+  closeModal('modal-archive-reason');
+  toast('Film archivé ⊘', 'success');
+  loadAdminFilms();
+}
+
+/* Ouvre modal marquer comme vu */
+function openMarkScreened(id) {
+  document.getElementById('screened-film-id').value = id;
+  document.getElementById('screened-date').value = new Date().toISOString().split('T')[0];
+  openModal('modal-mark-screened');
+}
+
+async function confirmMarkScreened() {
+  const id   = document.getElementById('screened-film-id').value;
+  const date = document.getElementById('screened-date').value;
+  if (!date) { toast('Sélectionne une date', 'error'); return; }
+  await db.from('films').update({
+    status:     'screened',
+    screened_at: new Date(date + 'T12:00:00').toISOString()
+  }).eq('id', id);
+  closeModal('modal-mark-screened');
+  toast('Film marqué comme diffusé ✅', 'success');
   loadAdminFilms();
 }
 
@@ -2543,51 +2761,100 @@ async function loadAdminVotes() {
    ADMIN — PROPOSALS
    ================================================================ */
 async function loadAdminProposals() {
-  const list = document.getElementById('admin-proposals-list');
+  const list   = document.getElementById('admin-proposals-list');
+  const status = _proposalFilter;
   list.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
 
   const { data } = await db.from('proposals')
     .select('*, students(first_name, last_name)')
+    .eq('status', status)
     .order('proposed_at', { ascending: false });
 
   if (!data?.length) {
-    list.innerHTML = '<div class="empty"><div class="icon">💡</div><h3>Aucune proposition</h3></div>'; return;
+    const lbls = { pending:'en attente', accepted:'acceptée', rejected:'refusée' };
+    list.innerHTML = `<div class="empty"><div class="icon">💡</div><h3>Aucune proposition ${lbls[status] || ''}</h3></div>`;
+    return;
   }
 
-  list.innerHTML = data.map(p => `
+  list.innerHTML = data.map(p => {
+    const studentName = `${p.students?.first_name || '?'} ${p.students?.last_name || ''}`;
+    let extra = '';
+    if (status === 'rejected' && p.admin_refusal_reason) {
+      extra = `<div class="text-sm text-muted mt-1" style="font-style:italic;">Raison : ${p.admin_refusal_reason}</div>`;
+    }
+    if (p.student_comment) {
+      extra += `<div class="text-sm text-muted mt-1">💬 ${p.student_comment}</div>`;
+    }
+
+    return `
     <div class="ai">
       ${p.poster_url ? `<img src="${p.poster_url}" class="ai-img" alt="">` : `<div class="ai-img">🎬</div>`}
       <div class="ai-info">
-        <div class="ai-title">${p.title} ${p.year ? '(' + p.year + ')' : ''}</div>
-        <div class="ai-sub">Par ${p.students?.first_name || '?'} ${p.students?.last_name || ''}</div>
-        <span class="badge ${p.status === 'pending' ? 'badge-gold' : p.status === 'accepted' ? 'badge-green' : 'badge-red'}">
-          ${p.status === 'pending' ? '⏳ En attente' : p.status === 'accepted' ? '✅ Accepté' : '❌ Refusé'}
-        </span>
-        ${p.status === 'accepted'
-          ? `<button class="btn btn-sm btn-ghost mt-1" onclick="addProposalAsFilm('${p.id}','${p.title.replace(/'/g,"\\'")}','${p.tmdb_id||''}','${p.poster_url||''}',${p.year||'null'},'${(p.synopsis||'').replace(/'/g,"\\'").substring(0,200)}')">+ Ajouter au catalogue</button>`
-          : ''}
+        <div class="ai-title">${p.title}${p.year ? ' (' + p.year + ')' : ''}</div>
+        <div class="ai-sub">Par ${studentName}</div>
+        ${extra}
       </div>
-      ${p.status === 'pending' ? `
+      ${status === 'pending' ? `
         <div class="ai-actions">
-          <button class="btn btn-sm btn-green" onclick="reviewProposal('${p.id}','accepted')">✅</button>
-          <button class="btn btn-sm btn-red" onclick="reviewProposal('${p.id}','rejected')">❌</button>
+          <button class="btn btn-sm btn-green" onclick="reviewProposal('${p.id}','accepted',${JSON.stringify(p)})">✅ Accepter</button>
+          <button class="btn btn-sm btn-red"   onclick="openRejectProposal('${p.id}')">❌ Refuser</button>
         </div>` : ''}
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
-async function reviewProposal(id, status) {
+/* Accepter = mise à jour statut + ajout direct au catalogue sans doublon */
+async function reviewProposal(id, status, proposal) {
+  if (status === 'accepted') {
+    // Vérifier si le film existe déjà (par tmdb_id ou titre)
+    let exists = false;
+    if (proposal.tmdb_id) {
+      const { data } = await db.from('films').select('id').eq('tmdb_id', proposal.tmdb_id).maybeSingle();
+      exists = !!data;
+    }
+    if (!exists) {
+      const { data: byTitle } = await db.from('films').select('id').ilike('title', proposal.title);
+      exists = !!(byTitle && byTitle.length > 0);
+    }
+
+    if (!exists) {
+      // Ajouter le film au catalogue
+      await db.from('films').insert({
+        title:      proposal.title,
+        tmdb_id:    proposal.tmdb_id || null,
+        poster_url: proposal.poster_url || null,
+        year:       proposal.year || null,
+        synopsis:   proposal.synopsis || null,
+        genre:      proposal.genre || null,
+        status:     'active'
+      });
+    } else {
+      toast('Film déjà dans le catalogue — statut mis à jour seulement', '');
+    }
+  }
+
   await db.from('proposals').update({ status, reviewed_at: new Date().toISOString() }).eq('id', id);
-  toast(status === 'accepted' ? 'Proposition acceptée ✅' : 'Proposition refusée', status === 'accepted' ? 'success' : '');
+  toast(status === 'accepted' ? 'Proposition acceptée — film ajouté ✅' : 'Refusé', status === 'accepted' ? 'success' : '');
   loadAdminProposals();
 }
 
-async function addProposalAsFilm(id, title, tmdbId, poster, year, synopsis) {
-  const { error } = await db.from('films').insert({
-    title, tmdb_id: parseInt(tmdbId)||null, poster_url: poster||null,
-    year: year||null, synopsis: synopsis||null, status: 'active'
-  });
-  if (error) { toast('Erreur : ' + error.message, 'error'); return; }
-  toast('Film ajouté au catalogue 🎬', 'success');
+/* Refus avec raison */
+function openRejectProposal(id) {
+  document.getElementById('reject-prop-id').value = id;
+  document.getElementById('reject-reason-text').value = '';
+  openModal('modal-reject-reason');
+}
+
+async function confirmRejectProposal() {
+  const id     = document.getElementById('reject-prop-id').value;
+  const reason = document.getElementById('reject-reason-text').value.trim();
+  await db.from('proposals').update({
+    status: 'rejected',
+    admin_refusal_reason: reason || null,
+    reviewed_at: new Date().toISOString()
+  }).eq('id', id);
+  closeModal('modal-reject-reason');
+  toast('Proposition refusée', '');
   loadAdminProposals();
 }
 
