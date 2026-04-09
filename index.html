@@ -490,6 +490,31 @@ button { cursor: pointer; }
 /* Actions du profil */
 .profile-actions { display: flex; flex-direction: column; gap: 9px; }
 
+/* ----------------------------------------------------------------
+   PROFIL ÉLÈVE — positionnement carte flottante (haut centré)
+   Override ciblé sur #modal-profile uniquement,
+   sans toucher aux autres overlays / sheets.
+   ---------------------------------------------------------------- */
+#modal-profile {
+  align-items: flex-start;          /* sort du bas, part du haut */
+  justify-content: center;
+  padding: 72px 22px 22px;          /* marge haute = sous le header */
+}
+
+#modal-profile .sheet {
+  border-radius: var(--radius-lg);  /* tous les coins arrondis */
+  max-width: 400px;                 /* largeur max sur desktop */
+  width: 100%;
+  margin: 0 auto;
+  max-height: 80vh;
+  animation: profileSlideDown .26s cubic-bezier(.32,1.1,.64,1) both;
+}
+
+@keyframes profileSlideDown {
+  from { opacity: 0; transform: translateY(-18px) scale(.97); }
+  to   { opacity: 1; transform: translateY(0)     scale(1); }
+}
+
 .profile-action-btn {
   display: flex; align-items: center; gap: 13px;
   width: 100%; padding: 13px 15px;
