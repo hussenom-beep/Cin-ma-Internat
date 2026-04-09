@@ -1227,10 +1227,9 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
         Films
         <button class="btn btn-gold btn-sm" onclick="openModal('modal-add-film')">+ Ajouter</button>
       </div>
-      <!-- Sous-onglets filtres statuts -->
+      <!-- Sous-onglets filtres statuts (sans Programmé — géré via Séances) -->
       <div class="sub-tabs" id="film-subtabs">
         <button class="sub-tab active" onclick="filterFilms('active')">● Actifs</button>
-        <button class="sub-tab" onclick="filterFilms('scheduled')">📅 Prog.</button>
         <button class="sub-tab" onclick="filterFilms('screened')">✅ Vus</button>
         <button class="sub-tab" onclick="filterFilms('archived')">⊘ Archivés</button>
       </div>
@@ -1453,6 +1452,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       <select class="finput fselect" id="edit-ses-film"><option value="">— À définir —</option></select>
     </div>
     <input type="hidden" id="edit-ses-id">
+    <input type="hidden" id="edit-ses-prev-film">
     <div style="display:flex;gap:10px;margin-top:6px;">
       <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('modal-edit-session')">Annuler</button>
       <button class="btn btn-gold" style="flex:1;" onclick="saveEditSession()">Enregistrer ✅</button>
@@ -2818,8 +2818,6 @@ async function submitManualProposal() {
    SESSIONS (student)
    ================================================================ */
 async function loadSessions() {
-  await cleanupPastSessions();
-
   const body = document.getElementById('sessions-body');
   body.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
 
@@ -2877,9 +2875,8 @@ let _proposalFilter = 'pending';
 
 function filterFilms(status) {
   _filmFilter = status;
-  // Met à jour les classes active sur les sous-onglets films
   document.querySelectorAll('#film-subtabs .sub-tab').forEach((btn, i) => {
-    btn.classList.toggle('active', ['active','scheduled','screened','archived'][i] === status);
+    btn.classList.toggle('active', ['active','screened','archived'][i] === status);
   });
   loadAdminFilms();
 }
@@ -2908,55 +2905,50 @@ function aTab(tab) {
 
 async function loadAdmin() {
   document.getElementById('imp-year').value = CFG.SCHOOL_YEAR;
-  await checkScheduledFilms();   // auto-transition programmé → vu si date dépassée
-  await cleanupPastSessions();   // suppression des séances passées
+  await checkScheduledFilms();   // auto-transition : séances passées → films vus
   aTab('films');
 }
 
-/* Auto-transition : films scheduled dont la séance est passée → screened */
+/* ----------------------------------------------------------------
+   Auto-transition : si un film (actif ou scheduled) a une séance
+   dont la date est passée → passer en screened avec screened_at
+   ---------------------------------------------------------------- */
 async function checkScheduledFilms() {
   try {
-    const { data: scheduled } = await db.from('films')
-      .select('id').eq('status', 'scheduled');
-    if (!scheduled?.length) return;
-
     const today = new Date().toISOString().split('T')[0];
-
-    for (const film of scheduled) {
-      const { data: sessions } = await db.from('cinema_sessions')
-        .select('id, session_date')
-        .eq('film_id', film.id)
-        .lt('session_date', today)   // date de séance < aujourd'hui
-        .order('session_date', { ascending: false })
-        .limit(1);
-
-      if (sessions?.length) {
-        const ses = sessions[0];
-        await db.from('films').update({
-          status:      'screened',
-          screened_at: new Date(ses.session_date + 'T12:00:00').toISOString()
-        }).eq('id', film.id);
-      }
-    }
-  } catch(e) { /* silencieux — ne bloque pas le chargement */ }
-}
-async function cleanupPastSessions() {
-  try {
-    const today = new Date().toISOString().split('T')[0];
-
-    const { data: oldSessions } = await db.from('cinema_sessions')
-      .select('id')
+    // Chercher toutes les séances passées qui ont un film lié
+    const { data: pastSessions } = await db.from('cinema_sessions')
+      .select('film_id, session_date')
+      .not('film_id', 'is', null)
       .lt('session_date', today);
 
-    if (!oldSessions?.length) return;
+    if (!pastSessions?.length) return;
 
-    const ids = oldSessions.map(s => s.id);
+    for (const s of pastSessions) {
+      // Ne traiter que les films encore actifs ou scheduled
+      const { data: film } = await db.from('films')
+        .select('id, status')
+        .eq('id', s.film_id)
+        .in('status', ['active', 'scheduled'])
+        .maybeSingle();
 
-    await db.from('registrations').delete().in('session_id', ids);
-    await db.from('cinema_sessions').delete().in('id', ids);
-  } catch(e) {
-    console.error('cleanupPastSessions error', e);
-  }
+      if (!film) continue;
+
+      // Vérifier qu'il n'a pas de séance FUTURE
+      const { data: futureSessions } = await db.from('cinema_sessions')
+        .select('id')
+        .eq('film_id', film.id)
+        .gte('session_date', today)
+        .limit(1);
+
+      if (futureSessions?.length) continue; // encore programmé dans le futur
+
+      await db.from('films').update({
+        status:      'screened',
+        screened_at: new Date(s.session_date + 'T12:00:00').toISOString()
+      }).eq('id', film.id);
+    }
+  } catch(e) { /* silencieux */ }
 }
 /* ================================================================
    ADMIN — FILMS
@@ -2975,21 +2967,32 @@ async function loadAdminFilms() {
     return;
   }
 
-  const badgeCls = { active:'badge-green', scheduled:'badge-blue', screened:'badge-purple', archived:'badge-muted' };
-  const badgeLbl = { active:'● Actif', scheduled:'📅 Programmé', screened:'✅ Diffusé', archived:'⊘ Archivé' };
+  const badgeCls = { active:'badge-green', screened:'badge-purple', archived:'badge-muted' };
+  const badgeLbl = { active:'● Actif', screened:'✅ Diffusé', archived:'⊘ Archivé' };
+
+  // Pour les films actifs, récupérer les séances futures associées
+  const today = new Date().toISOString().split('T')[0];
+  const filmIds = data.map(f => f.id);
+  let sessionMap = {};
+  if (status === 'active' && filmIds.length) {
+    const { data: sessions } = await db.from('cinema_sessions')
+      .select('film_id, session_date')
+      .in('film_id', filmIds)
+      .gte('session_date', today)
+      .order('session_date', { ascending: true });
+    (sessions || []).forEach(s => {
+      if (!sessionMap[s.film_id]) sessionMap[s.film_id] = s.session_date;
+    });
+  }
 
   list.innerHTML = data.map(f => {
     // Actions selon statut
     let actions = '';
     if (status === 'active') {
       actions = `
-		<button class="btn btn-sm btn-ghost" onclick="openScheduleFilm('${f.id}')">📅 Programmer</button>
-		<button class="btn btn-sm btn-ghost" onclick="openArchiveFilm('${f.id}')">⊘ Archiver</button>
-		<button class="btn btn-sm btn-red" onclick="deleteFilm('${f.id}')">Suppr.</button>`;
-    } else if (status === 'scheduled') {
-      actions = `
-		<button class="btn btn-sm btn-ghost" onclick="setFilmStatus('${f.id}','active')">↩ Remettre actif</button>
-		<button class="btn btn-sm btn-red" onclick="deleteFilm('${f.id}')">Suppr.</button>`;
+        <button class="btn btn-sm btn-ghost" onclick="openScheduleFilm('${f.id}')">📅 Créer séance</button>
+        <button class="btn btn-sm btn-ghost" onclick="openArchiveFilm('${f.id}')">⊘ Archiver</button>
+        <button class="btn btn-sm btn-red" onclick="deleteFilm('${f.id}')">Suppr.</button>`;
     } else if (status === 'screened') {
       actions = `
         <button class="btn btn-sm btn-ghost" onclick="setFilmStatus('${f.id}','active')">↩ Remettre actif</button>
@@ -3000,6 +3003,10 @@ async function loadAdminFilms() {
         <button class="btn btn-sm btn-ghost" onclick="setFilmStatus('${f.id}','active')">↩ Restaurer</button>
         <button class="btn btn-sm btn-red" onclick="deleteFilm('${f.id}')">Suppr.</button>`;
     }
+
+    const sessionDate = sessionMap[f.id];
+    const sessionBadge = sessionDate
+      ? `<span class="badge badge-blue" style="margin-top:4px;">📅 ${fmtDateShort(sessionDate)}</span>` : '';
 
     return `
     <div class="ai" data-film-id="${f.id}">
@@ -3013,6 +3020,7 @@ async function loadAdminFilms() {
         <div class="ai-sub">${f.year || ''}${f.genre ? ' · ' + f.genre : ''}${f.screened_at && status === 'screened' ? ' · Vu le ' + fmtDateShort(f.screened_at.split('T')[0]) : ''}</div>
         <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px;">
           <span class="badge ${badgeCls[f.status] || 'badge-muted'}">${badgeLbl[f.status] || f.status}</span>
+          ${sessionBadge}
           ${f.archive_reason ? `<span class="text-xs text-muted" style="padding-top:3px;">⊘ ${f.archive_reason}</span>` : ''}
         </div>
       </div>
@@ -3094,7 +3102,7 @@ async function confirmScheduleFilm() {
   const regOpen = document.getElementById('sched-open').checked;
   if (!date) { toast('Sélectionne une date', 'error'); return; }
 
-  // Créer la séance automatiquement
+  // Créer la séance — le film reste en 'active', pas de changement de statut
   const { error: sesErr } = await db.from('cinema_sessions').insert({
     session_date:       date,
     film_id:            filmId,
@@ -3103,11 +3111,8 @@ async function confirmScheduleFilm() {
   });
   if (sesErr) { toast('Erreur création séance : ' + sesErr.message, 'error'); return; }
 
-  // Passer le film en scheduled
-  await db.from('films').update({ status: 'scheduled' }).eq('id', filmId);
-
   closeModal('modal-schedule-film');
-  toast('Film programmé + séance créée 📅', 'success');
+  toast('Séance créée 📅 — film visible dans Séances', 'success');
   loadAdminFilms();
 }
 
@@ -3479,29 +3484,111 @@ async function viewRegistrants(sesId, date) {
   openModal('modal-registrants');
 }
 
-async function openEditSession(id) {
+/* ----------------------------------------------------------------
+   Utilitaire : remet un film en 'active' s'il n'a plus
+   de séance future et s'il était 'scheduled'
+   ---------------------------------------------------------------- */
+async function maybeRestoreFilmToActive(filmId) {
+  if (!filmId) return;
+  try {
+    const { data: film } = await db.from('films')
+      .select('id, status').eq('id', filmId).maybeSingle();
+    if (!film || film.status !== 'scheduled') return;
+
+    const today = new Date().toISOString().split('T')[0];
+    const { data: future } = await db.from('cinema_sessions')
+      .select('id').eq('film_id', filmId).gte('session_date', today).limit(1);
+
+    if (!future?.length) {
+      await db.from('films').update({ status: 'active' }).eq('id', filmId);
+    }
+  } catch(e) { /* silencieux */ }
+}
+
+async function loadAdminSessions() {
+  const list = document.getElementById('admin-sessions-list');
+  list.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
+
+  const [{ data: sessions }, { data: regs }] = await Promise.all([
+    db.from('cinema_sessions').select('*, films(title)').order('session_date', { ascending: true }),
+    db.from('registrations').select('session_id')
+  ]);
+
+  if (!sessions?.length) {
+    list.innerHTML = '<div class="empty"><div class="icon">🎟️</div><h3>Aucune séance</h3></div>'; return;
+  }
+
+  const rc = {};
+  (regs || []).forEach(r => rc[r.session_id] = (rc[r.session_id] || 0) + 1);
+
+  const today = new Date().toISOString().split('T')[0];
+
+  list.innerHTML = sessions.map(s => {
+    const isPast = s.session_date < today;
+    return `
+    <div class="ai" style="flex-wrap:wrap;${isPast ? 'opacity:.65;' : ''}">
+      <div class="ai-info" style="width:100%;margin-bottom:8px;">
+        <div class="ai-title">${fmtDateShort(s.session_date)}${isPast ? ' <span class="badge badge-muted" style="font-size:10px;">Passée</span>' : ''}</div>
+        <div class="ai-sub">${s.films?.title || '— Film non défini'}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:5px;">
+          <span class="badge ${s.registrations_open ? 'badge-green' : 'badge-muted'}">
+            ${s.registrations_open ? '✅ Ouvertes' : '⏸ Fermées'}
+          </span>
+          <span class="badge badge-muted">👥 ${rc[s.id]||0} inscrits</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        ${!isPast ? `<button class="btn btn-sm btn-ghost" onclick="toggleSesOpen('${s.id}',${s.registrations_open})">
+          ${s.registrations_open ? 'Fermer inscrip.' : 'Ouvrir inscrip.'}
+        </button>` : ''}
+        <button class="btn btn-sm btn-ghost" onclick="viewRegistrants('${s.id}','${s.session_date}')">👥 Inscrits</button>
+        ${!isPast ? `<button class="btn btn-sm btn-ghost" onclick="openEditSession('${s.id}','${s.films?.title || ''}','${s.film_id || ''}')">✏️ Film</button>` : ''}
+        <button class="btn btn-sm btn-red" onclick="cancelSes('${s.id}','${s.film_id || ''}')">🗑 Annuler</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function cancelSes(id, filmId) {
+  if (!confirm('Annuler cette séance ? Le film sera remis en "Actif" s\'il était programmé.')) return;
+  // Supprimer les inscriptions puis la séance
+  await db.from('registrations').delete().eq('session_id', id);
+  await db.from('cinema_sessions').delete().eq('id', id);
+  // Remettre le film en active si nécessaire
+  if (filmId) await maybeRestoreFilmToActive(filmId);
+  toast('Séance annulée — film remis en actif si nécessaire', 'success');
+  loadAdminSessions();
+}
+
+async function openEditSession(id, currentTitle, currentFilmId) {
   document.getElementById('edit-ses-id').value = id;
-  const { data: films } = await db.from('films').select('id,title').eq('status','active');
-  const { data: ses } = await db.from('cinema_sessions').select('film_id').eq('id',id).single();
+  document.getElementById('edit-ses-prev-film').value = currentFilmId || '';
+  // Inclure les films actifs ET scheduled dans la liste
+  const { data: films } = await db.from('films')
+    .select('id,title')
+    .in('status', ['active', 'scheduled'])
+    .order('title');
   const sel = document.getElementById('edit-ses-film');
   sel.innerHTML = '<option value="">— À définir —</option>' +
-    (films||[]).map(f => `<option value="${f.id}" ${ses?.film_id === f.id ? 'selected' : ''}>${f.title}</option>`).join('');
+    (films||[]).map(f => `<option value="${f.id}" ${f.id === currentFilmId ? 'selected' : ''}>${f.title}</option>`).join('');
   openModal('modal-edit-session');
 }
 
 async function saveEditSession() {
-  const id = document.getElementById('edit-ses-id').value;
-  const filmId = document.getElementById('edit-ses-film').value;
-  await db.from('cinema_sessions').update({ film_id: filmId || null }).eq('id', id);
+  const id         = document.getElementById('edit-ses-id').value;
+  const newFilmId  = document.getElementById('edit-ses-film').value || null;
+  const prevFilmId = document.getElementById('edit-ses-prev-film').value || null;
+
+  // Mettre à jour la séance
+  await db.from('cinema_sessions').update({ film_id: newFilmId }).eq('id', id);
+
+  // Si le film a changé : remettre l'ancien en active si nécessaire
+  if (prevFilmId && prevFilmId !== newFilmId) {
+    await maybeRestoreFilmToActive(prevFilmId);
+  }
+
   closeModal('modal-edit-session');
   toast('Séance mise à jour ✅', 'success');
-  loadAdminSessions();
-}
-
-async function deleteSes(id) {
-  if (!confirm('Supprimer cette séance ?')) return;
-  await db.from('cinema_sessions').delete().eq('id', id);
-  toast('Séance supprimée');
   loadAdminSessions();
 }
 
