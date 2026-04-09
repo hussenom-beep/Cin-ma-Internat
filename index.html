@@ -946,6 +946,28 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
   }
   .admin-tab.active { border-left-color: var(--gold); border-bottom-color: transparent; }
 
+  .admin-tab-wrap {
+    width: 100%;
+    padding: 0 18px;
+    gap: 10px;
+  }
+  .admin-tab-wrap .admin-tab {
+    padding: 11px 0;
+    margin-bottom: 0;
+    font-size: 13px;
+    text-align: left;
+    border-left: 2px solid transparent;
+    flex: 0 0 auto;
+  }
+  .admin-tab-wrap .admin-tab.active {
+    border-left-color: var(--gold);
+  }
+  .admin-tab-wrap .pending-badge {
+    min-width: 24px;
+    height: 24px;
+    font-size: 12px;
+  }
+
   .admin-panels-container {
     overflow-y: auto;
     height: calc(100vh - var(--header-h));
@@ -1006,24 +1028,32 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 }
 
 /* Badge compteur propositions en attente */
-.admin-tab-wrap { position: relative; display: inline-flex; }
+.admin-tab-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.admin-tab-wrap .admin-tab {
+  padding-right: 0;
+}
 .pending-badge {
-  position: absolute;
-  top: 2px;
-  right: -4px;
-  min-width: 17px;
-  height: 17px;
-  padding: 0 4px;
+  position: static;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
   background: var(--gold);
   color: #000;
-  font-size: 10px;
-  font-weight: 700;
-  border-radius: 9px;
-  display: flex;
+  font-size: 11px;
+  font-weight: 800;
+  border-radius: 999px;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   line-height: 1;
   pointer-events: none;
+  box-shadow: 0 6px 18px rgba(240,165,0,.22);
 }
   </style>
 <body>
