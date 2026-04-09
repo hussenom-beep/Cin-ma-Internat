@@ -428,19 +428,19 @@ button { cursor: pointer; }
 
 /* Bouton profil — initiales dans un cercle doré discret */
 .home-profile-btn {
-  width: 40px; height: 40px;
+  width: 46px; height: 46px;
   border-radius: 50%;
   background: var(--gold-dim);
   border: 1.5px solid rgba(240,165,0,.3);
   color: var(--gold);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 800;
   letter-spacing: .02em;
   display: flex; align-items: center; justify-content: center;
   cursor: pointer;
   transition: background .18s, border-color .18s;
   flex-shrink: 0;
-  margin-top: 4px;
+  margin-top: 2px;
   font-family: 'DM Sans', sans-serif;
 }
 .home-profile-btn:hover { background: rgba(240,165,0,.22); border-color: var(--gold); }
@@ -1767,10 +1767,18 @@ async function handleActivate() {
 // Connexion — PIN 6 chiffres
 async function handleLogin() {
   const pin = getPin('p1','p2','p3','p4','p5','p6');
-  if (pin.length !== 6) { toast('Entre ton code secret à 6 chiffres', 'error'); return; }
+  if (pin.length !== 6) {
+    toast('Entre ton code secret à 6 chiffres', 'error');
+    setupPins('p1','p2','p3','p4','p5','p6');
+    return;
+  }
 
   const hash = await sha256(pin);
-  if (hash !== _tmpStudent.password_hash) { toast('Code incorrect', 'error'); return; }
+  if (hash !== _tmpStudent.password_hash) {
+    toast('Code incorrect', 'error');
+    setupPins('p1','p2','p3','p4','p5','p6');
+    return;
+  }
 
   loginAs(_tmpStudent);
   toast(`Bon retour, ${_tmpStudent.first_name} 👋`, 'success');
@@ -2851,6 +2859,16 @@ function openChangePIN() {
 
 /* Validation + mise à jour du hash en base */
 async function handleChangePIN() {
+  const resetChangePins = () => {
+    setupSmPins('o1','o2','o3','o4','o5','o6');
+    setupSmPins('n1','n2','n3','n4','n5','n6');
+    setupSmPins('c1','c2','c3','c4','c5','c6');
+    setTimeout(() => {
+      const first = document.getElementById('o1');
+      if (first) first.focus();
+    }, 60);
+  };
+
   const readSmPin = (...ids) =>
     ids.map(id => document.getElementById(id).dataset.real || '').join('');
 
@@ -2858,21 +2876,42 @@ async function handleChangePIN() {
   const newPin  = readSmPin('n1','n2','n3','n4','n5','n6');
   const confPin = readSmPin('c1','c2','c3','c4','c5','c6');
 
-  if (oldPin.length !== 6)  { toast('Saisis ton code actuel complet (6 chiffres)', 'error'); return; }
-  if (newPin.length !== 6)  { toast('Le nouveau code doit faire 6 chiffres', 'error'); return; }
-  if (confPin.length !== 6) { toast('Confirme le nouveau code complet (6 chiffres)', 'error'); return; }
-  if (newPin !== confPin)   { toast('Les deux nouveaux codes ne correspondent pas', 'error'); return; }
+  if (oldPin.length !== 6) {
+    toast('Saisis ton code actuel complet (6 chiffres)', 'error');
+    resetChangePins();
+    return;
+  }
+  if (newPin.length !== 6) {
+    toast('Le nouveau code doit faire 6 chiffres', 'error');
+    resetChangePins();
+    return;
+  }
+  if (confPin.length !== 6) {
+    toast('Confirme le nouveau code complet (6 chiffres)', 'error');
+    resetChangePins();
+    return;
+  }
+  if (newPin !== confPin) {
+    toast('Les deux nouveaux codes ne correspondent pas', 'error');
+    resetChangePins();
+    return;
+  }
 
   const oldHash = await sha256(oldPin);
   const { data: student } = await db.from('students').select('password_hash').eq('id', S.user.id).single();
   if (!student || oldHash !== student.password_hash) {
     toast('Code actuel incorrect', 'error');
+    resetChangePins();
     return;
   }
 
   const newHash = await sha256(newPin);
   const { error } = await db.from('students').update({ password_hash: newHash }).eq('id', S.user.id);
-  if (error) { toast('Erreur lors de la mise à jour', 'error'); return; }
+  if (error) {
+    toast('Erreur lors de la mise à jour', 'error');
+    resetChangePins();
+    return;
+  }
 
   closeModal('modal-change-pin');
   toast('Code secret mis à jour ✅', 'success');
