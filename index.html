@@ -405,7 +405,7 @@ button { cursor: pointer; }
    ================================================================ */
 .home-hero {
   padding: 20px 20px 0;
-  background: linear-gradient(180deg, rgba(240,165,0,.05) 0%, transparent 100%);
+  background: linear-gradient(180deg, rgba(240,165,0,.06) 0%, transparent 100%);
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: flex-start;
@@ -426,38 +426,107 @@ button { cursor: pointer; }
 
 .home-sub { font-size: 13px; color: var(--text-2); margin-bottom: 20px; }
 
-/* Bouton profil — cercle discret en haut à droite du hero */
+/* Bouton profil — initiales dans un cercle doré discret */
 .home-profile-btn {
   width: 40px; height: 40px;
   border-radius: 50%;
-  background: var(--surface-2);
-  border: 1.5px solid var(--border);
-  color: var(--text-2);
-  font-size: 18px;
+  background: var(--gold-dim);
+  border: 1.5px solid rgba(240,165,0,.3);
+  color: var(--gold);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: .02em;
   display: flex; align-items: center; justify-content: center;
   cursor: pointer;
-  transition: border-color .18s, color .18s;
+  transition: background .18s, border-color .18s;
   flex-shrink: 0;
   margin-top: 4px;
+  font-family: 'DM Sans', sans-serif;
 }
-.home-profile-btn:hover { border-color: var(--gold); color: var(--gold); }
+.home-profile-btn:hover { background: rgba(240,165,0,.22); border-color: var(--gold); }
 
-/* Modal profil élève */
-.profile-info-block {
+.home-section { padding: 20px 18px 0; }
+.home-section-title { font-size: 11px; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 12px; }
+
+/* ----------------------------------------------------------------
+   PROFIL ÉLÈVE — modal premium
+   ---------------------------------------------------------------- */
+
+/* En-tête du profil : avatar + nom centré */
+.profile-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0 22px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 18px;
+}
+.profile-avatar {
+  width: 64px; height: 64px;
+  border-radius: 50%;
+  background: var(--gold-dim);
+  border: 2px solid rgba(240,165,0,.35);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; font-weight: 900;
+  color: var(--gold);
+  font-family: 'DM Sans', sans-serif;
+  letter-spacing: .02em;
+}
+.profile-name {
+  font-family: 'Playfair Display', serif;
+  font-size: 19px; font-weight: 700;
+  text-align: center; line-height: 1.2;
+}
+.profile-class {
+  font-size: 12.5px; color: var(--text-2);
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 3px 12px;
+  font-weight: 500;
+}
+
+/* Actions du profil */
+.profile-actions { display: flex; flex-direction: column; gap: 9px; }
+
+.profile-action-btn {
+  display: flex; align-items: center; gap: 13px;
+  width: 100%; padding: 13px 15px;
   background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 16px 18px;
-  margin-bottom: 20px;
+  color: var(--text);
+  font-size: 14px; font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background .18s, border-color .18s;
+  text-align: left;
 }
-.profile-info-row {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 6px 0;
-  font-size: 14px;
+.profile-action-btn:hover { background: var(--surface-3); border-color: var(--border-2); }
+.profile-action-btn .pa-icon { font-size: 18px; flex-shrink: 0; }
+.profile-action-btn .pa-text { flex: 1; }
+.profile-action-btn .pa-arrow { color: var(--text-3); font-size: 14px; }
+
+.profile-action-btn.danger {
+  background: var(--red-dim);
+  border-color: rgba(232,64,64,.2);
+  color: var(--red);
 }
-.profile-info-row:not(:last-child) { border-bottom: 1px solid var(--border); }
-.profile-info-label { color: var(--text-3); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
-.profile-info-value { font-weight: 600; }
+.profile-action-btn.danger:hover { background: rgba(232,64,64,.2); }
+
+.profile-close-row {
+  margin-top: 14px;
+  text-align: center;
+}
+.profile-close-link {
+  font-size: 13px; color: var(--text-3);
+  background: none; border: none;
+  cursor: pointer; padding: 6px 12px;
+  font-family: inherit;
+  transition: color .18s;
+}
+.profile-close-link:hover { color: var(--text-2); }
 
 /* Changement de PIN — cases 6 chiffres dans modal */
 .pin-change-block { display: flex; flex-direction: column; gap: 18px; }
@@ -477,9 +546,6 @@ button { cursor: pointer; }
   caret-color: transparent;
 }
 .pin-sm:focus { border-color: var(--gold); }
-
-.home-section { padding: 20px 18px 0; }
-.home-section-title { font-size: 11px; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 12px; }
 
 /* Next session banner */
 .session-banner {
@@ -892,33 +958,29 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       <div class="home-greeting">Salut, <span id="home-uname">toi</span> 👋</div>
       <div class="home-sub">Soirée cinéma tous les mercredis soir</div>
     </div>
-    <!-- Bouton profil élève — haut à droite -->
-    <button class="home-profile-btn" onclick="openModal('modal-profile')" title="Mon profil">👤</button>
+    <!-- Bouton profil — initiales générées par JS dans renderHome() -->
+    <button class="home-profile-btn" id="home-profile-btn" onclick="openModal('modal-profile')" title="Mon profil">?</button>
   </div>
 
+  <!-- Prochaine séance : une seule fois, en haut -->
   <div class="home-section" style="margin-top:20px;">
     <div class="home-section-title">🎟 Prochaine séance</div>
     <div id="home-next-session"></div>
   </div>
 
-  <!-- Actions rapides allégées : 3 boutons utiles, sans doublon déconnexion -->
-  <div class="home-section" style="margin-top:20px;padding-bottom:12px;">
-    <div class="home-section-title">Actions rapides</div>
-    <div class="quick-grid">
+  <!-- 2 actions vraiment utiles (les autres sont dans la barre du bas) -->
+  <div class="home-section" style="margin-top:18px;padding-bottom:14px;">
+    <div class="home-section-title">Raccourcis</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
       <button class="quick-btn" onclick="navigateTo('films')">
-        <span class="qicon">🗳️</span>
-        <span class="qlabel">Films en vote</span>
+        <span class="qicon">🎬</span>
+        <span class="qlabel">Films</span>
         <span class="qsub">Voir &amp; voter</span>
       </button>
       <button class="quick-btn" onclick="navigateTo('propose')">
         <span class="qicon">💡</span>
         <span class="qlabel">Proposer</span>
         <span class="qsub">Suggérer un film</span>
-      </button>
-      <button class="quick-btn" style="grid-column:1/-1;" onclick="navigateTo('session')">
-        <span class="qicon">🎟️</span>
-        <span class="qlabel">Prochaine séance</span>
-        <span class="qsub">S'inscrire ou se désinscrire</span>
       </button>
     </div>
   </div>
@@ -1291,35 +1353,35 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 </div>
 
 <!-- ================================================================
-     MODAL: Profil élève
+     MODAL: Profil élève — version premium
      ================================================================ -->
 <div class="overlay hidden" id="modal-profile">
   <div class="sheet">
     <div class="sheet-handle"></div>
-    <div class="sheet-title">Mon profil</div>
 
-    <!-- Infos de l'élève connecté -->
-    <div class="profile-info-block">
-      <div class="profile-info-row">
-        <span class="profile-info-label">Prénom</span>
-        <span class="profile-info-value" id="prof-firstname">—</span>
-      </div>
-      <div class="profile-info-row">
-        <span class="profile-info-label">Nom</span>
-        <span class="profile-info-value" id="prof-lastname">—</span>
-      </div>
-      <div class="profile-info-row">
-        <span class="profile-info-label">Classe</span>
-        <span class="profile-info-value" id="prof-class">—</span>
-      </div>
+    <!-- En-tête : avatar + nom + classe -->
+    <div class="profile-header">
+      <div class="profile-avatar" id="prof-avatar">?</div>
+      <div class="profile-name" id="prof-fullname">—</div>
+      <div class="profile-class" id="prof-class">—</div>
     </div>
 
-    <div style="display:flex;flex-direction:column;gap:10px;">
-      <button class="btn btn-ghost btn-full" onclick="openChangePIN()">🔐 Changer mon code secret</button>
-      <button class="btn btn-red btn-full" onclick="closeModal('modal-profile');logout();">↪ Déconnexion</button>
+    <!-- Actions -->
+    <div class="profile-actions">
+      <button class="profile-action-btn" onclick="openChangePIN()">
+        <span class="pa-icon">🔐</span>
+        <span class="pa-text">Changer mon code secret</span>
+        <span class="pa-arrow">›</span>
+      </button>
+      <button class="profile-action-btn danger" onclick="closeModal('modal-profile');logout();">
+        <span class="pa-icon">↪</span>
+        <span class="pa-text">Déconnexion</span>
+      </button>
     </div>
 
-    <button class="btn btn-ghost btn-full btn-sm" style="margin-top:10px;" onclick="closeModal('modal-profile')">Fermer</button>
+    <div class="profile-close-row">
+      <button class="profile-close-link" onclick="closeModal('modal-profile')">Fermer</button>
+    </div>
   </div>
 </div>
 
@@ -1736,6 +1798,15 @@ function loginAs(student) {
   navigateTo('home');
 }
 
+/* Met à jour les initiales dans le bouton profil de l'accueil */
+function updateProfileBtn() {
+  const btn = document.getElementById('home-profile-btn');
+  if (!btn || !S.user) return;
+  const fn = S.user.firstName || '';
+  const ln = S.user.lastName  || '';
+  btn.textContent = ((fn[0] || '') + (ln[0] || '')).toUpperCase() || '?';
+}
+
 function logout(reason) {
   stopInactivityTimer();
   S.user = null; S.isAdmin = false; S.films = []; S.votes = new Set();
@@ -1755,6 +1826,7 @@ function logout(reason) {
    ================================================================ */
 async function loadHome() {
   document.getElementById('home-uname').textContent = S.user?.firstName || 'toi';
+  updateProfileBtn();
 
   const today = new Date().toISOString().split('T')[0];
   const { data } = await db.from('cinema_sessions')
@@ -2694,9 +2766,12 @@ function exportCodes() {
 function openModal(id) {
   // Remplir les infos profil à chaque ouverture
   if (id === 'modal-profile' && S.user) {
-    document.getElementById('prof-firstname').textContent = S.user.firstName || '—';
-    document.getElementById('prof-lastname').textContent  = S.user.lastName  || '—';
-    document.getElementById('prof-class').textContent     = S.user.className  || '—';
+    const fn = S.user.firstName || '';
+    const ln = S.user.lastName  || '';
+    const initials = ((fn[0] || '') + (ln[0] || '')).toUpperCase() || '?';
+    document.getElementById('prof-avatar').textContent   = initials;
+    document.getElementById('prof-fullname').textContent = [fn, ln].filter(Boolean).join(' ') || '—';
+    document.getElementById('prof-class').textContent    = S.user.className || '—';
   }
   document.getElementById(id).classList.remove('hidden');
 }
