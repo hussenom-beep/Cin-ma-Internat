@@ -1015,6 +1015,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 .admin-film-search-wrap input {
   width: 100%;
   padding-left: 34px;
+  padding-right: 34px;
   box-sizing: border-box;
 }
 .admin-film-search-icon {
@@ -1025,6 +1026,30 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
   font-size: 14px;
   color: var(--text-3);
   pointer-events: none;
+}
+.admin-film-search-clear {
+  position: absolute;
+  right: 23px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  color: var(--text-3);
+  font-size: 12px;
+  line-height: 1;
+  transition: color .15s, background .15s;
+}
+.admin-film-search-clear:hover {
+  color: var(--gold);
+  background: var(--gold-dim);
 }
 
 /* Badge compteur propositions en attente */
@@ -1312,6 +1337,8 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
         <input type="text" class="finput" id="admin-film-filter"
                placeholder="Rechercher un film…"
                oninput="filterAdminFilmList(this.value)">
+        <button class="admin-film-search-clear" id="admin-film-search-clear"
+                onclick="clearAdminFilmSearch()" tabindex="-1" aria-label="Effacer">✕</button>
       </div>
       <div class="admin-list" id="admin-films-list"><div class="loader"><div class="spinner"></div></div></div>
     </div>
@@ -3017,6 +3044,8 @@ function filterFilms(status) {
   _adminFilmSearch = '';
   const el = document.getElementById('admin-film-filter');
   if (el) el.value = '';
+  const clearBtn = document.getElementById('admin-film-search-clear');
+  if (clearBtn) clearBtn.style.display = 'none';
   document.querySelectorAll('#film-subtabs .sub-tab').forEach((btn, i) => {
     btn.classList.toggle('active', ['active','screened','archived'][i] === status);
   });
@@ -3026,12 +3055,17 @@ function filterFilms(status) {
 /* Filtre la liste films en temps réel (côté DOM, sans requête réseau) */
 function filterAdminFilmList(q) {
   _adminFilmSearch = q.trim().toLowerCase();
+
+  // Afficher/masquer la croix selon la saisie
+  const clearBtn = document.getElementById('admin-film-search-clear');
+  if (clearBtn) clearBtn.style.display = _adminFilmSearch ? 'flex' : 'none';
+
   const items = document.querySelectorAll('#admin-films-list .ai');
   let visible = 0;
   items.forEach(item => {
-    const title  = (item.querySelector('.ai-title')?.textContent  || '').toLowerCase();
-    const sub    = (item.querySelector('.ai-sub')?.textContent    || '').toLowerCase();
-    const match  = !_adminFilmSearch || title.includes(_adminFilmSearch) || sub.includes(_adminFilmSearch);
+    const title = (item.querySelector('.ai-title')?.textContent || '').toLowerCase();
+    const sub   = (item.querySelector('.ai-sub')?.textContent   || '').toLowerCase();
+    const match = !_adminFilmSearch || title.includes(_adminFilmSearch) || sub.includes(_adminFilmSearch);
     item.style.display = match ? '' : 'none';
     if (match) visible++;
   });
@@ -3049,6 +3083,12 @@ function filterAdminFilmList(q) {
   } else if (emptyEl) {
     emptyEl.style.display = 'none';
   }
+}
+
+function clearAdminFilmSearch() {
+  const el = document.getElementById('admin-film-filter');
+  if (el) { el.value = ''; el.focus(); }
+  filterAdminFilmList('');
 }
 
 function filterProposals(status) {
@@ -3175,7 +3215,16 @@ async function loadAdminFilms() {
     });
   }
 
-  list.innerHTML = data.map(f => {
+  // Films actifs : programmés en tête (par date de séance asc), puis les autres (ordre d'ajout desc)
+  let displayData = data;
+  if (status === 'active') {
+    const withSession    = data.filter(f =>  sessionMap[f.id])
+      .sort((a, b) => sessionMap[a.id].date < sessionMap[b.id].date ? -1 : 1);
+    const withoutSession = data.filter(f => !sessionMap[f.id]);
+    displayData = [...withSession, ...withoutSession];
+  }
+
+  list.innerHTML = displayData.map(f => {
     const sessionInfo = sessionMap[f.id];   // { id, date } ou undefined
     // Actions selon statut
     let actions = '';
