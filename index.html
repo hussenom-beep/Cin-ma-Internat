@@ -877,15 +877,61 @@ button { cursor: pointer; }
    ================================================================ */
 .sessions-body { padding: 18px; display: flex; flex-direction: column; gap: 11px; }
 
+.sessions-body { padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+
+/* Carte séance élève — style premium avec affiche */
 .session-card-student {
+  position: relative;
+  border-radius: var(--radius);
+  overflow: hidden;
+  min-height: 140px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  background: linear-gradient(135deg,#1a1428,#1a1a28);
+  border: 1px solid rgba(240,165,0,.18);
+  cursor: default;
+}
+.sc-poster {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  opacity: .3;
+  pointer-events: none;
+}
+.sc-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top,rgba(8,8,15,.96) 0%,rgba(8,8,15,.5) 60%,rgba(8,8,15,.1) 100%);
+  pointer-events: none;
+}
+.sc-body { position: relative; z-index: 1; padding: 14px 16px 13px; }
+.sc-date { font-size: 10.5px; color: var(--gold); font-weight: 700; text-transform: uppercase; letter-spacing: .09em; margin-bottom: 4px; }
+.sc-film { font-size: 17px; font-weight: 700; font-family: 'Playfair Display',serif; line-height: 1.2; margin-bottom: 8px; }
+.sc-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.sc-actions { display: flex; gap: 7px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+.sc-capacity { font-size: 11.5px; color: var(--text-3); }
+
+/* Bloc Nouveautés accueil */
+.home-news-item {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 16px;
+  padding: 13px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: border-color .18s;
 }
-.sc-date { font-size: 11.5px; color: var(--gold); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 5px; }
-.sc-film { font-size: 16px; font-weight: 700; margin-bottom: 10px; }
-.sc-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.home-news-item:hover { border-color: var(--border-2); }
+.home-news-icon { font-size: 20px; flex-shrink: 0; }
+.home-news-text { flex: 1; font-size: 13.5px; color: var(--text-2); line-height: 1.5; }
+.home-news-arrow { color: var(--text-3); font-size: 14px; }
+.home-news-empty { font-size: 13px; color: var(--text-3); padding: 10px 2px; }
 
 /* ================================================================
    ADMIN SCREEN
@@ -1278,21 +1324,10 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     <div id="home-next-session"></div>
   </div>
 
-  <!-- 2 actions vraiment utiles (les autres sont dans la barre du bas) -->
-  <div class="home-section" style="margin-top:18px;padding-bottom:14px;">
-    <div class="home-section-title">Raccourcis</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-      <button class="quick-btn" onclick="navigateTo('films')">
-        <span class="qicon">🎬</span>
-        <span class="qlabel">Films</span>
-        <span class="qsub">Voir &amp; voter</span>
-      </button>
-      <button class="quick-btn" onclick="navigateTo('propose')">
-        <span class="qicon">💡</span>
-        <span class="qlabel">Proposer</span>
-        <span class="qsub">Suggérer un film</span>
-      </button>
-    </div>
+  <!-- Bloc Nouveautés (propositions récentes) -->
+  <div class="home-section" style="margin-top:18px;padding-bottom:20px;">
+    <div class="home-section-title">✨ Nouveautés</div>
+    <div id="home-news"></div>
   </div>
 </div>
 
@@ -1601,7 +1636,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     </div>
     <div class="fgroup">
       <label class="flabel">Capacité max</label>
-      <input type="number" class="finput" id="ses-capacity" value="50">
+      <input type="number" class="finput" id="ses-capacity" value="20">
     </div>
     <div class="fgroup">
       <label class="flabel">Notes internes</label>
@@ -1636,6 +1671,41 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     <div class="sheet-title" id="modal-reg-title">Inscrits</div>
     <div id="registrants-content"></div>
     <button class="btn btn-ghost btn-full mt-2" onclick="closeModal('modal-registrants')">Fermer</button>
+  </div>
+</div>
+
+<!-- ================================================================
+     MODAL: Inscrits à une séance — vue élève
+     ================================================================ -->
+<div class="overlay hidden" id="modal-student-registrants">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="modal-sreg-title">Inscrits</div>
+    <div id="student-registrants-content"></div>
+    <button class="btn btn-ghost btn-full mt-2" onclick="closeModal('modal-student-registrants')">Fermer</button>
+  </div>
+</div>
+
+<!-- ================================================================
+     MODAL: Bloquer un élève d'une séance (admin)
+     ================================================================ -->
+<div class="overlay hidden" id="modal-ban-student">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Retirer &amp; bloquer</div>
+    <input type="hidden" id="ban-session-id">
+    <input type="hidden" id="ban-student-id">
+    <p class="text-sm text-muted" style="margin-bottom:14px;">
+      L'élève sera désinscrit et ne pourra plus se réinscrire à cette séance.
+    </p>
+    <div class="fgroup">
+      <label class="flabel">Raison (facultatif)</label>
+      <input type="text" class="finput" id="ban-reason" placeholder="Ex : absence non justifiée…">
+    </div>
+    <div style="display:flex;gap:10px;margin-top:6px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('modal-ban-student')">Annuler</button>
+      <button class="btn btn-red" style="flex:1;" onclick="confirmBanStudent()">Retirer ✓</button>
+    </div>
   </div>
 </div>
 
@@ -2558,6 +2628,8 @@ async function loadHome() {
   updateProfileBtn();
 
   const today = new Date().toISOString().split('T')[0];
+
+  // Prochaine séance + nb inscrits
   const { data } = await db.from('cinema_sessions')
     .select('*, films(title, poster_url)')
     .gte('session_date', today)
@@ -2572,27 +2644,77 @@ async function loadHome() {
       <div style="font-size:14px;font-weight:600;color:var(--text-2);">Aucune séance planifiée</div>
       <div style="font-size:12px;margin-top:4px;">Les prochaines séances seront annoncées ici</div>
     </div>`;
+  } else {
+    const s = data[0];
+    const poster = s.films?.poster_url || '';
+    const title  = s.films?.title || '🎬 Film à annoncer';
+
+    // Compter les inscrits + vérifier capacité
+    const { count: regCount } = await db.from('registrations')
+      .select('id', { count: 'exact', head: true }).eq('session_id', s.id);
+    const cap   = s.max_capacity || 20;
+    const full  = regCount >= cap;
+    const open  = s.registrations_open;
+
+    let badgeHtml;
+    if (full)       badgeHtml = `<span class="badge badge-red">🚫 Complet</span>`;
+    else if (open)  badgeHtml = `<span class="badge badge-green">✅ Inscriptions ouvertes</span>`;
+    else            badgeHtml = `<span class="badge badge-muted">⏸ Inscriptions fermées</span>`;
+
+    el.innerHTML = `<div class="session-banner" onclick="navigateTo('session')">
+      ${poster ? `<img src="${poster}" class="session-banner-poster" alt="">` : ''}
+      <div class="session-banner-overlay"></div>
+      <div class="session-banner-body">
+        <div class="session-banner-date">📅 ${fmtDateShort(s.session_date)}</div>
+        <div class="session-banner-film">${title}</div>
+        <div class="session-banner-footer">
+          ${badgeHtml}
+          <span class="session-banner-hint">${regCount} / ${cap} inscrits — voir →</span>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // Bloc Nouveautés
+  await loadHomeNews();
+}
+
+/* Charge les nouveautés (propositions acceptées / refusées récentes) */
+async function loadHomeNews() {
+  const el = document.getElementById('home-news');
+  if (!el || !S.user) return;
+
+  const { data } = await db.from('proposals')
+    .select('id, status, reviewed_at')
+    .eq('student_id', S.user.id)
+    .in('status', ['accepted', 'rejected'])
+    .not('reviewed_at', 'is', null)
+    .order('reviewed_at', { ascending: false });
+
+  if (!data?.length) {
+    el.innerHTML = `<div class="home-news-empty">Aucune nouveauté pour le moment.</div>`;
     return;
   }
 
-  const s = data[0];
-  const poster = s.films?.poster_url || '';
-  const title  = s.films?.title || '🎬 Film à annoncer';
+  const accepted = data.filter(p => p.status === 'accepted').length;
+  const rejected  = data.filter(p => p.status === 'rejected').length;
 
-  el.innerHTML = `<div class="session-banner" onclick="navigateTo('session')">
-    ${poster ? `<img src="${poster}" class="session-banner-poster" alt="">` : ''}
-    <div class="session-banner-overlay"></div>
-    <div class="session-banner-body">
-      <div class="session-banner-date">📅 ${fmtDateShort(s.session_date)}</div>
-      <div class="session-banner-film">${title}</div>
-      <div class="session-banner-footer">
-        <span class="badge ${s.registrations_open ? 'badge-green' : 'badge-muted'}">
-          ${s.registrations_open ? '✅ Inscriptions ouvertes' : '⏸ Inscriptions fermées'}
-        </span>
-        <span class="session-banner-hint">Voir les inscriptions →</span>
-      </div>
-    </div>
-  </div>`;
+  const lines = [];
+  if (accepted) {
+    const s = accepted === 1 ? 'Une de tes propositions a été acceptée ✅' : `${accepted} de tes propositions ont été acceptées ✅`;
+    lines.push({ icon: '🎬', text: s });
+  }
+  if (rejected) {
+    const s = rejected === 1 ? 'Une de tes propositions a été refusée' : `${rejected} de tes propositions ont été refusées`;
+    lines.push({ icon: '❌', text: s });
+  }
+
+  el.innerHTML = lines.map(l => `
+    <div class="home-news-item" onclick="navigateTo('propose')">
+      <span class="home-news-icon">${l.icon}</span>
+      <span class="home-news-text">${l.text}</span>
+      <span class="home-news-arrow">›</span>
+    </div>`).join('');
 }
 
 /* ================================================================
@@ -3265,31 +3387,71 @@ async function loadSessions() {
   body.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
 
   const today = new Date().toISOString().split('T')[0];
-  const [{ data: sessions }, { data: myRegs }] = await Promise.all([
-    db.from('cinema_sessions').select('*, films(title)').gte('session_date', today).order('session_date'),
-    S.user ? db.from('registrations').select('session_id').eq('student_id', S.user.id) : { data: [] }
+  const [{ data: sessions }, { data: myRegs }, { data: myBans }] = await Promise.all([
+    db.from('cinema_sessions').select('*, films(title, poster_url)').gte('session_date', today).order('session_date'),
+    S.user ? db.from('registrations').select('session_id').eq('student_id', S.user.id) : { data: [] },
+    S.user ? db.from('session_bans').select('session_id, reason').eq('student_id', S.user.id) : { data: [] }
   ]);
 
   const regSet = new Set((myRegs || []).map(r => r.session_id));
+  const banMap = {};
+  (myBans || []).forEach(b => { banMap[b.session_id] = b.reason || 'Inscription non autorisée'; });
 
   if (!sessions?.length) {
     body.innerHTML = `<div class="empty"><div class="icon">🎟️</div><h3>Aucune séance prévue</h3><p>Les prochaines séances seront annoncées ici.</p></div>`;
     return;
   }
 
+  // Compter tous les inscrits en une requête
+  const sesIds = sessions.map(s => s.id);
+  const { data: allRegs } = await db.from('registrations').select('session_id').in('session_id', sesIds);
+  const rc = {};
+  (allRegs || []).forEach(r => { rc[r.session_id] = (rc[r.session_id] || 0) + 1; });
+
   body.innerHTML = sessions.map(s => {
-    const reg = regSet.has(s.id);
-    const open = s.registrations_open;
+    const reg    = regSet.has(s.id);
+    const banned = !!banMap[s.id];
+    const open   = s.registrations_open;
+    const cap    = s.max_capacity || 20;
+    const count  = rc[s.id] || 0;
+    const full   = count >= cap;
+    const poster = s.films?.poster_url || '';
+    const title  = s.films?.title || '🎬 Film à annoncer';
+
+    // Badge état
+    let badgeHtml;
+    if (banned)     badgeHtml = `<span class="badge badge-red">🚫 Non autorisé</span>`;
+    else if (full)  badgeHtml = `<span class="badge badge-red">🚫 Complet</span>`;
+    else if (open)  badgeHtml = `<span class="badge badge-green">✅ Ouvertes</span>`;
+    else            badgeHtml = `<span class="badge badge-muted">⏸ Fermées</span>`;
+
+    // Bouton action
+    let actionBtn = '';
+    if (banned) {
+      const safeReason = (banMap[s.id] || '').replace(/'/g, '&#39;');
+      actionBtn = `<span class="text-xs" style="color:var(--text-3);font-style:italic;">${safeReason}</span>`;
+    } else if (reg) {
+      actionBtn = `<button class="btn btn-sm btn-red" onclick="toggleReg('${s.id}',true)">❌ Se désinscrire</button>`;
+    } else if (!open || full) {
+      actionBtn = '';
+    } else {
+      actionBtn = `<button class="btn btn-sm btn-gold" onclick="toggleReg('${s.id}',false)">✅ S'inscrire</button>`;
+    }
+
     return `<div class="session-card-student">
-      <div class="sc-date">📅 ${fmtDateShort(s.session_date)}</div>
-      <div class="sc-film">${s.films?.title || '🎬 Film à annoncer'}</div>
-      <div class="sc-footer">
-        <span class="badge ${open ? 'badge-green' : 'badge-muted'}">${open ? 'Inscriptions ouvertes' : 'Fermées'}</span>
-        ${open
-          ? `<button class="btn btn-sm ${reg ? 'btn-red' : 'btn-gold'}" onclick="toggleReg('${s.id}', ${reg})">
-              ${reg ? "❌ Se désinscrire" : "✅ S'inscrire"}
-             </button>`
-          : (reg ? `<span class="badge badge-green">✅ Inscrit(e)</span>` : '')}
+      ${poster ? `<img src="${poster}" class="sc-poster" alt="">` : ''}
+      <div class="sc-overlay"></div>
+      <div class="sc-body">
+        <div class="sc-date">📅 ${fmtDateShort(s.session_date)}</div>
+        <div class="sc-film">${title}</div>
+        <div class="sc-footer">
+          ${badgeHtml}
+          <span class="sc-capacity">${count} / ${cap}</span>
+        </div>
+        <div class="sc-actions">
+          ${actionBtn}
+          <button class="btn btn-sm btn-ghost" onclick="viewStudentRegistrants('${s.id}','${s.session_date}')">👥 Voir les inscrits</button>
+        </div>
       </div>
     </div>`;
   }).join('');
@@ -3301,10 +3463,45 @@ async function toggleReg(sessionId, isReg) {
       .eq('student_id', S.user.id).eq('session_id', sessionId);
     toast('Désinscription effectuée');
   } else {
+    // Vérifier capacité et ban avant d'inscrire
+    const [{ data: ses }, { data: bans }, { count: regCount }] = await Promise.all([
+      db.from('cinema_sessions').select('max_capacity, registrations_open').eq('id', sessionId).single(),
+      db.from('session_bans').select('id').eq('session_id', sessionId).eq('student_id', S.user.id).limit(1),
+      db.from('registrations').select('id', { count: 'exact', head: true }).eq('session_id', sessionId)
+    ]);
+    if (bans?.length)                              { toast('Tu ne peux pas te réinscrire à cette séance', 'error'); return; }
+    if (!ses?.registrations_open)                  { toast('Les inscriptions sont fermées', 'error'); return; }
+    if (regCount >= (ses?.max_capacity || 20))     { toast('Cette séance est complète', 'error'); return; }
+
     const { error } = await db.from('registrations').insert({ student_id: S.user.id, session_id: sessionId });
     if (!error) toast('Inscription confirmée 🎉', 'success');
   }
   await loadSessions();
+}
+
+/* Inscrits d'une séance — vue élève */
+async function viewStudentRegistrants(sesId, date) {
+  const { data } = await db.from('registrations')
+    .select('students(first_name, last_name, class_name)')
+    .eq('session_id', sesId)
+    .order('registered_at');
+
+  document.getElementById('modal-sreg-title').textContent = `Inscrits — ${fmtDateShort(date)}`;
+  const el = document.getElementById('student-registrants-content');
+
+  if (!data?.length) {
+    el.innerHTML = '<p class="text-muted text-center" style="padding:20px;">Aucun inscrit pour l\'instant.</p>';
+  } else {
+    el.innerHTML = `<p class="text-sm text-muted mb-1" style="padding:0 2px 8px;">${data.length} inscrit${data.length > 1 ? 's' : ''}</p>
+      <div style="display:flex;flex-direction:column;gap:7px;">
+        ${data.map(r => `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--surface-2);border-radius:8px;">
+            <span style="font-weight:600;font-size:14px;">${r.students?.first_name || ''} ${r.students?.last_name || ''}</span>
+            <span class="badge badge-muted">${r.students?.class_name || '—'}</span>
+          </div>`).join('')}
+      </div>`;
+  }
+  openModal('modal-student-registrants');
 }
 
 /* ================================================================
@@ -3652,7 +3849,7 @@ async function confirmScheduleFilm() {
     session_date:       date,
     film_id:            filmId,
     registrations_open: regOpen,
-    max_capacity:       50
+    max_capacity:       20
   });
   if (sesErr) { toast('Erreur création séance : ' + sesErr.message, 'error'); return; }
 
@@ -4042,7 +4239,7 @@ async function toggleSesOpen(id, cur) {
 
 async function viewRegistrants(sesId, date) {
   const { data } = await db.from('registrations')
-    .select('*, students(first_name, last_name, class_name)')
+    .select('id, student_id, students(first_name, last_name, class_name)')
     .eq('session_id', sesId)
     .order('registered_at');
 
@@ -4056,15 +4253,48 @@ async function viewRegistrants(sesId, date) {
       <p class="text-sm text-muted mb-1">${data.length} inscrit${data.length > 1 ? 's' : ''}</p>
       <div style="display:flex;flex-direction:column;gap:7px;">
         ${data.map(r => `
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--surface-2);border-radius:8px;">
-            <span style="font-weight:600;font-size:14px;">${r.students?.first_name || ''} ${r.students?.last_name || ''}</span>
-            <span class="badge badge-muted">${r.students?.class_name || '—'}</span>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--surface-2);border-radius:8px;gap:8px;">
+            <div style="flex:1;min-width:0;">
+              <span style="font-weight:600;font-size:14px;">${r.students?.first_name || ''} ${r.students?.last_name || ''}</span>
+              <span class="badge badge-muted" style="margin-left:6px;">${r.students?.class_name || '—'}</span>
+            </div>
+            <button class="btn btn-sm btn-red" onclick="openBanStudent('${sesId}','${r.student_id}')">Retirer</button>
           </div>
         `).join('')}
       </div>`;
   }
 
   openModal('modal-registrants');
+}
+
+function openBanStudent(sessionId, studentId) {
+  document.getElementById('ban-session-id').value = sessionId;
+  document.getElementById('ban-student-id').value = studentId;
+  document.getElementById('ban-reason').value = '';
+  openModal('modal-ban-student');
+}
+
+async function confirmBanStudent() {
+  const sessionId = document.getElementById('ban-session-id').value;
+  const studentId = document.getElementById('ban-student-id').value;
+  const reason    = document.getElementById('ban-reason').value.trim() || null;
+
+  // Supprimer l'inscription
+  await db.from('registrations').delete()
+    .eq('session_id', sessionId).eq('student_id', studentId);
+
+  // Enregistrer le ban
+  await db.from('session_bans').upsert({
+    session_id: sessionId,
+    student_id: studentId,
+    reason:     reason,
+    banned_at:  new Date().toISOString()
+  }, { onConflict: 'session_id,student_id' });
+
+  closeModal('modal-ban-student');
+  closeModal('modal-registrants');
+  toast('Élève retiré et bloqué pour cette séance', 'success');
+  loadAdminSessions();
 }
 
 async function maybeRestoreFilmToActive(filmId) {
@@ -4186,8 +4416,8 @@ function openCreateSessionModal() {
   document.getElementById('ses-date').value = nextWednesday();
   document.getElementById('ses-open').checked = false;
   document.getElementById('ses-notes').value = '';
-  document.getElementById('ses-capacity').value = '50';
-  db.from('films').select('id,title').eq('status','active').then(({ data }) => {
+  document.getElementById('ses-capacity').value = '20';
+  db.from('films').select('id,title').in('status',['active','scheduled']).then(({ data }) => {
     document.getElementById('ses-film').innerHTML = '<option value="">— À définir —</option>' +
       (data||[]).map(f => `<option value="${f.id}">${f.title}</option>`).join('');
   });
@@ -4208,7 +4438,7 @@ async function saveSession() {
     session_date:       date,
     film_id:            filmId,
     registrations_open: document.getElementById('ses-open').checked,
-    max_capacity:       parseInt(document.getElementById('ses-capacity').value) || 50,
+    max_capacity:       parseInt(document.getElementById('ses-capacity').value) || 20,
     notes:              document.getElementById('ses-notes').value.trim() || null
   });
   if (error) { toast('Erreur création', 'error'); return; }
@@ -4473,6 +4703,15 @@ document.getElementById('prop-search').addEventListener('keydown', e => { if (e.
 document.getElementById('admin-film-search').addEventListener('keydown', e => { if (e.key === 'Enter') searchTMDB('admin'); });
 document.getElementById('prop-year')?.addEventListener('keydown', e => { if (e.key === 'Enter') searchTMDB('student'); });
 document.getElementById('admin-film-year')?.addEventListener('keydown', e => { if (e.key === 'Enter') searchTMDB('admin'); });
+
+/* Recherche TMDB auto (debounce 500ms) */
+let _tmdbDebounceTimer = null;
+function debouncedSearchTMDB(ctx) {
+  clearTimeout(_tmdbDebounceTimer);
+  _tmdbDebounceTimer = setTimeout(() => searchTMDB(ctx), 500);
+}
+document.getElementById('prop-search').addEventListener('input', () => debouncedSearchTMDB('student'));
+document.getElementById('admin-film-search').addEventListener('input', () => debouncedSearchTMDB('admin'));
 
 /* ----------------------------------------------------------------
    APPUI LONG 5 SECONDES SUR LE LOGO — accès admin caché
