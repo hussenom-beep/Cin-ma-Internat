@@ -1869,7 +1869,6 @@ const CFG = {
   SUPABASE_URL:     'https://xvaqvgbiglxsisxsuhdo.supabase.co',    // ← remplace
   SUPABASE_ANON:    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2YXF2Z2JpZ2x4c2lzeHN1aGRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1OTkwODIsImV4cCI6MjA5MTE3NTA4Mn0.E_811Ht31kpydQTOJujKEZYEECPwtkRThHUYal9rhDM',                       // ← remplace
   TMDB_KEY:         'c42aea9ea8ccc44cf07e4c965694301b',                               // ← optionnel mais recommandé
-  ADMIN_PWD:        'frejusniceMh*',                     // ← change!
   SCHOOL_YEAR:      '2024-2025',
 };
 
@@ -2239,18 +2238,35 @@ async function handleLogin() {
   toast(`Bon retour, ${_tmpStudent.first_name} 👋`, 'success');
 }
 
-function handleAdminLogin() {
-  const pwd = document.getElementById('inp-adminpwd').value;
-  if (pwd === CFG.ADMIN_PWD) {
-    S.isAdmin = true;
-    S.user = { id: 'admin', firstName: 'Admin', lastName: '', className: '' };
-    saveLocal();
-    startInactivityTimer();
-    navigateTo('admin');
-    toast('Espace admin 🔑', 'success');
-  } else {
-    toast('Mot de passe incorrect', 'error');
+async function handleAdminLogin() {
+  const pwd = document.getElementById('inp-adminpwd').value.trim();
+
+  if (!pwd) {
+    toast('Entre le mot de passe admin', 'error');
+    return;
   }
+
+  const { data, error } = await db.rpc('verify_admin_password', {
+    p_password: pwd
+  });
+
+  if (error) {
+    toast('Erreur de vérification admin', 'error');
+    console.error(error);
+    return;
+  }
+
+  if (!data) {
+    toast('Mot de passe incorrect', 'error');
+    return;
+  }
+
+  S.isAdmin = true;
+  S.user = { id: 'admin', firstName: 'Admin', lastName: '', className: '' };
+  saveLocal();
+  startInactivityTimer();
+  navigateTo('admin');
+  toast('Espace admin 🔑', 'success');
 }
 
 function loginAs(student) {
