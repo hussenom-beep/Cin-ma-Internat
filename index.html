@@ -2818,6 +2818,8 @@ async function submitManualProposal() {
    SESSIONS (student)
    ================================================================ */
 async function loadSessions() {
+  await cleanupPastSessions();
+
   const body = document.getElementById('sessions-body');
   body.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
 
@@ -2844,7 +2846,7 @@ async function loadSessions() {
         <span class="badge ${open ? 'badge-green' : 'badge-muted'}">${open ? 'Inscriptions ouvertes' : 'Fermées'}</span>
         ${open
           ? `<button class="btn btn-sm ${reg ? 'btn-red' : 'btn-gold'}" onclick="toggleReg('${s.id}', ${reg})">
-              ${reg ? '❌ Se désinscrire' : '✅ S\'inscrire'}
+              ${reg ? "❌ Se désinscrire" : "✅ S'inscrire"}
              </button>`
           : (reg ? `<span class="badge badge-green">✅ Inscrit(e)</span>` : '')}
       </div>
@@ -2905,7 +2907,8 @@ function aTab(tab) {
 
 async function loadAdmin() {
   document.getElementById('imp-year').value = CFG.SCHOOL_YEAR;
-  await checkScheduledFilms();   // auto-transition : séances passées → films vus
+  await checkScheduledFilms();
+  await cleanupPastSessions();
   aTab('films');
 }
 
@@ -2949,6 +2952,24 @@ async function checkScheduledFilms() {
       }).eq('id', film.id);
     }
   } catch(e) { /* silencieux */ }
+}
+async function cleanupPastSessions() {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+
+    const { data: oldSessions } = await db.from('cinema_sessions')
+      .select('id')
+      .lt('session_date', today);
+
+    if (!oldSessions?.length) return;
+
+    const ids = oldSessions.map(s => s.id);
+
+    await db.from('registrations').delete().in('session_id', ids);
+    await db.from('cinema_sessions').delete().in('id', ids);
+  } catch(e) {
+    console.error('cleanupPastSessions error', e);
+  }
 }
 /* ================================================================
    ADMIN — FILMS
@@ -3506,29 +3527,33 @@ async function maybeRestoreFilmToActive(filmId) {
 }
 
 async function loadAdminSessions() {
+  await cleanupPastSessions();
+
   const list = document.getElementById('admin-sessions-list');
   list.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
 
+  const today = new Date().toISOString().split('T')[0];
+
   const [{ data: sessions }, { data: regs }] = await Promise.all([
-    db.from('cinema_sessions').select('*, films(title)').order('session_date', { ascending: true }),
+    db.from('cinema_sessions')
+      .select('*, films(title)')
+      .gte('session_date', today)
+      .order('session_date', { ascending: true }),
     db.from('registrations').select('session_id')
   ]);
 
   if (!sessions?.length) {
-    list.innerHTML = '<div class="empty"><div class="icon">🎟️</div><h3>Aucune séance</h3></div>'; return;
+    list.innerHTML = '<div class="empty"><div class="icon">🎟️</div><h3>Aucune séance</h3></div>';
+    return;
   }
 
   const rc = {};
   (regs || []).forEach(r => rc[r.session_id] = (rc[r.session_id] || 0) + 1);
 
-  const today = new Date().toISOString().split('T')[0];
-
-  list.innerHTML = sessions.map(s => {
-    const isPast = s.session_date < today;
-    return `
-    <div class="ai" style="flex-wrap:wrap;${isPast ? 'opacity:.65;' : ''}">
+  list.innerHTML = sessions.map(s => `
+    <div class="ai" style="flex-wrap:wrap;">
       <div class="ai-info" style="width:100%;margin-bottom:8px;">
-        <div class="ai-title">${fmtDateShort(s.session_date)}${isPast ? ' <span class="badge badge-muted" style="font-size:10px;">Passée</span>' : ''}</div>
+        <div class="ai-title">${fmtDateShort(s.session_date)}</div>
         <div class="ai-sub">${s.films?.title || '— Film non défini'}</div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:5px;">
           <span class="badge ${s.registrations_open ? 'badge-green' : 'badge-muted'}">
@@ -3538,15 +3563,15 @@ async function loadAdminSessions() {
         </div>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
-        ${!isPast ? `<button class="btn btn-sm btn-ghost" onclick="toggleSesOpen('${s.id}',${s.registrations_open})">
+        <button class="btn btn-sm btn-ghost" onclick="toggleSesOpen('${s.id}',${s.registrations_open})">
           ${s.registrations_open ? 'Fermer inscrip.' : 'Ouvrir inscrip.'}
-        </button>` : ''}
+        </button>
         <button class="btn btn-sm btn-ghost" onclick="viewRegistrants('${s.id}','${s.session_date}')">👥 Inscrits</button>
-        ${!isPast ? `<button class="btn btn-sm btn-ghost" onclick="openEditSession('${s.id}','${s.films?.title || ''}','${s.film_id || ''}')">✏️ Film</button>` : ''}
-        <button class="btn btn-sm btn-red" onclick="cancelSes('${s.id}','${s.film_id || ''}')">🗑 Annuler</button>
+        <button class="btn btn-sm btn-ghost" onclick="openEditSession('${s.id}','${s.films?.title || ''}','${s.film_id || ''}')">✏️ Film</button>
+        <button class="btn btn-sm btn-red" onclick="cancelSes('${s.id}', ${s.film_id ? `'${s.film_id}'` : 'null'})">🗑 Annuler</button>
       </div>
-    </div>`;
-  }).join('');
+    </div>`
+  ).join('');
 }
 
 async function cancelSes(id, filmId) {
