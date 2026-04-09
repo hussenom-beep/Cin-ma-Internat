@@ -656,19 +656,23 @@ button { cursor: pointer; }
 .tmdb-card:hover .tmdb-card-hint { opacity: .7; }
 
 /* ----------------------------------------------------------------
-   TMDB DETAIL MODAL
+   TMDB DETAIL MODAL — scroll mobile corrigé
    ---------------------------------------------------------------- */
 #modal-tmdb-detail .sheet {
   padding: 0; overflow: hidden;
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   display: flex; flex-direction: column;
   max-height: 92vh;
+  /* iOS fix : le overflow:hidden empêchait le scroll enfant */
 }
 .tmdb-poster-header {
-  position: relative; width: 100%; height: 215px;
+  position: relative; width: 100%; height: 200px;
   background: var(--surface-2); flex-shrink: 0; overflow: hidden;
 }
-.tmdb-poster-header img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.tmdb-poster-header img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+  cursor: zoom-in;
+}
 .tmdb-poster-header .no-poster-lg {
   width: 100%; height: 100%;
   display: flex; align-items: center; justify-content: center;
@@ -689,10 +693,54 @@ button { cursor: pointer; }
   cursor: pointer; line-height: 1;
 }
 .tmdb-detail-scroll {
-  overflow-y: auto; flex: 1;
+  overflow-y: scroll;          /* scroll toujours visible = iOS fix */
   -webkit-overflow-scrolling: touch;
-  padding: 14px 20px 28px;
+  overscroll-behavior: contain;
+  flex: 1; min-height: 0;      /* essentiel pour que flex + overflow fonctionne */
+  padding: 14px 20px 40px;     /* padding-bottom généreux = boutons accessibles */
 }
+
+/* Zoom affiche plein écran */
+#modal-poster-zoom {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.92);
+  z-index: 900;
+  display: flex; align-items: center; justify-content: center;
+  cursor: zoom-out;
+}
+#modal-poster-zoom img {
+  max-width: 94vw; max-height: 94vh;
+  object-fit: contain;
+  border-radius: var(--radius);
+  box-shadow: 0 20px 60px rgba(0,0,0,.8);
+}
+#modal-poster-zoom .pz-close {
+  position: absolute; top: 16px; right: 16px;
+  width: 38px; height: 38px; border-radius: 50%;
+  background: rgba(255,255,255,.12); border: none;
+  color: #fff; font-size: 20px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* Historique propositions élève */
+.history-section { margin-top: 22px; padding: 0 0 20px; }
+.history-title { font-size: 11px; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 12px; padding: 0 18px; }
+.history-item {
+  display: flex; gap: 11px; align-items: flex-start;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border);
+}
+.history-item:last-child { border-bottom: none; }
+.history-poster {
+  width: 38px; height: 57px; flex-shrink: 0;
+  border-radius: 4px; object-fit: cover;
+  background: var(--surface-2);
+}
+.history-poster-ph { width: 38px; height: 57px; flex-shrink: 0; border-radius: 4px; background: var(--surface-2); display: flex; align-items: center; justify-content: center; font-size: 16px; }
+.history-info { flex: 1; min-width: 0; }
+.history-film { font-size: 13.5px; font-weight: 700; margin-bottom: 4px; }
+.history-date { font-size: 11px; color: var(--text-3); }
+.history-reason { font-size: 12px; color: var(--text-2); margin-top: 4px; font-style: italic; }
 .tmdb-d-title {
   font-family: 'Playfair Display', serif;
   font-size: 21px; font-weight: 700; line-height: 1.25;
@@ -882,6 +930,13 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
   .admin-panels-container {
     overflow-y: auto;
     height: calc(100vh - var(--header-h));
+    background: var(--bg);
+  }
+
+  /* Contenu admin desktop centré et limité */
+  .admin-panel {
+    max-width: 860px;
+    margin: 0 auto;
   }
 
   .films-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; padding: 14px 20px 0; }
@@ -1102,6 +1157,14 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
         <input type="text" class="finput" id="prop-manual-title" placeholder="Titre exact">
       </div>
       <button class="btn btn-gold btn-full" onclick="submitManualProposal()">Proposer ce film →</button>
+    </div>
+  </div>
+
+  <!-- Historique des propositions de l'élève -->
+  <div class="history-section" id="prop-history-section">
+    <div class="history-title">Mes propositions</div>
+    <div id="prop-history-list">
+      <div class="loader" style="padding:24px;"><div class="spinner"></div></div>
     </div>
   </div>
 </div>
@@ -1404,17 +1467,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 
         <div class="tmdb-crew-block" id="tmdb-d-crew"></div>
 
-        <!-- Commentaire élève (affiché uniquement côté élève, caché admin) -->
-        <div id="tmdb-d-comment-block" class="hidden">
-          <div class="fgroup" style="margin-bottom:14px;">
-            <label class="flabel">Ton message (optionnel)</label>
-            <textarea class="ftextarea" id="tmdb-d-comment"
-              placeholder="Pourquoi tu proposes ce film ? Un événement particulier ?"
-              rows="3"></textarea>
-          </div>
-        </div>
-
-        <!-- Bouton d'action (admin ou élève) -->
+        <!-- Bouton d'action (admin ou élève) — le commentaire se saisit dans la 2e étape -->
         <button id="tmdb-d-action" class="btn btn-gold btn-full btn-lg" style="margin-bottom:10px;">—</button>
         <button class="btn btn-ghost btn-full btn-sm" onclick="closeModal('modal-tmdb-detail')">Fermer</button>
 
@@ -1571,6 +1624,67 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('modal-mark-screened')">Annuler</button>
       <button class="btn btn-gold" style="flex:1;" onclick="confirmMarkScreened()">Confirmer ✅</button>
     </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     MODAL: Confirmation proposition élève (étape 2)
+     ================================================================ -->
+<div class="overlay hidden" id="modal-propose-confirm">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Confirmer la proposition</div>
+
+    <!-- Mini-carte film -->
+    <div style="display:flex;gap:13px;align-items:flex-start;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:13px;margin-bottom:18px;">
+      <img id="pconf-poster" src="" alt="" style="width:52px;height:78px;object-fit:cover;border-radius:5px;background:var(--surface-3);flex-shrink:0;">
+      <div style="min-width:0;">
+        <div class="fw-bold" id="pconf-title" style="font-size:15px;margin-bottom:3px;"></div>
+        <div class="text-sm text-muted" id="pconf-year"></div>
+      </div>
+    </div>
+
+    <div class="fgroup">
+      <label class="flabel">Ton commentaire (facultatif)</label>
+      <textarea class="ftextarea" id="pconf-comment" rows="3"
+        placeholder="Pourquoi ce film ? Une occasion particulière ?"></textarea>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-top:4px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('modal-propose-confirm')">Annuler</button>
+      <button class="btn btn-gold" style="flex:1;" id="pconf-submit" onclick="sendProposalConfirmed()">Envoyer ✉️</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     MODAL: Zoom affiche plein écran
+     ================================================================ -->
+<div id="modal-poster-zoom" class="hidden" onclick="closeModal('modal-poster-zoom')">
+  <button class="pz-close" onclick="closeModal('modal-poster-zoom')">✕</button>
+  <img id="poster-zoom-img" src="" alt="">
+</div>
+
+<!-- ================================================================
+     MODAL: Détail film d'une proposition (admin)
+     ================================================================ -->
+<div class="overlay hidden" id="modal-proposal-detail">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div style="display:flex;gap:14px;align-items:flex-start;margin-bottom:16px;">
+      <img id="pd-poster" src="" alt="" style="width:70px;height:105px;object-fit:cover;border-radius:6px;background:var(--surface-2);flex-shrink:0;cursor:zoom-in;"
+           onclick="openPosterZoom(this.src)">
+      <div>
+        <div style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700;margin-bottom:5px;" id="pd-title">—</div>
+        <div class="text-sm text-muted" id="pd-meta">—</div>
+      </div>
+    </div>
+    <div style="font-size:13.5px;color:var(--text-2);line-height:1.75;margin-bottom:16px;" id="pd-synopsis">—</div>
+    <div id="pd-comment-block" class="hidden" style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 13px;margin-bottom:14px;">
+      <div class="text-xs text-muted" style="margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em;font-weight:700;">Commentaire élève</div>
+      <div style="font-size:13px;color:var(--text);" id="pd-comment">—</div>
+    </div>
+    <button class="btn btn-ghost btn-full" onclick="closeModal('modal-proposal-detail')">Fermer</button>
   </div>
 </div>
 
@@ -1751,7 +1865,7 @@ async function navigateTo(id) {
   switch(id) {
     case 'home':    await loadHome(); break;
     case 'films':   await loadFilms(); break;
-    case 'propose': initPropose(); break;
+    case 'propose': initPropose(); await loadStudentProposals(); break;
     case 'session': await loadSessions(); break;
     case 'admin':   await loadAdmin(); break;
   }
@@ -2284,16 +2398,13 @@ async function checkDuplicate(detail, ctx) {
   const dupEl = document.getElementById('tmdb-d-dupwarn');
   dupEl.className = 'hidden';
   dupEl.innerHTML = '';
+  const actionBtn = document.getElementById('tmdb-d-action');
 
-  // Afficher/cacher le champ commentaire élève
-  const commentBlock = document.getElementById('tmdb-d-comment-block');
-  if (commentBlock) {
-    commentBlock.classList.toggle('hidden', ctx !== 'student');
-    document.getElementById('tmdb-d-comment').value = '';
-  }
+  // Réinitialiser le blocage
+  actionBtn.disabled = false;
 
   try {
-    // Recherche dans le catalogue par tmdb_id puis par titre
+    // Vérification catalogue (tmdb_id puis titre)
     const [{ data: byId }, { data: byTitle }] = await Promise.all([
       detail.id
         ? db.from('films').select('id,title,status').eq('tmdb_id', detail.id).maybeSingle()
@@ -2305,36 +2416,93 @@ async function checkDuplicate(detail, ctx) {
 
     if (inCatalogue) {
       const f = inCatalogue.id ? inCatalogue : byTitle[0];
+      const blockStatuses = ['active', 'scheduled', 'screened'];
+      const isBlocking    = ctx === 'student' && blockStatuses.includes(f.status);
+
       const msgMap = {
-        active:    { cls: 'ok',   txt: `✅ Ce film est déjà dans le catalogue et peut être voté.` },
-        scheduled: { cls: 'info', txt: `📅 Ce film est déjà programmé pour une prochaine séance.` },
-        screened:  { cls: 'info', txt: `🎬 Ce film a déjà été diffusé lors d'une séance précédente.` },
-        archived:  { cls: 'info', txt: `⊘ Ce film existe déjà (actuellement archivé).` },
+        active:    { cls: 'ok',   txt: '✅ Ce film est déjà dans le catalogue et peut être voté.' },
+        scheduled: { cls: 'info', txt: '📅 Ce film est déjà programmé pour une prochaine séance.' },
+        screened:  { cls: 'info', txt: '🎬 Ce film a déjà été diffusé lors d\'une séance précédente.' },
+        archived:  { cls: 'info', txt: '⊘ Ce film existe déjà (actuellement archivé).' },
       };
-      const { cls, txt } = msgMap[f.status] || { cls:'info', txt:`ℹ️ Ce film existe déjà (${f.status}).` };
+      const { cls, txt } = msgMap[f.status] || { cls:'info', txt:`ℹ️ Ce film existe déjà.` };
       dupEl.className = `tmdb-d-warning ${cls}`;
       dupEl.innerHTML = `<span>${txt}</span>`;
       dupEl.classList.remove('hidden');
 
       if (ctx === 'admin') {
-        const btn = document.getElementById('tmdb-d-action');
-        btn.textContent = f.status === 'archived' ? '🔄 Restaurer depuis les archives' : '🎬 Ajouter quand même';
+        actionBtn.textContent = f.status === 'archived' ? '🔄 Restaurer depuis les archives' : '🎬 Ajouter quand même';
+      } else if (isBlocking) {
+        // VRAI BLOCAGE côté élève
+        actionBtn.disabled = true;
+        actionBtn.textContent = '🚫 Déjà disponible';
       }
       return;
     }
 
-    // Côté élève : vérifier aussi les propositions existantes
+    // Côté élève : vérifier propositions existantes (bloquant si pending/accepted)
     if (ctx === 'student' && detail.id) {
       const { data: proposals } = await db.from('proposals')
-        .select('id,status').eq('tmdb_id', detail.id);
-      const existing = (proposals || []).find(p => p.status === 'pending' || p.status === 'accepted');
-      if (existing) {
-        dupEl.className = 'tmdb-d-warning info';
-        dupEl.innerHTML = `<span>💡 Ce film a déjà été proposé (${existing.status === 'pending' ? 'en attente de validation' : 'accepté par l\'admin'}).</span>`;
+        .select('id,status').eq('student_id', S.user.id).eq('tmdb_id', detail.id);
+      const myExisting = (proposals || []).find(p => p.status === 'pending' || p.status === 'accepted');
+      if (myExisting) {
+        dupEl.className = 'tmdb-d-warning warn';
+        dupEl.innerHTML = `<span>💡 Tu as déjà proposé ce film (${myExisting.status === 'pending' ? 'en attente de validation' : 'accepté'}).</span>`;
         dupEl.classList.remove('hidden');
+        actionBtn.disabled = true;
+        actionBtn.textContent = '🚫 Déjà proposé';
       }
     }
   } catch(e) { /* silencieux */ }
+}
+
+/* Étape 1 : ouvre la fiche TMDB (consulter)
+   Étape 2 : clic "Proposer" → ouvre modal-propose-confirm */
+function confirmProposeFilm() {
+  if (!_tmdbMovie) return;
+  const m = _tmdbMovie;
+  // Remplir le mini-modal de confirmation
+  document.getElementById('pconf-title').textContent = m.title;
+  document.getElementById('pconf-year').textContent  = m.release_date ? m.release_date.split('-')[0] : '';
+  const posterUrl = m.poster_path ? `https://image.tmdb.org/t/p/w500${m.poster_path}` : '';
+  const img = document.getElementById('pconf-poster');
+  img.src   = posterUrl;
+  img.style.display = posterUrl ? '' : 'none';
+  document.getElementById('pconf-comment').value = '';
+  document.getElementById('pconf-submit').disabled = false;
+  openModal('modal-propose-confirm');
+}
+
+/* Envoi effectif de la proposition (depuis modal-propose-confirm) */
+async function sendProposalConfirmed() {
+  if (!_tmdbMovie || !S.user) return;
+  const m       = _tmdbMovie;
+  const comment = document.getElementById('pconf-comment').value.trim();
+  const btn     = document.getElementById('pconf-submit');
+  btn.disabled  = true;
+  btn.textContent = 'Envoi…';
+
+  const { error } = await db.from('proposals').insert({
+    student_id:      S.user.id,
+    title:           m.title,
+    tmdb_id:         m.id,
+    poster_url:      m.poster_path ? `https://image.tmdb.org/t/p/w500${m.poster_path}` : null,
+    year:            m.release_date ? parseInt(m.release_date.split('-')[0]) : null,
+    synopsis:        m.overview || '',
+    genre:           (m.genres || []).map(g => g.name).join(', ') || null,
+    status:          'pending',
+    student_comment: comment || null
+  });
+
+  btn.disabled = false;
+  btn.textContent = 'Envoyer ✉️';
+
+  if (error) { toast('Erreur lors de la proposition', 'error'); return; }
+  closeModal('modal-propose-confirm');
+  closeModal('modal-tmdb-detail');
+  toast('Proposition envoyée 📨', 'success');
+  initPropose();
+  await loadStudentProposals();
 }
 
 async function confirmAddFilm() {
@@ -2368,35 +2536,44 @@ async function confirmAddFilm() {
   loadAdminFilms();
 }
 
-async function confirmProposeFilm() {
-  if (!_tmdbMovie || !S.user) return;
-  const m = _tmdbMovie;
-  const btn = document.getElementById('tmdb-d-action');
-  btn.disabled = true;
-  btn.textContent = 'Envoi en cours…';
+/* Zoom affiche plein écran */
+function openPosterZoom(url) {
+  if (!url) return;
+  document.getElementById('poster-zoom-img').src = url;
+  document.getElementById('modal-poster-zoom').classList.remove('hidden');
+}
 
-  // Récupérer le commentaire optionnel de l'élève
-  const comment = (document.getElementById('tmdb-d-comment')?.value || '').trim();
+/* Historique des propositions de l'élève connecté */
+async function loadStudentProposals() {
+  const list = document.getElementById('prop-history-list');
+  if (!list || !S.user) return;
 
-  const { error } = await db.from('proposals').insert({
-    student_id:      S.user.id,
-    title:           m.title,
-    tmdb_id:         m.id,
-    poster_url:      m.poster_path ? `https://image.tmdb.org/t/p/w500${m.poster_path}` : null,
-    year:            m.release_date ? parseInt(m.release_date.split('-')[0]) : null,
-    synopsis:        m.overview || '',
-    genre:           (m.genres || []).map(g => g.name).join(', ') || null,
-    status:          'pending',
-    student_comment: comment || null
-  });
+  const { data } = await db.from('proposals')
+    .select('id,title,poster_url,year,status,proposed_at,admin_refusal_reason')
+    .eq('student_id', S.user.id)
+    .order('proposed_at', { ascending: false });
 
-  btn.disabled = false;
-  btn.textContent = '💡 Proposer ce film';
+  if (!data?.length) {
+    list.innerHTML = '<p class="text-sm text-muted" style="padding:0 18px 4px;color:var(--text-3);">Aucune proposition pour l\'instant.</p>';
+    return;
+  }
 
-  if (error) { toast('Erreur lors de la proposition', 'error'); return; }
-  closeModal('modal-tmdb-detail');
-  toast('Proposition envoyée ! L\'admin la validera 📨', 'success');
-  initPropose();
+  const badgeCls = { pending:'badge-gold', accepted:'badge-green', rejected:'badge-red' };
+  const badgeLbl = { pending:'⏳ En attente', accepted:'✅ Acceptée', rejected:'❌ Refusée' };
+
+  list.innerHTML = data.map(p => `
+    <div class="history-item">
+      ${p.poster_url
+        ? `<img src="${p.poster_url}" class="history-poster" alt="" onclick="openPosterZoom('${p.poster_url.replace(/'/g,'%27')}')" style="cursor:zoom-in;">`
+        : `<div class="history-poster-ph">🎬</div>`}
+      <div class="history-info">
+        <div class="history-film">${p.title}${p.year ? ' <span style="font-weight:400;color:var(--text-3);">('+p.year+')</span>' : ''}</div>
+        <div style="margin:4px 0;"><span class="badge ${badgeCls[p.status] || 'badge-muted'}">${badgeLbl[p.status] || p.status}</span></div>
+        ${p.status === 'rejected' && p.admin_refusal_reason
+          ? `<div class="history-reason">Raison : ${p.admin_refusal_reason}</div>` : ''}
+        <div class="history-date">${fmtDateShort(p.proposed_at.split('T')[0])}</div>
+      </div>
+    </div>`).join('');
 }
 
 /* les fonctions suivantes sont gardées pour compatibilité (saisie manuelle) */
@@ -2606,7 +2783,10 @@ async function loadAdminFilms() {
 
     return `
     <div class="ai">
-      ${f.poster_url ? `<img src="${f.poster_url}" class="ai-img" alt="">` : `<div class="ai-img">🎬</div>`}
+      <div style="flex-shrink:0;${f.poster_url ? 'cursor:zoom-in;' : ''}"
+           onclick="${f.poster_url ? `openPosterZoom('${f.poster_url.replace(/'/g,'%27')}')` : ''}">
+        ${f.poster_url ? `<img src="${f.poster_url}" class="ai-img" alt="">` : `<div class="ai-img">🎬</div>`}
+      </div>
       <div class="ai-info">
         <div class="ai-title">${f.title}</div>
         <div class="ai-sub">${f.year || ''}${f.genre ? ' · ' + f.genre : ''}${f.screened_at && status === 'screened' ? ' · Vu le ' + fmtDateShort(f.screened_at.split('T')[0]) : ''}</div>
@@ -2760,6 +2940,10 @@ async function loadAdminVotes() {
 /* ================================================================
    ADMIN — PROPOSALS
    ================================================================ */
+
+// Cache des propositions pour éviter le JSON inline dans les onclick
+let _proposalCache = {};
+
 async function loadAdminProposals() {
   const list   = document.getElementById('admin-proposals-list');
   const status = _proposalFilter;
@@ -2770,72 +2954,96 @@ async function loadAdminProposals() {
     .eq('status', status)
     .order('proposed_at', { ascending: false });
 
+  _proposalCache = {};
   if (!data?.length) {
     const lbls = { pending:'en attente', accepted:'acceptée', rejected:'refusée' };
     list.innerHTML = `<div class="empty"><div class="icon">💡</div><h3>Aucune proposition ${lbls[status] || ''}</h3></div>`;
     return;
   }
 
+  // Stocker dans le cache — évite tout JSON dans onclick
+  data.forEach(p => { _proposalCache[p.id] = p; });
+
   list.innerHTML = data.map(p => {
     const studentName = `${p.students?.first_name || '?'} ${p.students?.last_name || ''}`;
     let extra = '';
     if (status === 'rejected' && p.admin_refusal_reason) {
-      extra = `<div class="text-sm text-muted mt-1" style="font-style:italic;">Raison : ${p.admin_refusal_reason}</div>`;
+      extra += `<div class="text-sm text-muted mt-1" style="font-style:italic;">❌ ${p.admin_refusal_reason}</div>`;
     }
     if (p.student_comment) {
       extra += `<div class="text-sm text-muted mt-1">💬 ${p.student_comment}</div>`;
     }
+    const hasDetail = p.poster_url || p.synopsis;
+    const safeUrl   = (p.poster_url || '').replace(/'/g, '%27');
 
     return `
     <div class="ai">
-      ${p.poster_url ? `<img src="${p.poster_url}" class="ai-img" alt="">` : `<div class="ai-img">🎬</div>`}
+      <div style="flex-shrink:0;">
+        ${p.poster_url
+          ? `<img src="${p.poster_url}" class="ai-img" alt="" style="cursor:zoom-in;" onclick="openPosterZoom('${safeUrl}')">`
+          : `<div class="ai-img">🎬</div>`}
+      </div>
       <div class="ai-info">
         <div class="ai-title">${p.title}${p.year ? ' (' + p.year + ')' : ''}</div>
         <div class="ai-sub">Par ${studentName}</div>
         ${extra}
+        ${hasDetail ? `<button class="btn btn-sm btn-ghost mt-1" onclick="openProposalDetail('${p.id}')">🔍 Voir fiche</button>` : ''}
       </div>
       ${status === 'pending' ? `
         <div class="ai-actions">
-          <button class="btn btn-sm btn-green" onclick="reviewProposal('${p.id}','accepted',${JSON.stringify(p)})">✅ Accepter</button>
+          <button class="btn btn-sm btn-green" onclick="acceptProposal('${p.id}')">✅ Accepter</button>
           <button class="btn btn-sm btn-red"   onclick="openRejectProposal('${p.id}')">❌ Refuser</button>
         </div>` : ''}
     </div>`;
   }).join('');
 }
 
-/* Accepter = mise à jour statut + ajout direct au catalogue sans doublon */
-async function reviewProposal(id, status, proposal) {
-  if (status === 'accepted') {
-    // Vérifier si le film existe déjà (par tmdb_id ou titre)
-    let exists = false;
-    if (proposal.tmdb_id) {
-      const { data } = await db.from('films').select('id').eq('tmdb_id', proposal.tmdb_id).maybeSingle();
-      exists = !!data;
-    }
-    if (!exists) {
-      const { data: byTitle } = await db.from('films').select('id').ilike('title', proposal.title);
-      exists = !!(byTitle && byTitle.length > 0);
-    }
+/* Accepter une proposition — utilise le cache, pas de JSON dans onclick */
+async function acceptProposal(id) {
+  const p = _proposalCache[id];
+  if (!p) { toast('Donnée introuvable, rechargez la page', 'error'); return; }
 
-    if (!exists) {
-      // Ajouter le film au catalogue
-      await db.from('films').insert({
-        title:      proposal.title,
-        tmdb_id:    proposal.tmdb_id || null,
-        poster_url: proposal.poster_url || null,
-        year:       proposal.year || null,
-        synopsis:   proposal.synopsis || null,
-        genre:      proposal.genre || null,
-        status:     'active'
-      });
-    } else {
-      toast('Film déjà dans le catalogue — statut mis à jour seulement', '');
-    }
+  let exists = false;
+  if (p.tmdb_id) {
+    const { data } = await db.from('films').select('id').eq('tmdb_id', p.tmdb_id).maybeSingle();
+    exists = !!data;
+  }
+  if (!exists) {
+    const { data: byTitle } = await db.from('films').select('id').ilike('title', p.title);
+    exists = !!(byTitle && byTitle.length > 0);
   }
 
-  await db.from('proposals').update({ status, reviewed_at: new Date().toISOString() }).eq('id', id);
-  toast(status === 'accepted' ? 'Proposition acceptée — film ajouté ✅' : 'Refusé', status === 'accepted' ? 'success' : '');
+  if (!exists) {
+    const { error } = await db.from('films').insert({
+      title: p.title, tmdb_id: p.tmdb_id || null, poster_url: p.poster_url || null,
+      year: p.year || null, synopsis: p.synopsis || null, genre: p.genre || null, status: 'active'
+    });
+    if (error) { toast('Erreur ajout film : ' + error.message, 'error'); return; }
+  } else {
+    toast('Film déjà dans le catalogue', '');
+  }
+
+  await db.from('proposals').update({ status: 'accepted', reviewed_at: new Date().toISOString() }).eq('id', id);
+  toast('Proposition acceptée — film ajouté ✅', 'success');
   loadAdminProposals();
+}
+
+/* Voir la fiche d'une proposition */
+function openProposalDetail(id) {
+  const p = _proposalCache[id];
+  if (!p) return;
+  document.getElementById('pd-title').textContent    = p.title + (p.year ? ` (${p.year})` : '');
+  document.getElementById('pd-meta').textContent     = [p.genre, p.duration ? p.duration + ' min' : ''].filter(Boolean).join(' · ') || '—';
+  document.getElementById('pd-synopsis').textContent = p.synopsis || 'Aucun synopsis disponible.';
+  const posterEl = document.getElementById('pd-poster');
+  posterEl.src   = p.poster_url || '';
+  posterEl.style.display = p.poster_url ? '' : 'none';
+  const cb = document.getElementById('pd-comment-block');
+  if (p.student_comment) {
+    cb.classList.remove('hidden');
+    document.getElementById('pd-comment').textContent = p.student_comment;
+  } else { cb.classList.add('hidden'); }
+  openModal('modal-proposal-detail');
 }
 
 /* Refus avec raison */
@@ -2849,8 +3057,7 @@ async function confirmRejectProposal() {
   const id     = document.getElementById('reject-prop-id').value;
   const reason = document.getElementById('reject-reason-text').value.trim();
   await db.from('proposals').update({
-    status: 'rejected',
-    admin_refusal_reason: reason || null,
+    status: 'rejected', admin_refusal_reason: reason || null,
     reviewed_at: new Date().toISOString()
   }).eq('id', id);
   closeModal('modal-reject-reason');
@@ -3075,7 +3282,11 @@ function openModal(id) {
   }
   document.getElementById(id).classList.remove('hidden');
 }
-function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+function closeModal(id) {
+  document.getElementById(id).classList.add('hidden');
+  // Pour le zoom affiche : vider le src pour libérer la mémoire
+  if (id === 'modal-poster-zoom') document.getElementById('poster-zoom-img').src = '';
+}
 
 document.querySelectorAll('.overlay').forEach(o =>
   o.addEventListener('click', e => { if (e.target === o) o.classList.add('hidden'); })
