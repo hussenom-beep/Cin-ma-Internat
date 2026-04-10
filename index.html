@@ -2367,7 +2367,7 @@ function showLS(id) {
   }
 
   if (id === 'pin') {
-    setupPins('p1','p2','p3','p4','p5','p6');
+    setupPins('p1','p2','p3','p4','p5','p6', handleLogin);
   }
 
   if (id === 'admin') {
@@ -2438,7 +2438,15 @@ function getVisiblePin(...ids) {
   return ids.map(id => (document.getElementById(id).value || '').trim()).join('');
 }
 
-function setupPins(...ids) {
+function setupPins(...args) {
+  // Dernier arg optionnel = callback auto-submit (ex: handleLogin)
+  let onComplete = null;
+  let ids = args;
+  if (typeof args[args.length - 1] === 'function') {
+    onComplete = args[args.length - 1];
+    ids = args.slice(0, -1);
+  }
+
   ids.forEach((id, i) => {
     const el = document.getElementById(id);
     el.value = '';
@@ -2463,6 +2471,9 @@ function setupPins(...ids) {
 
       if (i < ids.length - 1) {
         document.getElementById(ids[i + 1]).focus();
+      } else if (onComplete) {
+        // Dernier chiffre saisi → soumettre automatiquement
+        setTimeout(onComplete, 40);
       }
     });
 
@@ -2607,23 +2618,31 @@ async function handleActivate() {
 }
 
 // Connexion — PIN 6 chiffres
+let _loginInProgress = false;
+
 async function handleLogin() {
-  const pin = getPin('p1','p2','p3','p4','p5','p6');
-  if (pin.length !== 6) {
-    toast('Entre ton code secret à 6 chiffres', 'error');
-    setupPins('p1','p2','p3','p4','p5','p6');
-    return;
-  }
+  if (_loginInProgress) return;
+  _loginInProgress = true;
+  try {
+    const pin = getPin('p1','p2','p3','p4','p5','p6');
+    if (pin.length !== 6) {
+      toast('Entre ton code secret à 6 chiffres', 'error');
+      setupPins('p1','p2','p3','p4','p5','p6', handleLogin);
+      return;
+    }
 
-  const hash = await sha256(pin);
-  if (hash !== _tmpStudent.password_hash) {
-    toast('Code incorrect', 'error');
-    setupPins('p1','p2','p3','p4','p5','p6');
-    return;
-  }
+    const hash = await sha256(pin);
+    if (hash !== _tmpStudent.password_hash) {
+      toast('Code incorrect', 'error');
+      setupPins('p1','p2','p3','p4','p5','p6', handleLogin);
+      return;
+    }
 
-  loginAs(_tmpStudent);
-  toast(`Bon retour, ${_tmpStudent.first_name} 👋`, 'success');
+    loginAs(_tmpStudent);
+    toast(`Bon retour, ${_tmpStudent.first_name} 👋`, 'success');
+  } finally {
+    _loginInProgress = false;
+  }
 }
 
 async function handleAdminLogin() {
@@ -2737,7 +2756,9 @@ async function loadHome() {
 
     // Compter les inscrits + vérifier capacité
     const { count: regCount } = await db.from('registrations')
-      .select('id', { count: 'exact', head: true }).eq('session_id', s.id);
+      .select('id', { count: 'exact', head: true })
+      .eq('session_id', s.id)
+      .eq('status', 'registered');
     const cap   = s.max_capacity || 20;
     const full  = regCount >= cap;
     const open  = s.registrations_open;
@@ -2772,7 +2793,13 @@ async function loadHomeNews() {
 
   const since = S.user.lastNewsSeen || null;
 
-  // Propositions depuis la dernière connexion
+  const makeEvQuery = (type) => {
+    let q = db.from('student_events').select('id, created_at')
+      .eq('student_id', S.user.id).eq('event_type', type);
+    if (since) q = q.gt('created_at', since);
+    return q;
+  };
+
   let propQuery = db.from('proposals')
     .select('id, status, reviewed_at')
     .eq('student_id', S.user.id)
@@ -2780,21 +2807,25 @@ async function loadHomeNews() {
     .not('reviewed_at', 'is', null);
   if (since) propQuery = propQuery.gt('reviewed_at', since);
 
-  // Blocages depuis la dernière connexion
-  let banQuery = db.from('session_bans')
-    .select('id, banned_at')
-    .eq('student_id', S.user.id);
+  let banQuery = db.from('session_bans').select('id, banned_at').eq('student_id', S.user.id);
   if (since) banQuery = banQuery.gt('banned_at', since);
 
-  // Déblocages depuis la dernière connexion
-  let unbanQuery = db.from('student_events')
-    .select('id, created_at')
-    .eq('student_id', S.user.id)
-    .eq('event_type', 'session_unbanned');
-  if (since) unbanQuery = unbanQuery.gt('created_at', since);
-
-  const [{ data: proposals }, { data: bans }, { data: unbans }] = await Promise.all([
-    propQuery, banQuery, unbanQuery
+  const [
+    { data: proposals },
+    { data: bans },
+    { data: unbans },
+    { data: waitlistEvs },
+    { data: promotedEvs },
+    { data: newSesEvs },
+    { data: openedEvs }
+  ] = await Promise.all([
+    propQuery,
+    banQuery,
+    makeEvQuery('session_unbanned'),
+    makeEvQuery('session_waitlist'),
+    makeEvQuery('session_promoted'),
+    makeEvQuery('new_session'),
+    makeEvQuery('session_opened')
   ]);
 
   const lines = [];
@@ -2814,6 +2845,18 @@ async function loadHomeNews() {
     });
   }
 
+  if (newSesEvs?.length) lines.push({
+    icon: '🎟️',
+    text: newSesEvs.length === 1 ? 'Une nouvelle séance a été planifiée' : `${newSesEvs.length} nouvelles séances ont été planifiées`,
+    target: 'session'
+  });
+
+  if (openedEvs?.length) lines.push({
+    icon: '🟢',
+    text: openedEvs.length === 1 ? 'Les inscriptions sont ouvertes pour une séance' : `Les inscriptions ont été ouvertes pour ${openedEvs.length} séances`,
+    target: 'session'
+  });
+
   if (bans?.length) lines.push({
     icon: '🚫',
     text: bans.length === 1 ? "Tu as été retiré d'une séance" : `Tu as été retiré de ${bans.length} séances`,
@@ -2823,6 +2866,18 @@ async function loadHomeNews() {
   if (unbans?.length) lines.push({
     icon: '✅',
     text: unbans.length === 1 ? "Tu peux de nouveau t'inscrire à une séance" : `Tu as été débloqué pour ${unbans.length} séances`,
+    target: 'session'
+  });
+
+  if (waitlistEvs?.length) lines.push({
+    icon: '⏳',
+    text: waitlistEvs.length === 1 ? "Tu es en liste d'attente pour une séance" : `Tu es en liste d'attente pour ${waitlistEvs.length} séances`,
+    target: 'session'
+  });
+
+  if (promotedEvs?.length) lines.push({
+    icon: '🎉',
+    text: promotedEvs.length === 1 ? "Tu as été promu inscrit pour une séance !" : `Tu as été promu inscrit pour ${promotedEvs.length} séances !`,
     target: 'session'
   });
 
@@ -3511,12 +3566,14 @@ async function loadSessions() {
   const today = new Date().toISOString().split('T')[0];
   const [{ data: sessions }, { data: myRegs }, { data: myBans }] = await Promise.all([
     db.from('cinema_sessions').select('*, films(id, title, poster_url, tmdb_id)').gte('session_date', today).order('session_date'),
-    S.user ? db.from('registrations').select('session_id').eq('student_id', S.user.id) : { data: [] },
+    S.user ? db.from('registrations').select('session_id, status').eq('student_id', S.user.id) : { data: [] },
     S.user ? db.from('session_bans').select('session_id, reason').eq('student_id', S.user.id) : { data: [] }
   ]);
 
-  const regSet = new Set((myRegs || []).map(r => r.session_id));
-  const banMap = {};
+  // Inscrits confirmés vs liste d'attente de l'élève courant
+  const regSet  = new Set((myRegs || []).filter(r => r.status === 'registered').map(r => r.session_id));
+  const waitSet = new Set((myRegs || []).filter(r => r.status === 'waitlist').map(r => r.session_id));
+  const banMap  = {};
   (myBans || []).forEach(b => { banMap[b.session_id] = b.reason || 'Inscription non autorisée'; });
 
   if (!sessions?.length) {
@@ -3524,28 +3581,38 @@ async function loadSessions() {
     return;
   }
 
-  // Compter tous les inscrits en une requête
+  // Compter inscrits confirmés et liste d'attente par séance
   const sesIds = sessions.map(s => s.id);
-  const { data: allRegs } = await db.from('registrations').select('session_id').in('session_id', sesIds);
-  const rc = {};
-  (allRegs || []).forEach(r => { rc[r.session_id] = (rc[r.session_id] || 0) + 1; });
+  const { data: allRegs } = await db.from('registrations').select('session_id, status').in('session_id', sesIds);
+  const rc = {}, wc = {};
+  (allRegs || []).forEach(r => {
+    if (r.status === 'registered') rc[r.session_id] = (rc[r.session_id] || 0) + 1;
+    else if (r.status === 'waitlist') wc[r.session_id] = (wc[r.session_id] || 0) + 1;
+  });
 
   body.innerHTML = sessions.map(s => {
-    const reg    = regSet.has(s.id);
-    const banned = !!banMap[s.id];
-    const open   = s.registrations_open;
-    const cap    = s.max_capacity || 20;
-    const count  = rc[s.id] || 0;
-    const full   = count >= cap;
-    const poster = s.films?.poster_url || '';
-    const title  = s.films?.title || '🎬 Film à annoncer';
+    const reg       = regSet.has(s.id);
+    const onWait    = waitSet.has(s.id);
+    const banned    = !!banMap[s.id];
+    const open      = s.registrations_open;
+    const cap       = s.max_capacity || 20;
+    const count     = rc[s.id] || 0;   // inscrits confirmés
+    const waitCount = wc[s.id] || 0;   // liste d'attente
+    const full      = count >= cap;
+    const poster    = s.films?.poster_url || '';
+    const title     = s.films?.title || '🎬 Film à annoncer';
 
-    // Badge état
+    // Badge état — priorité : état perso de l'élève
     let badgeHtml;
-    if (banned)     badgeHtml = `<span class="badge badge-red">🚫 Non autorisé</span>`;
-    else if (full)  badgeHtml = `<span class="badge badge-red">🚫 Complet</span>`;
-    else if (open)  badgeHtml = `<span class="badge badge-green">✅ Ouvertes</span>`;
-    else            badgeHtml = `<span class="badge badge-muted">⏸ Fermées</span>`;
+    if (banned)      badgeHtml = `<span class="badge badge-red">🚫 Non autorisé</span>`;
+    else if (reg)    badgeHtml = `<span class="badge badge-green">✅ Inscrit(e)</span>`;
+    else if (onWait) badgeHtml = `<span class="badge badge-gold">⏳ En attente</span>`;
+    else if (full)   badgeHtml = `<span class="badge badge-muted">🚫 Complet</span>`;
+    else if (open)   badgeHtml = `<span class="badge badge-green">✅ Ouvertes</span>`;
+    else             badgeHtml = `<span class="badge badge-muted">⏸ Fermées</span>`;
+
+    // Capacité affichée : inscrits confirmés / max, + attente si > 0
+    const capDisplay = `${count} / ${cap}${waitCount > 0 ? ` · ${waitCount} en attente` : ''}`;
 
     // Bouton action
     let actionBtn = '';
@@ -3553,12 +3620,16 @@ async function loadSessions() {
     if (banned) {
       const reason = banMap[s.id] || '';
       banReasonHtml = `<div class="sc-ban-reason">🚫 Motif : ${reason || 'Inscription non autorisée'}</div>`;
-    } else if (reg) {
-      actionBtn = `<button class="btn btn-sm btn-red" onclick="toggleReg('${s.id}',true)">❌ Se désinscrire</button>`;
-    } else if (!open || full) {
-      actionBtn = '';
+    } else if (reg || onWait) {
+      const label = reg ? '❌ Se désinscrire' : '↩ Quitter la liste d\'attente';
+      actionBtn = `<button class="btn btn-sm btn-red" onclick="toggleReg('${s.id}','unregister')">${label}</button>`;
+    } else if (!open) {
+      actionBtn = ''; // inscriptions fermées, rien à faire
+    } else if (full) {
+      // Complet mais ouvert : proposer la liste d'attente
+      actionBtn = `<button class="btn btn-sm btn-ghost" onclick="toggleReg('${s.id}','register')">⏳ Liste d'attente</button>`;
     } else {
-      actionBtn = `<button class="btn btn-sm btn-gold" onclick="toggleReg('${s.id}',false)">✅ S'inscrire</button>`;
+      actionBtn = `<button class="btn btn-sm btn-gold" onclick="toggleReg('${s.id}','register')">✅ S'inscrire</button>`;
     }
 
     const filmClickAttr = s.films?.tmdb_id
@@ -3574,7 +3645,7 @@ async function loadSessions() {
         <div class="sc-film">${title}</div>
         <div class="sc-footer">
           ${badgeHtml}
-          <span class="sc-capacity">${count} / ${cap}</span>
+          <span class="sc-capacity">${capDisplay}</span>
         </div>
         ${banReasonHtml}
         <div class="sc-actions" onclick="event.stopPropagation()">
@@ -3599,24 +3670,35 @@ async function openSessionFilmDetail(filmId) {
   openDetail(filmId);
 }
 
-async function toggleReg(sessionId, isReg) {
-  if (isReg) {
-    await db.from('registrations').delete()
-      .eq('student_id', S.user.id).eq('session_id', sessionId);
+async function toggleReg(sessionId, action) {
+  if (action === 'unregister') {
+    const { error } = await db.rpc('unregister_student_from_session', {
+      p_student_id: S.user.id,
+      p_session_id: sessionId
+    });
+    if (error) { toast('Erreur lors de la désinscription', 'error'); return; }
     toast('Désinscription effectuée');
   } else {
-    // Vérifier capacité et ban avant d'inscrire
-    const [{ data: ses }, { data: bans }, { count: regCount }] = await Promise.all([
-      db.from('cinema_sessions').select('max_capacity, registrations_open').eq('id', sessionId).single(),
-      db.from('session_bans').select('id').eq('session_id', sessionId).eq('student_id', S.user.id).limit(1),
-      db.from('registrations').select('id', { count: 'exact', head: true }).eq('session_id', sessionId)
-    ]);
-    if (bans?.length)                              { toast('Tu ne peux pas te réinscrire à cette séance', 'error'); return; }
-    if (!ses?.registrations_open)                  { toast('Les inscriptions sont fermées', 'error'); return; }
-    if (regCount >= (ses?.max_capacity || 20))     { toast('Cette séance est complète', 'error'); return; }
+    // Vérifications client avant d'appeler la RPC
+    const { data: bans } = await db.from('session_bans')
+      .select('id').eq('session_id', sessionId).eq('student_id', S.user.id).limit(1);
+    if (bans?.length) { toast('Tu ne peux pas te réinscrire à cette séance', 'error'); return; }
 
-    const { error } = await db.from('registrations').insert({ student_id: S.user.id, session_id: sessionId });
-    if (!error) toast('Inscription confirmée 🎉', 'success');
+    const { data: ses } = await db.from('cinema_sessions')
+      .select('registrations_open').eq('id', sessionId).single();
+    if (!ses?.registrations_open) { toast('Les inscriptions sont fermées', 'error'); return; }
+
+    const { data: result, error } = await db.rpc('register_student_to_session', {
+      p_student_id: S.user.id,
+      p_session_id: sessionId
+    });
+    if (error) { toast('Erreur lors de l\'inscription', 'error'); return; }
+
+    if (result === 'waitlist') {
+      toast("Tu es en liste d'attente ⏳");
+    } else {
+      toast('Inscription confirmée 🎉', 'success');
+    }
   }
   await loadSessions();
 }
@@ -3624,7 +3706,7 @@ async function toggleReg(sessionId, isReg) {
 /* Inscrits d'une séance — vue élève */
 async function viewStudentRegistrants(sesId, date) {
   const { data } = await db.from('registrations')
-    .select('students(first_name, last_name, class_name)')
+    .select('status, students(first_name, last_name, class_name)')
     .eq('session_id', sesId)
     .order('registered_at');
 
@@ -3633,16 +3715,31 @@ async function viewStudentRegistrants(sesId, date) {
 
   if (!data?.length) {
     el.innerHTML = '<p class="text-muted text-center" style="padding:20px;">Aucun inscrit pour l\'instant.</p>';
-  } else {
-    el.innerHTML = `<p class="text-sm text-muted mb-1" style="padding:0 2px 8px;">${data.length} inscrit${data.length > 1 ? 's' : ''}</p>
-      <div style="display:flex;flex-direction:column;gap:7px;">
-        ${data.map(r => `
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--surface-2);border-radius:8px;">
-            <span style="font-weight:600;font-size:14px;">${r.students?.first_name || ''} ${r.students?.last_name || ''}</span>
-            <span class="badge badge-muted">${r.students?.class_name || '—'}</span>
-          </div>`).join('')}
-      </div>`;
+    openModal('modal-student-registrants');
+    return;
   }
+
+  const registered = data.filter(r => r.status === 'registered');
+  const waitlist   = data.filter(r => r.status === 'waitlist');
+
+  const rowHtml = arr => arr.map(r => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--surface-2);border-radius:8px;">
+      <span style="font-weight:600;font-size:14px;">${r.students?.first_name || ''} ${r.students?.last_name || ''}</span>
+      <span class="badge badge-muted">${r.students?.class_name || '—'}</span>
+    </div>`).join('');
+
+  let html = '';
+  if (registered.length) {
+    html += `<p class="text-sm text-muted mb-1" style="padding:0 2px 8px;">${registered.length} inscrit${registered.length > 1 ? 's' : ''}</p>
+      <div style="display:flex;flex-direction:column;gap:7px;">${rowHtml(registered)}</div>`;
+  }
+  if (waitlist.length) {
+    html += `<p class="text-sm text-muted mb-1" style="padding:${registered.length ? '14px' : '0'} 2px 8px;color:var(--gold);">
+      ⏳ ${waitlist.length} en liste d'attente</p>
+      <div style="display:flex;flex-direction:column;gap:7px;">${rowHtml(waitlist)}</div>`;
+  }
+
+  el.innerHTML = html;
   openModal('modal-student-registrants');
 }
 
@@ -3998,6 +4095,11 @@ async function confirmScheduleFilm() {
   // Passer le film en 'scheduled'
   if (filmId) await db.from('films').update({ status: 'scheduled' }).eq('id', filmId);
 
+  // Récupérer l'id de la séance créée pour la notification
+  const { data: newSes } = await db.from('cinema_sessions')
+    .select('id').eq('session_date', date).order('created_at', { ascending: false }).limit(1);
+  if (newSes?.[0]) _notifyAllStudents(newSes[0].id, 'new_session'); // fire-and-forget
+
   closeModal('modal-schedule-film');
   toast('Film programmé + séance créée 📅', 'success');
   loadAdminFilms();
@@ -4338,7 +4440,7 @@ async function loadAdminSessions() {
       .select('*, films(title, poster_url)')
       .gte('session_date', today)
       .order('session_date', { ascending: true }),
-    db.from('registrations').select('session_id')
+    db.from('registrations').select('session_id, status')
   ]);
 
   if (!sessions?.length) {
@@ -4346,14 +4448,19 @@ async function loadAdminSessions() {
     return;
   }
 
-  const rc = {};
-  (regs || []).forEach(r => rc[r.session_id] = (rc[r.session_id] || 0) + 1);
+  const rc = {}, wc = {};
+  (regs || []).forEach(r => {
+    if (r.status === 'registered') rc[r.session_id] = (rc[r.session_id] || 0) + 1;
+    else if (r.status === 'waitlist') wc[r.session_id] = (wc[r.session_id] || 0) + 1;
+  });
 
   list.innerHTML = sessions.map(s => {
-    const poster  = s.films?.poster_url || '';
-    const title   = s.films?.title || '— Film non défini';
-    const count   = rc[s.id] || 0;
-    const openSes = s.registrations_open;
+    const poster    = s.films?.poster_url || '';
+    const title     = s.films?.title || '— Film non défini';
+    const count     = rc[s.id] || 0;
+    const waitCount = wc[s.id] || 0;
+    const openSes   = s.registrations_open;
+    const cap       = s.max_capacity || 20;
 
     return `
     <div class="admin-ses-card">
@@ -4366,7 +4473,8 @@ async function loadAdminSessions() {
           <span class="badge ${openSes ? 'badge-green' : 'badge-muted'}">
             ${openSes ? '✅ Ouvertes' : '⏸ Fermées'}
           </span>
-          <span class="badge badge-muted">👥 ${count} inscrit${count > 1 ? 's' : ''}</span>
+          <span class="badge badge-muted">👥 ${count} / ${cap}</span>
+          ${waitCount > 0 ? `<span class="badge badge-gold">⏳ ${waitCount} en attente</span>` : ''}
         </div>
         <div class="admin-ses-actions">
           <button class="btn btn-sm btn-ghost" onclick="toggleSesOpen('${s.id}',${openSes})">
@@ -4381,16 +4489,34 @@ async function loadAdminSessions() {
   }).join('');
 }
 
+/* Crée un student_event pour tous les élèves actifs (new_session, session_opened…) */
+async function _notifyAllStudents(sessionId, eventType) {
+  try {
+    const { data: students } = await db.from('students')
+      .select('id').eq('is_active', true);
+    if (!students?.length) return;
+    await db.from('student_events').insert(
+      students.map(s => ({ student_id: s.id, session_id: sessionId, event_type: eventType }))
+    );
+  } catch(e) { /* silencieux — pas critique */ }
+}
+
 async function toggleSesOpen(id, cur) {
   await db.from('cinema_sessions').update({ registrations_open: !cur }).eq('id', id);
-  toast(!cur ? 'Inscriptions ouvertes ✅' : 'Inscriptions fermées', 'success');
+  if (!cur) {
+    // Ouverture → notifier tous les élèves
+    toast('Inscriptions ouvertes ✅', 'success');
+    _notifyAllStudents(id, 'session_opened'); // fire-and-forget
+  } else {
+    toast('Inscriptions fermées', 'success');
+  }
   loadAdminSessions();
 }
 
 async function viewRegistrants(sesId, date) {
   const [{ data: regs }, { data: bans }] = await Promise.all([
     db.from('registrations')
-      .select('id, student_id, students(first_name, last_name, class_name)')
+      .select('id, student_id, status, students(first_name, last_name, class_name)')
       .eq('session_id', sesId)
       .order('registered_at'),
     db.from('session_bans')
@@ -4399,31 +4525,44 @@ async function viewRegistrants(sesId, date) {
   ]);
 
   document.getElementById('modal-reg-title').textContent = `Inscrits — ${fmtDateShort(date)}`;
-  // Stocker sesId pour unbanStudent
   document.getElementById('modal-registrants').dataset.sesId = sesId;
   document.getElementById('modal-registrants').dataset.date  = date;
 
   const el = document.getElementById('registrants-content');
 
-  // Section inscrits
-  const regsHtml = !regs?.length
-    ? '<p class="text-muted text-center" style="padding:14px 0 6px;">Aucun inscrit</p>'
-    : `<p class="text-sm text-muted mb-1">${regs.length} inscrit${regs.length > 1 ? 's' : ''}</p>
-       <div style="display:flex;flex-direction:column;gap:7px;">
-         ${regs.map(r => `
-           <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--surface-2);border-radius:8px;gap:8px;">
-             <div style="flex:1;min-width:0;">
-               <span style="font-weight:600;font-size:14px;">${r.students?.first_name || ''} ${r.students?.last_name || ''}</span>
-               <span class="badge badge-muted" style="margin-left:6px;">${r.students?.class_name || '—'}</span>
-             </div>
-             <button class="btn btn-sm btn-red" onclick="openBanStudent('${sesId}','${r.student_id}')">Retirer</button>
-           </div>`).join('')}
-       </div>`;
+  const confirmed = (regs || []).filter(r => r.status === 'registered');
+  const waitlist  = (regs || []).filter(r => r.status === 'waitlist');
+
+  const regRow = r => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--surface-2);border-radius:8px;gap:8px;">
+      <div style="flex:1;min-width:0;">
+        <span style="font-weight:600;font-size:14px;">${r.students?.first_name || ''} ${r.students?.last_name || ''}</span>
+        <span class="badge badge-muted" style="margin-left:6px;">${r.students?.class_name || '—'}</span>
+      </div>
+      <button class="btn btn-sm btn-red" onclick="openBanStudent('${sesId}','${r.student_id}')">Retirer</button>
+    </div>`;
+
+  let html = '';
+
+  // Section inscrits confirmés
+  if (!confirmed.length) {
+    html += '<p class="text-muted text-center" style="padding:14px 0 6px;">Aucun inscrit confirmé</p>';
+  } else {
+    html += `<p class="text-sm text-muted mb-1">${confirmed.length} inscrit${confirmed.length > 1 ? 's' : ''} confirmé${confirmed.length > 1 ? 's' : ''}</p>
+      <div style="display:flex;flex-direction:column;gap:7px;">${confirmed.map(regRow).join('')}</div>`;
+  }
+
+  // Section liste d'attente
+  if (waitlist.length) {
+    html += `<div style="margin-top:14px;">
+      <p class="text-sm text-muted mb-1" style="color:var(--gold);">⏳ ${waitlist.length} en liste d'attente</p>
+      <div style="display:flex;flex-direction:column;gap:7px;">${waitlist.map(regRow).join('')}</div>
+    </div>`;
+  }
 
   // Section bloqués
-  let bansHtml = '';
   if (bans?.length) {
-    bansHtml = `<div style="margin-top:18px;">
+    html += `<div style="margin-top:18px;">
       <p class="text-sm text-muted mb-1" style="font-weight:700;color:var(--red);">🚫 Élèves bloqués (${bans.length})</p>
       <div style="display:flex;flex-direction:column;gap:7px;">
         ${bans.map(b => `
@@ -4441,7 +4580,7 @@ async function viewRegistrants(sesId, date) {
     </div>`;
   }
 
-  el.innerHTML = regsHtml + bansHtml;
+  el.innerHTML = html;
   openModal('modal-registrants');
 }
 
@@ -4640,6 +4779,11 @@ async function saveSession() {
 
   // Si un film est associé, le passer en 'scheduled'
   if (filmId) await db.from('films').update({ status: 'scheduled' }).eq('id', filmId);
+
+  // Récupérer l'id de la séance créée pour la notification
+  const { data: newSes } = await db.from('cinema_sessions')
+    .select('id').eq('session_date', date).order('created_at', { ascending: false }).limit(1);
+  if (newSes?.[0]) _notifyAllStudents(newSes[0].id, 'new_session'); // fire-and-forget
 
   closeModal('modal-create-session');
   toast('Séance créée 🎟️', 'success');
