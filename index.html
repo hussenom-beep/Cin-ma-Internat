@@ -1175,7 +1175,7 @@ button { cursor: pointer; }
   padding: 10px 14px;
   font-size: 12.5px;
   font-weight: 600;
-  color: var(--text-3);
+  color: var(--text-2);         /* plus visible : text-2 au lieu de text-3 */
   background: none;
   border: none;
   border-bottom: 2px solid transparent;
@@ -1185,8 +1185,24 @@ button { cursor: pointer; }
   margin-bottom: -1px;
   transition: color .18s, border-color .18s;
 }
+.sd-tab:hover { color: var(--text); }
 .sd-tab.active { color: var(--gold); border-bottom-color: var(--gold); }
-.sd-tab:disabled { opacity: .35; cursor: default; }
+.sd-tab:disabled { opacity: .3; cursor: default; }
+
+/* Lien élève cliquable dans les modals admin */
+.admin-student-link {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: color .15s;
+  background: none;
+  border: none;
+  color: inherit;
+  font-family: inherit;
+  padding: 0;
+  text-align: left;
+}
+.admin-student-link:hover { color: var(--gold); }
 
 /* ================================================================
    ADMIN SCREEN
@@ -2349,15 +2365,15 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     <!-- Corps -->
     <div class="sd-body">
 
-      <!-- Onglets (structure pour la suite) -->
+      <!-- Onglets -->
       <div class="sd-tabs">
-        <button class="sd-tab active" id="sd-tab-overview">Vue d'ensemble</button>
-        <button class="sd-tab" disabled>Films proposés</button>
-        <button class="sd-tab" disabled>Votes</button>
-        <button class="sd-tab" disabled>Inscriptions</button>
+        <button class="sd-tab active" id="sd-tab-overview"   onclick="sdSwitchTab('overview')">Vue d'ensemble</button>
+        <button class="sd-tab"        id="sd-tab-proposals"  onclick="sdSwitchTab('proposals')">Films proposés</button>
+        <button class="sd-tab"        id="sd-tab-votes"      onclick="sdSwitchTab('votes')">Votes</button>
+        <button class="sd-tab"        id="sd-tab-sessions"   onclick="sdSwitchTab('sessions')">Inscriptions</button>
       </div>
 
-      <!-- Identité -->
+      <!-- Identité (toujours visible en haut) -->
       <div class="sd-identity">
         <div class="sd-avatar" id="sd-avatar">?</div>
         <div style="flex:1;min-width:0;">
@@ -2373,23 +2389,42 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
         </div>
       </div>
 
-      <!-- État du compte -->
-      <div class="sd-section">
-        <div class="sd-section-title">État du compte</div>
-        <div style="display:flex;flex-direction:column;gap:7px;" id="sd-account-info"></div>
+      <!-- ---- ONGLET : Vue d'ensemble ---- -->
+      <div id="sd-pane-overview">
+        <div class="sd-section">
+          <div class="sd-section-title">État du compte</div>
+          <div style="display:flex;flex-direction:column;gap:7px;" id="sd-account-info"></div>
+        </div>
+        <div class="sd-section">
+          <div class="sd-section-title">Activité</div>
+          <div class="sd-stats" id="sd-stats"></div>
+        </div>
+        <div class="sd-section">
+          <div class="sd-section-title">Activité récente</div>
+          <div id="sd-recent">
+            <div class="loader" style="padding:20px;"><div class="spinner"></div></div>
+          </div>
+        </div>
       </div>
 
-      <!-- Résumé activité -->
-      <div class="sd-section">
-        <div class="sd-section-title">Activité</div>
-        <div class="sd-stats" id="sd-stats"></div>
+      <!-- ---- ONGLET : Films proposés ---- -->
+      <div id="sd-pane-proposals" class="hidden">
+        <div id="sd-proposals-content">
+          <div class="loader" style="padding:28px;"><div class="spinner"></div></div>
+        </div>
       </div>
 
-      <!-- Activité récente -->
-      <div class="sd-section">
-        <div class="sd-section-title">Activité récente</div>
-        <div id="sd-recent">
-          <div class="loader" style="padding:20px;"><div class="spinner"></div></div>
+      <!-- ---- ONGLET : Votes ---- -->
+      <div id="sd-pane-votes" class="hidden">
+        <div id="sd-votes-content">
+          <div class="loader" style="padding:28px;"><div class="spinner"></div></div>
+        </div>
+      </div>
+
+      <!-- ---- ONGLET : Inscriptions ---- -->
+      <div id="sd-pane-sessions" class="hidden">
+        <div id="sd-sessions-content">
+          <div class="loader" style="padding:28px;"><div class="spinner"></div></div>
         </div>
       </div>
 
@@ -2478,6 +2513,15 @@ function fmtDate(str) {
 function fmtDateShort(str) {
   const d = new Date(str + 'T12:00:00');
   return d.toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric' });
+}
+
+/* Date + heure à partir d'un ISO timestamp complet */
+function fmtDateTime(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  const date = d.toLocaleDateString('fr-FR', { day:'numeric', month:'short', year:'numeric' });
+  const time = d.toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
+  return `${date} à ${time}`;
 }
 
 function nextWednesday() {
@@ -4555,7 +4599,7 @@ async function viewFilmVoters(filmId, filmTitle) {
 
   const { data, error } = await db
     .from('votes')
-    .select('students(first_name, last_name, class_name)')
+    .select('students(id, first_name, last_name, class_name)')
     .eq('film_id', filmId);
 
   if (error || !data?.length) {
@@ -4568,7 +4612,9 @@ async function viewFilmVoters(filmId, filmTitle) {
     <div style="display:flex;flex-direction:column;gap:7px;">
       ${data.map(v => `
         <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--surface-2);border-radius:8px;">
-          <span style="font-weight:600;font-size:14px;">${v.students?.first_name || ''} ${v.students?.last_name || ''}</span>
+          <button class="admin-student-link" onclick="openStudentDetail('${v.students?.id}')">
+            ${v.students?.first_name || ''} ${v.students?.last_name || ''}
+          </button>
           <span class="badge badge-muted">${v.students?.class_name || '—'}</span>
         </div>
       `).join('')}
@@ -4606,7 +4652,7 @@ async function loadAdminProposals() {
   list.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
 
   const { data } = await db.from('proposals')
-    .select('*, students(first_name, last_name)')
+    .select('*, students(id, first_name, last_name)')
     .eq('status', status)
     .order('proposed_at', { ascending: false });
 
@@ -4622,6 +4668,9 @@ async function loadAdminProposals() {
 
   list.innerHTML = data.map(p => {
     const studentName = `${p.students?.first_name || '?'} ${p.students?.last_name || ''}`;
+    const studentLink = p.students?.id
+      ? `<button class="admin-student-link" onclick="openStudentDetail('${p.students.id}')" title="Voir la fiche élève">${studentName}</button>`
+      : `<span>${studentName}</span>`;
     let extra = '';
     if (status === 'rejected' && p.admin_refusal_reason) {
       extra += `<div class="text-sm text-muted mt-1" style="font-style:italic;">❌ ${p.admin_refusal_reason}</div>`;
@@ -4640,7 +4689,7 @@ async function loadAdminProposals() {
       </div>
       <div class="ai-info">
         <div class="ai-title">${p.title}${p.year ? ' (' + p.year + ')' : ''}</div>
-        <div class="ai-sub">Par ${studentName}</div>
+        <div class="ai-sub">Par ${studentLink}</div>
         ${extra}
         ${hasDetail ? `<button class="btn btn-sm btn-ghost mt-1" onclick="openProposalDetail('${p.id}')">🔍 Voir fiche</button>` : ''}
       </div>
@@ -4876,7 +4925,9 @@ async function viewRegistrants(sesId, date) {
   const regRow = r => `
     <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--surface-2);border-radius:8px;gap:8px;">
       <div style="flex:1;min-width:0;">
-        <span style="font-weight:600;font-size:14px;">${r.students?.first_name || ''} ${r.students?.last_name || ''}</span>
+        <button class="admin-student-link" onclick="openStudentDetail('${r.student_id}')">
+          ${r.students?.first_name || ''} ${r.students?.last_name || ''}
+        </button>
         <span class="badge badge-muted" style="margin-left:6px;">${r.students?.class_name || '—'}</span>
       </div>
       <button class="btn btn-sm btn-red" onclick="openBanStudent('${sesId}','${r.student_id}')">Retirer</button>
@@ -4909,7 +4960,9 @@ async function viewRegistrants(sesId, date) {
           <div style="background:var(--red-dim);border:1px solid rgba(232,64,64,.2);border-radius:8px;padding:9px 12px;">
             <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
               <div style="flex:1;min-width:0;">
-                <span style="font-weight:600;font-size:14px;">${b.students?.first_name || ''} ${b.students?.last_name || ''}</span>
+                <button class="admin-student-link" onclick="openStudentDetail('${b.student_id}')">
+                  ${b.students?.first_name || ''} ${b.students?.last_name || ''}
+                </button>
                 <span class="badge badge-muted" style="margin-left:6px;">${b.students?.class_name || '—'}</span>
               </div>
               <button class="btn btn-sm btn-ghost" onclick="unbanStudent('${sesId}','${b.student_id}','${date}')">Débloquer</button>
@@ -5172,182 +5225,282 @@ async function saveSession() {
    ADMIN — STUDENTS
    ================================================================ */
 /* ================================================================
-   FICHE ÉLÈVE ADMIN — V2.1
+   FICHE ÉLÈVE ADMIN — V2.1.1
    ================================================================ */
 
+let _sdCurrentStudentId = null;
+
+/* Ouverture par SQL id */
 async function openStudentDetail(studentId) {
-  // Récupérer les données de l'élève
+  _sdCurrentStudentId = studentId;
   const { data: s } = await db.from('students').select('*').eq('id', studentId).single();
   if (!s) { toast('Élève introuvable', 'error'); return; }
 
-  // Header
   document.getElementById('sd-header-title').textContent = `${s.first_name} ${s.last_name}`;
-
-  // Avatar initiales
   const initials = ((s.first_name?.[0] || '') + (s.last_name?.[0] || '')).toUpperCase() || '?';
   document.getElementById('sd-avatar').textContent = initials;
-  document.getElementById('sd-name').textContent = `${s.first_name} ${s.last_name}`;
+  document.getElementById('sd-name').textContent   = `${s.first_name} ${s.last_name}`;
 
-  // Badges meta
   const classBadge = document.getElementById('sd-class-badge');
-  classBadge.className = 'profile-class';
+  classBadge.className   = 'profile-class';
   classBadge.textContent = s.class_name || 'Classe inconnue';
 
   const statusBadge = document.getElementById('sd-status-badge');
   if (!s.is_active) {
-    statusBadge.className = 'badge badge-muted';
-    statusBadge.textContent = '⊘ Inactif';
+    statusBadge.className = 'badge badge-muted'; statusBadge.textContent = '⊘ Inactif';
   } else if (s.is_activated) {
-    statusBadge.className = 'badge badge-green';
-    statusBadge.textContent = '✓ Activé';
+    statusBadge.className = 'badge badge-green'; statusBadge.textContent = '✓ Activé';
   } else {
-    statusBadge.className = 'badge badge-gold';
-    statusBadge.textContent = '○ En attente';
+    statusBadge.className = 'badge badge-gold';  statusBadge.textContent = '○ En attente';
   }
 
-  // UIDs
   const uidEl = document.getElementById('sd-uid');
-  uidEl.textContent = s.login_identifier ? `🔑 ${s.login_identifier}` : '';
+  uidEl.textContent   = s.login_identifier ? `🔑 ${s.login_identifier}` : '';
   uidEl.style.display = s.login_identifier ? '' : 'none';
 
   const eleveUidEl = document.getElementById('sd-eleve-uid');
-  eleveUidEl.textContent = s.eleve_uid ? `🪪 ${s.eleve_uid}` : '— pas d\'eleveUid';
+  eleveUidEl.textContent = s.eleve_uid ? `🪪 ${s.eleve_uid}` : "— pas d'eleveUid";
   eleveUidEl.style.color = s.eleve_uid ? '' : 'var(--text-3)';
 
-  // Informations compte
-  const acctInfo = document.getElementById('sd-account-info');
   const row = (label, val, dim = false) =>
     `<div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:5px 0;border-bottom:1px solid rgba(37,37,56,.4);">
        <span style="color:var(--text-3);">${label}</span>
        <span style="${dim ? 'color:var(--text-3);font-style:italic;' : 'font-weight:600;'}">${val}</span>
      </div>`;
 
-  acctInfo.innerHTML = [
+  document.getElementById('sd-account-info').innerHTML = [
     row('Année scolaire', s.school_year || '—'),
-    row('Activation', s.is_activated
-      ? (s.activated_at ? fmtDateShort(s.activated_at.split('T')[0]) : 'Oui')
-      : 'Non', !s.is_activated),
-    row('Dernière connexion', s.last_login_at
-      ? fmtDateShort(s.last_login_at.split('T')[0])
-      : 'Jamais', !s.last_login_at),
-    row('Code d\'activation', `<code style="font-size:12px;">${s.activation_code || '—'}</code>`)
+    row('Activation',
+      s.is_activated ? (s.activated_at ? fmtDateTime(s.activated_at) : 'Oui') : 'Non',
+      !s.is_activated),
+    row('Dernière connexion',
+      s.last_login_at ? fmtDateTime(s.last_login_at) : 'Jamais', !s.last_login_at),
+    row("Code d'activation", `<code style="font-size:12px;">${s.activation_code || '—'}</code>`)
   ].join('');
 
-  // Stats : afficher loader pendant le chargement
   document.getElementById('sd-stats').innerHTML =
     '<div class="loader" style="grid-column:1/-1;padding:16px;"><div class="spinner"></div></div>';
   document.getElementById('sd-recent').innerHTML =
     '<div class="loader" style="padding:16px;"><div class="spinner"></div></div>';
+  document.getElementById('sd-proposals-content').innerHTML =
+    '<div class="loader" style="padding:28px;"><div class="spinner"></div></div>';
+  document.getElementById('sd-votes-content').innerHTML =
+    '<div class="loader" style="padding:28px;"><div class="spinner"></div></div>';
+  document.getElementById('sd-sessions-content').innerHTML =
+    '<div class="loader" style="padding:28px;"><div class="spinner"></div></div>';
 
+  sdSwitchTab('overview');
   openModal('modal-student-detail');
-
-  // Charger les stats en async
-  await _loadStudentStats(studentId);
+  _sdLoadOverview(studentId);
 }
 
-async function _loadStudentStats(studentId) {
-  // 5 requêtes parallèles
+/* Ouverture par eleve_uid */
+async function openStudentDetailByUid(eleveUid) {
+  const { data: s } = await db.from('students').select('id').eq('eleve_uid', eleveUid).maybeSingle();
+  if (!s) { toast('Élève introuvable (uid)', 'error'); return; }
+  await openStudentDetail(s.id);
+}
+
+/* Gestion des onglets */
+function sdSwitchTab(tab) {
+  ['overview','proposals','votes','sessions'].forEach(t => {
+    document.getElementById(`sd-tab-${t}`)?.classList.toggle('active', t === tab);
+    document.getElementById(`sd-pane-${t}`)?.classList.toggle('hidden', t !== tab);
+  });
+  if (!_sdCurrentStudentId) return;
+  if (tab === 'proposals') _sdLoadProposals(_sdCurrentStudentId);
+  if (tab === 'votes')     _sdLoadVotes(_sdCurrentStudentId);
+  if (tab === 'sessions')  _sdLoadSessions(_sdCurrentStudentId);
+}
+
+/* ---- Vue d'ensemble ---- */
+async function _sdLoadOverview(studentId) {
   const [
-    { count: voteCount },
-    { count: propCount },
-    { count: regCount },
-    { count: waitCount },
-    { count: banCount }
+    { count: voteCount }, { count: propCount },
+    { count: regCount },  { count: waitCount }, { count: banCount }
   ] = await Promise.all([
-    db.from('votes').select('id', { count: 'exact', head: true }).eq('student_id', studentId),
-    db.from('proposals').select('id', { count: 'exact', head: true }).eq('student_id', studentId),
-    db.from('registrations').select('id', { count: 'exact', head: true })
-      .eq('student_id', studentId).eq('status', 'registered'),
-    db.from('registrations').select('id', { count: 'exact', head: true })
-      .eq('student_id', studentId).eq('status', 'waitlist'),
-    db.from('session_bans').select('id', { count: 'exact', head: true }).eq('student_id', studentId)
+    db.from('votes').select('id',{count:'exact',head:true}).eq('student_id',studentId),
+    db.from('proposals').select('id',{count:'exact',head:true}).eq('student_id',studentId),
+    db.from('registrations').select('id',{count:'exact',head:true}).eq('student_id',studentId).eq('status','registered'),
+    db.from('registrations').select('id',{count:'exact',head:true}).eq('student_id',studentId).eq('status','waitlist'),
+    db.from('session_bans').select('id',{count:'exact',head:true}).eq('student_id',studentId)
   ]);
 
-  const statsEl = document.getElementById('sd-stats');
   const stat = (val, label) =>
     `<div class="sd-stat"><div class="sd-stat-val">${val ?? '—'}</div><div class="sd-stat-label">${label}</div></div>`;
-
+  const statsEl = document.getElementById('sd-stats');
   statsEl.innerHTML = [
-    stat(voteCount,  '🗳️ Votes'),
-    stat(propCount,  '💡 Propositions'),
-    stat(regCount,   '✅ Inscriptions'),
-    stat(waitCount,  '⏳ En attente'),
+    stat(voteCount,'🗳️ Votes'), stat(propCount,'💡 Propositions'),
+    stat(regCount,'✅ Inscriptions'), stat(waitCount,'⏳ En attente')
   ].join('');
-  if (banCount > 0) {
-    statsEl.insertAdjacentHTML('beforeend',
-      stat(banCount, '🚫 Blocages'));
-  }
+  if (banCount > 0) statsEl.insertAdjacentHTML('beforeend', stat(banCount,'🚫 Blocages'));
 
-  // Activité récente : dernière de chaque type
   const [
-    { data: lastVote },
-    { data: lastProp },
-    { data: lastReg },
-    { data: lastEvent }
+    { data: lastVote }, { data: lastProp },
+    { data: lastReg },  { data: lastEvents }
   ] = await Promise.all([
-    db.from('votes').select('created_at, films(title)')
-      .eq('student_id', studentId).order('created_at', { ascending: false }).limit(1),
-    db.from('proposals').select('proposed_at, title, status')
-      .eq('student_id', studentId).order('proposed_at', { ascending: false }).limit(1),
-    db.from('registrations').select('registered_at, cinema_sessions(session_date, films(title))')
-      .eq('student_id', studentId).order('registered_at', { ascending: false }).limit(1),
-    db.from('student_events').select('created_at, event_type, message')
-      .eq('student_id', studentId).order('created_at', { ascending: false }).limit(3)
+    db.from('votes').select('created_at,films(title)').eq('student_id',studentId)
+      .order('created_at',{ascending:false}).limit(1),
+    db.from('proposals').select('proposed_at,title,status').eq('student_id',studentId)
+      .order('proposed_at',{ascending:false}).limit(1),
+    db.from('registrations').select('registered_at,cinema_sessions(session_date,films(title))')
+      .eq('student_id',studentId).order('registered_at',{ascending:false}).limit(1),
+    db.from('student_events').select('created_at,event_type,message').eq('student_id',studentId)
+      .order('created_at',{ascending:false}).limit(3)
   ]);
 
-  const recentEl = document.getElementById('sd-recent');
   const actItems = [];
-
-  if (lastVote?.[0]) {
-    const v = lastVote[0];
-    actItems.push({ icon: '🗳️',
-      text: `Vote pour <strong>${v.films?.title || '—'}</strong>`,
-      date: v.created_at });
-  }
+  if (lastVote?.[0]) actItems.push({icon:'🗳️', text:`Vote pour <strong>${lastVote[0].films?.title||'—'}</strong>`, date:lastVote[0].created_at});
   if (lastProp?.[0]) {
     const p = lastProp[0];
-    const stMap = { pending:'⏳', accepted:'✅', rejected:'❌' };
-    actItems.push({ icon: '💡',
-      text: `Proposition : <strong>${p.title}</strong> ${stMap[p.status] || ''}`,
-      date: p.proposed_at });
+    const stMap = {pending:'⏳',accepted:'✅',rejected:'❌'};
+    actItems.push({icon:'💡', text:`Proposition : <strong>${p.title}</strong> ${stMap[p.status]||''}`, date:p.proposed_at});
   }
   if (lastReg?.[0]) {
     const r = lastReg[0];
-    const sesDate = r.cinema_sessions?.session_date;
     const sesTitle = r.cinema_sessions?.films?.title || '—';
-    actItems.push({ icon: '✅',
-      text: `Inscrit à <strong>${sesTitle}</strong>${sesDate ? ' · ' + fmtDateShort(sesDate) : ''}`,
-      date: r.registered_at });
+    const sesDate  = r.cinema_sessions?.session_date;
+    actItems.push({icon:'✅', text:`Inscrit à <strong>${sesTitle}</strong>${sesDate?' · '+fmtDateShort(sesDate):''}`, date:r.registered_at});
   }
-  (lastEvent || []).forEach(ev => {
-    const evMap = {
-      session_waitlist:  { icon: '⏳', text: 'Passé en liste d\'attente' },
-      session_promoted:  { icon: '🎉', text: 'Promu inscrit confirmé' },
-      session_unbanned:  { icon: '✅', text: 'Débloqué pour une séance' },
-      new_session:       { icon: '🎟️', text: 'Nouvelle séance annoncée' },
-      session_opened:    { icon: '🟢', text: 'Inscriptions ouvertes' },
-    };
+  const evMap = {
+    session_waitlist:{icon:'⏳',text:"Passé en liste d'attente"},
+    session_promoted:{icon:'🎉',text:'Promu inscrit confirmé'},
+    session_unbanned:{icon:'✅',text:'Débloqué pour une séance'},
+    new_session:{icon:'🎟️',text:'Nouvelle séance annoncée'},
+    session_opened:{icon:'🟢',text:'Inscriptions ouvertes'},
+  };
+  (lastEvents||[]).forEach(ev => {
     const e = evMap[ev.event_type];
-    if (e) actItems.push({ icon: e.icon, text: ev.message || e.text, date: ev.created_at });
+    if (e) actItems.push({icon:e.icon, text:ev.message||e.text, date:ev.created_at});
   });
 
-  // Trier par date décroissante, garder les 5 plus récents
-  actItems.sort((a, b) => (b.date || '') > (a.date || '') ? 1 : -1);
-  const top5 = actItems.slice(0, 5);
-
+  actItems.sort((a,b) => (b.date||'') > (a.date||'') ? 1 : -1);
+  const top5 = actItems.slice(0,5);
+  const recentEl = document.getElementById('sd-recent');
   if (!top5.length) {
     recentEl.innerHTML = '<p class="text-sm text-muted" style="padding:4px 0;">Aucune activité enregistrée.</p>';
     return;
   }
-
   recentEl.innerHTML = top5.map(item => `
     <div class="sd-activity-item">
       <span class="sd-activity-icon">${item.icon}</span>
       <span class="sd-activity-text">${item.text}</span>
-      <span class="sd-activity-date">${item.date ? fmtDateShort(item.date.split('T')[0]) : ''}</span>
+      <span class="sd-activity-date">${item.date ? fmtDateTime(item.date) : ''}</span>
     </div>`).join('');
 }
 
+/* ---- Onglet Films proposés ---- */
+async function _sdLoadProposals(studentId) {
+  const el = document.getElementById('sd-proposals-content');
+  const { data } = await db.from('proposals')
+    .select('id,title,year,status,proposed_at,admin_refusal_reason,poster_url')
+    .eq('student_id',studentId).order('proposed_at',{ascending:false});
+
+  if (!data?.length) { el.innerHTML = '<p class="text-sm text-muted" style="padding:10px 0;">Aucune proposition.</p>'; return; }
+
+  const stCls = {pending:'badge-gold',accepted:'badge-green',rejected:'badge-red'};
+  const stLbl = {pending:'⏳ En attente',accepted:'✅ Acceptée',rejected:'❌ Refusée'};
+  el.innerHTML = `<div style="display:flex;flex-direction:column;gap:9px;">${
+    data.map(p => `
+      <div style="display:flex;gap:11px;align-items:flex-start;background:var(--surface-2);border-radius:var(--radius-sm);padding:10px 12px;">
+        ${p.poster_url
+          ? `<img src="${p.poster_url}" style="width:34px;height:51px;object-fit:cover;border-radius:4px;flex-shrink:0;" alt="">`
+          : `<div style="width:34px;height:51px;background:var(--surface-3);border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;">🎬</div>`}
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:700;font-size:13.5px;margin-bottom:3px;">${p.title}${p.year?` (${p.year})`:''}</div>
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:4px;">
+            <span class="badge ${stCls[p.status]||'badge-muted'}">${stLbl[p.status]||p.status}</span>
+            <span class="sd-activity-date">${fmtDateTime(p.proposed_at)}</span>
+          </div>
+          ${p.admin_refusal_reason?`<div style="font-size:12px;color:var(--red);font-style:italic;">↳ ${p.admin_refusal_reason}</div>`:''}
+        </div>
+      </div>`).join('')
+  }</div>`;
+}
+
+/* ---- Onglet Votes ---- */
+async function _sdLoadVotes(studentId) {
+  const el = document.getElementById('sd-votes-content');
+  const { data } = await db.from('votes')
+    .select('created_at,films(id,title,year,poster_url)')
+    .eq('student_id',studentId).order('created_at',{ascending:false});
+
+  if (!data?.length) { el.innerHTML = '<p class="text-sm text-muted" style="padding:10px 0;">Aucun vote.</p>'; return; }
+  el.innerHTML = `<div style="display:flex;flex-direction:column;gap:8px;">${
+    data.map(v => `
+      <div style="display:flex;gap:11px;align-items:center;background:var(--surface-2);border-radius:var(--radius-sm);padding:10px 12px;">
+        ${v.films?.poster_url
+          ? `<img src="${v.films.poster_url}" style="width:34px;height:51px;object-fit:cover;border-radius:4px;flex-shrink:0;" alt="">`
+          : `<div style="width:34px;height:51px;background:var(--surface-3);border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;">🎬</div>`}
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:700;font-size:13.5px;margin-bottom:3px;">${v.films?.title||'—'}${v.films?.year?` (${v.films.year})`:''}</div>
+          <span class="sd-activity-date">🗳️ ${fmtDateTime(v.created_at)}</span>
+        </div>
+      </div>`).join('')
+  }</div>`;
+}
+
+/* ---- Onglet Inscriptions ---- */
+async function _sdLoadSessions(studentId) {
+  const el = document.getElementById('sd-sessions-content');
+  const [{ data: regs }, { data: bans }] = await Promise.all([
+    db.from('registrations')
+      .select('status,registered_at,promoted_at,cinema_sessions(session_date,films(title,poster_url))')
+      .eq('student_id',studentId).order('registered_at',{ascending:false}),
+    db.from('session_bans')
+      .select('reason,banned_at,cinema_sessions(session_date,films(title))')
+      .eq('student_id',studentId).order('banned_at',{ascending:false})
+  ]);
+
+  if (!regs?.length && !bans?.length) {
+    el.innerHTML = '<p class="text-sm text-muted" style="padding:10px 0;">Aucune inscription.</p>'; return;
+  }
+
+  let html = '';
+  if (regs?.length) {
+    html += `<p class="text-sm text-muted" style="margin-bottom:8px;">${regs.length} inscription${regs.length>1?'s':''}</p>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;">${
+      regs.map(r => {
+        const ses    = r.cinema_sessions;
+        const film   = ses?.films?.title || '— Film à annoncer';
+        const poster = ses?.films?.poster_url || '';
+        const isWait = r.status === 'waitlist';
+        const badge  = isWait
+          ? `<span class="badge badge-gold">⏳ Liste d'attente</span>`
+          : `<span class="badge badge-green">✅ Inscrit</span>`;
+        return `
+          <div style="display:flex;gap:11px;align-items:flex-start;background:var(--surface-2);border-radius:var(--radius-sm);padding:10px 12px;">
+            ${poster
+              ? `<img src="${poster}" style="width:34px;height:51px;object-fit:cover;border-radius:4px;flex-shrink:0;" alt="">`
+              : `<div style="width:34px;height:51px;background:var(--surface-3);border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;">🎬</div>`}
+            <div style="flex:1;min-width:0;">
+              <div style="font-weight:700;font-size:13.5px;margin-bottom:3px;">${film}</div>
+              ${ses?.session_date?`<div style="font-size:12px;color:var(--gold);font-weight:700;margin-bottom:4px;">📅 ${fmtDateShort(ses.session_date)}</div>`:''}
+              <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                ${badge}
+                <span class="sd-activity-date">${fmtDateTime(isWait&&r.promoted_at?r.promoted_at:r.registered_at)}</span>
+              </div>
+            </div>
+          </div>`;
+      }).join('')
+    }</div>`;
+  }
+  if (bans?.length) {
+    html += `<p class="text-sm text-muted" style="font-weight:700;color:var(--red);margin-bottom:8px;">🚫 Blocages (${bans.length})</p>
+      <div style="display:flex;flex-direction:column;gap:8px;">${
+      bans.map(b => `
+        <div style="background:var(--red-dim);border:1px solid rgba(232,64,64,.2);border-radius:var(--radius-sm);padding:10px 12px;">
+          <div style="font-weight:700;font-size:13.5px;margin-bottom:3px;">
+            ${b.cinema_sessions?.films?.title||'— Séance'}
+            ${b.cinema_sessions?.session_date?`<span style="font-size:12px;font-weight:400;color:var(--text-3);margin-left:6px;">📅 ${fmtDateShort(b.cinema_sessions.session_date)}</span>`:''}
+          </div>
+          ${b.reason?`<div style="font-size:12px;color:var(--red);font-style:italic;">Motif : ${b.reason}</div>`:''}
+          <div class="sd-activity-date" style="margin-top:4px;">${fmtDateTime(b.banned_at)}</div>
+        </div>`).join('')
+    }</div>`;
+  }
+  el.innerHTML = html;
+}
 async function loadAdminStudents() {
   const year = document.getElementById('imp-year').value || CFG.SCHOOL_YEAR;
   const { data } = await db.from('students').select('*')
