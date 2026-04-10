@@ -5661,13 +5661,13 @@ async function _sdLoadVotes(studentId) {
 
   const { data: votes, error: votesError } = await db
     .from('votes')
-    .select('film_id, created_at')
+    .select('*')
     .eq('student_id', studentId)
-    .order('created_at', { ascending: false });
+    .order('id', { ascending: false });
 
   if (votesError) {
     console.error('sd votes error:', votesError);
-    el.innerHTML = '<p class="text-sm text-muted" style="padding:10px 0;">Erreur lors du chargement des votes.</p>';
+    el.innerHTML = `<p class="text-sm text-muted" style="padding:10px 0;">Erreur lors du chargement des votes.<br><span style="color:var(--red);">${votesError.message || ''}</span></p>`;
     return;
   }
 
@@ -5687,7 +5687,7 @@ async function _sdLoadVotes(studentId) {
 
     if (filmsError) {
       console.error('sd votes films error:', filmsError);
-      el.innerHTML = '<p class="text-sm text-muted" style="padding:10px 0;">Erreur lors du chargement des votes.</p>';
+      el.innerHTML = `<p class="text-sm text-muted" style="padding:10px 0;">Erreur lors du chargement des votes.<br><span style="color:var(--red);">${filmsError.message || ''}</span></p>`;
       return;
     }
 
@@ -5697,6 +5697,8 @@ async function _sdLoadVotes(studentId) {
   el.innerHTML = `<div style="display:flex;flex-direction:column;gap:8px;">${
     votes.map(v => {
       const film = filmMap[v.film_id] || null;
+      const voteDate = v.created_at ? fmtDateTime(v.created_at) : null;
+
       return `
         <div style="display:flex;gap:11px;align-items:center;background:var(--surface-2);border-radius:var(--radius-sm);padding:10px 12px;">
           ${film?.poster_url
@@ -5706,7 +5708,9 @@ async function _sdLoadVotes(studentId) {
             <div style="font-weight:700;font-size:13.5px;margin-bottom:3px;">
               ${film?.title || 'Film introuvable'}${film?.year ? ` (${film.year})` : ''}
             </div>
-            <span class="sd-activity-date">🗳️ ${fmtDateTime(v.created_at)}</span>
+            ${voteDate
+              ? `<span class="sd-activity-date">🗳️ ${voteDate}</span>`
+              : `<span class="sd-activity-date">🗳️ Vote enregistré</span>`}
           </div>
         </div>
       `;
