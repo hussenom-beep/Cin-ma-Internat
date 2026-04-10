@@ -1595,7 +1595,68 @@ button { cursor: pointer; }
 .admin-settings-btn:hover { background: var(--surface-3); border-color: var(--border-2); }
 
 /* ================================================================
-   ADMIN SCREEN
+   SWITCH IMPORT PONCTUEL / ANNUEL
+   ================================================================ */
+.import-switch-wrap {
+  display: flex;
+  gap: 0;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 4px;
+  margin-bottom: 16px;
+}
+.import-switch-btn {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: calc(var(--radius-sm) - 2px);
+  border: none;
+  background: none;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-3);
+  cursor: pointer;
+  transition: all .18s;
+  font-family: inherit;
+  text-align: center;
+  line-height: 1.3;
+}
+.import-switch-btn.active {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 1px 5px rgba(0,0,0,.35);
+}
+.import-switch-btn.active.annual { color: var(--gold); }
+.import-annual-warning {
+  background: rgba(240,165,0,.1);
+  border: 1px solid rgba(240,165,0,.3);
+  border-radius: var(--radius-sm);
+  padding: 11px 14px;
+  font-size: 12.5px;
+  color: var(--gold);
+  line-height: 1.55;
+  margin-bottom: 14px;
+}
+.import-result-block {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  margin-top: 16px;
+  font-size: 13px;
+}
+.import-result-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-2);
+}
+.import-result-row:last-child { border-bottom: none; }
+.import-result-val { font-weight: 700; color: var(--text); }
+.import-result-val.gold { color: var(--gold); }
+.import-result-val.green { color: #4caf7d; }
+.import-result-val.red { color: var(--red); }
    ================================================================ */
 #screen-admin { padding-bottom: 0; }
 
@@ -3072,24 +3133,52 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       <!-- Import élèves -->
       <div class="sd-section">
         <div class="sd-section-title">Import élèves</div>
-        <p class="text-sm text-muted" style="margin-bottom:12px;">
-          Format CSV : <code>prénom,nom,classe,eleveUid</code>
-          <span style="opacity:.6;">(eleveUid optionnel)</span>
+        <p class="text-sm text-muted" style="margin-bottom:14px;">
+          Format CSV : <code>prénom,nom,classe,eleveUid,année</code>
+          <br><span style="opacity:.6;font-size:11.5px;">L'année scolaire est lue automatiquement depuis le fichier (5e colonne).</span>
         </p>
-        <div class="fgroup">
-          <label class="flabel">Année scolaire</label>
-          <input type="text" class="finput" id="imp-year" placeholder="2024-2025">
+
+        <!-- Switch mode -->
+        <div class="import-switch-wrap">
+          <button class="import-switch-btn active" id="import-btn-ponctuel"
+                  onclick="setImportMode('ponctuel')">
+            📋 Import ponctuel<br>
+            <span style="font-size:10.5px;font-weight:500;opacity:.7;">Ajoute / met à jour</span>
+          </button>
+          <button class="import-switch-btn annual" id="import-btn-annual"
+                  onclick="setImportMode('annual')">
+            🎓 Import annuel<br>
+            <span style="font-size:10.5px;font-weight:500;opacity:.7;">Rentrée / réinitialise</span>
+          </button>
         </div>
+
+        <!-- Warning annuel (masqué par défaut) -->
+        <div class="import-annual-warning hidden" id="import-annual-warning">
+          ⚠️ Cet import mettra à jour l'année scolaire active, archivera les élèves absents du fichier et <strong>réinitialisera tous les votes</strong>.
+        </div>
+
+        <!-- CSV -->
         <div class="fgroup">
           <label class="flabel">Données CSV</label>
           <textarea class="ftextarea" id="csv-data" rows="6"
-            placeholder="Jean,Dupont,Terminale A&#10;Marie,Martin,Première B&#10;..."></textarea>
+            placeholder="Jean,Dupont,Terminale A,UID123,2025-2026&#10;Marie,Martin,Première B,UID456,2025-2026&#10;..."></textarea>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
           <input type="file" id="csv-file" accept=".csv,.txt" style="display:none;" onchange="onCSVFile(event)">
           <button class="btn btn-ghost btn-sm" onclick="document.getElementById('csv-file').click()">📁 Charger fichier</button>
-          <button class="btn btn-gold" onclick="importStudentsFromSettings()">Importer les élèves ↑</button>
         </div>
+
+        <!-- Mot de passe annuel (masqué par défaut) -->
+        <div class="fgroup hidden" id="import-annual-pwd-wrap">
+          <label class="flabel">Mot de passe admin (obligatoire pour import annuel)</label>
+          <input type="password" class="finput" id="import-annual-pwd" placeholder="••••••••">
+        </div>
+
+        <button class="btn btn-gold btn-full" onclick="importStudentsFromSettings()">Importer les élèves ↑</button>
+
+        <!-- Résultat import -->
+        <div id="import-result" class="hidden"></div>
       </div>
 
       <div style="height:1px;background:var(--border);margin:4px 0 20px;"></div>
@@ -3098,7 +3187,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       <div class="sd-section">
         <div class="sd-section-title">Export</div>
         <p class="text-sm text-muted" style="margin-bottom:12px;">
-          Exporte les codes d'activation des élèves de l'année en cours.
+          Exporte les codes d'activation des élèves.
         </p>
         <button class="btn btn-ghost btn-full" onclick="exportCodes()">⬇ Télécharger codes CSV</button>
       </div>
@@ -6673,11 +6762,172 @@ function sortStudents(key) {
 }
 
 /* Import depuis le panneau Paramètres */
+/* ================================================================
+   IMPORT ÉLÈVES — logique upsert basée sur eleveUid
+   ================================================================ */
+
+let _importMode = 'ponctuel'; // mode par défaut
+
+function setImportMode(mode) {
+  _importMode = mode;
+  document.getElementById('import-btn-ponctuel').classList.toggle('active', mode === 'ponctuel');
+  document.getElementById('import-btn-annual').classList.toggle('active', mode === 'annual');
+  document.getElementById('import-annual-warning').classList.toggle('hidden', mode === 'ponctuel');
+  document.getElementById('import-annual-pwd-wrap').classList.toggle('hidden', mode === 'ponctuel');
+  if (mode === 'annual') {
+    setTimeout(() => document.getElementById('import-annual-pwd')?.focus(), 80);
+  }
+}
+
 async function importStudentsFromSettings() {
-  await importStudents();
-  // Rafraîchir le tableau élèves si on y est
-  if (document.getElementById('ap-students') &&
-      !document.getElementById('ap-students').classList.contains('hidden')) {
+  const csv = document.getElementById('csv-data').value.trim();
+  if (!csv) { toast('Colle ou charge un fichier CSV', 'error'); return; }
+
+  // ---- Vérification mot de passe admin si mode annuel ----
+  if (_importMode === 'annual') {
+    const pwd = document.getElementById('import-annual-pwd').value.trim();
+    if (!pwd) {
+      toast('Mot de passe admin obligatoire pour l\'import annuel', 'error');
+      document.getElementById('import-annual-pwd').focus();
+      return;
+    }
+    const { data: ok, error: rpcErr } = await db.rpc('verify_admin_password', { p_password: pwd });
+    if (rpcErr) { toast('Erreur de vérification admin', 'error'); return; }
+    if (!ok) {
+      toast('Mot de passe admin incorrect', 'error');
+      document.getElementById('import-annual-pwd').value = '';
+      document.getElementById('import-annual-pwd').focus();
+      return;
+    }
+  }
+
+  // ---- Parser le CSV ----
+  const rows = [];
+  let detectedYear = null;
+
+  for (const line of csv.split('\n')) {
+    const parts = line.split(',').map(p => p.replace(/["']/g,'').trim());
+    if (parts.length < 2) continue;
+    const [fn, ln, cn, uid, yr] = parts;
+    if (['prénom','prenom','firstname','first_name','nom'].includes((fn||'').toLowerCase())) continue;
+    if (!fn || !ln) continue;
+    if (yr && !detectedYear) detectedYear = yr;
+    rows.push({ first_name: fn, last_name: ln, class_name: cn || null,
+                eleve_uid: uid || null, school_year: yr || null });
+  }
+
+  if (!rows.length) { toast('Aucun élève détecté', 'error'); return; }
+
+  const year = detectedYear || CFG.SCHOOL_YEAR;
+
+  // ---- Charger tous les élèves existants ----
+  const { data: existing } = await db.from('students').select('id, eleve_uid, login_identifier, is_active');
+  const byUid  = {};
+  const allLogins = new Set();
+  (existing || []).forEach(s => {
+    if (s.eleve_uid) byUid[s.eleve_uid] = s;
+    if (s.login_identifier) allLogins.add(s.login_identifier);
+  });
+
+  // ---- Uid présents dans le fichier (pour archivage annuel) ----
+  const incomingUids = new Set(rows.map(r => r.eleve_uid).filter(Boolean));
+
+  // ---- Compteurs résumé ----
+  let created = 0, updated = 0, unarchived = 0, archived = 0;
+
+  // ---- Upsert ligne par ligne ----
+  for (const r of rows) {
+    const existing_s = r.eleve_uid ? byUid[r.eleve_uid] : null;
+
+    if (existing_s) {
+      // Mise à jour
+      const patch = {
+        first_name:  r.first_name,
+        last_name:   r.last_name,
+        class_name:  r.class_name,
+        school_year: year,
+      };
+      // Désarchiver si archivé
+      if (!existing_s.is_active) {
+        patch.is_active = true;
+        unarchived++;
+      } else {
+        updated++;
+      }
+      await db.from('students').update(patch).eq('id', existing_s.id);
+    } else {
+      // Création — générer un login unique
+      let base = buildLoginIdentifier(r.first_name, r.last_name);
+      let login = base;
+      let n = 2;
+      while (allLogins.has(login)) { login = base + n; n++; }
+      allLogins.add(login);
+
+      await db.from('students').insert({
+        first_name:       r.first_name,
+        last_name:        r.last_name,
+        class_name:       r.class_name,
+        school_year:      year,
+        eleve_uid:        r.eleve_uid || null,
+        login_identifier: login,
+        activation_code:  genCode(),
+        is_activated:     false,
+        is_active:        true,
+      });
+      if (r.eleve_uid) byUid[r.eleve_uid] = { id: null, eleve_uid: r.eleve_uid, login_identifier: login, is_active: true };
+      created++;
+    }
+  }
+
+  // ---- Import annuel : archiver les absents + reset votes ----
+  let votesReset = false;
+  if (_importMode === 'annual') {
+    // Archiver les élèves actifs absents
+    const toArchive = (existing || []).filter(s =>
+      s.is_active && s.eleve_uid && !incomingUids.has(s.eleve_uid)
+    );
+    if (toArchive.length) {
+      await db.from('students').update({ is_active: false })
+        .in('id', toArchive.map(s => s.id));
+      archived = toArchive.length;
+    }
+    // Reset votes
+    await db.from('votes').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    votesReset = true;
+  }
+
+  // ---- Résumé ----
+  document.getElementById('csv-data').value = '';
+  if (_importMode === 'annual') {
+    document.getElementById('import-annual-pwd').value = '';
+  }
+
+  const resultEl = document.getElementById('import-result');
+  const row = (label, val, cls = '') =>
+    `<div class="import-result-row">
+       <span>${label}</span>
+       <span class="import-result-val ${cls}">${val}</span>
+     </div>`;
+
+  resultEl.classList.remove('hidden');
+  resultEl.innerHTML = `
+    <div class="import-result-block">
+      <div style="font-size:11px;font-weight:800;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;">
+        Résumé de l'import
+      </div>
+      ${row('Type d\'import', _importMode === 'annual' ? '🎓 Annuel' : '📋 Ponctuel', _importMode === 'annual' ? 'gold' : '')}
+      ${row('Année scolaire détectée', year, 'gold')}
+      ${row('Élèves créés', created, created > 0 ? 'green' : '')}
+      ${row('Élèves mis à jour', updated)}
+      ${row('Élèves désarchivés', unarchived, unarchived > 0 ? 'green' : '')}
+      ${row('Élèves archivés', archived, archived > 0 ? 'red' : '')}
+      ${row('Votes réinitialisés', votesReset ? '✅ Oui' : 'Non', votesReset ? 'red' : '')}
+    </div>`;
+
+  toast(`Import terminé — ${created} créé${created !== 1 ? 's' : ''}, ${updated + unarchived} mis à jour`, 'success');
+
+  // Rafraîchir si onglet Élèves ouvert
+  if (!document.getElementById('ap-students')?.classList.contains('hidden')) {
     loadAdminStudents();
   }
 }
@@ -6833,44 +7083,8 @@ function onCSVFile(e) {
   r.readAsText(f, 'UTF-8');
 }
 
-async function importStudents() {
-  const csv = document.getElementById('csv-data').value.trim();
-  const year = document.getElementById('imp-year').value.trim() || CFG.SCHOOL_YEAR;
-  if (!csv) { toast('Colle ou charge un fichier CSV', 'error'); return; }
-
-  const rows = [];
-  for (const line of csv.split('\n')) {
-    const parts = line.split(',').map(p => p.replace(/["']/g,'').trim());
-    if (parts.length < 2) continue;
-    const [fn, ln, cn, uid] = parts;
-    // Skip header
-    if (['prénom','prenom','firstname','first_name','nom'].includes(fn.toLowerCase())) continue;
-    if (!fn || !ln) continue;
-    rows.push({
-      first_name:       fn,
-      last_name:        ln,
-      class_name:       cn || null,
-      school_year:      year,
-      eleve_uid:        uid || null,   // 4e colonne optionnelle : identifiant permanent
-      login_identifier: buildLoginIdentifier(fn, ln),
-      activation_code:  genCode(),
-      is_activated:     false,
-      is_active:        true
-    });
-  }
-
-  if (!rows.length) { toast('Aucun élève détecté', 'error'); return; }
-
-  const { error } = await db.from('students').insert(rows);
-  if (error) { toast('Erreur : ' + error.message, 'error'); return; }
-
-  toast(`${rows.length} élève${rows.length > 1 ? 's' : ''} importé${rows.length > 1 ? 's' : ''} ✅`, 'success');
-  document.getElementById('csv-data').value = '';
-  loadAdminStudents();
-}
-
 function exportCodes() {
-  const year = document.getElementById('imp-year').value || CFG.SCHOOL_YEAR;
+  const year = CFG.SCHOOL_YEAR;
   db.from('students').select('*').eq('school_year', year).order('last_name').then(({ data }) => {
     if (!data?.length) { toast('Aucun élève à exporter'); return; }
     const csv = 'Prénom,Nom,Classe,Code,Activé\n' +
@@ -6896,10 +7110,10 @@ function openModal(id) {
     document.getElementById('prof-fullname').textContent = [fn, ln].filter(Boolean).join(' ') || '—';
     document.getElementById('prof-class').textContent    = S.user.className || '—';
   }
-  // Pré-remplir l'année scolaire dans les Paramètres
+  // Réinitialiser le switch import à l'ouverture des Paramètres
   if (id === 'modal-admin-settings') {
-    const yrEl = document.getElementById('imp-year');
-    if (yrEl && !yrEl.value) yrEl.value = CFG.SCHOOL_YEAR;
+    setImportMode('ponctuel');
+    document.getElementById('import-result')?.classList.add('hidden');
   }
   document.getElementById(id).classList.remove('hidden');
 }
@@ -7103,7 +7317,6 @@ document.getElementById('admin-film-search').addEventListener('input', () => deb
    ================================================================ */
 function init() {
   loadLocal();
-  document.getElementById('imp-year').value = CFG.SCHOOL_YEAR;
 
   if (S.user) {
     startInactivityTimer(); // session restaurée → relancer le timer
