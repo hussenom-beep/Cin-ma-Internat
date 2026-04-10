@@ -5654,24 +5654,61 @@ async function _sdLoadProposals(studentId) {
 }
 
 /* ---- Onglet Votes ---- */
+
 async function _sdLoadVotes(studentId) {
   const el = document.getElementById('sd-votes-content');
-  const { data } = await db.from('votes')
-    .select('created_at,films(id,title,year,poster_url)')
-    .eq('student_id',studentId).order('created_at',{ascending:false});
+  el.innerHTML = '<div class="loader" style="padding:28px;"><div class="spinner"></div></div>';
 
-  if (!data?.length) { el.innerHTML = '<p class="text-sm text-muted" style="padding:10px 0;">Aucun vote.</p>'; return; }
+  const { data: votes, error: votesError } = await db
+    .from('votes')
+    .select('film_id, created_at')
+    .eq('student_id', studentId)
+    .order('created_at', { ascending: false });
+
+  if (votesError) {
+    console.error('sd votes error:', votesError);
+    el.innerHTML = '<p class="text-sm text-muted" style="padding:10px 0;">Erreur lors du chargement des votes.</p>';
+    return;
+  }
+
+  if (!votes?.length) {
+    el.innerHTML = '<p class="text-sm text-muted" style="padding:10px 0;">Aucun vote.</p>';
+    return;
+  }
+
+  const filmIds = [...new Set(votes.map(v => v.film_id).filter(Boolean))];
+
+  let filmMap = {};
+  if (filmIds.length) {
+    const { data: films, error: filmsError } = await db
+      .from('films')
+      .select('id, title, year, poster_url')
+      .in('id', filmIds);
+
+    if (filmsError) {
+      console.error('sd votes films error:', filmsError);
+    } else {
+      filmMap = Object.fromEntries((films || []).map(f => [f.id, f]));
+    }
+  }
+
   el.innerHTML = `<div style="display:flex;flex-direction:column;gap:8px;">${
-    data.map(v => `
-      <div style="display:flex;gap:11px;align-items:center;background:var(--surface-2);border-radius:var(--radius-sm);padding:10px 12px;">
-        ${v.films?.poster_url
-          ? `<img src="${v.films.poster_url}" style="width:34px;height:51px;object-fit:cover;border-radius:4px;flex-shrink:0;" alt="">`
-          : `<div style="width:34px;height:51px;background:var(--surface-3);border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;">🎬</div>`}
-        <div style="flex:1;min-width:0;">
-          <div style="font-weight:700;font-size:13.5px;margin-bottom:3px;">${v.films?.title||'—'}${v.films?.year?` (${v.films.year})`:''}</div>
-          <span class="sd-activity-date">🗳️ ${fmtDateTime(v.created_at)}</span>
+    votes.map(v => {
+      const film = filmMap[v.film_id] || null;
+      return `
+        <div style="display:flex;gap:11px;align-items:center;background:var(--surface-2);border-radius:var(--radius-sm);padding:10px 12px;">
+          ${film?.poster_url
+            ? `<img src="${film.poster_url}" style="width:34px;height:51px;object-fit:cover;border-radius:4px;flex-shrink:0;" alt="">`
+            : `<div style="width:34px;height:51px;background:var(--surface-3);border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;">🎬</div>`}
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:700;font-size:13.5px;margin-bottom:3px;">
+              ${film?.title || 'Film introuvable'}${film?.year ? ` (${film.year})` : ''}
+            </div>
+            <span class="sd-activity-date">🗳️ ${fmtDateTime(v.created_at)}</span>
+          </div>
         </div>
-      </div>`).join('')
+      `;
+    }).join('')
   }</div>`;
 }
 
