@@ -3338,9 +3338,7 @@ function normalizeLoginPart(str) {
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '.')
-    .replace(/^\.+|\.+$/g, '')
-    .replace(/\.{2,}/g, '.');
+    .replace(/[^a-z0-9]/g, '');
 }
 
 function buildLoginIdentifier(firstName, lastName) {
@@ -6843,12 +6841,24 @@ async function importStudentsFromSettings() {
     const existing_s = r.eleve_uid ? byUid[r.eleve_uid] : null;
 
     if (existing_s) {
-      // Mise à jour
+      // Recalculer le login à partir du nouveau prénom/nom
+      const newBase  = buildLoginIdentifier(r.first_name, r.last_name);
+      let   newLogin = newBase;
+      let   n        = 2;
+      // Chercher un login libre en excluant l'élève lui-même
+      while (allLogins.has(newLogin) && newLogin !== existing_s.login_identifier) {
+        newLogin = newBase + n; n++;
+      }
+      // Mettre à jour allLogins : retirer l'ancien, ajouter le nouveau
+      if (existing_s.login_identifier) allLogins.delete(existing_s.login_identifier);
+      allLogins.add(newLogin);
+
       const patch = {
-        first_name:  r.first_name,
-        last_name:   r.last_name,
-        class_name:  r.class_name,
-        school_year: year,
+        first_name:       r.first_name,
+        last_name:        r.last_name,
+        class_name:       r.class_name,
+        school_year:      year,
+        login_identifier: newLogin,
       };
       // Désarchiver si archivé
       if (!existing_s.is_active) {
