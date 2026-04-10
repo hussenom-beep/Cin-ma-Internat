@@ -1008,6 +1008,187 @@ button { cursor: pointer; }
 }
 
 /* ================================================================
+   FICHE ÉLÈVE ADMIN — panneau latéral / modal
+   ================================================================ */
+
+/* Overlay dédié — slide depuis la droite */
+#modal-student-detail {
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: 0;
+}
+#modal-student-detail .sd-panel {
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  width: 100%;
+  max-width: 480px;
+  height: 100vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+  animation: sdSlideIn .25s cubic-bezier(.32,1,.64,1) both;
+}
+@keyframes sdSlideIn {
+  from { transform: translateX(100%); opacity: .6; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+/* Header de la fiche */
+.sd-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: rgba(17,17,25,.96);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+}
+.sd-header-close {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 17px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background .18s;
+}
+.sd-header-close:hover { background: var(--surface-3); }
+.sd-header-title {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Corps scrollable */
+.sd-body { padding: 20px 18px 40px; flex: 1; }
+
+/* Bloc identité */
+.sd-identity {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 22px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+.sd-avatar {
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  background: var(--gold-dim);
+  border: 2px solid rgba(240,165,0,.35);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; font-weight: 900;
+  color: var(--gold);
+  flex-shrink: 0;
+  font-family: 'DM Sans', sans-serif;
+}
+.sd-name {
+  font-family: 'Playfair Display', serif;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-bottom: 4px;
+}
+.sd-meta { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+.sd-uid {
+  font-size: 10.5px;
+  color: var(--text-3);
+  font-family: 'Courier New', monospace;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 2px 7px;
+  letter-spacing: .03em;
+}
+
+/* Sections */
+.sd-section { margin-bottom: 20px; }
+.sd-section-title {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  margin-bottom: 10px;
+}
+
+/* Grille de stats */
+.sd-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.sd-stat {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+}
+.sd-stat-val {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1;
+  margin-bottom: 3px;
+}
+.sd-stat-label {
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+/* Activité récente */
+.sd-activity-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid rgba(37,37,56,.5);
+}
+.sd-activity-item:last-child { border-bottom: none; }
+.sd-activity-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+.sd-activity-text { flex: 1; font-size: 13px; color: var(--text-2); line-height: 1.4; }
+.sd-activity-date { font-size: 11px; color: var(--text-3); white-space: nowrap; }
+
+/* Onglets (structure pour la suite) */
+.sd-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+  margin: 0 -18px 18px;
+  padding: 0 18px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.sd-tabs::-webkit-scrollbar { display: none; }
+.sd-tab {
+  padding: 10px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-3);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+  margin-bottom: -1px;
+  transition: color .18s, border-color .18s;
+}
+.sd-tab.active { color: var(--gold); border-bottom-color: var(--gold); }
+.sd-tab:disabled { opacity: .35; cursor: default; }
+
+/* ================================================================
    ADMIN SCREEN
    ================================================================ */
 #screen-admin { padding-bottom: 0; }
@@ -1578,7 +1759,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     <div class="admin-panel hidden" id="ap-students">
       <div class="admin-panel-title" style="flex-direction:column;align-items:flex-start;gap:4px;">
         Gestion des élèves
-        <span class="text-sm text-muted" style="font-weight:400;">Format CSV attendu : <code>prénom,nom,classe</code></span>
+        <span class="text-sm text-muted" style="font-weight:400;">Format CSV : <code>prénom,nom,classe,eleveUid</code> <span style="opacity:.6;">(eleveUid optionnel)</span></span>
       </div>
 
       <div class="card" style="margin-bottom:18px;">
@@ -1606,8 +1787,8 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       </div>
       <div class="scroll-x">
         <table class="stbl">
-          <thead><tr><th>Nom / Prénom</th><th>Classe</th><th>Identifiant</th><th>Statut</th></tr></thead>
-          <tbody id="students-tbody"><tr><td colspan="4" style="text-align:center;color:var(--text-3);padding:20px;">Chargement...</td></tr></tbody>
+          <thead><tr><th>Nom / Prénom</th><th>Classe</th><th>Identifiant</th><th>EleveUID</th><th>Statut</th></tr></thead>
+          <tbody id="students-tbody"><tr><td colspan="5" style="text-align:center;color:var(--text-3);padding:20px;">Chargement...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -2153,6 +2334,69 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
   </div>
 </div>
 
+<!-- ================================================================
+     MODAL: Fiche élève admin — panneau latéral
+     ================================================================ -->
+<div class="overlay hidden" id="modal-student-detail">
+  <div class="sd-panel">
+
+    <!-- Header sticky -->
+    <div class="sd-header">
+      <button class="sd-header-close" onclick="closeModal('modal-student-detail')">←</button>
+      <span class="sd-header-title" id="sd-header-title">Fiche élève</span>
+    </div>
+
+    <!-- Corps -->
+    <div class="sd-body">
+
+      <!-- Onglets (structure pour la suite) -->
+      <div class="sd-tabs">
+        <button class="sd-tab active" id="sd-tab-overview">Vue d'ensemble</button>
+        <button class="sd-tab" disabled>Films proposés</button>
+        <button class="sd-tab" disabled>Votes</button>
+        <button class="sd-tab" disabled>Inscriptions</button>
+      </div>
+
+      <!-- Identité -->
+      <div class="sd-identity">
+        <div class="sd-avatar" id="sd-avatar">?</div>
+        <div style="flex:1;min-width:0;">
+          <div class="sd-name" id="sd-name">—</div>
+          <div class="sd-meta">
+            <span id="sd-class-badge"></span>
+            <span id="sd-status-badge"></span>
+          </div>
+          <div>
+            <span class="sd-uid" id="sd-uid" title="Identifiant connexion"></span>
+            <span class="sd-uid" id="sd-eleve-uid" style="margin-left:5px;" title="EleveUID permanent"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- État du compte -->
+      <div class="sd-section">
+        <div class="sd-section-title">État du compte</div>
+        <div style="display:flex;flex-direction:column;gap:7px;" id="sd-account-info"></div>
+      </div>
+
+      <!-- Résumé activité -->
+      <div class="sd-section">
+        <div class="sd-section-title">Activité</div>
+        <div class="sd-stats" id="sd-stats"></div>
+      </div>
+
+      <!-- Activité récente -->
+      <div class="sd-section">
+        <div class="sd-section-title">Activité récente</div>
+        <div id="sd-recent">
+          <div class="loader" style="padding:20px;"><div class="spinner"></div></div>
+        </div>
+      </div>
+
+    </div><!-- /sd-body -->
+  </div><!-- /sd-panel -->
+</div>
+
 </div><!-- /app -->
 
 <script>
@@ -2695,9 +2939,11 @@ async function loginAs(student) {
   saveLocal();
   startInactivityTimer();
 
-  // Mettre à jour last_news_seen_at maintenant (sera la référence à la prochaine connexion)
-  db.from('students').update({ last_news_seen_at: new Date().toISOString() })
-    .eq('id', student.id).then(() => {}); // fire-and-forget, pas critique
+  // Mettre à jour last_news_seen_at et last_login_at
+  db.from('students').update({
+    last_news_seen_at: new Date().toISOString(),
+    last_login_at:     new Date().toISOString()
+  }).eq('id', student.id).then(() => {}); // fire-and-forget, pas critique
 
   navigateTo('home');
 }
@@ -4925,6 +5171,183 @@ async function saveSession() {
 /* ================================================================
    ADMIN — STUDENTS
    ================================================================ */
+/* ================================================================
+   FICHE ÉLÈVE ADMIN — V2.1
+   ================================================================ */
+
+async function openStudentDetail(studentId) {
+  // Récupérer les données de l'élève
+  const { data: s } = await db.from('students').select('*').eq('id', studentId).single();
+  if (!s) { toast('Élève introuvable', 'error'); return; }
+
+  // Header
+  document.getElementById('sd-header-title').textContent = `${s.first_name} ${s.last_name}`;
+
+  // Avatar initiales
+  const initials = ((s.first_name?.[0] || '') + (s.last_name?.[0] || '')).toUpperCase() || '?';
+  document.getElementById('sd-avatar').textContent = initials;
+  document.getElementById('sd-name').textContent = `${s.first_name} ${s.last_name}`;
+
+  // Badges meta
+  const classBadge = document.getElementById('sd-class-badge');
+  classBadge.className = 'profile-class';
+  classBadge.textContent = s.class_name || 'Classe inconnue';
+
+  const statusBadge = document.getElementById('sd-status-badge');
+  if (!s.is_active) {
+    statusBadge.className = 'badge badge-muted';
+    statusBadge.textContent = '⊘ Inactif';
+  } else if (s.is_activated) {
+    statusBadge.className = 'badge badge-green';
+    statusBadge.textContent = '✓ Activé';
+  } else {
+    statusBadge.className = 'badge badge-gold';
+    statusBadge.textContent = '○ En attente';
+  }
+
+  // UIDs
+  const uidEl = document.getElementById('sd-uid');
+  uidEl.textContent = s.login_identifier ? `🔑 ${s.login_identifier}` : '';
+  uidEl.style.display = s.login_identifier ? '' : 'none';
+
+  const eleveUidEl = document.getElementById('sd-eleve-uid');
+  eleveUidEl.textContent = s.eleve_uid ? `🪪 ${s.eleve_uid}` : '— pas d\'eleveUid';
+  eleveUidEl.style.color = s.eleve_uid ? '' : 'var(--text-3)';
+
+  // Informations compte
+  const acctInfo = document.getElementById('sd-account-info');
+  const row = (label, val, dim = false) =>
+    `<div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:5px 0;border-bottom:1px solid rgba(37,37,56,.4);">
+       <span style="color:var(--text-3);">${label}</span>
+       <span style="${dim ? 'color:var(--text-3);font-style:italic;' : 'font-weight:600;'}">${val}</span>
+     </div>`;
+
+  acctInfo.innerHTML = [
+    row('Année scolaire', s.school_year || '—'),
+    row('Activation', s.is_activated
+      ? (s.activated_at ? fmtDateShort(s.activated_at.split('T')[0]) : 'Oui')
+      : 'Non', !s.is_activated),
+    row('Dernière connexion', s.last_login_at
+      ? fmtDateShort(s.last_login_at.split('T')[0])
+      : 'Jamais', !s.last_login_at),
+    row('Code d\'activation', `<code style="font-size:12px;">${s.activation_code || '—'}</code>`)
+  ].join('');
+
+  // Stats : afficher loader pendant le chargement
+  document.getElementById('sd-stats').innerHTML =
+    '<div class="loader" style="grid-column:1/-1;padding:16px;"><div class="spinner"></div></div>';
+  document.getElementById('sd-recent').innerHTML =
+    '<div class="loader" style="padding:16px;"><div class="spinner"></div></div>';
+
+  openModal('modal-student-detail');
+
+  // Charger les stats en async
+  await _loadStudentStats(studentId);
+}
+
+async function _loadStudentStats(studentId) {
+  // 5 requêtes parallèles
+  const [
+    { count: voteCount },
+    { count: propCount },
+    { count: regCount },
+    { count: waitCount },
+    { count: banCount }
+  ] = await Promise.all([
+    db.from('votes').select('id', { count: 'exact', head: true }).eq('student_id', studentId),
+    db.from('proposals').select('id', { count: 'exact', head: true }).eq('student_id', studentId),
+    db.from('registrations').select('id', { count: 'exact', head: true })
+      .eq('student_id', studentId).eq('status', 'registered'),
+    db.from('registrations').select('id', { count: 'exact', head: true })
+      .eq('student_id', studentId).eq('status', 'waitlist'),
+    db.from('session_bans').select('id', { count: 'exact', head: true }).eq('student_id', studentId)
+  ]);
+
+  const statsEl = document.getElementById('sd-stats');
+  const stat = (val, label) =>
+    `<div class="sd-stat"><div class="sd-stat-val">${val ?? '—'}</div><div class="sd-stat-label">${label}</div></div>`;
+
+  statsEl.innerHTML = [
+    stat(voteCount,  '🗳️ Votes'),
+    stat(propCount,  '💡 Propositions'),
+    stat(regCount,   '✅ Inscriptions'),
+    stat(waitCount,  '⏳ En attente'),
+  ].join('');
+  if (banCount > 0) {
+    statsEl.insertAdjacentHTML('beforeend',
+      stat(banCount, '🚫 Blocages'));
+  }
+
+  // Activité récente : dernière de chaque type
+  const [
+    { data: lastVote },
+    { data: lastProp },
+    { data: lastReg },
+    { data: lastEvent }
+  ] = await Promise.all([
+    db.from('votes').select('created_at, films(title)')
+      .eq('student_id', studentId).order('created_at', { ascending: false }).limit(1),
+    db.from('proposals').select('proposed_at, title, status')
+      .eq('student_id', studentId).order('proposed_at', { ascending: false }).limit(1),
+    db.from('registrations').select('registered_at, cinema_sessions(session_date, films(title))')
+      .eq('student_id', studentId).order('registered_at', { ascending: false }).limit(1),
+    db.from('student_events').select('created_at, event_type, message')
+      .eq('student_id', studentId).order('created_at', { ascending: false }).limit(3)
+  ]);
+
+  const recentEl = document.getElementById('sd-recent');
+  const actItems = [];
+
+  if (lastVote?.[0]) {
+    const v = lastVote[0];
+    actItems.push({ icon: '🗳️',
+      text: `Vote pour <strong>${v.films?.title || '—'}</strong>`,
+      date: v.created_at });
+  }
+  if (lastProp?.[0]) {
+    const p = lastProp[0];
+    const stMap = { pending:'⏳', accepted:'✅', rejected:'❌' };
+    actItems.push({ icon: '💡',
+      text: `Proposition : <strong>${p.title}</strong> ${stMap[p.status] || ''}`,
+      date: p.proposed_at });
+  }
+  if (lastReg?.[0]) {
+    const r = lastReg[0];
+    const sesDate = r.cinema_sessions?.session_date;
+    const sesTitle = r.cinema_sessions?.films?.title || '—';
+    actItems.push({ icon: '✅',
+      text: `Inscrit à <strong>${sesTitle}</strong>${sesDate ? ' · ' + fmtDateShort(sesDate) : ''}`,
+      date: r.registered_at });
+  }
+  (lastEvent || []).forEach(ev => {
+    const evMap = {
+      session_waitlist:  { icon: '⏳', text: 'Passé en liste d\'attente' },
+      session_promoted:  { icon: '🎉', text: 'Promu inscrit confirmé' },
+      session_unbanned:  { icon: '✅', text: 'Débloqué pour une séance' },
+      new_session:       { icon: '🎟️', text: 'Nouvelle séance annoncée' },
+      session_opened:    { icon: '🟢', text: 'Inscriptions ouvertes' },
+    };
+    const e = evMap[ev.event_type];
+    if (e) actItems.push({ icon: e.icon, text: ev.message || e.text, date: ev.created_at });
+  });
+
+  // Trier par date décroissante, garder les 5 plus récents
+  actItems.sort((a, b) => (b.date || '') > (a.date || '') ? 1 : -1);
+  const top5 = actItems.slice(0, 5);
+
+  if (!top5.length) {
+    recentEl.innerHTML = '<p class="text-sm text-muted" style="padding:4px 0;">Aucune activité enregistrée.</p>';
+    return;
+  }
+
+  recentEl.innerHTML = top5.map(item => `
+    <div class="sd-activity-item">
+      <span class="sd-activity-icon">${item.icon}</span>
+      <span class="sd-activity-text">${item.text}</span>
+      <span class="sd-activity-date">${item.date ? fmtDateShort(item.date.split('T')[0]) : ''}</span>
+    </div>`).join('');
+}
+
 async function loadAdminStudents() {
   const year = document.getElementById('imp-year').value || CFG.SCHOOL_YEAR;
   const { data } = await db.from('students').select('*')
@@ -4932,7 +5355,7 @@ async function loadAdminStudents() {
 
   const tbody = document.getElementById('students-tbody');
   if (!data?.length) {
-    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-3);padding:20px;">Aucun élève importé</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-3);padding:20px;">Aucun élève importé</td></tr>';
     document.getElementById('students-count-label').innerHTML =
       `Élèves <button class="btn btn-ghost btn-sm" onclick="exportCodes()">⬇ Codes CSV</button>`;
     return;
@@ -4944,10 +5367,11 @@ async function loadAdminStudents() {
      <button class="btn btn-ghost btn-sm" onclick="exportCodes()">⬇ Codes CSV</button>`;
 
   tbody.innerHTML = data.map(s => `
-    <tr>
-      <td>${s.last_name} ${s.first_name}</td>
+    <tr style="cursor:pointer;" onclick="openStudentDetail('${s.id}')">
+      <td style="font-weight:600;">${s.last_name} ${s.first_name}</td>
       <td>${s.class_name || '—'}</td>
-      <td><code>${s.login_identifier || s.activation_code}</code></td>
+      <td><code>${s.login_identifier || s.activation_code || '—'}</code></td>
+      <td><code style="color:var(--gold);font-size:11px;">${s.eleve_uid || '—'}</code></td>
       <td><span class="badge ${s.is_activated ? 'badge-green' : 'badge-muted'}">${s.is_activated ? '✓ Activé' : '○ Attente'}</span></td>
     </tr>`).join('');
 }
@@ -4969,20 +5393,21 @@ async function importStudents() {
   for (const line of csv.split('\n')) {
     const parts = line.split(',').map(p => p.replace(/["']/g,'').trim());
     if (parts.length < 2) continue;
-    const [fn, ln, cn] = parts;
+    const [fn, ln, cn, uid] = parts;
     // Skip header
     if (['prénom','prenom','firstname','first_name','nom'].includes(fn.toLowerCase())) continue;
     if (!fn || !ln) continue;
     rows.push({
-  first_name: fn,
-  last_name: ln,
-  class_name: cn || null,
-  school_year: year,
-  login_identifier: buildLoginIdentifier(fn, ln),
-  activation_code: genCode(),
-  is_activated: false,
-  is_active: true
-});
+      first_name:       fn,
+      last_name:        ln,
+      class_name:       cn || null,
+      school_year:      year,
+      eleve_uid:        uid || null,   // 4e colonne optionnelle : identifiant permanent
+      login_identifier: buildLoginIdentifier(fn, ln),
+      activation_code:  genCode(),
+      is_activated:     false,
+      is_active:        true
+    });
   }
 
   if (!rows.length) { toast('Aucun élève détecté', 'error'); return; }
