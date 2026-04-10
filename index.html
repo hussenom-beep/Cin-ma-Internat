@@ -1346,11 +1346,11 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     <!-- Étape 3 : connexion (compte existant) — PIN 6 chiffres masqués -->
     <div id="ls-pin" class="hidden">
       <div class="text-center mb-2">
-        <div style="font-size:36px;margin-bottom:10px;">👋</div>
-        <div class="fw-bold" style="font-size:17px;">Bon retour !</div>
+        <div style="font-size:40px;margin-bottom:12px;">👋</div>
+        <div class="fw-bold" style="font-size:18px;">Bon retour !</div>
         <div class="text-sm text-muted mt-1" id="login-name"></div>
       </div>
-      <div class="pins mb-2" id="pins-login">
+      <div class="pins" id="pins-login" style="margin:22px 0;">
         <input type="text" inputmode="numeric" maxlength="1" class="pin" id="p1" autocomplete="off">
 		<input type="text" inputmode="numeric" maxlength="1" class="pin" id="p2" autocomplete="off">
 		<input type="text" inputmode="numeric" maxlength="1" class="pin" id="p3" autocomplete="off">
@@ -1358,8 +1358,10 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 		<input type="text" inputmode="numeric" maxlength="1" class="pin" id="p5" autocomplete="off">
 		<input type="text" inputmode="numeric" maxlength="1" class="pin" id="p6" autocomplete="off">
       </div>
-      <button class="btn btn-gold btn-full btn-lg" onclick="handleLogin()">Se connecter</button>
-      <button class="btn btn-ghost btn-full btn-sm mt-1" onclick="backCode()">← Retour</button>
+      <p class="text-sm text-muted text-center" style="margin-bottom:16px;opacity:.6;">
+        Connexion automatique au 6e chiffre
+      </p>
+      <button class="btn btn-ghost btn-full btn-sm" onclick="backCode()">← Retour</button>
     </div>
 
     <!-- Accès admin — caché, accessible uniquement via appui long sur le logo -->
@@ -3678,13 +3680,14 @@ async function toggleReg(sessionId, action) {
     });
 
     if (error) {
+      console.error('unregister RPC error:', error);
       toast('Erreur lors de la désinscription', 'error');
       return;
     }
 
     toast('Désinscription effectuée');
   } else {
-    // Vérifications client avant d'appeler la RPC
+    // Vérification ban côté client
     const { data: bans } = await db.from('session_bans')
       .select('id')
       .eq('session_id', sessionId)
@@ -3712,22 +3715,22 @@ async function toggleReg(sessionId, action) {
     });
 
     if (error) {
-      toast('Erreur lors de l’inscription', 'error');
+      console.error('register RPC error:', error);
+      toast("Erreur lors de l'inscription", 'error');
       return;
     }
 
-    // Compatible avec une RPC qui renvoie un objet JSON
+    // La RPC renvoie { ok, status, code, ... }
     if (!result?.ok) {
-      if (result?.code === 'ALREADY_EXISTS') {
-        if (result?.status === 'waitlist') {
-          toast("Tu es déjà en liste d'attente ⏳");
-        } else {
-          toast('Tu es déjà inscrit à cette séance');
-        }
-      } else if (result?.code === 'REGISTRATIONS_CLOSED') {
+      const code = result?.code;
+      if (code === 'ALREADY_EXISTS') {
+        toast(result?.status === 'waitlist'
+          ? "Tu es déjà en liste d'attente ⏳"
+          : 'Tu es déjà inscrit à cette séance');
+      } else if (code === 'REGISTRATIONS_CLOSED') {
         toast('Les inscriptions sont fermées', 'error');
-      } else if (result?.code === 'BANNED') {
-        toast('Tu ne peux pas t’inscrire à cette séance', 'error');
+      } else if (code === 'BANNED') {
+        toast("Tu ne peux pas t'inscrire à cette séance", 'error');
       } else {
         toast('Inscription impossible', 'error');
       }
@@ -3735,7 +3738,7 @@ async function toggleReg(sessionId, action) {
       return;
     }
 
-    if (result?.status === 'waitlist' || result?.code === 'WAITLISTED') {
+    if (result?.status === 'waitlist') {
       toast("Tu es en liste d'attente ⏳");
     } else {
       toast('Inscription confirmée 🎉', 'success');
@@ -4525,9 +4528,11 @@ async function loadAdminSessions() {
         <div class="admin-ses-date">📅 ${fmtDateShort(s.session_date)}</div>
         <div class="admin-ses-film">${title}</div>
         <div class="admin-ses-badges">
-          <span class="badge ${openSes ? 'badge-green' : 'badge-muted'}">
-            ${openSes ? '✅ Ouvertes' : '⏸ Fermées'}
-          </span>
+          ${count >= cap
+            ? `<span class="badge badge-red">🚫 Complet</span>`
+            : `<span class="badge ${openSes ? 'badge-green' : 'badge-muted'}">
+                ${openSes ? '✅ Ouvertes' : '⏸ Fermées'}
+               </span>`}
           <span class="badge badge-muted">👥 ${count} / ${cap}</span>
           ${waitCount > 0 ? `<span class="badge badge-gold">⏳ ${waitCount} en attente</span>` : ''}
         </div>
