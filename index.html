@@ -4696,22 +4696,44 @@ async function confirmBanStudent() {
   const studentId = document.getElementById('ban-student-id').value;
   const reason    = document.getElementById('ban-reason').value.trim() || null;
 
-  // Supprimer l'inscription
-  await db.from('registrations').delete()
-    .eq('session_id', sessionId).eq('student_id', studentId);
+  // Passer par la RPC pour conserver la logique :
+  // - suppression de l'inscription
+  // - remontée automatique depuis la liste d'attente si besoin
+  const { data: result, error } = await db.rpc('unregister_student_from_session', {
+    p_student_id: studentId,
+    p_session_id: sessionId
+  });
 
-  // Enregistrer le ban
-  await db.from('session_bans').upsert({
+  if (error) {
+    console.error('confirmBanStudent unregister RPC error:', error);
+    toast("Erreur lors du retrait de l'élève", 'error');
+    return;
+  }
+
+  if (!result?.ok && result?.code !== 'NOT_FOUND') {
+    console.error('confirmBanStudent unregister RPC result:', result);
+    toast("Retrait impossible", 'error');
+    return;
+  }
+
+  // Enregistrer le ban après retrait
+  const { error: banError } = await db.from('session_bans').upsert({
     session_id: sessionId,
     student_id: studentId,
-    reason:     reason,
-    banned_at:  new Date().toISOString()
+    reason: reason,
+    banned_at: new Date().toISOString()
   }, { onConflict: 'session_id,student_id' });
+
+  if (banError) {
+    console.error('confirmBanStudent ban upsert error:', banError);
+    toast("Élève retiré mais erreur lors du blocage", 'error');
+    return;
+  }
 
   closeModal('modal-ban-student');
   closeModal('modal-registrants');
   toast('Élève retiré et bloqué pour cette séance', 'success');
-  loadAdminSessions();
+  await loadAdminSessions();
 }
 
 async function maybeRestoreFilmToActive(filmId) {
