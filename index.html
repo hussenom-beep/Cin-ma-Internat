@@ -595,7 +595,7 @@ button { cursor: pointer; }
   border-radius: var(--radius);
   overflow: hidden;
   cursor: pointer;
-  min-height: 160px;
+  min-height: 190px;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
@@ -975,35 +975,35 @@ button { cursor: pointer; }
   position: relative;
   z-index: 1;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   gap: 0;
-  padding: 14px 16px 14px 14px;
-  min-height: 140px;
+  padding: 16px 18px 16px 16px;
+  min-height: 170px;
 }
 .session-banner-thumb {
-  width: 58px;
+  width: 74px;
   flex-shrink: 0;
   align-self: center;
-  margin-right: 14px;
+  margin-right: 18px;
 }
 .session-banner-thumb img {
-  width: 58px;
-  height: 87px;
+  width: 74px;
+  height: 111px;
   object-fit: cover;
-  border-radius: 5px;
-  box-shadow: 0 4px 14px rgba(0,0,0,.6);
-  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 6px;
+  box-shadow: 0 6px 18px rgba(0,0,0,.65);
+  border: 1px solid rgba(255,255,255,.12);
   display: block;
 }
 .session-banner-thumb-empty {
-  width: 58px;
-  height: 87px;
+  width: 74px;
+  height: 111px;
   background: rgba(255,255,255,.06);
-  border-radius: 5px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 22px;
+  font-size: 26px;
   border: 1px solid rgba(255,255,255,.08);
 }
 .session-banner-content { flex: 1; min-width: 0; }
@@ -1632,54 +1632,92 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 
   #screen-admin {
     display: grid;
-    grid-template-columns: 190px 1fr;
+    grid-template-columns: 210px 1fr;
     grid-template-rows: var(--header-h) 1fr;
     min-height: 100vh;
   }
   #screen-admin .s-header { grid-column: 1 / -1; }
 
+  /* ---- Sidebar menu desktop ---- */
   .admin-tabs {
     flex-direction: column;
     border-bottom: none;
     border-right: 1px solid var(--border);
-    padding: 14px 0;
+    padding: 18px 10px;
     overflow-x: visible;
     overflow-y: auto;
     height: calc(100vh - var(--header-h));
     position: sticky;
     top: var(--header-h);
     align-self: start;
+    background: var(--surface);
+    gap: 2px;
   }
+
+  /* Label section dans la sidebar */
+  .admin-sidebar-section {
+    font-size: 9.5px;
+    font-weight: 800;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    padding: 16px 10px 6px;
+    display: block;
+  }
+  .admin-sidebar-section:first-child { padding-top: 4px; }
+
   .admin-tab {
     border-bottom: none;
-    border-left: 2px solid transparent;
+    border-left: none;
+    border-radius: 8px;
     text-align: left;
-    padding: 11px 18px;
+    padding: 10px 14px;
     margin-bottom: 0;
-    font-size: 13px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-2);
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    transition: background .15s, color .15s;
   }
-  .admin-tab.active { border-left-color: var(--gold); border-bottom-color: transparent; }
+  .admin-tab:hover {
+    background: var(--surface-2);
+    color: var(--text);
+  }
+  .admin-tab.active {
+    background: var(--gold-dim);
+    color: var(--gold);
+    border-left: none;
+    border-bottom-color: transparent;
+  }
+  .admin-tab.active:hover { background: var(--gold-dim); }
 
   .admin-tab-wrap {
     width: 100%;
-    padding: 0 18px;
-    gap: 10px;
+    padding: 0;
+    gap: 2px;
+    display: flex;
+    align-items: center;
   }
   .admin-tab-wrap .admin-tab {
-    padding: 11px 0;
+    padding: 10px 14px;
     margin-bottom: 0;
-    font-size: 13px;
+    font-size: 14px;
     text-align: left;
-    border-left: 2px solid transparent;
-    flex: 0 0 auto;
+    border-left: none;
+    flex: 1;
   }
   .admin-tab-wrap .admin-tab.active {
-    border-left-color: var(--gold);
+    border-left-color: transparent;
   }
   .admin-tab-wrap .pending-badge {
-    min-width: 24px;
-    height: 24px;
-    font-size: 12px;
+    min-width: 22px;
+    height: 22px;
+    font-size: 11px;
+    margin-right: 6px;
+    flex-shrink: 0;
   }
 
   .admin-panels-container {
@@ -1690,12 +1728,101 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 
   /* Contenu admin desktop centré et limité */
   .admin-panel {
-    max-width: 860px;
+    max-width: 900px;
     margin: 0 auto;
   }
 
   .films-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; padding: 14px 20px 0; }
   .detail-poster { height: 420px; }
+
+  /* Page d'accueil admin — grille desktop */
+  #ap-dashboard {
+    padding: 24px 28px;
+  }
+  .admin-dash-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+  }
+  .admin-dash-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 22px;
+  }
+  .admin-dash-block-title {
+    font-size: 10px;
+    font-weight: 800;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: .09em;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .admin-dash-block-title span { font-size: 14px; }
+  .admin-dash-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .admin-dash-row:last-child { border-bottom: none; }
+  .admin-dash-row-label { color: var(--text-2); }
+  .admin-dash-row-val { font-weight: 700; color: var(--text); }
+  .admin-dash-row-val.warn { color: var(--gold); }
+  .admin-dash-row-val.alert { color: var(--red); }
+  .admin-dash-empty { color: var(--text-3); font-size: 13px; font-style: italic; padding: 4px 0; }
+
+  /* Mini séance dans le dashboard */
+  .admin-dash-session {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+  }
+  .admin-dash-session-thumb img {
+    width: 52px;
+    height: 78px;
+    object-fit: cover;
+    border-radius: 5px;
+    box-shadow: 0 3px 10px rgba(0,0,0,.5);
+    border: 1px solid rgba(255,255,255,.09);
+    display: block;
+  }
+  .admin-dash-session-thumb-empty {
+    width: 52px;
+    height: 78px;
+    background: var(--surface-2);
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    border: 1px solid var(--border);
+  }
+  .admin-dash-session-info { flex: 1; min-width: 0; }
+  .admin-dash-session-date { font-size: 10.5px; color: var(--gold); font-weight: 700; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 4px; }
+  .admin-dash-session-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 17px;
+    font-weight: 700;
+    line-height: 1.25;
+    margin-bottom: 8px;
+  }
+  .admin-dash-alert-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .admin-dash-alert-item:last-child { border-bottom: none; }
+  .admin-dash-alert-icon { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+  .admin-dash-alert-text { flex: 1; color: var(--text-2); line-height: 1.45; }
 }
 
 /* ================================================================
@@ -2033,7 +2160,8 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
   </div>
 
   <div class="admin-tabs" id="admin-tabs">
-    <button class="admin-tab active" onclick="aTab('films')">🎬 Films</button>
+    <button class="admin-tab active" onclick="aTab('dashboard')">🏠 Accueil</button>
+    <button class="admin-tab" onclick="aTab('films')">🎬 Films</button>
     <button class="admin-tab" onclick="aTab('votes')">🗳️ Votes</button>
     <div class="admin-tab-wrap">
       <button class="admin-tab" onclick="aTab('proposals')">💡 Propositions</button>
@@ -2044,6 +2172,13 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
   </div>
 
   <div class="admin-panels-container">
+
+    <!-- Dashboard panel (desktop) -->
+    <div class="admin-panel" id="ap-dashboard">
+      <div id="admin-dash-content">
+        <div class="loader"><div class="spinner"></div></div>
+      </div>
+    </div>
 
     <!-- Films panel -->
     <div class="admin-panel" id="ap-films">
@@ -3529,7 +3664,7 @@ async function loadHome() {
           <div class="session-banner-film">${title}</div>
           <div class="session-banner-footer">
             ${badgeHtml}
-            <span class="session-banner-hint">${regCount} / ${cap} inscrits — voir →</span>
+            <span class="session-banner-hint">${regCount} / ${cap} inscrits</span>
           </div>
         </div>
       </div>
@@ -4556,7 +4691,7 @@ async function viewStudentRegistrants(sesId, date) {
 /* ================================================================
    ADMIN — TAB SWITCHING
    ================================================================ */
-const PANELS = ['films','votes','proposals','sessions','students'];
+const PANELS = ['dashboard','films','votes','proposals','sessions','students'];
 
 // État courant des sous-onglets
 let _filmFilter     = 'active';
@@ -4629,6 +4764,7 @@ function aTab(tab) {
     document.getElementById('ap-' + p).classList.toggle('hidden', p !== tab);
   });
   switch(tab) {
+    case 'dashboard': loadAdminDashboard(); break;
     case 'films':     loadAdminFilms();     break;
     case 'votes':     loadAdminVotes();     break;
     case 'proposals': loadAdminProposals(); break;
@@ -4641,7 +4777,152 @@ async function loadAdmin() {
   await checkScheduledFilms();
   await cleanupPastSessions();
   refreshPendingProposalsBadge();
-  aTab('films');
+  aTab('dashboard');
+}
+
+/* ================================================================
+   ADMIN DASHBOARD — page d'accueil admin (desktop)
+   ================================================================ */
+async function loadAdminDashboard() {
+  const el = document.getElementById('admin-dash-content');
+  if (!el) return;
+  el.innerHTML = '<div class="loader" style="padding:40px;"><div class="spinner"></div></div>';
+
+  const today = new Date().toISOString().split('T')[0];
+
+  const [
+    { count: pendingProps },
+    { count: notActivated },
+    { count: activeFilms },
+    { count: activatedStudents },
+    { count: visibleStudents },
+    { data: upcomingSessions },
+    { data: recentProposal }
+  ] = await Promise.all([
+    db.from('proposals').select('id',{count:'exact',head:true}).eq('status','pending'),
+    db.from('students').select('id',{count:'exact',head:true}).eq('is_active',true).eq('is_activated',false),
+    db.from('films').select('id',{count:'exact',head:true}).in('status',['active','scheduled']),
+    db.from('students').select('id',{count:'exact',head:true}).eq('is_active',true).eq('is_activated',true),
+    db.from('students').select('id',{count:'exact',head:true}).eq('is_active',true),
+    db.from('cinema_sessions')
+      .select('id, session_date, registrations_open, max_capacity, film_id, films(title, poster_url)')
+      .gte('session_date', today)
+      .order('session_date', {ascending:true})
+      .limit(3),
+    db.from('proposals').select('title, proposed_at').eq('status','pending')
+      .order('proposed_at',{ascending:false}).limit(1)
+  ]);
+
+  // Compter inscrits pour les séances
+  const sesIds = (upcomingSessions||[]).map(s => s.id);
+  let regCounts = {};
+  if (sesIds.length) {
+    const { data: regs } = await db.from('registrations')
+      .select('session_id').eq('status','registered').in('session_id', sesIds);
+    (regs||[]).forEach(r => { regCounts[r.session_id] = (regCounts[r.session_id]||0)+1; });
+  }
+
+  const nextSes = upcomingSessions?.[0] || null;
+  const nextCount = nextSes ? (regCounts[nextSes.id]||0) : 0;
+  const nextCap   = nextSes?.max_capacity || 20;
+  const nextPoster = nextSes?.films?.poster_url || '';
+  const nextTitle  = nextSes?.films?.title || '— Film à annoncer';
+
+  // Bloc "À surveiller"
+  const watchItems = [];
+  if (pendingProps > 0) watchItems.push({ label: `${pendingProps} proposition${pendingProps>1?'s':''} en attente`, cls:'warn', action:`aTab('proposals')` });
+  if (notActivated > 0) watchItems.push({ label: `${notActivated} compte${notActivated>1?'s':''} non activé${notActivated>1?'s':''}`, cls:'warn', action:`aTab('students')` });
+  if (nextSes && nextCount >= nextCap) watchItems.push({ label: `Prochaine séance complète`, cls:'alert', action:`aTab('sessions')` });
+
+  const watchHtml = watchItems.length
+    ? watchItems.map(i =>
+        `<div class="admin-dash-row" style="cursor:pointer;" onclick="${i.action}">
+           <span class="admin-dash-row-label">${i.label}</span>
+           <span class="admin-dash-row-val ${i.cls}">→</span>
+         </div>`).join('')
+    : `<p class="admin-dash-empty">✅ Rien à signaler</p>`;
+
+  // Bloc "Prochaine séance"
+  const nextSesHtml = nextSes
+    ? `<div class="admin-dash-session">
+         <div class="admin-dash-session-thumb">
+           ${nextPoster
+             ? `<img src="${nextPoster}" alt="${nextTitle}">`
+             : `<div class="admin-dash-session-thumb-empty">🎬</div>`}
+         </div>
+         <div class="admin-dash-session-info">
+           <div class="admin-dash-session-date">📅 ${fmtDateShort(nextSes.session_date)}</div>
+           <div class="admin-dash-session-title">${nextTitle}</div>
+           <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
+             <span class="badge ${nextCount>=nextCap?'badge-red':nextSes.registrations_open?'badge-green':'badge-muted'}">
+               ${nextCount>=nextCap?'🚫 Complet':nextSes.registrations_open?'✅ Ouvertes':'⏸ Fermées'}
+             </span>
+             <span class="badge badge-muted">👥 ${nextCount} / ${nextCap}</span>
+           </div>
+           <button class="btn btn-ghost btn-sm" onclick="aTab('sessions')">Gérer →</button>
+         </div>
+       </div>`
+    : `<p class="admin-dash-empty">Aucune séance programmée</p>`;
+
+  // Bloc "Résumé rapide"
+  const futureCount = (upcomingSessions||[]).length;
+  const notActPct = visibleStudents > 0 ? Math.round((notActivated/visibleStudents)*100) : 0;
+  const summaryHtml = [
+    { label:'Films actifs / programmés', val: activeFilms ?? '—' },
+    { label:'Séances à venir',           val: futureCount },
+    { label:'Élèves visibles',           val: visibleStudents ?? '—' },
+    { label:'Comptes activés',           val: `${activatedStudents ?? '—'} / ${visibleStudents ?? '—'}` },
+    { label:'En attente d\'activation',  val: notActivated > 0 ? notActivated : '✅ Tous activés', cls: notActivated > 0 ? 'warn' : '' },
+  ].map(r =>
+    `<div class="admin-dash-row">
+       <span class="admin-dash-row-label">${r.label}</span>
+       <span class="admin-dash-row-val ${r.cls||''}">${r.val}</span>
+     </div>`
+  ).join('');
+
+  // Bloc "Alertes utiles"
+  const alerts = [];
+  (upcomingSessions||[]).forEach(s => {
+    const cnt = regCounts[s.id]||0;
+    const cap = s.max_capacity || 20;
+    if (cnt >= cap) alerts.push({ icon:'🚫', text:`Séance du ${fmtDateShort(s.session_date)} — Complète (${cnt}/${cap})` });
+    else if (cnt >= cap * 0.8) alerts.push({ icon:'⚠️', text:`Séance du ${fmtDateShort(s.session_date)} — Presque pleine (${cnt}/${cap})` });
+    if (s.registrations_open) alerts.push({ icon:'🟢', text:`Inscriptions ouvertes — ${s.films?.title||'—'} (${fmtDateShort(s.session_date)})` });
+  });
+  if (recentProposal?.[0]) {
+    alerts.push({ icon:'💡', text:`Nouvelle proposition en attente : « ${recentProposal[0].title} »` });
+  }
+  if (!upcomingSessions?.length) {
+    alerts.push({ icon:'📅', text:`Aucune séance programmée prochainement` });
+  }
+
+  const alertsHtml = alerts.length
+    ? alerts.slice(0,4).map(a =>
+        `<div class="admin-dash-alert-item">
+           <span class="admin-dash-alert-icon">${a.icon}</span>
+           <span class="admin-dash-alert-text">${a.text}</span>
+         </div>`).join('')
+    : `<p class="admin-dash-empty">Aucune alerte</p>`;
+
+  el.innerHTML = `
+    <div class="admin-dash-grid">
+      <div class="admin-dash-block">
+        <div class="admin-dash-block-title"><span>👁</span> À surveiller</div>
+        ${watchHtml}
+      </div>
+      <div class="admin-dash-block">
+        <div class="admin-dash-block-title"><span>🎟️</span> Prochaine séance</div>
+        ${nextSesHtml}
+      </div>
+      <div class="admin-dash-block">
+        <div class="admin-dash-block-title"><span>📊</span> Résumé rapide</div>
+        ${summaryHtml}
+      </div>
+      <div class="admin-dash-block">
+        <div class="admin-dash-block-title"><span>🔔</span> Alertes utiles</div>
+        ${alertsHtml}
+      </div>
+    </div>`;
 }
 
 /* ----------------------------------------------------------------
