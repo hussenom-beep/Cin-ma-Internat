@@ -1635,17 +1635,19 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
   padding: 16px 18px;
 }
 .admin-dash-block-title {
-  font-size: 10px;
-  font-weight: 800;
-  color: var(--text-3);
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-2);
   text-transform: uppercase;
-  letter-spacing: .09em;
-  margin-bottom: 12px;
+  letter-spacing: .07em;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
 }
-.admin-dash-block-title span { font-size: 14px; }
+.admin-dash-block-title span { font-size: 15px; }
 .admin-dash-row {
   display: flex;
   align-items: center;
@@ -1783,6 +1785,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     min-width: 20px;
     height: 20px;
     font-size: 10px;
+    border-radius: 5px;
     pointer-events: none;
   }
 
@@ -1909,20 +1912,22 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 }
 .pending-badge {
   position: static;
-  min-width: 22px;
-  height: 22px;
+  min-width: 20px;
+  height: 20px;
   padding: 0 6px;
-  background: var(--gold);
-  color: #000;
-  font-size: 11px;
+  background: rgba(240,165,0,.15);
+  color: var(--gold);
+  font-size: 10.5px;
   font-weight: 800;
-  border-radius: 999px;
+  border-radius: 6px;
+  border: 1px solid rgba(240,165,0,.4);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   line-height: 1;
   pointer-events: none;
-  box-shadow: 0 6px 18px rgba(240,165,0,.22);
+  letter-spacing: .02em;
+}
 }
   </style>
 <body>
@@ -3018,6 +3023,31 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     <div style="display:flex;gap:10px;margin-top:6px;">
       <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('modal-delete-student')">Annuler</button>
       <button class="btn btn-red"   style="flex:1;" onclick="confirmDeleteStudent()">Supprimer définitivement 🗑</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     MODAL: Archiver / Désarchiver un élève (admin)
+     ================================================================ -->
+<div class="overlay hidden" id="modal-archive-student">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="archive-modal-title">⊘ Archiver cet élève</div>
+    <input type="hidden" id="archive-student-id">
+    <input type="hidden" id="archive-student-action">
+    <p class="text-sm text-muted" style="margin-bottom:14px;" id="archive-modal-desc">
+      L'élève ne pourra plus se connecter. Ses données restent conservées. Vous pourrez le désarchiver à tout moment.
+    </p>
+    <div class="fgroup">
+      <label class="flabel">Confirmer avec le mot de passe admin</label>
+      <input type="password" class="finput" id="archive-student-adminpwd"
+             placeholder="••••••••"
+             onkeydown="if(event.key==='Enter') confirmArchiveStudent()">
+    </div>
+    <div style="display:flex;gap:10px;margin-top:6px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('modal-archive-student')">Annuler</button>
+      <button class="btn btn-gold"  style="flex:1;" id="archive-confirm-btn" onclick="confirmArchiveStudent()">Confirmer ✓</button>
     </div>
   </div>
 </div>
@@ -6048,19 +6078,18 @@ async function openStudentDetail(studentId) {
   let dangerEl  = document.getElementById('sd-danger-actions');
 
   if (actionsEl) {
-    const archiveLabel = s.is_active
-      ? `⊘ Archiver cet élève`
-      : `↩ Désarchiver cet élève`;
-    const archiveFn = s.is_active
-      ? `archiveStudent('${s.id}')`
-      : `unarchiveStudent('${s.id}')`;
+    const isActive = s.is_active;
+    const archiveLabel = isActive ? `⊘ Archiver cet élève` : `↩ Désarchiver cet élève`;
+    const archiveFn   = isActive
+      ? `openArchiveStudent('${s.id}','${(s.first_name||'')} ${(s.last_name||'')}','archive')`
+      : `openArchiveStudent('${s.id}','${(s.first_name||'')} ${(s.last_name||'')}','unarchive')`;
 
     actionsEl.innerHTML = `
       <button class="btn btn-ghost btn-full" style="justify-content:flex-start;gap:10px;text-align:left;"
         onclick="openResetPin('${s.id}','${(s.first_name||'')} ${(s.last_name||'')}')">
         🔐 Réinitialiser le code secret
       </button>
-      <button class="btn ${s.is_active ? 'btn-ghost' : 'btn-green'} btn-full"
+      <button class="btn ${isActive ? 'btn-ghost' : 'btn-green'} btn-full"
               style="justify-content:flex-start;gap:10px;text-align:left;"
               onclick="${archiveFn}">
         ${archiveLabel}
@@ -6497,19 +6526,55 @@ async function importStudentsFromSettings() {
 }
 
 /* Archiver / désarchiver un élève */
-async function archiveStudent(studentId) {
-  if (!confirm('Archiver cet élève ? Il disparaîtra de la liste visible mais ses données seront conservées.')) return;
-  const { error } = await db.from('students').update({ is_active: false }).eq('id', studentId);
-  if (error) { toast('Erreur lors de l\'archivage', 'error'); return; }
-  toast('Élève archivé', 'success');
-  openStudentDetail(studentId); // rafraîchir la fiche
-  loadAdminStudents();
+/* Archiver / Désarchiver un élève — protégé par mot de passe admin */
+function openArchiveStudent(studentId, studentName, action) {
+  const isArchive = action === 'archive';
+  document.getElementById('archive-student-id').value     = studentId;
+  document.getElementById('archive-student-action').value = action;
+  document.getElementById('archive-student-adminpwd').value = '';
+
+  document.getElementById('archive-modal-title').textContent = isArchive
+    ? `⊘ Archiver — ${studentName.trim()}`
+    : `↩ Désarchiver — ${studentName.trim()}`;
+
+  document.getElementById('archive-modal-desc').textContent = isArchive
+    ? `Cet élève ne pourra plus se connecter. Ses données restent conservées. Vous pourrez le désarchiver à tout moment.`
+    : `Cet élève sera à nouveau visible et pourra se reconnecter.`;
+
+  document.getElementById('archive-confirm-btn').textContent = isArchive
+    ? 'Archiver ✓'
+    : 'Désarchiver ✓';
+
+  openModal('modal-archive-student');
+  setTimeout(() => document.getElementById('archive-student-adminpwd')?.focus(), 80);
 }
 
-async function unarchiveStudent(studentId) {
-  const { error } = await db.from('students').update({ is_active: true }).eq('id', studentId);
-  if (error) { toast('Erreur lors du désarchivage', 'error'); return; }
-  toast('Élève désarchivé — il est de nouveau visible', 'success');
+async function confirmArchiveStudent() {
+  const studentId = document.getElementById('archive-student-id').value;
+  const action    = document.getElementById('archive-student-action').value;
+  const pwd       = document.getElementById('archive-student-adminpwd').value.trim();
+
+  if (!pwd) {
+    toast('Entre le mot de passe admin', 'error');
+    document.getElementById('archive-student-adminpwd').focus();
+    return;
+  }
+
+  const { data: ok, error: rpcErr } = await db.rpc('verify_admin_password', { p_password: pwd });
+  if (rpcErr) { toast('Erreur de vérification admin', 'error'); return; }
+  if (!ok) {
+    toast('Mot de passe admin incorrect', 'error');
+    document.getElementById('archive-student-adminpwd').value = '';
+    document.getElementById('archive-student-adminpwd').focus();
+    return;
+  }
+
+  const newActive = action === 'unarchive';
+  const { error } = await db.from('students').update({ is_active: newActive }).eq('id', studentId);
+  if (error) { toast('Erreur lors de l\'opération', 'error'); return; }
+
+  closeModal('modal-archive-student');
+  toast(newActive ? 'Élève désarchivé — connexion à nouveau possible' : 'Élève archivé', 'success');
   openStudentDetail(studentId);
   loadAdminStudents();
 }
