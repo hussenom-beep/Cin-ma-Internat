@@ -1411,6 +1411,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 <div class="screen hidden" id="screen-films">
   <div class="s-header">
     <h1>🎬 Films en vote</h1>
+    <button class="home-profile-btn" onclick="openModal('modal-profile')" title="Mon profil">?</button>
   </div>
   <div class="films-list" id="films-list">
     <div class="loader"><div class="spinner"></div></div>
@@ -1446,6 +1447,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 <div class="screen hidden" id="screen-propose">
   <div class="s-header">
     <h1>💡 Proposer un film</h1>
+    <button class="home-profile-btn" onclick="openModal('modal-profile')" title="Mon profil">?</button>
   </div>
   <div class="propose-body">
     <p class="text-sm text-muted mb-2">Recherche un film et propose-le. L'admin le validera avant qu'il apparaisse.</p>
@@ -1492,6 +1494,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 <div class="screen hidden" id="screen-session">
   <div class="s-header">
     <h1>🎟️ Séances</h1>
+    <button class="home-profile-btn" onclick="openModal('modal-profile')" title="Mon profil">?</button>
   </div>
   <div class="sessions-body" id="sessions-body">
     <div class="loader"><div class="spinner"></div></div>
@@ -2704,11 +2707,13 @@ function openAddToHome() {
   openModal('modal-add-to-home');
 }
 function updateProfileBtn() {
-  const btn = document.getElementById('home-profile-btn');
-  if (!btn || !S.user) return;
+  if (!S.user) return;
   const fn = S.user.firstName || '';
   const ln = S.user.lastName  || '';
-  btn.textContent = ((fn[0] || '') + (ln[0] || '')).toUpperCase() || '?';
+  const initials = ((fn[0] || '') + (ln[0] || '')).toUpperCase() || '?';
+  document.querySelectorAll('.home-profile-btn').forEach(btn => {
+    btn.textContent = initials;
+  });
 }
 
 function logout(reason) {
@@ -4000,7 +4005,9 @@ async function loadAdminFilms() {
     let actions = '';
     if (status === 'active') {
       actions = `
-        ${!sessionInfo ? `<button class="btn btn-sm btn-ghost" onclick="openScheduleFilm('${f.id}')">📅 Créer séance</button>` : ''}
+        ${!sessionInfo
+          ? `<button class="btn btn-sm btn-ghost" onclick="openScheduleFilm('${f.id}')">📅 Créer séance</button>`
+          : `<button class="btn btn-sm btn-red" onclick="cancelSes('${sessionInfo.id}','${f.id}')">🗑 Annuler séance</button>`}
         <button class="btn btn-sm btn-ghost" onclick="openArchiveFilm('${f.id}')">⊘ Archiver</button>
         <button class="btn btn-sm btn-red" onclick="deleteFilm('${f.id}')">Suppr.</button>`;
     } else if (status === 'screened') {
@@ -4771,6 +4778,7 @@ async function cancelSes(id, filmId) {
   if (filmId) await maybeRestoreFilmToActive(filmId);
   toast('Séance annulée — film remis en actif si nécessaire', 'success');
   loadAdminSessions();
+  loadAdminFilms();
 }
 
 async function openEditSession(id, currentTitle, currentFilmId) {
