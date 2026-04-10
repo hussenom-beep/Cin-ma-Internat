@@ -4828,7 +4828,7 @@ function openCreateSessionModal() {
   document.getElementById('ses-date').value = nextWednesday();
   document.getElementById('ses-open').checked = false;
   document.getElementById('ses-notes').value = '';
-  document.getElementById('ses-capacity').value = '20';
+  document.getElementById('ses-capacity').value = '1';
   db.from('films').select('id,title').in('status',['active','scheduled']).then(({ data }) => {
     document.getElementById('ses-film').innerHTML = '<option value="">— À définir —</option>' +
       (data||[]).map(f => `<option value="${f.id}">${f.title}</option>`).join('');
@@ -4856,7 +4856,7 @@ async function saveSession() {
       session_date:       date,
       film_id:            filmId,
       registrations_open: document.getElementById('ses-open').checked,
-      max_capacity:       parseInt(document.getElementById('ses-capacity').value) || 20,
+      max_capacity:       parseInt(document.getElementById('ses-capacity').value) || 1,
       notes:              document.getElementById('ses-notes').value.trim() || null
     })
     .select('id')
