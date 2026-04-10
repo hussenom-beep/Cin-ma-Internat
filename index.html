@@ -1090,36 +1090,36 @@ button { cursor: pointer; }
 }
 
 /* Corps scrollable */
-.sd-body { padding: 20px 18px 40px; flex: 1; }
+.sd-body { padding: 18px 18px 40px; flex: 1; }
 
 /* Bloc identité */
 .sd-identity {
   display: flex;
   align-items: flex-start;
-  gap: 16px;
-  margin-bottom: 22px;
-  padding-bottom: 20px;
+  gap: 14px;
+  margin-bottom: 20px;
+  padding-bottom: 18px;
   border-bottom: 1px solid var(--border);
 }
 .sd-avatar {
-  width: 56px; height: 56px;
+  width: 52px; height: 52px;
   border-radius: 50%;
   background: var(--gold-dim);
-  border: 2px solid rgba(240,165,0,.35);
+  border: 2px solid rgba(240,165,0,.3);
   display: flex; align-items: center; justify-content: center;
-  font-size: 20px; font-weight: 900;
+  font-size: 18px; font-weight: 900;
   color: var(--gold);
   flex-shrink: 0;
   font-family: 'DM Sans', sans-serif;
 }
 .sd-name {
   font-family: 'Playfair Display', serif;
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 700;
-  line-height: 1.2;
-  margin-bottom: 4px;
+  line-height: 1.25;
+  margin-bottom: 5px;
 }
-.sd-meta { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+.sd-meta { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 7px; }
 .sd-uid {
   font-size: 10.5px;
   color: var(--text-3);
@@ -1132,39 +1132,53 @@ button { cursor: pointer; }
 }
 
 /* Sections */
-.sd-section { margin-bottom: 20px; }
+.sd-section { margin-bottom: 18px; }
 .sd-section-title {
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 700;
   color: var(--text-3);
   text-transform: uppercase;
-  letter-spacing: .08em;
-  margin-bottom: 10px;
+  letter-spacing: .09em;
+  margin-bottom: 9px;
 }
 
 /* Grille de stats */
 .sd-stats {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  gap: 7px;
 }
 .sd-stat {
   background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 12px 14px;
+  padding: 10px 12px;
 }
 .sd-stat-val {
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 800;
   color: var(--text);
   line-height: 1;
   margin-bottom: 3px;
 }
 .sd-stat-label {
-  font-size: 11px;
+  font-size: 10.5px;
   color: var(--text-3);
 }
+
+/* Bloc repères (compte) — version allégée */
+.sd-repere-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(37,37,56,.35);
+  font-size: 12.5px;
+}
+.sd-repere-row:last-child { border-bottom: none; }
+.sd-repere-label { color: var(--text-3); flex-shrink: 0; }
+.sd-repere-val   { font-weight: 600; text-align: right; }
 
 /* Activité récente */
 .sd-activity-item {
@@ -2559,7 +2573,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       <!-- ---- ONGLET : Vue d'ensemble ---- -->
       <div id="sd-pane-overview">
         <div class="sd-section">
-          <div class="sd-section-title">État du compte</div>
+          <div class="sd-section-title">Repères</div>
           <div style="display:flex;flex-direction:column;gap:7px;" id="sd-account-info"></div>
         </div>
         <div class="sd-section">
@@ -5574,20 +5588,18 @@ async function openStudentDetail(studentId) {
       </button>`;
   }
 
-  const row = (label, val, dim = false) =>
-    `<div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:5px 0;border-bottom:1px solid rgba(37,37,56,.4);">
-       <span style="color:var(--text-3);">${label}</span>
-       <span style="${dim ? 'color:var(--text-3);font-style:italic;' : 'font-weight:600;'}">${val}</span>
+  const repere = (label, val, dim = false) =>
+    `<div class="sd-repere-row">
+       <span class="sd-repere-label">${label}</span>
+       <span class="sd-repere-val${dim ? '" style="color:var(--text-3);font-weight:400;font-style:italic;' : ''}">
+         ${val}
+       </span>
      </div>`;
 
   document.getElementById('sd-account-info').innerHTML = [
-    row('Année scolaire', s.school_year || '—'),
-    row('Activation',
-      s.is_activated ? (s.activated_at ? fmtDateTime(s.activated_at) : 'Oui') : 'Non',
-      !s.is_activated),
-    row('Dernière connexion',
+    repere('Année scolaire', s.school_year || '—'),
+    repere('Dernière connexion',
       s.last_login_at ? fmtDateTime(s.last_login_at) : 'Jamais', !s.last_login_at),
-    row("Code d'activation", `<code style="font-size:12px;">${s.activation_code || '—'}</code>`)
   ].join('');
 
   document.getElementById('sd-stats').innerHTML =
