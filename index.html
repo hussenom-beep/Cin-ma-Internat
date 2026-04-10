@@ -2025,7 +2025,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     </div>
     <div class="fgroup">
       <label class="flabel">Capacité max</label>
-      <input type="number" class="finput" id="ses-capacity" value="1">
+      <input type="number" class="finput" id="ses-capacity" value="20">
     </div>
     <div class="fgroup">
       <label class="flabel">Notes internes</label>
@@ -4659,7 +4659,7 @@ async function confirmScheduleFilm() {
       session_date:       date,
       film_id:            filmId,
       registrations_open: regOpen,
-      max_capacity:       1
+      max_capacity:       20
     })
     .select('id')
     .single();
@@ -5385,7 +5385,7 @@ function openCreateSessionModal() {
   document.getElementById('ses-date').value = nextWednesday();
   document.getElementById('ses-open').checked = false;
   document.getElementById('ses-notes').value = '';
-  document.getElementById('ses-capacity').value = '1';
+  document.getElementById('ses-capacity').value = '20';
   db.from('films').select('id,title').in('status',['active','scheduled']).then(({ data }) => {
     document.getElementById('ses-film').innerHTML = '<option value="">— À définir —</option>' +
       (data||[]).map(f => `<option value="${f.id}">${f.title}</option>`).join('');
@@ -5413,7 +5413,7 @@ async function saveSession() {
       session_date:       date,
       film_id:            filmId,
       registrations_open: document.getElementById('ses-open').checked,
-      max_capacity:       parseInt(document.getElementById('ses-capacity').value) || 1,
+      max_capacity:       parseInt(document.getElementById('ses-capacity').value) || 20,
       notes:              document.getElementById('ses-notes').value.trim() || null
     })
     .select('id')
