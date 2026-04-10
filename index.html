@@ -1115,6 +1115,19 @@ button { cursor: pointer; }
 }
 .sc-footer { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .sc-capacity { font-size: 12px; color: var(--text-3); }
+.badge-count {
+  background: rgba(167,139,250,.15);
+  color: #a78bfa;
+  border: 1px solid rgba(167,139,250,.28);
+  cursor: pointer;
+  transition: background .15s, border-color .15s;
+  user-select: none;
+}
+.badge-count:hover {
+  background: rgba(167,139,250,.28);
+  border-color: rgba(167,139,250,.5);
+}
+.badge-count:active { opacity: .7; }
 .sc-actions { display: flex; gap: 7px; align-items: center; flex-wrap: wrap; }
 .sc-ban-reason {
   font-size: 12px;
@@ -4910,12 +4923,12 @@ async function loadSessions() {
           <div class="sc-content">
             <div class="sc-footer">
               ${badgeHtml}
-              <span class="sc-capacity">${capDisplay}</span>
+              <span class="badge badge-count" onclick="event.stopPropagation();viewStudentRegistrants('${s.id}','${s.session_date}')">👥 ${capDisplay}</span>
             </div>
             ${banReasonHtml}
             <div class="sc-actions" onclick="event.stopPropagation()">
               ${actionBtn}
-              <button class="btn btn-sm btn-ghost" onclick="viewStudentRegistrants('${s.id}','${s.session_date}')">👥 Voir les inscrits</button>
+
             </div>
           </div>
         </div>
@@ -5962,14 +5975,14 @@ async function loadAdminSessions() {
                 : `<span class="badge ${openSes ? 'badge-green' : 'badge-muted'}">
                     ${openSes ? '✅ Ouvertes' : '⏸ Fermées'}
                    </span>`}
-              <span class="badge badge-muted">👥 ${count} / ${cap}</span>
+              <span class="badge badge-count" onclick="viewRegistrants('${s.id}','${s.session_date}')">👥 ${count} / ${cap}</span>
               ${waitCount > 0 ? `<span class="badge badge-gold">⏳ ${waitCount} en attente</span>` : ''}
             </div>
             <div class="admin-ses-actions">
               <button class="btn btn-sm btn-ghost" onclick="toggleSesOpen('${s.id}',${openSes})">
                 ${openSes ? 'Fermer inscrip.' : 'Ouvrir inscrip.'}
               </button>
-              <button class="btn btn-sm btn-ghost" onclick="viewRegistrants('${s.id}','${s.session_date}')">👥 Inscrits</button>
+
               <button class="btn btn-sm btn-ghost" onclick="openEditSession('${s.id}','${(s.films?.title || '').replace(/'/g,"\\'")}','${s.film_id || ''}')">✏️ Film</button>
               <button class="btn btn-sm btn-red" onclick="cancelSes('${s.id}', ${s.film_id ? `'${s.film_id}'` : 'null'})">🗑 Annuler</button>
             </div>
