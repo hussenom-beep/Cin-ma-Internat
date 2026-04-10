@@ -3471,19 +3471,22 @@ function showScreen(id) {
   window.scrollTo(0, 0);
 }
 
-async function navigateTo(id) {
+async function navigateTo(id, isBack = false) {
   showScreen(id);
   switch(id) {
     case 'home':    await loadHome(); break;
     case 'films':   await loadFilms(); break;
-    case 'propose': initPropose(); await loadStudentProposals(); break;
+    case 'propose':
+      if (!isBack) _tmdbSearchState = null;
+      initPropose(); await loadStudentProposals(); break;
     case 'session': await loadSessions(); break;
     case 'admin':   await loadAdmin(); break;
   }
 }
 
 function goBack() {
-  if (S.prevScreen) navigateTo(S.prevScreen); else navigateTo('home');
+  // Si on revient sur "propose" depuis la fiche TMDB élève, initPropose restaurera l'état
+  if (S.prevScreen) navigateTo(S.prevScreen, true); else navigateTo('home', true);
 }
 
 /* ================================================================
@@ -3799,6 +3802,8 @@ async function handleAdminLogin() {
 
   if (!data) {
     toast('Mot de passe incorrect', 'error');
+    document.getElementById('inp-adminpwd').value = '';
+    document.getElementById('inp-adminpwd').focus();
     return;
   }
 
@@ -3826,11 +3831,12 @@ async function loginAs(student) {
   saveLocal();
   startInactivityTimer();
 
-  // Mettre à jour last_news_seen_at et last_login_at
-  db.from('students').update({
+  // Mise à jour synchrone : garantit que last_news_seen_at est bien enregistré
+  // avant que l'élève puisse se reconnecter et lire cette valeur
+  await db.from('students').update({
     last_news_seen_at: new Date().toISOString(),
     last_login_at:     new Date().toISOString()
-  }).eq('id', student.id).then(() => {}); // fire-and-forget, pas critique
+  }).eq('id', student.id);
 
   navigateTo('home');
 }
@@ -4171,12 +4177,25 @@ function openDetail(filmId) {
    ================================================================ */
 let _selectedFilm = null;
 
+// Cache de l'état de recherche TMDB (pour restaurer après retour fiche)
+let _tmdbSearchState = null;
+
 function initPropose() {
   _selectedFilm = null;
-  document.getElementById('prop-search').value = '';
-  document.getElementById('prop-results').innerHTML = '';
+  // Ne pas réinitialiser si on revient d'une fiche (état conservé)
+  if (!_tmdbSearchState) {
+    document.getElementById('prop-search').value = '';
+    document.getElementById('prop-results').innerHTML = '';
+  }
   document.getElementById('prop-manual').classList.toggle('hidden', !!CFG.TMDB_KEY);
   if (!CFG.TMDB_KEY) document.getElementById('prop-manual').classList.remove('hidden');
+  // Restaurer si on revient d'une fiche
+  if (_tmdbSearchState && _tmdbSearchState.ctx === 'student') {
+    document.getElementById('prop-search').value       = _tmdbSearchState.query;
+    document.getElementById('prop-year').value         = _tmdbSearchState.year;
+    document.getElementById('prop-results').innerHTML  = _tmdbSearchState.html;
+    _tmdbSearchState = null; // consommer l'état
+  }
 }
 
 async function searchTMDB(ctx) {
@@ -4249,7 +4268,7 @@ async function searchTMDB(ctx) {
     el.innerHTML = items.map(m => {
       const yearTxt = m.release_date ? m.release_date.split('-')[0] : '';
       return `
-        <div class="tmdb-card" onclick="openTMDBDetail(${m.id}, '${ctx}')">
+        <div class="tmdb-card" onclick="saveTmdbSearchState('${ctx}'); openTMDBDetail(${m.id}, '${ctx}')">
           ${m.poster_path
             ? `<img src="https://image.tmdb.org/t/p/w200${m.poster_path}" alt="">`
             : `<div class="tmdb-noimg">🎬</div>`}
@@ -4265,6 +4284,19 @@ async function searchTMDB(ctx) {
   } catch(e) {
     el.innerHTML = '<p class="text-sm text-muted text-center" style="padding:16px;">Erreur de recherche</p>';
   }
+}
+
+/* Sauvegarde l'état de recherche TMDB avant d'ouvrir une fiche */
+function saveTmdbSearchState(ctx) {
+  if (ctx === 'student') {
+    _tmdbSearchState = {
+      ctx,
+      query: document.getElementById('prop-search')?.value || '',
+      year:  document.getElementById('prop-year')?.value   || '',
+      html:  document.getElementById('prop-results')?.innerHTML || ''
+    };
+  }
+  // Pour le contexte admin, la modal reste ouverte donc pas besoin de sauvegarder
 }
 
 /* ----------------------------------------------------------------
@@ -5691,32 +5723,33 @@ async function loadAdminProposals() {
   list.innerHTML = data.map(p => {
     const studentName = `${p.students?.first_name || '?'} ${p.students?.last_name || ''}`;
     const studentLink = p.students?.id
-      ? `<button class="admin-student-link" onclick="openStudentDetail('${p.students.id}')" title="Voir la fiche élève">${studentName}</button>`
+      ? `<button class="admin-student-link" onclick="event.stopPropagation();openStudentDetail('${p.students.id}')" title="Voir la fiche élève">${studentName}</button>`
       : `<span>${studentName}</span>`;
     let extra = '';
-    if (status === 'rejected' && p.admin_refusal_reason) {
-      extra += `<div class="text-sm text-muted mt-1" style="font-style:italic;">❌ ${p.admin_refusal_reason}</div>`;
-    }
     if (p.student_comment) {
-      extra += `<div class="text-sm text-muted mt-1">💬 ${p.student_comment}</div>`;
+      extra += `<div class="text-sm text-muted mt-1" style="background:var(--surface-3);border-radius:6px;padding:6px 10px;margin-top:6px;">💬 <em>${p.student_comment}</em></div>`;
+    }
+    if (status === 'rejected' && p.admin_refusal_reason) {
+      extra += `<div class="text-sm text-muted mt-1" style="font-style:italic;color:var(--red);">❌ ${p.admin_refusal_reason}</div>`;
     }
     const hasDetail = p.poster_url || p.synopsis;
+    const cardClick = hasDetail ? `onclick="openProposalDetail('${p.id}')"` : '';
+    const cardStyle = hasDetail ? 'cursor:pointer;' : '';
 
     return `
-    <div class="ai">
-      <div style="flex-shrink:0;">
+    <div class="ai" style="${cardStyle}" ${cardClick}>
+      <div style="flex-shrink:0;" onclick="event.stopPropagation()">
         ${p.poster_url
-          ? `<img src="${p.poster_url}" class="ai-img" alt="">`
+          ? `<img src="${p.poster_url}" class="ai-img" alt="" onclick="openProposalDetail('${p.id}')" style="cursor:pointer;">`
           : `<div class="ai-img">🎬</div>`}
       </div>
       <div class="ai-info">
         <div class="ai-title">${p.title}${p.year ? ' (' + p.year + ')' : ''}</div>
         <div class="ai-sub">Par ${studentLink}</div>
         ${extra}
-        ${hasDetail ? `<button class="btn btn-sm btn-ghost mt-1" onclick="openProposalDetail('${p.id}')">🔍 Voir fiche</button>` : ''}
       </div>
       ${status === 'pending' ? `
-        <div class="ai-actions">
+        <div class="ai-actions" onclick="event.stopPropagation()">
           <button class="btn btn-sm btn-green" onclick="acceptProposal('${p.id}')">✅ Accepter</button>
           <button class="btn btn-sm btn-red"   onclick="openRejectProposal('${p.id}')">❌ Refuser</button>
         </div>` : ''}
@@ -6117,7 +6150,7 @@ async function openEditSession(id, currentTitle, currentFilmId) {
   document.getElementById('edit-ses-id').value = id;
   document.getElementById('edit-ses-prev-film').value = currentFilmId || '';
 
-  // Charger la date actuelle de la séance depuis Supabase
+  // Charger la date et le film actuels de la séance
   const { data: ses } = await db.from('cinema_sessions')
     .select('session_date, film_id')
     .eq('id', id)
@@ -6125,18 +6158,29 @@ async function openEditSession(id, currentTitle, currentFilmId) {
 
   document.getElementById('edit-ses-date').value = ses?.session_date || '';
 
-  // Si currentFilmId n'a pas été transmis, le lire depuis la séance
   const effectiveFilmId = currentFilmId || ses?.film_id || '';
   document.getElementById('edit-ses-prev-film').value = effectiveFilmId;
 
-  // Charger la liste des films actifs + scheduled
+  // Récupérer les film_id déjà utilisés dans d'autres séances futures
+  const today = new Date().toISOString().split('T')[0];
+  const { data: otherSessions } = await db.from('cinema_sessions')
+    .select('film_id')
+    .gte('session_date', today)
+    .neq('id', id);  // exclure la séance en cours d'édition
+  const takenFilmIds = new Set((otherSessions || []).map(s => s.film_id).filter(Boolean));
+
+  // Charger films actifs + scheduled, mais exclure ceux pris ailleurs
   const { data: films } = await db.from('films')
     .select('id,title')
     .in('status', ['active', 'scheduled'])
     .order('title');
+
   const sel = document.getElementById('edit-ses-film');
   sel.innerHTML = '<option value="">— À définir —</option>' +
-    (films||[]).map(f => `<option value="${f.id}" ${f.id === effectiveFilmId ? 'selected' : ''}>${f.title}</option>`).join('');
+    (films || [])
+      .filter(f => !takenFilmIds.has(f.id) || f.id === effectiveFilmId)
+      .map(f => `<option value="${f.id}" ${f.id === effectiveFilmId ? 'selected' : ''}>${f.title}</option>`)
+      .join('');
 
   openModal('modal-edit-session');
 }
@@ -6154,6 +6198,21 @@ async function saveEditSession() {
     return;
   }
 
+  // Double sécurité : vérifier que le film choisi n'est pas déjà pris ailleurs
+  if (newFilmId && newFilmId !== prevFilmId) {
+    const today = new Date().toISOString().split('T')[0];
+    const { data: conflict } = await db.from('cinema_sessions')
+      .select('id')
+      .eq('film_id', newFilmId)
+      .gte('session_date', today)
+      .neq('id', id)
+      .limit(1);
+    if (conflict?.length) {
+      toast('Ce film est déjà programmé dans une autre séance à venir', 'error');
+      return;
+    }
+  }
+
   await db.from('cinema_sessions').update({
     session_date: newDate,
     film_id:      newFilmId
@@ -6161,10 +6220,8 @@ async function saveEditSession() {
 
   // Gestion des statuts films
   if (prevFilmId && prevFilmId !== newFilmId) {
-    // L'ancien film perd cette séance → le remettre en active si plus aucune séance future
     await maybeRestoreFilmToActive(prevFilmId);
   }
-  // Le nouveau film (ou le même si inchangé) passe en scheduled
   if (newFilmId) {
     await db.from('films').update({ status: 'scheduled' }).eq('id', newFilmId);
   }
