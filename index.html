@@ -1029,6 +1029,25 @@ button { cursor: pointer; }
   flex-direction: column;
   animation: sdSlideIn .25s cubic-bezier(.32,1,.64,1) both;
 }
+
+/* Panneau Paramètres — même principe, légèrement plus large */
+#modal-admin-settings {
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: 0;
+}
+#modal-admin-settings .sd-panel {
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  width: 100%;
+  max-width: 520px;
+  height: 100vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+  animation: sdSlideIn .25s cubic-bezier(.32,1,.64,1) both;
+}
 @keyframes sdSlideIn {
   from { transform: translateX(100%); opacity: .6; }
   to   { transform: translateX(0);    opacity: 1; }
@@ -2601,6 +2620,34 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     <div style="display:flex;gap:10px;margin-top:6px;">
       <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('modal-reset-pin')">Annuler</button>
       <button class="btn btn-red"   style="flex:1;" onclick="confirmResetPin()">Réinitialiser ✓</button>
+    </div>
+  </div>
+</div>
+<!-- ================================================================
+     MODAL: Supprimer un élève (admin) — action définitive
+     ================================================================ -->
+<div class="overlay hidden" id="modal-delete-student">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" style="color:var(--red);">⚠️ Supprimer cet élève</div>
+    <input type="hidden" id="delete-student-id">
+    <div style="background:var(--red-dim);border:1px solid rgba(232,64,64,.25);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:16px;">
+      <div style="font-weight:700;font-size:14px;color:var(--red);margin-bottom:4px;">Action irréversible</div>
+      <div class="text-sm" style="color:var(--text-2);line-height:1.55;">
+        Cette suppression est définitive. L'élève <strong id="delete-student-name">—</strong>
+        perdra tout accès et toutes ses données associées seront supprimées
+        (votes, propositions, inscriptions, événements).
+      </div>
+    </div>
+    <div class="fgroup">
+      <label class="flabel">Confirmer avec le mot de passe admin</label>
+      <input type="password" class="finput" id="delete-student-adminpwd"
+             placeholder="••••••••"
+             onkeydown="if(event.key==='Enter') confirmDeleteStudent()">
+    </div>
+    <div style="display:flex;gap:10px;margin-top:6px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('modal-delete-student')">Annuler</button>
+      <button class="btn btn-red"   style="flex:1;" onclick="confirmDeleteStudent()">Supprimer définitivement 🗑</button>
     </div>
   </div>
 </div>
@@ -5434,7 +5481,7 @@ async function openStudentDetail(studentId) {
   eleveUidEl.textContent = s.eleve_uid ? `🪪 ${s.eleve_uid}` : "— pas d'eleveUid";
   eleveUidEl.style.color = s.eleve_uid ? '' : 'var(--text-3)';
 
-  // Bouton reset PIN dans la fiche (injecté dynamiquement sous les UIDs)
+  // Boutons admin dans la fiche (reset PIN + supprimer élève)
   let resetEl = document.getElementById('sd-reset-pin-btn');
   if (!resetEl) {
     resetEl = document.createElement('div');
@@ -5442,8 +5489,13 @@ async function openStudentDetail(studentId) {
     resetEl.style.marginTop = '8px';
     document.getElementById('sd-eleve-uid').parentNode.appendChild(resetEl);
   }
-  resetEl.innerHTML = `<button class="btn btn-sm btn-ghost" style="font-size:12px;"
-    onclick="openResetPin('${s.id}','${(s.first_name||'')} ${(s.last_name||'')}')">🔐 Réinitialiser le code secret</button>`;
+  resetEl.innerHTML = `
+    <div style="display:flex;gap:7px;flex-wrap:wrap;">
+      <button class="btn btn-sm btn-ghost" style="font-size:12px;"
+        onclick="openResetPin('${s.id}','${(s.first_name||'')} ${(s.last_name||'')}')">🔐 Réinitialiser le code</button>
+      <button class="btn btn-sm btn-red" style="font-size:12px;"
+        onclick="openDeleteStudent('${s.id}','${(s.first_name||'')} ${(s.last_name||'')}')">🗑 Supprimer l'élève</button>
+    </div>`;
 
   const row = (label, val, dim = false) =>
     `<div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:5px 0;border-bottom:1px solid rgba(37,37,56,.4);">
@@ -5877,6 +5929,49 @@ async function confirmResetPin() {
 
   // Rafraîchir la fiche si ouverte
   if (_sdCurrentStudentId === studentId) openStudentDetail(studentId);
+  loadAdminStudents();
+}
+
+/* Suppression définitive d'un élève */
+function openDeleteStudent(studentId, studentName) {
+  document.getElementById('delete-student-id').value = studentId;
+  document.getElementById('delete-student-name').textContent = studentName.trim();
+  document.getElementById('delete-student-adminpwd').value = '';
+  openModal('modal-delete-student');
+  setTimeout(() => document.getElementById('delete-student-adminpwd')?.focus(), 80);
+}
+
+async function confirmDeleteStudent() {
+  const studentId = document.getElementById('delete-student-id').value;
+  const pwd = document.getElementById('delete-student-adminpwd').value.trim();
+
+  if (!pwd) {
+    toast('Entre le mot de passe admin', 'error');
+    document.getElementById('delete-student-adminpwd').focus();
+    return;
+  }
+
+  // Vérification du mot de passe admin
+  const { data: ok, error: rpcErr } = await db.rpc('verify_admin_password', { p_password: pwd });
+  if (rpcErr) { toast('Erreur de vérification admin', 'error'); return; }
+  if (!ok) {
+    toast('Mot de passe admin incorrect', 'error');
+    document.getElementById('delete-student-adminpwd').value = '';
+    document.getElementById('delete-student-adminpwd').focus();
+    return;
+  }
+
+  // Suppression — les ON DELETE CASCADE gèrent les tables liées
+  const { error } = await db.from('students').delete().eq('id', studentId);
+  if (error) {
+    toast('Erreur lors de la suppression : ' + error.message, 'error');
+    return;
+  }
+
+  closeModal('modal-delete-student');
+  closeModal('modal-student-detail');
+  toast('Élève supprimé définitivement', 'success');
+  _sdCurrentStudentId = null;
   loadAdminStudents();
 }
 
