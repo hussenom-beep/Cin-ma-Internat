@@ -1358,9 +1358,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 		<input type="text" inputmode="numeric" maxlength="1" class="pin" id="p5" autocomplete="off">
 		<input type="text" inputmode="numeric" maxlength="1" class="pin" id="p6" autocomplete="off">
       </div>
-      <p class="text-sm text-muted text-center" style="margin-bottom:16px;opacity:.6;">
-        Connexion automatique au 6e chiffre
-      </p>
+      <!-- texte retiré : auto-login déjà implicite -->
       <button class="btn btn-ghost btn-full btn-sm" onclick="backCode()">← Retour</button>
     </div>
 
@@ -3568,14 +3566,18 @@ async function loadSessions() {
   const today = new Date().toISOString().split('T')[0];
   const [{ data: sessions }, { data: myRegs }, { data: myBans }] = await Promise.all([
     db.from('cinema_sessions').select('*, films(id, title, poster_url, tmdb_id)').gte('session_date', today).order('session_date'),
-    S.user ? db.from('registrations').select('session_id, status').eq('student_id', S.user.id) : { data: [] },
+    S.user ? db.from('registrations').select('session_id, status, waitlist_rank').eq('student_id', S.user.id) : { data: [] },
     S.user ? db.from('session_bans').select('session_id, reason').eq('student_id', S.user.id) : { data: [] }
   ]);
 
   // Inscrits confirmés vs liste d'attente de l'élève courant
-  const regSet  = new Set((myRegs || []).filter(r => r.status === 'registered').map(r => r.session_id));
-  const waitSet = new Set((myRegs || []).filter(r => r.status === 'waitlist').map(r => r.session_id));
-  const banMap  = {};
+	const regSet   = new Set((myRegs || []).filter(r => r.status === 'registered').map(r => r.session_id));
+	const waitSet  = new Set((myRegs || []).filter(r => r.status === 'waitlist').map(r => r.session_id));
+	const waitRank = {};
+	(myRegs || []).forEach(r => {
+	if (r.status === 'waitlist') waitRank[r.session_id] = r.waitlist_rank || null;
+	});
+	const banMap = {};
   (myBans || []).forEach(b => { banMap[b.session_id] = b.reason || 'Inscription non autorisée'; });
 
   if (!sessions?.length) {
@@ -3608,7 +3610,7 @@ async function loadSessions() {
     let badgeHtml;
     if (banned)      badgeHtml = `<span class="badge badge-red">🚫 Non autorisé</span>`;
     else if (reg)    badgeHtml = `<span class="badge badge-green">✅ Inscrit(e)</span>`;
-    else if (onWait) badgeHtml = `<span class="badge badge-gold">⏳ En attente</span>`;
+    else if (onWait) badgeHtml = `<span class="badge badge-gold">⏳ En attente${waitRank[s.id] ? ` · n°${waitRank[s.id]}` : ''}</span>`;
     else if (full)   badgeHtml = `<span class="badge badge-muted">🚫 Complet</span>`;
     else if (open)   badgeHtml = `<span class="badge badge-green">✅ Ouvertes</span>`;
     else             badgeHtml = `<span class="badge badge-muted">⏸ Fermées</span>`;
@@ -3623,7 +3625,9 @@ async function loadSessions() {
       const reason = banMap[s.id] || '';
       banReasonHtml = `<div class="sc-ban-reason">🚫 Motif : ${reason || 'Inscription non autorisée'}</div>`;
     } else if (reg || onWait) {
-      const label = reg ? '❌ Se désinscrire' : '↩ Quitter la liste d\'attente';
+      const label = reg
+  ? '❌ Se désinscrire'
+  : `↩ Quitter la liste d'attente${waitRank[s.id] ? ` (n°${waitRank[s.id]})` : ''}`;
       actionBtn = `<button class="btn btn-sm btn-red" onclick="toggleReg('${s.id}','unregister')">${label}</button>`;
     } else if (!open) {
       actionBtn = ''; // inscriptions fermées, rien à faire
