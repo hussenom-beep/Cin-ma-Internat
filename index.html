@@ -1393,11 +1393,61 @@ button { cursor: pointer; }
 .vbar-fill { height: 100%; border-radius: 3px; background: var(--gold); transition: width .6s cubic-bezier(.4,0,.2,1); }
 .vbar-count { font-size: 11px; color: var(--text-2); margin-top: 4px; }
 
-/* Students table */
-.stbl { width: 100%; border-collapse: collapse; font-size: 12.5px; }
-.stbl th { text-align: left; padding: 8px 10px; color: var(--text-3); font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; border-bottom: 1px solid var(--border); }
-.stbl td { padding: 9px 10px; border-bottom: 1px solid rgba(37,37,56,.5); }
-.stbl tr:hover td { background: var(--surface-2); }
+/* Students table — amélioration visuelle */
+.stbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+.stbl thead { background: var(--surface-2); }
+.stbl th {
+  text-align: left;
+  padding: 10px 12px;
+  color: var(--text-2);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  border-bottom: 2px solid var(--border-2);
+  white-space: nowrap;
+}
+.stbl td {
+  padding: 11px 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  vertical-align: middle;
+}
+.stbl tbody tr { background: var(--surface); transition: background .12s; }
+.stbl tbody tr:hover td { background: var(--surface-2); }
+.stbl tbody tr:last-child td { border-bottom: none; }
+
+/* Zone danger dans la fiche élève */
+.sd-danger-zone {
+  margin-top: 28px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(232,64,64,.2);
+}
+.sd-danger-zone-title {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--red);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  margin-bottom: 10px;
+  opacity: .7;
+}
+.sd-danger-zone .btn-danger-subtle {
+  background: none;
+  border: 1px solid rgba(232,64,64,.3);
+  color: var(--red);
+  opacity: .75;
+  font-size: 12.5px;
+  padding: 7px 14px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 600;
+  transition: opacity .18s, background .18s;
+  width: 100%;
+  text-align: left;
+}
+.sd-danger-zone .btn-danger-subtle:hover { opacity: 1; background: var(--red-dim); }
 
 /* Code pill */
 code { font-family: 'Courier New', monospace; background: var(--surface-3); padding: 2px 7px; border-radius: 5px; font-size: 12px; color: var(--gold); letter-spacing: .05em; }
@@ -1914,14 +1964,13 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
               </th>
               <th>Classe</th>
               <th>Identifiant</th>
-              <th>EleveUID</th>
               <th class="sortable" onclick="sortStudents('status')" id="sh-status">
                 Statut <span class="sort-arrow"></span>
               </th>
             </tr>
           </thead>
           <tbody id="students-tbody">
-            <tr><td colspan="6" style="text-align:center;color:var(--text-3);padding:20px;">Chargement...</td></tr>
+            <tr><td colspan="5" style="text-align:center;color:var(--text-3);padding:20px;">Chargement...</td></tr>
           </tbody>
         </table>
       </div>
@@ -2522,6 +2571,18 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
           <div id="sd-recent">
             <div class="loader" style="padding:20px;"><div class="spinner"></div></div>
           </div>
+        </div>
+
+        <!-- Actions principales -->
+        <div class="sd-section">
+          <div class="sd-section-title">Actions</div>
+          <div style="display:flex;flex-direction:column;gap:8px;" id="sd-actions"></div>
+        </div>
+
+        <!-- Zone danger -->
+        <div class="sd-danger-zone">
+          <div class="sd-danger-zone-title">⚠ Zone de danger</div>
+          <div id="sd-danger-actions"></div>
         </div>
       </div>
 
@@ -5481,21 +5542,37 @@ async function openStudentDetail(studentId) {
   eleveUidEl.textContent = s.eleve_uid ? `🪪 ${s.eleve_uid}` : "— pas d'eleveUid";
   eleveUidEl.style.color = s.eleve_uid ? '' : 'var(--text-3)';
 
-  // Boutons admin dans la fiche (reset PIN + supprimer élève)
-  let resetEl = document.getElementById('sd-reset-pin-btn');
-  if (!resetEl) {
-    resetEl = document.createElement('div');
-    resetEl.id = 'sd-reset-pin-btn';
-    resetEl.style.marginTop = '8px';
-    document.getElementById('sd-eleve-uid').parentNode.appendChild(resetEl);
+  // Actions principales + zone danger (injectées dynamiquement)
+  let actionsEl = document.getElementById('sd-actions');
+  let dangerEl  = document.getElementById('sd-danger-actions');
+
+  if (actionsEl) {
+    const archiveLabel = s.is_active
+      ? `⊘ Archiver cet élève`
+      : `↩ Désarchiver cet élève`;
+    const archiveFn = s.is_active
+      ? `archiveStudent('${s.id}')`
+      : `unarchiveStudent('${s.id}')`;
+
+    actionsEl.innerHTML = `
+      <button class="btn btn-ghost btn-full" style="justify-content:flex-start;gap:10px;text-align:left;"
+        onclick="openResetPin('${s.id}','${(s.first_name||'')} ${(s.last_name||'')}')">
+        🔐 Réinitialiser le code secret
+      </button>
+      <button class="btn ${s.is_active ? 'btn-ghost' : 'btn-green'} btn-full"
+              style="justify-content:flex-start;gap:10px;text-align:left;"
+              onclick="${archiveFn}">
+        ${archiveLabel}
+      </button>`;
   }
-  resetEl.innerHTML = `
-    <div style="display:flex;gap:7px;flex-wrap:wrap;">
-      <button class="btn btn-sm btn-ghost" style="font-size:12px;"
-        onclick="openResetPin('${s.id}','${(s.first_name||'')} ${(s.last_name||'')}')">🔐 Réinitialiser le code</button>
-      <button class="btn btn-sm btn-red" style="font-size:12px;"
-        onclick="openDeleteStudent('${s.id}','${(s.first_name||'')} ${(s.last_name||'')}')">🗑 Supprimer l'élève</button>
-    </div>`;
+
+  if (dangerEl) {
+    dangerEl.innerHTML = `
+      <button class="btn-danger-subtle"
+        onclick="openDeleteStudent('${s.id}','${(s.first_name||'')} ${(s.last_name||'')}')">
+        🗑 Supprimer définitivement cet élève
+      </button>`;
+  }
 
   const row = (label, val, dim = false) =>
     `<div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:5px 0;border-bottom:1px solid rgba(37,37,56,.4);">
@@ -5847,12 +5924,11 @@ function _renderStudentTable() {
     const msg = q ? 'Aucun élève correspondant à la recherche'
       : _studentFilter === 'archived' ? 'Aucun élève archivé'
       : 'Aucun élève importé';
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-3);padding:20px;">${msg}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--text-3);padding:20px;">${msg}</td></tr>`;
     return;
   }
 
   tbody.innerHTML = rows.map(s => {
-    // Badge statut : clair, sans ambiguïté
     const statusBadge = s.is_activated
       ? `<span class="badge badge-green">✓ Activé</span>`
       : `<span class="badge badge-muted">○ En attente</span>`;
@@ -5866,15 +5942,7 @@ function _renderStudentTable() {
       <td>${s.first_name || '—'}</td>
       <td>${s.class_name || '—'}</td>
       <td><code style="font-size:11.5px;">${s.login_identifier || s.activation_code || '—'}</code></td>
-      <td><code style="color:var(--gold);font-size:11px;">${s.eleve_uid || '—'}</code></td>
-      <td>
-        ${statusBadge}${archivedBadge}
-        <button class="btn btn-sm btn-ghost"
-                style="margin-left:6px;padding:3px 8px;font-size:11px;"
-                onclick="event.stopPropagation();openResetPin('${s.id}','${(s.first_name||'')} ${(s.last_name||'')}')">
-          🔐 Reset
-        </button>
-      </td>
+      <td>${statusBadge}${archivedBadge}</td>
     </tr>`;
   }).join('');
 
@@ -5927,6 +5995,24 @@ async function importStudentsFromSettings() {
       !document.getElementById('ap-students').classList.contains('hidden')) {
     loadAdminStudents();
   }
+}
+
+/* Archiver / désarchiver un élève */
+async function archiveStudent(studentId) {
+  if (!confirm('Archiver cet élève ? Il disparaîtra de la liste visible mais ses données seront conservées.')) return;
+  const { error } = await db.from('students').update({ is_active: false }).eq('id', studentId);
+  if (error) { toast('Erreur lors de l\'archivage', 'error'); return; }
+  toast('Élève archivé', 'success');
+  openStudentDetail(studentId); // rafraîchir la fiche
+  loadAdminStudents();
+}
+
+async function unarchiveStudent(studentId) {
+  const { error } = await db.from('students').update({ is_active: true }).eq('id', studentId);
+  if (error) { toast('Erreur lors du désarchivage', 'error'); return; }
+  toast('Élève désarchivé — il est de nouveau visible', 'success');
+  openStudentDetail(studentId);
+  loadAdminStudents();
 }
 
 /* Réinitialisation du code PIN élève */
