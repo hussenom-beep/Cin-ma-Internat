@@ -1635,19 +1635,35 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
   padding: 16px 18px;
 }
 .admin-dash-block-title {
-  font-size: 11.5px;
-  font-weight: 700;
-  color: var(--text-2);
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text);
   text-transform: uppercase;
-  letter-spacing: .07em;
+  letter-spacing: .08em;
   margin-bottom: 14px;
-  padding-bottom: 10px;
+  padding-bottom: 11px;
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 9px;
 }
-.admin-dash-block-title span { font-size: 15px; }
+.admin-dash-block-title span {
+  font-size: 16px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+/* Icône spéciale pour "À surveiller" */
+.admin-dash-block-title .icon-watch {
+  font-size: 14px;
+  background: var(--gold-dim);
+  border: 1px solid rgba(240,165,0,.3);
+  border-radius: 6px;
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
 .admin-dash-row {
   display: flex;
   align-items: center;
@@ -4412,11 +4428,13 @@ async function loadStudentProposals() {
   if (!list || !S.user) return;
   list.innerHTML = '<div class="loader" style="padding:24px;"><div class="spinner"></div></div>';
 
+  const sortField = (status === 'pending') ? 'proposed_at' : 'reviewed_at';
+
   const { data } = await db.from('proposals')
-    .select('id,title,poster_url,year,status,proposed_at,admin_refusal_reason')
+    .select('id,title,poster_url,year,status,proposed_at,reviewed_at,admin_refusal_reason')
     .eq('student_id', S.user.id)
     .eq('status', status)
-    .order('proposed_at', { ascending: false });
+    .order(sortField, { ascending: false });
 
   if (!data?.length) {
     const lbls = { pending:'en attente', accepted:'acceptée', rejected:'refusée' };
@@ -4427,7 +4445,14 @@ async function loadStudentProposals() {
   const badgeCls = { pending:'badge-gold', accepted:'badge-green', rejected:'badge-red' };
   const badgeLbl = { pending:'⏳ En attente', accepted:'✅ Acceptée', rejected:'❌ Refusée' };
 
-  list.innerHTML = data.map(p => `
+  list.innerHTML = data.map(p => {
+    // Date à afficher : traitement admin si dispo, sinon date de proposition
+    const displayDate = (status !== 'pending' && p.reviewed_at)
+      ? p.reviewed_at.split('T')[0]
+      : p.proposed_at.split('T')[0];
+    const dateLabel = (status !== 'pending' && p.reviewed_at) ? 'Traitée le' : 'Proposée le';
+
+    return `
     <div class="history-item">
       ${p.poster_url
         ? `<img src="${p.poster_url}" class="history-poster" alt="">`
@@ -4437,9 +4462,10 @@ async function loadStudentProposals() {
         <div style="margin:4px 0;"><span class="badge ${badgeCls[p.status] || 'badge-muted'}">${badgeLbl[p.status] || p.status}</span></div>
         ${p.status === 'rejected' && p.admin_refusal_reason
           ? `<div class="history-reason">Raison : ${p.admin_refusal_reason}</div>` : ''}
-        <div class="history-date">${fmtDateShort(p.proposed_at.split('T')[0])}</div>
+        <div class="history-date">${dateLabel} ${fmtDateShort(displayDate)}</div>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 
@@ -4940,7 +4966,9 @@ async function loadAdminDashboard() {
   el.innerHTML = `
     <div class="admin-dash-grid">
       <div class="admin-dash-block">
-        <div class="admin-dash-block-title"><span>👁</span> À surveiller</div>
+        <div class="admin-dash-block-title">
+          <span class="icon-watch">⚠</span> À surveiller
+        </div>
         ${watchHtml}
       </div>
       <div class="admin-dash-block">
