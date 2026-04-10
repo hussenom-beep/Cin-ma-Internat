@@ -1876,11 +1876,10 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 
       <!-- Filtres rapides -->
       <div class="students-filter-pills">
-        <button class="students-pill active" onclick="setStudentFilter('all',this)">Tous</button>
-        <button class="students-pill" onclick="setStudentFilter('activated',this)">✓ Activés</button>
-        <button class="students-pill" onclick="setStudentFilter('pending',this)">○ Non activés</button>
-        <button class="students-pill" onclick="setStudentFilter('active',this)">Actifs</button>
-        <button class="students-pill" onclick="setStudentFilter('inactive',this)">Inactifs</button>
+        <button class="students-pill active" id="spill-visible"   onclick="setStudentFilter('visible',this)">Visibles</button>
+        <button class="students-pill"        id="spill-activated" onclick="setStudentFilter('activated',this)">✓ Compte activé</button>
+        <button class="students-pill"        id="spill-pending"   onclick="setStudentFilter('pending',this)">○ Compte non activé</button>
+        <button class="students-pill"        id="spill-archived"  onclick="setStudentFilter('archived',this)">⊘ Archivés</button>
       </div>
 
       <!-- Tableau -->
@@ -2590,12 +2589,18 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     <div class="sheet-title">🔐 Réinitialiser le code</div>
     <input type="hidden" id="reset-pin-student-id">
     <p class="text-sm text-muted" style="margin-bottom:14px;">
-      L'élève devra choisir un nouveau code secret à sa prochaine connexion.
+      L'élève devra choisir un nouveau code à sa prochaine connexion.
       Son identifiant de connexion est conservé.
     </p>
+    <div class="fgroup">
+      <label class="flabel">Mot de passe admin</label>
+      <input type="password" class="finput" id="reset-pin-adminpwd"
+             placeholder="••••••••"
+             onkeydown="if(event.key==='Enter') confirmResetPin()">
+    </div>
     <div style="display:flex;gap:10px;margin-top:6px;">
       <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('modal-reset-pin')">Annuler</button>
-      <button class="btn btn-red" style="flex:1;" onclick="confirmResetPin()">Réinitialiser ✓</button>
+      <button class="btn btn-red"   style="flex:1;" onclick="confirmResetPin()">Réinitialiser ✓</button>
     </div>
   </div>
 </div>
@@ -5683,28 +5688,31 @@ async function _sdLoadSessions(studentId) {
    ADMIN STUDENTS — tableur avec recherche, filtres, tri
    ================================================================ */
 
-let _studentsAll    = [];   // cache complet
-let _studentFilter  = 'all';
+let _studentsAll    = [];
+let _studentFilter  = 'visible';   // par défaut : uniquement les élèves visibles/actifs
 let _studentSearch  = '';
 let _studentSort    = { key: 'last_name', dir: 'asc' };
 
 async function loadAdminStudents() {
-  // Charger tous les élèves (toutes années) pour permettre la recherche globale
   const { data } = await db.from('students').select('*').order('last_name');
   _studentsAll = data || [];
+  // Réinitialiser au filtre par défaut "Visibles" à chaque chargement de l'onglet
+  _studentFilter = 'visible';
+  document.querySelectorAll('.students-pill').forEach(p => p.classList.remove('active'));
+  document.getElementById('spill-visible')?.classList.add('active');
   _renderStudentTable();
 }
 
 function _renderStudentTable() {
   const q = _studentSearch.toLowerCase();
 
-  // Filtre statut
+  // Filtre principal
   let rows = _studentsAll.filter(s => {
-    if (_studentFilter === 'activated') return s.is_activated;
-    if (_studentFilter === 'pending')   return !s.is_activated && s.is_active;
-    if (_studentFilter === 'active')    return s.is_active;
-    if (_studentFilter === 'inactive')  return !s.is_active;
-    return true; // 'all'
+    if (_studentFilter === 'visible')   return !!s.is_active;               // visibles = actifs
+    if (_studentFilter === 'activated') return !!s.is_active && !!s.is_activated;  // visibles + activés
+    if (_studentFilter === 'pending')   return !!s.is_active && !s.is_activated;   // visibles + non activés
+    if (_studentFilter === 'archived')  return !s.is_active;               // archivés uniquement
+    return !!s.is_active; // fallback
   });
 
   // Filtre recherche
@@ -5725,9 +5733,8 @@ function _renderStudentTable() {
     let va, vb;
     if (key === 'last_name')  { va = (a.last_name||'').toLowerCase();  vb = (b.last_name||'').toLowerCase(); }
     if (key === 'first_name') { va = (a.first_name||'').toLowerCase(); vb = (b.first_name||'').toLowerCase(); }
-    if (key === 'status') {
-      va = a.is_activated ? 1 : 0; vb = b.is_activated ? 1 : 0;
-    }
+    if (key === 'status')     { va = a.is_activated ? 1 : 0;           vb = b.is_activated ? 1 : 0; }
+    if (va === undefined) return 0;
     if (va < vb) return dir === 'asc' ? -1 : 1;
     if (va > vb) return dir === 'asc' ? 1 : -1;
     return 0;
@@ -5735,19 +5742,30 @@ function _renderStudentTable() {
 
   // Compteur
   const act = rows.filter(s => s.is_activated).length;
-  document.getElementById('students-count-label').textContent =
-    `${rows.length} élève${rows.length > 1 ? 's' : ''}${act ? ` · ${act} activé${act > 1 ? 's' : ''}` : ''}`;
+  const countLabel = _studentFilter === 'archived'
+    ? `${rows.length} élève${rows.length > 1 ? 's' : ''} archivé${rows.length > 1 ? 's' : ''}`
+    : `${rows.length} élève${rows.length > 1 ? 's' : ''}${act ? ` · ${act} compte${act > 1 ? 's' : ''} activé${act > 1 ? 's' : ''}` : ''}`;
+  document.getElementById('students-count-label').textContent = countLabel;
 
-  // Rendu tableau
   const tbody = document.getElementById('students-tbody');
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-3);padding:20px;">${
-      q || _studentFilter !== 'all' ? 'Aucun élève correspondant' : 'Aucun élève importé'
-    }</td></tr>`;
+    const msg = q ? 'Aucun élève correspondant à la recherche'
+      : _studentFilter === 'archived' ? 'Aucun élève archivé'
+      : 'Aucun élève importé';
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-3);padding:20px;">${msg}</td></tr>`;
     return;
   }
 
-  tbody.innerHTML = rows.map(s => `
+  tbody.innerHTML = rows.map(s => {
+    // Badge statut : clair, sans ambiguïté
+    const statusBadge = s.is_activated
+      ? `<span class="badge badge-green">✓ Activé</span>`
+      : `<span class="badge badge-muted">○ En attente</span>`;
+    const archivedBadge = !s.is_active
+      ? `<span class="badge badge-muted" style="margin-left:4px;">⊘ Archivé</span>`
+      : '';
+
+    return `
     <tr style="cursor:pointer;" onclick="openStudentDetail('${s.id}')">
       <td style="font-weight:600;">${s.last_name || '—'}</td>
       <td>${s.first_name || '—'}</td>
@@ -5755,14 +5773,17 @@ function _renderStudentTable() {
       <td><code style="font-size:11.5px;">${s.login_identifier || s.activation_code || '—'}</code></td>
       <td><code style="color:var(--gold);font-size:11px;">${s.eleve_uid || '—'}</code></td>
       <td>
-        <span class="badge ${s.is_activated ? 'badge-green' : 'badge-muted'}">${s.is_activated ? '✓ Activé' : '○ Attente'}</span>
-        ${!s.is_active ? '<span class="badge badge-muted" style="margin-left:4px;">⊘ Inactif</span>' : ''}
-        <button class="btn btn-sm btn-ghost" style="margin-left:6px;padding:3px 8px;font-size:11px;"
-                onclick="event.stopPropagation();openResetPin('${s.id}','${(s.first_name||'')} ${(s.last_name||'')}')">🔐 Reset</button>
+        ${statusBadge}${archivedBadge}
+        <button class="btn btn-sm btn-ghost"
+                style="margin-left:6px;padding:3px 8px;font-size:11px;"
+                onclick="event.stopPropagation();openResetPin('${s.id}','${(s.first_name||'')} ${(s.last_name||'')}')">
+          🔐 Reset
+        </button>
       </td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
 
-  // Mettre à jour les flèches de tri
+  // Flèches de tri
   ['last_name','first_name','status'].forEach(k => {
     const th = document.getElementById(`sh-${k}`);
     if (!th) return;
@@ -5818,11 +5839,32 @@ function openResetPin(studentId, studentName) {
   document.getElementById('reset-pin-student-id').value = studentId;
   document.querySelector('#modal-reset-pin .sheet-title').textContent =
     `🔐 Réinitialiser le code — ${studentName.trim()}`;
+  document.getElementById('reset-pin-adminpwd').value = '';
   openModal('modal-reset-pin');
+  setTimeout(() => document.getElementById('reset-pin-adminpwd')?.focus(), 80);
 }
 
 async function confirmResetPin() {
   const studentId = document.getElementById('reset-pin-student-id').value;
+  const pwd = document.getElementById('reset-pin-adminpwd').value.trim();
+
+  if (!pwd) {
+    toast('Entre le mot de passe admin', 'error');
+    document.getElementById('reset-pin-adminpwd').focus();
+    return;
+  }
+
+  // Vérifier le mot de passe admin via RPC
+  const { data: ok, error: rpcErr } = await db.rpc('verify_admin_password', { p_password: pwd });
+  if (rpcErr) { toast('Erreur de vérification admin', 'error'); return; }
+  if (!ok) {
+    toast('Mot de passe admin incorrect', 'error');
+    document.getElementById('reset-pin-adminpwd').value = '';
+    document.getElementById('reset-pin-adminpwd').focus();
+    return;
+  }
+
+  // Réinitialiser le code
   const { error } = await db.from('students').update({
     is_activated:  false,
     password_hash: null
@@ -5831,8 +5873,9 @@ async function confirmResetPin() {
   if (error) { toast('Erreur lors de la réinitialisation', 'error'); return; }
 
   closeModal('modal-reset-pin');
-  toast('Code réinitialisé — l\'élève devra choisir un nouveau code', 'success');
-  // Rafraîchir si la fiche est ouverte
+  toast("Code réinitialisé — l'élève choisira un nouveau code à sa prochaine connexion", 'success');
+
+  // Rafraîchir la fiche si ouverte
   if (_sdCurrentStudentId === studentId) openStudentDetail(studentId);
   loadAdminStudents();
 }
