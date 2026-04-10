@@ -880,15 +880,148 @@ button { cursor: pointer; }
 .sessions-body { padding: 18px; display: flex; flex-direction: column; gap: 14px; }
 
 /* Carte séance élève — style premium avec affiche */
+/* ================================================================
+   CARTES DE SÉANCE — layout inspiré de la maquette référence
+   Fond affiche imprégné + date/titre haut + affiche visible bas-gauche + statut bas-droite
+   ================================================================ */
+
+/* ---- Carte "Prochaine séance" — accueil ---- */
+.session-banner {
+  position: relative;
+  border-radius: var(--radius);
+  overflow: hidden;
+  cursor: pointer;
+  min-height: 200px;
+  background: linear-gradient(135deg, #1a1428 0%, #0f0f1e 100%);
+  border: 1px solid rgba(240,165,0,.3);
+  transition: border-color .2s, transform .18s;
+}
+.session-banner:hover { border-color: var(--gold-glow); transform: translateY(-2px); }
+
+/* Fond affiche plein — atténué */
+.session-banner-poster {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center;
+  opacity: .18;
+  pointer-events: none;
+}
+
+/* Dégradé overlay : opaque en bas, transparent en haut */
+.session-banner-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(160deg, rgba(8,8,15,.55) 0%, rgba(8,8,15,.85) 60%, rgba(8,8,15,.97) 100%);
+  pointer-events: none;
+}
+
+/* Zone interne : layout vertical en colonne */
+.session-banner-inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 200px;
+  padding: 18px 18px 16px;
+}
+
+/* Haut : date + titre */
+.session-banner-top {
+  flex: 1;
+}
+.session-banner-date {
+  font-size: 11px;
+  color: var(--gold);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  margin-bottom: 7px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.session-banner-film {
+  font-size: 26px;
+  font-weight: 700;
+  font-family: 'Playfair Display', serif;
+  line-height: 1.15;
+  color: #fff;
+  text-shadow: 0 2px 12px rgba(0,0,0,.5);
+}
+
+/* Bas : affiche visible + statut */
+.session-banner-bottom {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 18px;
+}
+.session-banner-thumb {
+  flex-shrink: 0;
+  width: 72px;
+}
+.session-banner-thumb img {
+  width: 72px;
+  height: 108px;
+  object-fit: cover;
+  border-radius: 7px;
+  box-shadow: 0 6px 20px rgba(0,0,0,.7);
+  border: 1px solid rgba(255,255,255,.15);
+  display: block;
+}
+.session-banner-thumb-empty {
+  width: 72px;
+  height: 108px;
+  background: rgba(255,255,255,.07);
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  border: 1px solid rgba(255,255,255,.09);
+}
+/* Contenu statut à droite du thumb */
+.session-banner-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.session-banner-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+}
+.session-banner-hint { font-size: 12px; color: var(--text-3); }
+
+/* Variante vide */
+.session-banner-empty {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px 18px;
+  text-align: center;
+  color: var(--text-3);
+}
+
+/* ---- Carte élève séances ---- */
 .session-card-student {
   position: relative;
   border-radius: var(--radius);
   overflow: hidden;
-  min-height: 140px;
+  min-height: 180px;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
-  background: linear-gradient(135deg,#1a1428,#1a1a28);
+  background: linear-gradient(135deg, #1a1428, #0f0f1e);
   border: 1px solid rgba(240,165,0,.18);
   cursor: default;
 }
@@ -898,23 +1031,90 @@ button { cursor: pointer; }
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center top;
-  opacity: .18;
+  object-position: center center;
+  opacity: .15;
   pointer-events: none;
 }
 .sc-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top,rgba(8,8,15,.96) 0%,rgba(8,8,15,.5) 60%,rgba(8,8,15,.1) 100%);
+  background: linear-gradient(160deg, rgba(8,8,15,.5) 0%, rgba(8,8,15,.82) 55%, rgba(8,8,15,.97) 100%);
   pointer-events: none;
 }
-.sc-body { position: relative; z-index: 1; padding: 14px 16px 13px; }
-.sc-date { font-size: 10.5px; color: var(--gold); font-weight: 700; text-transform: uppercase; letter-spacing: .09em; margin-bottom: 4px; }
-.sc-film { font-size: 17px; font-weight: 700; font-family: 'Playfair Display',serif; line-height: 1.2; margin-bottom: 8px; }
-.sc-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
-.sc-actions { display: flex; gap: 7px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
-.sc-capacity { font-size: 11.5px; color: var(--text-3); }
-/* Motif de blocage élève — visible en rouge atténué */
+/* Layout vertical identique au banner */
+.sc-inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  flex: 1;
+  padding: 15px 15px 13px;
+  min-height: 180px;
+}
+/* Haut : date + titre */
+.sc-top { flex: 1; }
+.sc-date {
+  font-size: 10px;
+  color: var(--gold);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  margin-bottom: 5px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.sc-film {
+  font-size: 20px;
+  font-weight: 700;
+  font-family: 'Playfair Display', serif;
+  line-height: 1.2;
+  color: #fff;
+  text-shadow: 0 2px 10px rgba(0,0,0,.45);
+}
+/* Bas : thumb + statut + actions */
+.sc-bottom {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  margin-top: 14px;
+}
+.sc-thumb {
+  flex-shrink: 0;
+  width: 60px;
+}
+.sc-thumb img {
+  width: 60px;
+  height: 90px;
+  object-fit: cover;
+  border-radius: 5px;
+  box-shadow: 0 5px 16px rgba(0,0,0,.65);
+  border: 1px solid rgba(255,255,255,.12);
+  display: block;
+}
+.sc-thumb-empty {
+  width: 60px;
+  height: 90px;
+  background: rgba(255,255,255,.06);
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  border: 1px solid rgba(255,255,255,.08);
+}
+.sc-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 7px;
+}
+.sc-footer { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.sc-capacity { font-size: 12px; color: var(--text-3); }
+.sc-actions { display: flex; gap: 7px; align-items: center; flex-wrap: wrap; }
 .sc-ban-reason {
   font-size: 12px;
   color: var(--red);
@@ -922,10 +1122,102 @@ button { cursor: pointer; }
   border: 1px solid rgba(232,64,64,.2);
   border-radius: 6px;
   padding: 5px 10px;
-  margin-top: 8px;
   line-height: 1.45;
-  width: 100%;
 }
+
+/* ---- Carte admin séance ---- */
+.admin-ses-card {
+  position: relative;
+  border-radius: var(--radius);
+  overflow: hidden;
+  min-height: 170px;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(135deg, #1a1428, #0f0f1e);
+  border: 1px solid rgba(240,165,0,.18);
+}
+.admin-ses-poster {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center;
+  opacity: .13;
+  pointer-events: none;
+}
+.admin-ses-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(160deg, rgba(8,8,15,.5) 0%, rgba(8,8,15,.82) 55%, rgba(8,8,15,.97) 100%);
+  pointer-events: none;
+}
+.admin-ses-inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  flex: 1;
+  padding: 13px 13px 12px;
+  min-height: 170px;
+}
+.admin-ses-top { flex: 1; }
+.admin-ses-date {
+  font-size: 10px;
+  color: var(--gold);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .11em;
+  margin-bottom: 5px;
+}
+.admin-ses-film {
+  font-size: 18px;
+  font-weight: 700;
+  font-family: 'Playfair Display', serif;
+  line-height: 1.2;
+  color: #fff;
+}
+.admin-ses-bottom {
+  display: flex;
+  align-items: flex-end;
+  gap: 11px;
+  margin-top: 12px;
+}
+.admin-ses-thumb {
+  flex-shrink: 0;
+  width: 52px;
+}
+.admin-ses-thumb img {
+  width: 52px;
+  height: 78px;
+  object-fit: cover;
+  border-radius: 5px;
+  box-shadow: 0 4px 14px rgba(0,0,0,.6);
+  border: 1px solid rgba(255,255,255,.11);
+  display: block;
+}
+.admin-ses-thumb-empty {
+  width: 52px;
+  height: 78px;
+  background: rgba(255,255,255,.05);
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  border: 1px solid rgba(255,255,255,.07);
+}
+.admin-ses-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.admin-ses-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+.admin-ses-actions { display: flex; gap: 5px; flex-wrap: wrap; }
 
 /* ----------------------------------------------------------------
    TOOLTIP discret sur le badge "Activé" dans la fiche élève
@@ -970,119 +1262,6 @@ button { cursor: pointer; }
    MINI AFFICHE visible dans les cartes de séance
    ---------------------------------------------------------------- */
 
-/* Carte prochaine séance — accueil */
-.session-banner-inner {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  padding: 14px 16px 14px 14px;
-  min-height: 140px;
-}
-.session-banner-thumb {
-  width: 62px;
-  flex-shrink: 0;
-  align-self: center;
-  margin-right: 14px;
-}
-.session-banner-thumb img {
-  width: 62px;
-  height: 93px;
-  object-fit: cover;
-  border-radius: 5px;
-  box-shadow: 0 4px 14px rgba(0,0,0,.6);
-  border: 1px solid rgba(255,255,255,.11);
-  display: block;
-}
-.session-banner-thumb-empty {
-  width: 62px;
-  height: 93px;
-  background: rgba(255,255,255,.06);
-  border-radius: 5px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 22px;
-  border: 1px solid rgba(255,255,255,.08);
-}
-.session-banner-content { flex: 1; min-width: 0; }
-
-/* Carte élève séances */
-.sc-inner {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  align-items: flex-end;
-  gap: 0;
-  padding: 12px 14px 12px 12px;
-  min-height: 130px;
-}
-.sc-thumb {
-  width: 52px;
-  flex-shrink: 0;
-  align-self: center;
-  margin-right: 12px;
-}
-.sc-thumb img {
-  width: 52px;
-  height: 78px;
-  object-fit: cover;
-  border-radius: 4px;
-  box-shadow: 0 3px 12px rgba(0,0,0,.55);
-  border: 1px solid rgba(255,255,255,.09);
-  display: block;
-}
-.sc-thumb-empty {
-  width: 52px;
-  height: 78px;
-  background: rgba(255,255,255,.05);
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  border: 1px solid rgba(255,255,255,.07);
-}
-.sc-content { flex: 1; min-width: 0; }
-
-/* Carte admin séance */
-.admin-ses-inner {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  align-items: flex-end;
-  gap: 0;
-  padding: 11px 13px 11px 11px;
-  min-height: 130px;
-}
-.admin-ses-thumb {
-  width: 48px;
-  flex-shrink: 0;
-  align-self: center;
-  margin-right: 12px;
-}
-.admin-ses-thumb img {
-  width: 48px;
-  height: 72px;
-  object-fit: cover;
-  border-radius: 4px;
-  box-shadow: 0 3px 10px rgba(0,0,0,.5);
-  border: 1px solid rgba(255,255,255,.09);
-  display: block;
-}
-.admin-ses-thumb-empty {
-  width: 48px;
-  height: 72px;
-  background: rgba(255,255,255,.05);
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  border: 1px solid rgba(255,255,255,.07);
-}
-.admin-ses-content { flex: 1; min-width: 0; }
-
 /* Bloc Nouveautés accueil */
 .home-news-item {
   background: var(--surface);
@@ -1100,68 +1279,6 @@ button { cursor: pointer; }
 .home-news-text { flex: 1; font-size: 13.5px; color: var(--text-2); line-height: 1.5; }
 .home-news-arrow { color: var(--text-3); font-size: 14px; }
 .home-news-empty { font-size: 13px; color: var(--text-3); padding: 10px 2px; }
-
-/* ================================================================
-   ADMIN SESSION CARD — premium avec affiche
-   ================================================================ */
-.admin-ses-card {
-  position: relative;
-  border-radius: var(--radius);
-  overflow: hidden;
-  min-height: 150px;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  background: linear-gradient(135deg, #1a1428, #1a1a28);
-  border: 1px solid rgba(240,165,0,.18);
-}
-.admin-ses-poster {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center top;
-  opacity: .16;
-  pointer-events: none;
-}
-.admin-ses-overlay {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to top, rgba(8,8,15,.97) 0%, rgba(8,8,15,.65) 55%, rgba(8,8,15,.15) 100%);
-  pointer-events: none;
-}
-.admin-ses-body {
-  position: relative;
-  z-index: 1;
-  padding: 13px 15px 12px;
-}
-.admin-ses-date {
-  font-size: 10.5px;
-  color: var(--gold);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: .09em;
-  margin-bottom: 3px;
-}
-.admin-ses-film {
-  font-size: 16px;
-  font-weight: 700;
-  font-family: 'Playfair Display', serif;
-  line-height: 1.2;
-  margin-bottom: 9px;
-}
-.admin-ses-badges {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  margin-bottom: 11px;
-}
-.admin-ses-actions {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
 
 /* ================================================================
    FICHE ÉLÈVE ADMIN — panneau latéral / modal
@@ -3703,17 +3820,21 @@ async function loadHome() {
       ${poster ? `<img src="${poster}" class="session-banner-poster" alt="">` : ''}
       <div class="session-banner-overlay"></div>
       <div class="session-banner-inner">
-        <div class="session-banner-thumb">
-          ${poster
-            ? `<img src="${poster}" alt="${title}">`
-            : `<div class="session-banner-thumb-empty">🎬</div>`}
-        </div>
-        <div class="session-banner-content">
+        <div class="session-banner-top">
           <div class="session-banner-date">📅 ${fmtDateShort(s.session_date)}</div>
           <div class="session-banner-film">${title}</div>
-          <div class="session-banner-footer">
-            ${badgeHtml}
-            <span class="session-banner-hint">${regCount} / ${cap} inscrits</span>
+        </div>
+        <div class="session-banner-bottom">
+          <div class="session-banner-thumb">
+            ${poster
+              ? `<img src="${poster}" alt="${title}">`
+              : `<div class="session-banner-thumb-empty">🎬</div>`}
+          </div>
+          <div class="session-banner-content">
+            <div class="session-banner-footer">
+              ${badgeHtml}
+              <span class="session-banner-hint">${regCount} / ${cap} inscrits</span>
+            </div>
           </div>
         </div>
       </div>
@@ -4595,22 +4716,26 @@ async function loadSessions() {
       ${poster ? `<img src="${poster}" class="sc-poster" alt="">` : ''}
       <div class="sc-overlay"></div>
       <div class="sc-inner">
-        <div class="sc-thumb">
-          ${poster
-            ? `<img src="${poster}" alt="${title}">`
-            : `<div class="sc-thumb-empty">🎬</div>`}
-        </div>
-        <div class="sc-content">
+        <div class="sc-top">
           <div class="sc-date">📅 ${fmtDateShort(s.session_date)}</div>
           <div class="sc-film">${title}</div>
-          <div class="sc-footer">
-            ${badgeHtml}
-            <span class="sc-capacity">${capDisplay}</span>
+        </div>
+        <div class="sc-bottom">
+          <div class="sc-thumb">
+            ${poster
+              ? `<img src="${poster}" alt="${title}">`
+              : `<div class="sc-thumb-empty">🎬</div>`}
           </div>
-          ${banReasonHtml}
-          <div class="sc-actions" onclick="event.stopPropagation()">
-            ${actionBtn}
-            <button class="btn btn-sm btn-ghost" onclick="viewStudentRegistrants('${s.id}','${s.session_date}')">👥 Voir les inscrits</button>
+          <div class="sc-content">
+            <div class="sc-footer">
+              ${badgeHtml}
+              <span class="sc-capacity">${capDisplay}</span>
+            </div>
+            ${banReasonHtml}
+            <div class="sc-actions" onclick="event.stopPropagation()">
+              ${actionBtn}
+              <button class="btn btn-sm btn-ghost" onclick="viewStudentRegistrants('${s.id}','${s.session_date}')">👥 Voir les inscrits</button>
+            </div>
           </div>
         </div>
       </div>
@@ -5638,30 +5763,34 @@ async function loadAdminSessions() {
       ${poster ? `<img src="${poster}" class="admin-ses-poster" alt="">` : ''}
       <div class="admin-ses-overlay"></div>
       <div class="admin-ses-inner">
-        <div class="admin-ses-thumb">
-          ${poster
-            ? `<img src="${poster}" alt="${title}">`
-            : `<div class="admin-ses-thumb-empty">🎬</div>`}
-        </div>
-        <div class="admin-ses-content">
+        <div class="admin-ses-top">
           <div class="admin-ses-date">📅 ${fmtDateShort(s.session_date)}</div>
           <div class="admin-ses-film">${title}</div>
-          <div class="admin-ses-badges">
-            ${count >= cap
-              ? `<span class="badge badge-red">🚫 Complet</span>`
-              : `<span class="badge ${openSes ? 'badge-green' : 'badge-muted'}">
-                  ${openSes ? '✅ Ouvertes' : '⏸ Fermées'}
-                 </span>`}
-            <span class="badge badge-muted">👥 ${count} / ${cap}</span>
-            ${waitCount > 0 ? `<span class="badge badge-gold">⏳ ${waitCount} en attente</span>` : ''}
+        </div>
+        <div class="admin-ses-bottom">
+          <div class="admin-ses-thumb">
+            ${poster
+              ? `<img src="${poster}" alt="${title}">`
+              : `<div class="admin-ses-thumb-empty">🎬</div>`}
           </div>
-          <div class="admin-ses-actions">
-            <button class="btn btn-sm btn-ghost" onclick="toggleSesOpen('${s.id}',${openSes})">
-              ${openSes ? 'Fermer inscrip.' : 'Ouvrir inscrip.'}
-            </button>
-            <button class="btn btn-sm btn-ghost" onclick="viewRegistrants('${s.id}','${s.session_date}')">👥 Inscrits</button>
-            <button class="btn btn-sm btn-ghost" onclick="openEditSession('${s.id}','${(s.films?.title || '').replace(/'/g,"\\'")}','${s.film_id || ''}')">✏️ Film</button>
-            <button class="btn btn-sm btn-red" onclick="cancelSes('${s.id}', ${s.film_id ? `'${s.film_id}'` : 'null'})">🗑 Annuler</button>
+          <div class="admin-ses-content">
+            <div class="admin-ses-badges">
+              ${count >= cap
+                ? `<span class="badge badge-red">🚫 Complet</span>`
+                : `<span class="badge ${openSes ? 'badge-green' : 'badge-muted'}">
+                    ${openSes ? '✅ Ouvertes' : '⏸ Fermées'}
+                   </span>`}
+              <span class="badge badge-muted">👥 ${count} / ${cap}</span>
+              ${waitCount > 0 ? `<span class="badge badge-gold">⏳ ${waitCount} en attente</span>` : ''}
+            </div>
+            <div class="admin-ses-actions">
+              <button class="btn btn-sm btn-ghost" onclick="toggleSesOpen('${s.id}',${openSes})">
+                ${openSes ? 'Fermer inscrip.' : 'Ouvrir inscrip.'}
+              </button>
+              <button class="btn btn-sm btn-ghost" onclick="viewRegistrants('${s.id}','${s.session_date}')">👥 Inscrits</button>
+              <button class="btn btn-sm btn-ghost" onclick="openEditSession('${s.id}','${(s.films?.title || '').replace(/'/g,"\\'")}','${s.film_id || ''}')">✏️ Film</button>
+              <button class="btn btn-sm btn-red" onclick="cancelSes('${s.id}', ${s.film_id ? `'${s.film_id}'` : 'null'})">🗑 Annuler</button>
+            </div>
           </div>
         </div>
       </div>
