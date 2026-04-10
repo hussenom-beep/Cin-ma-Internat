@@ -1707,7 +1707,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     </div>
     <div class="fgroup">
       <label class="flabel">Capacité max</label>
-      <input type="number" class="finput" id="ses-capacity" value="20">
+      <input type="number" class="finput" id="ses-capacity" value="1">
     </div>
     <div class="fgroup">
       <label class="flabel">Notes internes</label>
@@ -3672,34 +3672,76 @@ async function openSessionFilmDetail(filmId) {
 
 async function toggleReg(sessionId, action) {
   if (action === 'unregister') {
-    const { error } = await db.rpc('unregister_student_from_session', {
+    const { data: result, error } = await db.rpc('unregister_student_from_session', {
       p_student_id: S.user.id,
       p_session_id: sessionId
     });
-    if (error) { toast('Erreur lors de la désinscription', 'error'); return; }
+
+    if (error) {
+      toast('Erreur lors de la désinscription', 'error');
+      return;
+    }
+
     toast('Désinscription effectuée');
   } else {
     // Vérifications client avant d'appeler la RPC
     const { data: bans } = await db.from('session_bans')
-      .select('id').eq('session_id', sessionId).eq('student_id', S.user.id).limit(1);
-    if (bans?.length) { toast('Tu ne peux pas te réinscrire à cette séance', 'error'); return; }
+      .select('id')
+      .eq('session_id', sessionId)
+      .eq('student_id', S.user.id)
+      .limit(1);
+
+    if (bans?.length) {
+      toast('Tu ne peux pas te réinscrire à cette séance', 'error');
+      return;
+    }
 
     const { data: ses } = await db.from('cinema_sessions')
-      .select('registrations_open').eq('id', sessionId).single();
-    if (!ses?.registrations_open) { toast('Les inscriptions sont fermées', 'error'); return; }
+      .select('registrations_open')
+      .eq('id', sessionId)
+      .single();
+
+    if (!ses?.registrations_open) {
+      toast('Les inscriptions sont fermées', 'error');
+      return;
+    }
 
     const { data: result, error } = await db.rpc('register_student_to_session', {
       p_student_id: S.user.id,
       p_session_id: sessionId
     });
-    if (error) { toast('Erreur lors de l\'inscription', 'error'); return; }
 
-    if (result === 'waitlist') {
+    if (error) {
+      toast('Erreur lors de l’inscription', 'error');
+      return;
+    }
+
+    // Compatible avec une RPC qui renvoie un objet JSON
+    if (!result?.ok) {
+      if (result?.code === 'ALREADY_EXISTS') {
+        if (result?.status === 'waitlist') {
+          toast("Tu es déjà en liste d'attente ⏳");
+        } else {
+          toast('Tu es déjà inscrit à cette séance');
+        }
+      } else if (result?.code === 'REGISTRATIONS_CLOSED') {
+        toast('Les inscriptions sont fermées', 'error');
+      } else if (result?.code === 'BANNED') {
+        toast('Tu ne peux pas t’inscrire à cette séance', 'error');
+      } else {
+        toast('Inscription impossible', 'error');
+      }
+      await loadSessions();
+      return;
+    }
+
+    if (result?.status === 'waitlist' || result?.code === 'WAITLISTED') {
       toast("Tu es en liste d'attente ⏳");
     } else {
       toast('Inscription confirmée 🎉', 'success');
     }
   }
+
   await loadSessions();
 }
 
@@ -4077,28 +4119,41 @@ async function confirmScheduleFilm() {
   const filmId  = document.getElementById('sched-film-id').value;
   const date    = document.getElementById('sched-date').value;
   const regOpen = document.getElementById('sched-open').checked;
-  if (!date) { toast('Sélectionne une date', 'error'); return; }
+
+  if (!date) {
+    toast('Sélectionne une date', 'error');
+    return;
+  }
 
   if (await hasSessionOnDate(date)) {
     toast('Impossible : une séance existe déjà à cette date', 'error');
     return;
   }
 
-  const { error: sesErr } = await db.from('cinema_sessions').insert({
-    session_date:       date,
-    film_id:            filmId,
-    registrations_open: regOpen,
-    max_capacity:       20
-  });
-  if (sesErr) { toast('Erreur création séance : ' + sesErr.message, 'error'); return; }
+  const { data: insertedSession, error: sesErr } = await db
+    .from('cinema_sessions')
+    .insert({
+      session_date:       date,
+      film_id:            filmId,
+      registrations_open: regOpen,
+      max_capacity:       20
+    })
+    .select('id')
+    .single();
 
-  // Passer le film en 'scheduled'
-  if (filmId) await db.from('films').update({ status: 'scheduled' }).eq('id', filmId);
+  if (sesErr) {
+    toast('Erreur création séance : ' + sesErr.message, 'error');
+    console.error(sesErr);
+    return;
+  }
 
-  // Récupérer l'id de la séance créée pour la notification
-  const { data: newSes } = await db.from('cinema_sessions')
-    .select('id').eq('session_date', date).order('created_at', { ascending: false }).limit(1);
-  if (newSes?.[0]) _notifyAllStudents(newSes[0].id, 'new_session'); // fire-and-forget
+  if (filmId) {
+    await db.from('films').update({ status: 'scheduled' }).eq('id', filmId);
+  }
+
+  if (insertedSession?.id) {
+    await _notifyAllStudents(insertedSession.id, 'new_session');
+  }
 
   closeModal('modal-schedule-film');
   toast('Film programmé + séance créée 📅', 'success');
@@ -4490,15 +4545,38 @@ async function loadAdminSessions() {
 }
 
 /* Crée un student_event pour tous les élèves actifs (new_session, session_opened…) */
+
 async function _notifyAllStudents(sessionId, eventType) {
   try {
-    const { data: students } = await db.from('students')
-      .select('id').eq('is_active', true);
-    if (!students?.length) return;
-    await db.from('student_events').insert(
-      students.map(s => ({ student_id: s.id, session_id: sessionId, event_type: eventType }))
-    );
-  } catch(e) { /* silencieux — pas critique */ }
+    const { data: students, error: studentsError } = await db
+      .from('students')
+      .select('id')
+      .eq('is_active', true);
+
+    if (studentsError || !students?.length) return;
+
+    let defaultMessage = null;
+    if (eventType === 'new_session') {
+      defaultMessage = 'Une nouvelle séance a été ajoutée.';
+    } else if (eventType === 'session_opened') {
+      defaultMessage = 'Les inscriptions sont ouvertes pour une séance.';
+    }
+
+    const payload = students.map(s => ({
+      student_id: s.id,
+      session_id: sessionId,
+      event_type: eventType,
+      message: defaultMessage,
+      created_at: new Date().toISOString()
+    }));
+
+    const { error } = await db.from('student_events').insert(payload);
+    if (error) {
+      console.error('notifyAllStudents error:', error);
+    }
+  } catch (e) {
+    console.error('notifyAllStudents exception:', e);
+  }
 }
 
 async function toggleSesOpen(id, cur) {
@@ -4761,29 +4839,44 @@ function openCreateSessionModal() {
 async function saveSession() {
   const date   = document.getElementById('ses-date').value;
   const filmId = document.getElementById('ses-film').value || null;
-  if (!date) { toast('Sélectionne une date', 'error'); return; }
+
+  if (!date) {
+    toast('Sélectionne une date', 'error');
+    return;
+  }
 
   if (await hasSessionOnDate(date)) {
     toast('Impossible : une séance existe déjà à cette date', 'error');
     return;
   }
 
-  const { error } = await db.from('cinema_sessions').insert({
-    session_date:       date,
-    film_id:            filmId,
-    registrations_open: document.getElementById('ses-open').checked,
-    max_capacity:       parseInt(document.getElementById('ses-capacity').value) || 20,
-    notes:              document.getElementById('ses-notes').value.trim() || null
-  });
-  if (error) { toast('Erreur création', 'error'); return; }
+  const { data: insertedSession, error } = await db
+    .from('cinema_sessions')
+    .insert({
+      session_date:       date,
+      film_id:            filmId,
+      registrations_open: document.getElementById('ses-open').checked,
+      max_capacity:       parseInt(document.getElementById('ses-capacity').value) || 20,
+      notes:              document.getElementById('ses-notes').value.trim() || null
+    })
+    .select('id')
+    .single();
+
+  if (error) {
+    toast('Erreur création', 'error');
+    console.error(error);
+    return;
+  }
 
   // Si un film est associé, le passer en 'scheduled'
-  if (filmId) await db.from('films').update({ status: 'scheduled' }).eq('id', filmId);
+  if (filmId) {
+    await db.from('films').update({ status: 'scheduled' }).eq('id', filmId);
+  }
 
-  // Récupérer l'id de la séance créée pour la notification
-  const { data: newSes } = await db.from('cinema_sessions')
-    .select('id').eq('session_date', date).order('created_at', { ascending: false }).limit(1);
-  if (newSes?.[0]) _notifyAllStudents(newSes[0].id, 'new_session'); // fire-and-forget
+  // Notifier tous les élèves actifs
+  if (insertedSession?.id) {
+    await _notifyAllStudents(insertedSession.id, 'new_session');
+  }
 
   closeModal('modal-create-session');
   toast('Séance créée 🎟️', 'success');
