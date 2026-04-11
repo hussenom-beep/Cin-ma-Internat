@@ -7881,13 +7881,49 @@ async function genSeancePDF(sesId) {
   }
   doc.addImage(BG_DATA, 'JPEG', bgX, bgY, bgW, bgH, undefined, 'FAST');
 
-  /* Helpers couleurs / polices */
-  const tc  = c => doc.setTextColor(...c);
-  const fS  = (sz, st='normal') => { doc.setFont('times', st);     doc.setFontSize(sz); };
-  const fH  = (sz, st='normal') => { doc.setFont('helvetica', st); doc.setFontSize(sz); };
-  const tx  = (s, x, y, o={}) => doc.text(String(s||''), x, y, o);
-  const INK      = [122, 70,  50];   /* #7A4632 brun vintage profond */
-  const GOLD_INK = [122, 70,  50];   /* même teinte unifiée */
+  /* Couleurs */
+  const INK      = [138, 79, 55]; /* #8A4F37 brun chaud vintage */
+  const GOLD_INK = [138, 79, 55];
+  const tc = c => doc.setTextColor(...c);
+  const tx = (s, x, y, o={}) => doc.text(String(s||''), x, y, o);
+
+  /* Chargement Cinzel (serif décorative vintage) — intégrée réellement dans jsPDF */
+  async function fetchFontB64(url) {
+    try {
+      const res = await fetch(url); if (!res.ok) return null;
+      const buf = await res.arrayBuffer();
+      const bytes = new Uint8Array(buf);
+      let s = ''; const C = 8192;
+      for (let i = 0; i < bytes.length; i += C)
+        s += String.fromCharCode(...bytes.subarray(i, Math.min(i + C, bytes.length)));
+      return btoa(s);
+    } catch(e) { return null; }
+  }
+  const _FBASE = 'https://raw.githubusercontent.com/google/fonts/main/ofl/cinzel/static/';
+  const [_cinzelR, _cinzelB] = await Promise.all([
+    fetchFontB64(_FBASE + 'Cinzel-Regular.ttf'),
+    fetchFontB64(_FBASE + 'Cinzel-Bold.ttf')
+  ]);
+  const FF   = 'Cinzel';
+  const ffOk = !!((_cinzelR) && (_cinzelB));
+  if (ffOk) {
+    doc.addFileToVFS('Cinzel-Regular.ttf', _cinzelR);
+    doc.addFont('Cinzel-Regular.ttf', FF, 'normal');
+    doc.addFileToVFS('Cinzel-Bold.ttf', _cinzelB);
+    doc.addFont('Cinzel-Bold.ttf', FF, 'bold');
+  }
+  /* fC = Cinzel si chargée, sinon times (fallback élégant) */
+  const fC = (sz, st='normal') => { doc.setFont(ffOk ? FF : 'times', st); doc.setFontSize(sz); };
+  const fH = (sz, st='normal') => { doc.setFont('helvetica', st); doc.setFontSize(sz); }; /* debug only */
+
+  /* Taille adaptative : réduit jusqu'à ce que le titre tienne en 2 lignes max */
+  function fitTitleSize(text, maxW, startSz, minSz) {
+    for (let sz = startSz; sz >= minSz; sz -= 0.5) {
+      fC(sz, 'bold');
+      if (doc.splitTextToSize(text, maxW).length <= 2) return sz;
+    }
+    return minSz;
+  }
 
   /* Debug : reperes de zones */
   const dbgR = (x, y, w, h, lbl) => {
@@ -7925,24 +7961,25 @@ async function genSeancePDF(sesId) {
 
   /* 2. DATE */
   dbgPt(ZONES.date.x, ZONES.date.y, 'date');
-  fS(13, 'bold'); tc(INK);
+  fC(14, 'bold'); tc(INK);
   tx(dateStr, ZONES.date.x, ZONES.date.y);
 
   /* 3. TITRE */
   dbgPt(ZONES.titleLine.x, ZONES.titleLine.y, 'titre');
-  fS(15, 'bold'); tc(INK);
+  const titleSz = fitTitleSize(title, ZONES.titleLine.maxW, 15, 9);
+  fC(titleSz, 'bold'); tc(INK);
   const titleParts = doc.splitTextToSize(title, ZONES.titleLine.maxW);
   tx(titleParts[0], ZONES.titleLine.x, ZONES.titleLine.y);
   if (titleParts.length > 1) tx(titleParts[1], ZONES.titleLine.x, ZONES.titleLine.y + 4.5);
 
   /* 4. REFERENT */
   dbgPt(ZONES.referent.x, ZONES.referent.y, 'ref');
-  fS(13, 'normal'); tc(INK);
+  fC(14, 'normal'); tc(INK);
   tx(referent, ZONES.referent.x, ZONES.referent.y);
 
   /* 5. INSCRITS */
   dbgPt(ZONES.inscrits.x, ZONES.inscrits.y, 'inscrits');
-  fS(14, 'bold'); tc(GOLD_INK);
+  fC(16, 'bold'); tc(GOLD_INK);
   tx(confirmed.length, ZONES.inscrits.x, ZONES.inscrits.y);
 
   /* 6. PARTICIPANTS : 20 lignes, 2 colonnes de 10 */
@@ -7966,10 +8003,10 @@ async function genSeancePDF(sesId) {
       const prenom =  r.students?.first_name || '';
       const classe =  r.students?.class_name || '';
       const yTxt   = yLine - 1.8;
-      fS(12, 'normal'); tc(INK);
+      fC(12, 'normal'); tc(INK);
       tx(nom + ' ' + prenom, col.x + 1, yTxt);
       if (classe) {
-        fS(11, 'normal'); tc([140, 90, 65]);
+        fC(10, 'normal'); tc([160, 105, 70]);
         tx(classe, col.x + col.w, yTxt, { align: 'right' });
       }
     }
