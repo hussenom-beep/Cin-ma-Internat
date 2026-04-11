@@ -7828,20 +7828,56 @@ async function genSeancePDF(sesId) {
   const confirmed = (regs || []).filter(r => r.status === 'registered')
     .sort((a,b) => (a.students?.last_name||'').localeCompare(b.students?.last_name||'','fr'));
 
-  /* Chargement affiche via fetch + FileReader (fiable avec TMDB CORS) */
-  async function loadImgFetch(url) {
+  /* Chargement affiche — 2 méthodes + logs de diagnostic */
+  async function loadPosterImage(url) {
+    console.log('[PDF] poster_url :', url);
+
+    // Méthode 1 : fetch direct (fonctionne si TMDB envoie CORS headers)
     try {
-      const res  = await fetch(url, { mode: 'cors' });
-      const blob = await res.blob();
-      return await new Promise((resolve) => {
-        const rd = new FileReader();
-        rd.onload  = () => resolve(rd.result);
-        rd.onerror = () => resolve(null);
-        rd.readAsDataURL(blob);
+      const res = await fetch(url);
+      if (res.ok) {
+        const blob = await res.blob();
+        const data = await new Promise(resolve => {
+          const rd = new FileReader();
+          rd.onload  = () => resolve(rd.result);
+          rd.onerror = () => resolve(null);
+          rd.readAsDataURL(blob);
+        });
+        if (data) { console.log('[PDF] Poster OK via fetch — type :', blob.type); return data; }
+        console.warn('[PDF] fetch OK mais FileReader null');
+      } else {
+        console.warn('[PDF] fetch non-ok :', res.status, res.statusText);
+      }
+    } catch(e) { console.warn('[PDF] fetch error :', e.message); }
+
+    // Méthode 2 : <img> + canvas + crossOrigin (avec cache-bust pour éviter cache pollué)
+    try {
+      const data = await new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'Anonymous';
+        img.onload = () => {
+          try {
+            const cv = document.createElement('canvas');
+            cv.width  = img.naturalWidth  || 500;
+            cv.height = img.naturalHeight || 750;
+            cv.getContext('2d').drawImage(img, 0, 0);
+            resolve(cv.toDataURL('image/jpeg', 0.85));
+          } catch(ce) { reject(ce); }
+        };
+        img.onerror = () => reject(new Error('img onerror'));
+        img.src = url + (url.includes('?') ? '&' : '?') + '_cb=' + Date.now();
       });
-    } catch(e) { return null; }
+      console.log('[PDF] Poster OK via canvas');
+      return data;
+    } catch(e) { console.warn('[PDF] canvas error :', e.message); }
+
+    console.error('[PDF] Poster — toutes méthodes échouées pour :', url);
+    return null;
   }
-  const posterData = poster ? await loadImgFetch(poster) : null;
+
+  console.log('[PDF] poster champ Supabase :', poster);
+  const posterData = poster ? await loadPosterImage(poster) : null;
+  console.log('[PDF] posterData :', posterData ? posterData.substring(0, 60) + '…' : 'NULL');
 
   /* Init jsPDF */
   const { jsPDF } = window.jspdf;
@@ -7912,15 +7948,16 @@ async function genSeancePDF(sesId) {
     doc.addFileToVFS('Cinzel-Bold.ttf', _cinzelB);
     doc.addFont('Cinzel-Bold.ttf', FF, 'bold');
   }
+  console.log('[PDF] Cinzel chargée :', ffOk, '| Regular:', !!_cinzelR, '| Bold:', !!_cinzelB);
   /* fC = Cinzel si chargée, sinon times (fallback élégant) */
   const fC = (sz, st='normal') => { doc.setFont(ffOk ? FF : 'times', st); doc.setFontSize(sz); };
   const fH = (sz, st='normal') => { doc.setFont('helvetica', st); doc.setFontSize(sz); }; /* debug only */
 
-  /* Taille adaptative : réduit jusqu'à ce que le titre tienne en 2 lignes max */
+  /* Taille adaptative : réduit jusqu'à ce que le titre tienne sur 1 seule ligne */
   function fitTitleSize(text, maxW, startSz, minSz) {
     for (let sz = startSz; sz >= minSz; sz -= 0.5) {
       fC(sz, 'bold');
-      if (doc.splitTextToSize(text, maxW).length <= 2) return sz;
+      if (doc.getTextWidth(text) <= maxW) return sz;
     }
     return minSz;
   }
@@ -7966,11 +8003,9 @@ async function genSeancePDF(sesId) {
 
   /* 3. TITRE */
   dbgPt(ZONES.titleLine.x, ZONES.titleLine.y, 'titre');
-  const titleSz = fitTitleSize(title, ZONES.titleLine.maxW, 15, 9);
+  const titleSz = fitTitleSize(title, ZONES.titleLine.maxW, 15, 7);
   fC(titleSz, 'bold'); tc(INK);
-  const titleParts = doc.splitTextToSize(title, ZONES.titleLine.maxW);
-  tx(titleParts[0], ZONES.titleLine.x, ZONES.titleLine.y);
-  if (titleParts.length > 1) tx(titleParts[1], ZONES.titleLine.x, ZONES.titleLine.y + 4.5);
+  tx(title, ZONES.titleLine.x, ZONES.titleLine.y);
 
   /* 4. REFERENT */
   dbgPt(ZONES.referent.x, ZONES.referent.y, 'ref');
