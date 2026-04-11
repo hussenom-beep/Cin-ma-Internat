@@ -7905,7 +7905,8 @@ async function genSeancePDF(sesId) {
       return btoa(s);
     } catch(e) { return null; }
   }
-  const GHBASE = 'https://raw.githubusercontent.com/google/fonts/main/ofl/cinzel/static/';
+  /* jsDelivr sert les fichiers GitHub avec CORS garanti — plus fiable que raw.githubusercontent */
+  const GHBASE = 'https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/cinzel/static/';
   const [_cinzelR2, _cinzelB2] = await Promise.all([
     tryFetchFont(GHBASE + 'Cinzel-Regular.ttf'),
     tryFetchFont(GHBASE + 'Cinzel-Bold.ttf')
