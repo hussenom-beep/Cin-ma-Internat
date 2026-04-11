@@ -239,6 +239,28 @@ button { cursor: pointer; }
    FORMS
    ================================================================ */
 .fgroup { margin-bottom: 15px; }
+/* Remember identifiant */
+.remember-wrap {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: -4px 0 16px;
+  cursor: pointer;
+  user-select: none;
+}
+.remember-wrap input[type=checkbox] {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--gold);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.remember-label {
+  font-size: 12.5px;
+  color: var(--text-2);
+  line-height: 1;
+}
+
 .flabel { display: block; font-size: 12px; font-weight: 600; color: var(--text-2); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; }
 .finput, .fselect, .ftextarea {
   width: 100%;
@@ -2223,6 +2245,10 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
           placeholder="Ex : prénom.nom"
           style="text-transform:none;letter-spacing:0;font-family:'DM Sans',system-ui,sans-serif;font-size:18px;font-weight:700;">
       </div>
+      <label class="remember-wrap">
+        <input type="checkbox" id="chk-remember"/>
+        <span class="remember-label">Se souvenir de mon identifiant</span>
+      </label>
       <button class="btn btn-gold btn-full btn-lg" onclick="handleCode()">Continuer →</button>
     </div>
 
@@ -3733,6 +3759,28 @@ function openPinKeyboard(firstPinId) {
   });
 }
 
+
+/* ── Se souvenir de l'identifiant ──────────────────── */
+const LS_REMEMBER_KEY = 'cinema_remember_id';
+
+function rememberLoad() {
+  const saved = localStorage.getItem(LS_REMEMBER_KEY);
+  const chk   = document.getElementById('chk-remember');
+  const inp   = document.getElementById('inp-code');
+  if (saved && chk && inp) {
+    inp.value   = saved;
+    chk.checked = true;
+  }
+}
+
+function rememberSave(identifier) {
+  const chk = document.getElementById('chk-remember');
+  if (chk && chk.checked) {
+    localStorage.setItem(LS_REMEMBER_KEY, identifier);
+  } else {
+    localStorage.removeItem(LS_REMEMBER_KEY);
+  }
+}
 async function handleCode() {
   const raw = document.getElementById('inp-code').value.trim();
   const login = raw.toLowerCase();
@@ -3741,6 +3789,9 @@ async function handleCode() {
     toast('Entre ton identifiant', 'error');
     return;
   }
+
+  // Mémoriser (ou oublier) l'identifiant selon la case
+  rememberSave(raw);
 
   let data = null;
   let error = null;
@@ -7404,6 +7455,7 @@ async function handleChangePIN() {
    KEYBOARD HELPERS
    ================================================================ */
 document.getElementById('inp-code').addEventListener('keydown', e => { if (e.key === 'Enter') handleCode(); });
+rememberLoad(); // Préremplir l'identifiant si mémorisé
 document.getElementById('inp-adminpwd').addEventListener('keydown', e => { if (e.key === 'Enter') handleAdminLogin(); });
 document.getElementById('prop-search').addEventListener('keydown', e => { if (e.key === 'Enter') searchTMDB('student'); });
 document.getElementById('admin-film-search').addEventListener('keydown', e => { if (e.key === 'Enter') searchTMDB('admin'); });
