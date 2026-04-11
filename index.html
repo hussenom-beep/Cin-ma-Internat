@@ -7798,319 +7798,223 @@ document.addEventListener('keydown', function(e) {
 
 async function genSeancePDF(sesId) {
   if (typeof window.jspdf === 'undefined') {
-    toast('Bibliothèque PDF non chargée, réessayez dans un instant.', 'error');
-    return;
+    toast('Bibliothèque PDF non chargée, réessayez.', 'error'); return;
   }
+  toast('Génération du PDF\u2026', 'info');
 
-  toast('Génération du PDF…', 'info');
-
-  // ── Données ──────────────────────────────────────────────────
-
-const [
-  { data: ses, error: sesError },
-  { data: regs, error: regsError }
-] = await Promise.all([
-  db.from('cinema_sessions')
-    .select('*, films(title, poster_url, year, genre, duration, synopsis)')
-    .eq('id', sesId)
-    .single(),
-  db.from('registrations')
-    .select('status, waitlist_rank, students(first_name, last_name, class_name)')
-    .eq('session_id', sesId)
-    .order('registered_at', { ascending: true })
-]);
-
-if (sesError) {
-  console.error('genSeancePDF cinema_sessions error:', sesError, 'sesId =', sesId);
-}
-if (regsError) {
-  console.error('genSeancePDF registrations error:', regsError, 'sesId =', sesId);
-}
-
-if (!ses) {
-  toast('Séance introuvable', 'error');
-  return;
-}
+  const [{ data: ses }, { data: regs }] = await Promise.all([
+    db.from('cinema_sessions')
+      .select('*, films(title, poster_url, year, genre, duration, overview)')
+      .eq('id', sesId).single(),
+    db.from('registrations')
+      .select('status, waitlist_rank, students(first_name, last_name, class_name)')
+      .eq('session_id', sesId).order('registered_at', { ascending: true })
+  ]);
+  if (!ses) { toast('Séance introuvable', 'error'); return; }
 
   const film     = ses.films || {};
-  console.log('genSeancePDF session trouvée :', ses);
-  const title    = film.title    || 'Film à annoncer';
+  const title    = film.title     || 'Film à annoncer';
   const dateStr  = fmtDateShort(ses.session_date);
   const poster   = film.poster_url || null;
-  const genre    = film.genre    || '';
-  const duration = film.duration ? film.duration + ' min' : '';
+  const genre    = film.genre     || '';
+  const duration = film.duration  ? film.duration + ' min' : '';
   const cap      = ses.max_capacity || 20;
   const referent = 'Matthias';
 
-  const confirmed = (regs || [])
-    .filter(r => r.status === 'registered')
-    .sort((a, b) => (a.students?.last_name || '').localeCompare(b.students?.last_name || '', 'fr'));
-  const waitlist = (regs || [])
-    .filter(r => r.status === 'waitlist')
-    .sort((a, b) => (a.waitlist_rank || 99) - (b.waitlist_rank || 99));
+  const confirmed = (regs || []).filter(r => r.status === 'registered')
+    .sort((a, b) => (a.students?.last_name||'').localeCompare(b.students?.last_name||'','fr'));
+  const waitlist  = (regs || []).filter(r => r.status === 'waitlist')
+    .sort((a, b) => (a.waitlist_rank||99) - (b.waitlist_rank||99));
 
-  // ── Init doc ─────────────────────────────────────────────────
+  /* Chargement affiche via Canvas (contourne CORS TMDB) */
+  async function loadImgCanvas(url) {
+    return new Promise(resolve => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        try {
+          const cv = document.createElement('canvas');
+          cv.width = img.naturalWidth; cv.height = img.naturalHeight;
+          cv.getContext('2d').drawImage(img, 0, 0);
+          resolve(cv.toDataURL('image/jpeg', 0.88));
+        } catch(e) { resolve(null); }
+      };
+      img.onerror = () => resolve(null);
+      img.src = url;
+    });
+  }
+  const imgData = poster ? await loadImgCanvas(poster) : null;
+
+  /* Init jsPDF */
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
-  const W = 210, H = 297;
-  const ML = 16, MR = 16;
-  const CW = W - ML - MR;
+  const W = 210, H = 297, ML = 14, MR = 14, CW = W - ML - MR;
   let y = 0;
 
-  // ── Palette ──────────────────────────────────────────────────
+  /* Palette programme cinema premium */
   const C = {
-    bg:       [11, 11, 20],
-    surface:  [22, 22, 38],
-    surface2: [30, 30, 50],
-    gold:     [240, 165, 0],
-    goldSoft: [255, 195, 60],
+    cream:    [248, 244, 236],
+    cream2:   [240, 234, 220],
+    bordeaux: [109, 20,  36],
+    bordSoft: [162, 58,  72],
+    gold:     [160, 125, 46],
+    goldSoft: [196, 157, 68],
+    ink:      [28,  20,  16],
+    ink2:     [82,  65,  52],
+    ink3:     [142, 120, 100],
+    rule:     [208, 198, 180],
+    ruleL:    [228, 220, 206],
     white:    [255, 255, 255],
-    grey1:    [190, 190, 210],
-    grey2:    [110, 110, 135],
-    divider:  [40, 40, 65],
-    green:    [74, 222, 128],
-    greenDim: [20, 55, 30],
-    amber:    [251, 191, 36],
-    amberDim: [50, 38, 10],
   };
 
-  // ── Helpers ──────────────────────────────────────────────────
-  const fill = c => doc.setFillColor(...c);
-  const draw = c => doc.setDrawColor(...c);
-  const tc   = c => doc.setTextColor(...c);
-  const font = (sz, style='normal') => { doc.setFont('helvetica', style); doc.setFontSize(sz); };
-  const rr   = (x, yy, w, h, c, r=2) => { fill(c); doc.roundedRect(x, yy, w, h, r, r, 'F'); };
-  const line = (yy, c, lw=0.2) => {
-    doc.setLineWidth(lw); draw(c);
-    doc.line(ML, yy, W - MR, yy);
-  };
-  const text = (t, x, yy, opts={}) => doc.text(t, x, yy, opts);
+  const fill  = c => doc.setFillColor(...c);
+  const draw  = c => doc.setDrawColor(...c);
+  const tc    = c => doc.setTextColor(...c);
+  const fS    = (sz, st='normal') => { doc.setFont('times', st);     doc.setFontSize(sz); };
+  const fH    = (sz, st='normal') => { doc.setFont('helvetica', st); doc.setFontSize(sz); };
+  const tx    = (s, x, yy, o={}) => doc.text(String(s), x, yy, o);
+  const hline = (yy, c, lw=0.25) => { doc.setLineWidth(lw); draw(c); doc.line(ML, yy, W-MR, yy); };
 
-  // Charge une image poster en base64
-  async function loadImg(url) {
-    try {
-      const res  = await fetch(url);
-      const blob = await res.blob();
-      return await new Promise(resolve => {
-        const rd = new FileReader();
-        rd.onload = () => resolve(rd.result);
-        rd.onerror = () => resolve(null);
-        rd.readAsDataURL(blob);
-      });
-    } catch { return null; }
-  }
+  /* Fond global creme */
+  fill(C.cream); doc.rect(0, 0, W, H, 'F');
 
-  // ══════════════════════════════════════════════════════════════
-  // BLOC EN-TÊTE — fond sombre pleine largeur
-  // ══════════════════════════════════════════════════════════════
-  const HEADER_H = poster ? 78 : 55;
+  /* Bandeau superieur bordeaux */
+  fill(C.bordeaux); doc.rect(0, 0, W, 9, 'F');
+  fill(C.gold);     doc.rect(0, 9, W, 0.7, 'F');
+  fH(6.5, 'bold'); tc(C.cream);
+  tx('SEANCE CINEMA  \u00b7  INTERNAT LEON BLUM  \u00b7  DRAGUIGNAN', W/2, 5.8, {align:'center'});
 
-  fill(C.bg);
-  doc.rect(0, 0, W, HEADER_H, 'F');
+  y = 9.7;
 
-  // Chargement de l'affiche
-  let imgData = null;
-  if (poster) {
-    imgData = await loadImg(poster);
-  }
+  /* Zone header : affiche + infos */
+  const PW = 54, PH = 80, PX = ML, PY = y + 8;
+  const IX = PX + PW + 10, IW = W - IX - MR;
+  const HBOT = PY + PH + 10;
 
   if (imgData) {
-    // Affiche à gauche, bien visible
-    const POSTER_W = 42;
-    const POSTER_H = 62;
-    const POSTER_X = ML;
-    const POSTER_Y = 8;
-
-    // Ombre douce derrière l'affiche
-    fill(C.surface);
-    doc.roundedRect(POSTER_X - 1, POSTER_Y - 1, POSTER_W + 2, POSTER_H + 2, 2, 2, 'F');
-    doc.addImage(imgData, 'JPEG', POSTER_X, POSTER_Y, POSTER_W, POSTER_H, '', 'FAST');
-
-    // Bloc texte à droite de l'affiche
-    const TX = POSTER_X + POSTER_W + 10;
-    const TW = W - TX - MR;
-
-    y = POSTER_Y + 4;
-
-    // Sous-titre application
-    font(7, 'normal'); tc(C.gold);
-    text('SÉANCE CINÉMA INTERNAT', TX, y);
-    y += 6;
-
-    // Titre film
-    font(16, 'bold'); tc(C.white);
-    const titleLines = doc.splitTextToSize(title, TW);
-    titleLines.slice(0, 2).forEach(l => { text(l, TX, y); y += 6.5; });
-
-    // Métadonnées film
-    const metas = [genre, duration].filter(Boolean).join('  ·  ');
-    if (metas) {
-      y += 1;
-      font(8, 'normal'); tc(C.grey2);
-      text(metas, TX, y);
-      y += 6;
-    }
-
-    // Date
-    font(9, 'bold'); tc(C.goldSoft);
-    text('📅  ' + dateStr, TX, y);
-    y += 5.5;
-
-    // Référent
-    font(8, 'normal'); tc(C.grey1);
-    text('Référent : ' + referent, TX, y);
-    y += 5;
-
-    // Capacité
-    font(8, 'normal'); tc(C.grey2);
-    text(confirmed.length + ' inscrits  /  ' + cap + ' places', TX, y);
-
-    y = HEADER_H;
-
+    /* Ombre */
+    fill(C.rule);
+    doc.roundedRect(PX + 1.5, PY + 2, PW, PH, 1, 1, 'F');
+    /* Image */
+    doc.addImage(imgData, 'JPEG', PX, PY, PW, PH, undefined, 'FAST');
+    /* Cadre bordeaux */
+    doc.setLineWidth(0.4); draw(C.bordeaux);
+    doc.roundedRect(PX, PY, PW, PH, 1, 1, 'S');
   } else {
-    // Pas d'affiche — header texte pur
-    y = 14;
-    font(7, 'normal'); tc(C.gold);
-    text('SÉANCE CINÉMA INTERNAT', ML, y, { align: 'left' });
-    y += 9;
-
-    font(18, 'bold'); tc(C.white);
-    const titleLines = doc.splitTextToSize(title, CW);
-    titleLines.slice(0, 2).forEach(l => { text(l, ML, y); y += 7.5; });
-    y += 2;
-
-    font(9, 'bold'); tc(C.goldSoft);
-    text('📅  ' + dateStr, ML, y);
-    font(8, 'normal'); tc(C.grey1);
-    text('Référent : ' + referent, ML + 60, y);
-    y += 5;
-    font(8, 'normal'); tc(C.grey2);
-    text(confirmed.length + ' inscrits  /  ' + cap + ' places', ML, y);
-    y = HEADER_H;
+    fill(C.cream2);
+    doc.roundedRect(PX, PY, PW, PH, 2, 2, 'F');
+    fH(11, 'normal'); tc(C.rule);
+    tx('[ Affiche ]', PX + PW/2, PY + PH/2, {align:'center'});
   }
 
-  // Bande dorée séparatrice
-  fill(C.gold);
-  doc.rect(0, HEADER_H, W, 1.2, 'F');
-  y = HEADER_H + 1.2;
+  /* Infos droite */
+  let iy = PY + 5;
 
-  // ══════════════════════════════════════════════════════════════
-  // CORPS — fond sombre continu
-  // ══════════════════════════════════════════════════════════════
-  fill(C.bg);
-  doc.rect(0, y, W, H - y, 'F');
+  fH(8, 'bold'); tc(C.bordeaux);
+  tx(dateStr.toUpperCase(), IX, iy);
+  iy += 9;
 
-  y += 10;
+  fS(18, 'bold'); tc(C.ink);
+  const tLines = doc.splitTextToSize(title, IW);
+  tLines.slice(0,3).forEach(l => { tx(l, IX, iy); iy += 7; });
+  iy += 2;
 
-  // ── Section INSCRITS ─────────────────────────────────────────
-  // Titre de section
-  rr(ML, y - 4, CW, 8, C.surface, 2);
-  fill(C.green); doc.rect(ML, y - 4, 2.5, 8, 'F');
-  font(9, 'bold'); tc(C.green);
-  text('INSCRITS CONFIRMÉS', ML + 6, y);
-  font(8, 'normal'); tc(C.grey2);
-  text(confirmed.length + ' / ' + cap, W - MR, y, { align: 'right' });
-  y += 8;
+  doc.setLineWidth(0.5); draw(C.goldSoft);
+  doc.line(IX, iy, IX + IW, iy);
+  iy += 5;
+
+  const metas = [genre, duration].filter(Boolean).join('   \u00b7   ');
+  if (metas) { fH(8,'normal'); tc(C.ink3); tx(metas, IX, iy); iy += 7; }
+
+  [
+    ['R\u00e9f\u00e9rent', referent],
+    ['Capacit\u00e9', cap + ' places'],
+    ['Inscrits', confirmed.length + ' / ' + cap],
+    ...(waitlist.length ? [["Liste d'attente", waitlist.length + ' \u00e9l\u00e8ve' + (waitlist.length>1?'s':'')]] : []),
+  ].forEach(([lbl, val]) => {
+    fH(7, 'bold');   tc(C.ink2); tx(lbl.toUpperCase(), IX, iy);
+    fH(8.5,'normal'); tc(C.ink);
+    tx(val, IX + doc.getTextWidth(lbl.toUpperCase()) + 4, iy);
+    iy += 6;
+  });
+
+  y = HBOT;
+
+  /* Separateur bordeaux */
+  fill(C.bordeaux); doc.rect(ML, y, CW, 0.7, 'F');
+  y += 7;
+
+  /* INSCRITS */
+  fH(8,'bold'); tc(C.bordeaux);
+  tx('INSCRITS CONFIRM\u00c9S', ML, y);
+  fH(8,'normal'); tc(C.ink3);
+  tx(confirmed.length + ' / ' + cap, W - MR, y, {align:'right'});
+  y += 2; hline(y, C.rule, 0.3); y += 5;
 
   if (!confirmed.length) {
-    font(8, 'normal'); tc(C.grey2);
-    text('Aucun inscrit confirmé', ML + 4, y + 4);
-    y += 12;
+    fH(8,'normal'); tc(C.ink3); tx('Aucun inscrit pour le moment', ML+2, y+2); y += 10;
   } else {
-    // Grille : 2 colonnes si beaucoup d'inscrits
-    const cols = confirmed.length > 14 ? 2 : 1;
-    const colW = cols === 2 ? (CW - 4) / 2 : CW;
-    const ROW_H = 7;
+    const cols = confirmed.length > 15 ? 2 : 1;
+    const colW = cols === 2 ? (CW - 5) / 2 : CW;
+    const ROW  = 6.2;
 
     confirmed.forEach((r, i) => {
-      const col    = i % cols;
-      const row    = Math.floor(i / cols);
-      const xStart = ML + col * (colW + 4);
-      const yRow   = y + row * ROW_H;
+      const col = i % cols, row = Math.floor(i / cols);
+      const xB  = ML + col * (colW + 5);
+      const yR  = y + row * ROW;
+      if (yR + ROW > H - 22) return;
 
-      // Vérifier saut de page
-      if (yRow + ROW_H > H - 20) return; // overflow géré simplement
+      if (row % 2 === 0) { fill(C.cream2); doc.rect(xB, yR - 3.8, colW, ROW - 0.3, 'F'); }
 
-      // Ligne alternée
-      if (i % (cols * 2) < cols) {
-        fill(C.surface);
-        doc.rect(xStart, yRow - 3.5, colW, ROW_H - 0.5, 'F');
-      }
-
-      const nom    = ((r.students?.last_name  || '').toUpperCase());
-      const prenom = (r.students?.first_name  || '');
-      const classe = (r.students?.class_name  || '');
-
-      font(8.5, 'bold');   tc(C.white);  text(nom, xStart + 3, yRow);
-      font(8.5, 'normal'); tc(C.grey1);  text(' ' + prenom, xStart + 3 + doc.getTextWidth(nom), yRow);
-
-      if (classe) {
-        font(7, 'normal'); tc(C.grey2);
-        text(classe, xStart + colW - 1, yRow, { align: 'right' });
-      }
+      fH(7,'normal'); tc(C.ink3); tx(String(i+1), xB + 2, yR, {align:'right'});
+      const nom = (r.students?.last_name||'').toUpperCase();
+      const prn = r.students?.first_name || '';
+      const cls = r.students?.class_name || '';
+      fS(8.5,'bold');   tc(C.ink);  tx(nom, xB + 5, yR);
+      fS(8.5,'normal'); tc(C.ink2); tx('  ' + prn, xB + 5 + doc.getTextWidth(nom), yR);
+      if (cls) { fH(7,'normal'); tc(C.ink3); tx(cls, xB + colW - 1, yR, {align:'right'}); }
+      if (cols === 1 && i < confirmed.length - 1) hline(yR + ROW - 2.5, C.ruleL, 0.15);
     });
-
-    const rows = Math.ceil(confirmed.length / cols);
-    y += rows * ROW_H + 4;
+    y += Math.ceil(confirmed.length / cols) * ROW + 3;
   }
 
-  // ── Section LISTE D'ATTENTE ──────────────────────────────────
+  /* LISTE D'ATTENTE */
   if (waitlist.length) {
-    y += 4;
-
-    // Titre section
-    rr(ML, y - 4, CW, 8, C.surface, 2);
-    fill(C.amber); doc.rect(ML, y - 4, 2.5, 8, 'F');
-    font(9, 'bold'); tc(C.amber);
-    text("LISTE D'ATTENTE", ML + 6, y);
-    font(8, 'normal'); tc(C.grey2);
-    text(waitlist.length + ' élève' + (waitlist.length > 1 ? 's' : ''), W - MR, y, { align: 'right' });
-    y += 8;
-
+    y += 5; hline(y - 2, C.rule, 0.3);
+    fH(8,'bold'); tc(C.bordSoft); tx("LISTE D'ATTENTE", ML, y + 3);
+    fH(8,'normal'); tc(C.ink3);
+    tx(waitlist.length + ' \u00e9l\u00e8ve' + (waitlist.length>1?'s':''), W-MR, y+3, {align:'right'});
+    y += 9;
+    const WR = 6.2;
     waitlist.forEach((r, i) => {
-      const yRow = y + i * 7;
-      if (yRow + 7 > H - 20) return;
-
-      if (i % 2 === 0) {
-        fill(C.surface);
-        doc.rect(ML, yRow - 3.5, CW, 6.5, 'F');
-      }
-
-      // Numéro de rang
-      font(7.5, 'bold'); tc(C.amber);
-      text((i + 1) + '.', ML + 3, yRow);
-
-      const nom    = (r.students?.last_name  || '').toUpperCase();
-      const prenom = (r.students?.first_name || '');
-      const classe = (r.students?.class_name || '');
-
-      font(8.5, 'bold');   tc(C.white);  text(nom, ML + 10, yRow);
-      font(8.5, 'normal'); tc(C.grey1);  text(' ' + prenom, ML + 10 + doc.getTextWidth(nom), yRow);
-      if (classe) {
-        font(7, 'normal'); tc(C.grey2);
-        text(classe, W - MR, yRow, { align: 'right' });
-      }
+      const yR = y + i * WR;
+      if (yR + WR > H - 22) return;
+      if (i % 2 === 0) { fill(C.cream2); doc.rect(ML, yR - 3.8, CW, WR - 0.3, 'F'); }
+      fH(7.5,'bold'); tc(C.bordSoft); tx(String(i+1) + '.', ML + 2, yR);
+      const nom = (r.students?.last_name||'').toUpperCase();
+      const prn = r.students?.first_name || '';
+      const cls = r.students?.class_name || '';
+      fS(8.5,'bold');   tc(C.ink);  tx(nom, ML + 10, yR);
+      fS(8.5,'normal'); tc(C.ink2); tx('  ' + prn, ML + 10 + doc.getTextWidth(nom), yR);
+      if (cls) { fH(7,'normal'); tc(C.ink3); tx(cls, W-MR, yR, {align:'right'}); }
     });
-
-    y += waitlist.length * 7 + 4;
+    y += waitlist.length * WR + 4;
   }
 
-  // ── Pied de page ─────────────────────────────────────────────
-  fill(C.surface);
-  doc.rect(0, H - 12, W, 12, 'F');
-  fill(C.gold);
-  doc.rect(0, H - 12, W, 0.8, 'F');
+  /* Pied de page bordeaux */
+  fill(C.bordeaux); doc.rect(0, H-11, W, 11, 'F');
+  fill(C.gold);     doc.rect(0, H-11, W, 0.6, 'F');
+  fH(7,'normal'); tc(C.cream);
+  const now = new Date().toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'});
+  tx('Cinema Internat  \u00b7  ' + now, ML, H - 4.5);
+  tx('R\u00e9f\u00e9rent : ' + referent, W - MR, H - 4.5, {align:'right'});
 
-  font(7, 'normal'); tc(C.grey2);
-  const now = new Date().toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric' });
-  text('Cinéma Internat · ' + now, ML, H - 5);
-  text('Référent : ' + referent, W - MR, H - 5, { align: 'right' });
-
-  // ── Sauvegarde ───────────────────────────────────────────────
-  const safeName = title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-  doc.save('seance_' + safeName + '_' + ses.session_date + '.pdf');
-  toast('PDF généré ✅', 'success');
+  /* Telechargement */
+  const safe = title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+  doc.save('seance_' + safe + '_' + ses.session_date + '.pdf');
+  toast('PDF g\u00e9n\u00e9r\u00e9 \u2705', 'success');
 }
+
 
 </script>
 </body>
