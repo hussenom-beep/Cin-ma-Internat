@@ -280,97 +280,48 @@ button { cursor: pointer; }
 .fselect { appearance: none; cursor: pointer; }
 
 
-/* ── Modale bande-annonce ───────────────────────────────────── */
-#modal-trailer {
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  background: rgba(0,0,0,.95);
+/* ── Bande-annonce intégrée dans les fiches ─────────────────── */
+.trailer-embed {
+  margin: 0 0 16px;
 }
-#modal-trailer.hidden { display: none; }
-#modal-trailer:not(.hidden) { display: flex; }
-.trailer-wrap {
-  width: 100%;
-  max-width: 800px;
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-.trailer-topbar {
+.trailer-embed-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 10px 14px;
+  gap: 7px;
+  margin-bottom: 8px;
 }
-.trailer-label {
-  font-size: 12px;
+.trailer-embed-title {
+  font-size: 11px;
   font-weight: 700;
   color: var(--text-2);
-  letter-spacing: .06em;
   text-transform: uppercase;
+  letter-spacing: .06em;
 }
-.trailer-close-btn {
-  width: 34px; height: 34px;
-  border-radius: 50%;
-  background: rgba(255,255,255,.08);
-  border: 1px solid rgba(255,255,255,.13);
-  color: #fff;
-  font-size: 16px;
-  cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  transition: background .15s;
-  flex-shrink: 0;
-}
-.trailer-close-btn:hover { background: rgba(255,255,255,.16); }
-.trailer-iframe-wrap {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 16/9;
-  background: #000;
-}
-.trailer-iframe-wrap iframe {
-  position: absolute; inset: 0;
-  width: 100%; height: 100%;
-  border: none;
-}
-
-/* Bouton bande-annonce dans les fiches */
-.btn-trailer {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  border-radius: var(--radius-sm);
-  background: rgba(255,255,255,.06);
-  border: 1px solid rgba(255,255,255,.12);
-  color: #fff;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  width: 100%;
-  transition: background .15s, border-color .15s;
-  margin-bottom: 10px;
-  justify-content: center;
-}
-.btn-trailer:hover { background: rgba(255,255,255,.11); border-color: rgba(255,255,255,.22); }
-.btn-trailer .trailer-play-icon {
-  width: 26px; height: 26px;
-  border-radius: 50%;
-  background: #e50914;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 10px;
-  flex-shrink: 0;
-}
-.btn-trailer .trailer-lang-badge {
-  margin-left: auto;
+.trailer-embed-badge {
   font-size: 10px;
   font-weight: 700;
   padding: 2px 7px;
   border-radius: 20px;
-  background: rgba(255,255,255,.1);
-  color: var(--text-2);
+  background: rgba(255,255,255,.08);
+  color: var(--text-3);
   letter-spacing: .04em;
 }
+.trailer-embed-ratio {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #000;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.trailer-embed-ratio iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
 /* PIN inputs — 6 cases, taille ajustée pour tenir sur mobile */
 .pins { display: flex; gap: 7px; justify-content: center; }
 .pin {
@@ -2702,72 +2653,6 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
      MODAL: Ajouter un film
      ================================================================ -->
 
-<!-- ================================================================
-     MODAL: Bande-annonce YouTube
-     ================================================================ -->
-<div class="overlay hidden" id="modal-trailer">
-  <div class="trailer-wrap">
-    <div class="trailer-topbar">
-      <span class="trailer-label" id="trailer-modal-label">Bande-annonce</span>
-      <button class="trailer-close-btn" onclick="closeTrailer()">✕</button>
-    </div>
-    <div class="trailer-iframe-wrap" id="trailer-iframe-wrap">
-      <!-- iframe injectée au clic -->
-    </div>
-  </div>
-</div>
-
-<div class="overlay hidden" id="modal-add-film">
-  <div class="sheet">
-    <div class="sheet-handle"></div>
-    <div class="sheet-title">Ajouter un film</div>
-
-    <div class="fgroup">
-      <label class="flabel">Rechercher via TMDB</label>
-      <div style="display:flex;gap:8px;">
-			<input type="text" class="finput" id="admin-film-search" placeholder="Titre du film..." style="flex:1;">
-			<input type="number" class="finput" id="admin-film-year" placeholder="Année" style="width:96px;flex-shrink:0;">
-			<button class="btn btn-gold" onclick="searchTMDB('admin')">🔍</button>
-	  </div>
-    </div>
-    <div id="admin-tmdb-results" class="tmdb-results" style="margin-bottom:18px;"></div>
-
-    <div class="divider" style="margin:12px 0;"></div>
-
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;">
-      <div class="fgroup" style="grid-column:1/-1;">
-        <label class="flabel">Titre *</label>
-        <input type="text" class="finput" id="af-title">
-      </div>
-      <div class="fgroup">
-        <label class="flabel">Année</label>
-        <input type="number" class="finput" id="af-year" placeholder="2024">
-      </div>
-      <div class="fgroup">
-        <label class="flabel">Durée (min)</label>
-        <input type="number" class="finput" id="af-duration" placeholder="120">
-      </div>
-      <div class="fgroup" style="grid-column:1/-1;">
-        <label class="flabel">Genre(s)</label>
-        <input type="text" class="finput" id="af-genre" placeholder="Action, Comédie…">
-      </div>
-      <div class="fgroup" style="grid-column:1/-1;">
-        <label class="flabel">Synopsis</label>
-        <textarea class="ftextarea" id="af-synopsis"></textarea>
-      </div>
-      <div class="fgroup" style="grid-column:1/-1;">
-        <label class="flabel">URL Affiche</label>
-        <input type="text" class="finput" id="af-poster" placeholder="https://…">
-      </div>
-    </div>
-    <input type="hidden" id="af-tmdbid">
-
-    <div style="display:flex;gap:10px;margin-top:4px;">
-      <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('modal-add-film')">Annuler</button>
-      <button class="btn btn-gold" style="flex:1;" onclick="saveFilm()">Ajouter ✅</button>
-    </div>
-  </div>
-</div>
 
 <!-- ================================================================
      MODAL: Créer une séance
@@ -4407,7 +4292,7 @@ async function openDetail(filmId) {
   showScreen('film-detail');
 
   // Bouton bande-annonce si le film a un tmdb_id
-  if (f.tmdb_id) _injectTrailerBtn(f.tmdb_id, 'trailer-slot-catalogue');
+  if (f.tmdb_id) _injectTrailerEmbed(f.tmdb_id, 'trailer-slot-catalogue');
 }
 
 /* ================================================================
@@ -4438,7 +4323,7 @@ function initPropose() {
 
 async function searchTMDB(ctx) {
   const isAdmin   = ctx === 'admin';
-  const inputId   = isAdmin ? 'admin-film-search' : 'prop-search';
+  const inputId   = isAdmin ? 'admin-film-filter' : 'prop-search';
   const yearId    = isAdmin ? 'admin-film-year' : 'prop-year';
   const resultsId = isAdmin ? 'admin-tmdb-results' : 'prop-results';
 
@@ -4643,7 +4528,7 @@ async function _renderTMDBScreen(detail, credits) {
     </div>`;
 
   // Charger le bouton bande-annonce en arrière-plan (non bloquant)
-  if (detail.id) _injectTrailerBtn(detail.id, 'trailer-slot-student');
+  if (detail.id) _injectTrailerEmbed(detail.id, 'trailer-slot-student');
 }
 
 /* Rendu dans le modal (admin) */
@@ -4721,7 +4606,7 @@ actionBtn.onclick = dup.msg ? null : confirmAddFilm;
 
   // Charger le bouton bande-annonce en arrière-plan
   document.getElementById('trailer-slot-admin').innerHTML = '';
-  if (detail.id) _injectTrailerBtn(detail.id, 'trailer-slot-admin');
+  if (detail.id) _injectTrailerEmbed(detail.id, 'trailer-slot-admin');
 }
 
 /* Retourne { blocked, msg, cls } — utilisé par _renderTMDBScreen */
@@ -4801,7 +4686,7 @@ async function confirmAddFilm() {
 
   closeModal('modal-tmdb-detail');
   closeModal('modal-add-film');
-  document.getElementById('admin-film-search').value = '';
+  const _afsEl = document.getElementById('admin-film-filter'); if (_afsEl) _afsEl.value = '';
   document.getElementById('admin-tmdb-results').innerHTML = '';
   toast('Film ajouté au catalogue 🎬', 'success');
   loadAdminFilms();
@@ -7581,7 +7466,7 @@ document.getElementById('inp-code').addEventListener('keydown', e => { if (e.key
 rememberLoad(); // Préremplir l'identifiant si mémorisé
 document.getElementById('inp-adminpwd').addEventListener('keydown', e => { if (e.key === 'Enter') handleAdminLogin(); });
 document.getElementById('prop-search').addEventListener('keydown', e => { if (e.key === 'Enter') searchTMDB('student'); });
-document.getElementById('admin-film-search').addEventListener('keydown', e => { if (e.key === 'Enter') searchTMDB('admin'); });
+document.getElementById('admin-film-filter')?.addEventListener('keydown', e => { if (e.key === 'Enter') searchTMDB('admin'); });
 document.getElementById('prop-year')?.addEventListener('keydown', e => { if (e.key === 'Enter') searchTMDB('student'); });
 document.getElementById('admin-film-year')?.addEventListener('keydown', e => { if (e.key === 'Enter') searchTMDB('admin'); });
 
@@ -7592,7 +7477,7 @@ function debouncedSearchTMDB(ctx) {
   _tmdbDebounceTimer = setTimeout(() => searchTMDB(ctx), 500);
 }
 document.getElementById('prop-search').addEventListener('input', () => debouncedSearchTMDB('student'));
-document.getElementById('admin-film-search').addEventListener('input', () => debouncedSearchTMDB('admin'));
+document.getElementById('admin-film-filter')?.addEventListener('input', () => debouncedSearchTMDB('admin'));
 
 /* ----------------------------------------------------------------
    APPUI LONG 5 SECONDES SUR LE LOGO — accès admin caché
@@ -7647,18 +7532,17 @@ function init() {
 init();
 
 /* ════════════════════════════════════════════════════════════════
-   BANDE-ANNONCE
+   BANDE-ANNONCE — iframe intégré
    ════════════════════════════════════════════════════════════════ */
 
 /**
- * Récupère les vidéos TMDB d'un film et retourne le meilleur trailer
- * selon la priorité : FR > VOSTFR > VO sous-titrée > VO brute
+ * Récupère les vidéos TMDB et retourne le meilleur trailer.
+ * Priorité : FR > VOSTFR > VO sous-titrée > VO brute
  * Retourne { key, label } ou null
  */
 async function _fetchBestTrailer(tmdbId) {
   if (!CFG.TMDB_KEY || !tmdbId) return null;
   try {
-    // 1re requête : vidéos en français
     const [resFR, resEN] = await Promise.all([
       fetch(`https://api.themoviedb.org/3/movie/${tmdbId}/videos?api_key=${CFG.TMDB_KEY}&language=fr-FR`),
       fetch(`https://api.themoviedb.org/3/movie/${tmdbId}/videos?api_key=${CFG.TMDB_KEY}&language=en-US`)
@@ -7671,33 +7555,31 @@ async function _fetchBestTrailer(tmdbId) {
       ...((dataEN.results || []).map(v => ({ ...v, _src: 'en' }))),
     ];
 
-    // Garder seulement les trailers/teasers YouTube
+    // Garder uniquement trailers/teasers YouTube
     const trailers = allVids.filter(v =>
-      v.site === 'YouTube' &&
-      (v.type === 'Trailer' || v.type === 'Teaser')
+      v.site === 'YouTube' && (v.type === 'Trailer' || v.type === 'Teaser')
     );
-
     if (!trailers.length) return null;
 
-    // Priorité 1 : trailer issu de la réponse fr-FR (langue française)
+    // 1. Trailer FR
     const frTrailer = trailers.find(v => v._src === 'fr' && v.type === 'Trailer');
     if (frTrailer) return { key: frTrailer.key, label: 'FR' };
 
-    // Priorité 2 : teaser fr-FR
+    // 2. Teaser FR
     const frTeaser = trailers.find(v => v._src === 'fr');
     if (frTeaser) return { key: frTeaser.key, label: 'FR' };
 
-    // Priorité 3 : trailer en-US dont le name contient VOSTFR ou sous-titré
+    // 3. VOSTFR / VF / sous-titré
     const vostfr = trailers.find(v =>
       /vostfr|vf|français|french|sous.titré/i.test(v.name)
     );
     if (vostfr) return { key: vostfr.key, label: 'VOSTFR' };
 
-    // Priorité 4 : trailer VO officiel
+    // 4. Trailer VO
     const voTrailer = trailers.find(v => v.type === 'Trailer');
     if (voTrailer) return { key: voTrailer.key, label: 'VO' };
 
-    // Priorité 5 : n'importe quoi
+    // 5. Fallback VO
     return { key: trailers[0].key, label: 'VO' };
 
   } catch(e) {
@@ -7705,60 +7587,35 @@ async function _fetchBestTrailer(tmdbId) {
   }
 }
 
-/** Lance la recherche + affiche le bouton trailer dans un conteneur donné */
-async function _injectTrailerBtn(tmdbId, containerId) {
+/**
+ * Injecte un iframe YouTube directement dans le conteneur cible.
+ * Appel non-bloquant depuis les fonctions de rendu.
+ */
+async function _injectTrailerEmbed(tmdbId, containerId) {
   const container = document.getElementById(containerId);
   if (!container || !tmdbId) return;
 
   const trailer = await _fetchBestTrailer(tmdbId);
-  if (!trailer) return; // rien à afficher
+  if (!trailer) return; // aucune bande-annonce disponible
 
-  const btn = document.createElement('button');
-  btn.className = 'btn-trailer';
-  btn.innerHTML = `
-    <span class="trailer-play-icon">▶</span>
-    <span>Voir la bande-annonce</span>
-    <span class="trailer-lang-badge">${trailer.label}</span>
-  `;
-  btn.onclick = () => openTrailer(trailer.key, trailer.label);
-  container.insertBefore(btn, container.firstChild);
+  const langLabel = { FR: 'FR', VOSTFR: 'VOSTFR', VO: 'VO' }[trailer.label] || trailer.label;
+
+  container.innerHTML = `
+    <div class="trailer-embed">
+      <div class="trailer-embed-header">
+        <span class="trailer-embed-title">Bande-annonce</span>
+        <span class="trailer-embed-badge">${langLabel}</span>
+      </div>
+      <div class="trailer-embed-ratio">
+        <iframe
+          src="https://www.youtube.com/embed/${trailer.key}?rel=0"
+          allow="fullscreen"
+          allowfullscreen
+          loading="lazy">
+        </iframe>
+      </div>
+    </div>`;
 }
-
-/** Ouvre la modale bande-annonce avec la clé YouTube */
-function openTrailer(ytKey, label) {
-  const wrap   = document.getElementById('trailer-iframe-wrap');
-  const lbl    = document.getElementById('trailer-modal-label');
-  if (!wrap) return;
-
-  const langMap = { FR: 'Bande-annonce FR', VOSTFR: 'Bande-annonce VOSTFR', VO: 'Bande-annonce VO' };
-  if (lbl) lbl.textContent = langMap[label] || 'Bande-annonce';
-
-  // Lazy-load : créer l'iframe seulement maintenant
-  wrap.innerHTML = `<iframe
-    src="https://www.youtube.com/embed/${ytKey}?autoplay=1&rel=0"
-    allow="autoplay; fullscreen"
-    allowfullscreen>
-  </iframe>`;
-
-  document.getElementById('modal-trailer').classList.remove('hidden');
-}
-
-/** Ferme la modale et détruit l'iframe (arrêt lecture) */
-function closeTrailer() {
-  document.getElementById('modal-trailer').classList.add('hidden');
-  document.getElementById('trailer-iframe-wrap').innerHTML = '';
-}
-
-// Fermeture par clic overlay
-document.getElementById('modal-trailer').addEventListener('click', function(e) {
-  if (e.target === this) closeTrailer();
-});
-// Fermeture par Echap
-document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape' && !document.getElementById('modal-trailer').classList.contains('hidden')) {
-    closeTrailer();
-  }
-});
 
 </script>
 </body>
