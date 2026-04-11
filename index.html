@@ -6160,7 +6160,7 @@ async function loadAdminSessions() {
     <div class="admin-ses-card">
       ${poster ? `<img src="${poster}" class="admin-ses-poster" alt="">` : ''}
       <div class="admin-ses-overlay"></div>
-      <button class="ses-pdf-btn" onclick="event.stopPropagation();genSeancePDF('${s.id}')" title="Télécharger PDF">📄</button>
+      <button class="ses-pdf-btn" onclick="event.stopPropagation(); console.log('PDF séance id =', '${s.id}'); genSeancePDF('${s.id}')" title="Télécharger PDF">📄</button>
       <div class="admin-ses-inner">
         <div class="admin-ses-top">
           <div class="admin-ses-date">📅 ${fmtDateShort(s.session_date)}</div>
@@ -7805,19 +7805,35 @@ async function genSeancePDF(sesId) {
   toast('Génération du PDF…', 'info');
 
   // ── Données ──────────────────────────────────────────────────
-  const [{ data: ses }, { data: regs }] = await Promise.all([
-    db.from('cinema_sessions')
-      .select('*, films(title, poster_url, year, genre, duration, overview)')
-      .eq('id', sesId).single(),
-    db.from('registrations')
-      .select('status, waitlist_rank, students(first_name, last_name, class_name)')
-      .eq('session_id', sesId)
-      .order('registered_at', { ascending: true })
-  ]);
 
-  if (!ses) { toast('Séance introuvable', 'error'); return; }
+const [
+  { data: ses, error: sesError },
+  { data: regs, error: regsError }
+] = await Promise.all([
+  db.from('cinema_sessions')
+    .select('*, films(title, poster_url, year, genre, duration, synopsis)')
+    .eq('id', sesId)
+    .single(),
+  db.from('registrations')
+    .select('status, waitlist_rank, students(first_name, last_name, class_name)')
+    .eq('session_id', sesId)
+    .order('registered_at', { ascending: true })
+]);
+
+if (sesError) {
+  console.error('genSeancePDF cinema_sessions error:', sesError, 'sesId =', sesId);
+}
+if (regsError) {
+  console.error('genSeancePDF registrations error:', regsError, 'sesId =', sesId);
+}
+
+if (!ses) {
+  toast('Séance introuvable', 'error');
+  return;
+}
 
   const film     = ses.films || {};
+  console.log('genSeancePDF session trouvée :', ses);
   const title    = film.title    || 'Film à annoncer';
   const dateStr  = fmtDateShort(ses.session_date);
   const poster   = film.poster_url || null;
