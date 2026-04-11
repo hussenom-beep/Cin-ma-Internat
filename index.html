@@ -25,7 +25,8 @@
 	<meta name="apple-mobile-web-app-title" content="Cinéma Internat">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
 /* ================================================================
    VARIABLES & RESET
@@ -1254,6 +1255,34 @@ button { cursor: pointer; }
 }
 
 /* ---- Carte admin séance ---- */
+
+/* ── Pastille PDF séance ─────────────────────────────────────── */
+.ses-pdf-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 10;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(240,165,0,.15);
+  border: 1px solid rgba(240,165,0,.3);
+  color: var(--gold);
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background .15s, border-color .15s, transform .12s;
+  backdrop-filter: blur(4px);
+}
+.ses-pdf-btn:hover {
+  background: rgba(240,165,0,.28);
+  border-color: var(--gold);
+  transform: scale(1.1);
+}
+.ses-pdf-btn:active { transform: scale(.93); }
+
 .admin-ses-card {
   position: relative;
   border-radius: var(--radius);
@@ -6131,6 +6160,7 @@ async function loadAdminSessions() {
     <div class="admin-ses-card">
       ${poster ? `<img src="${poster}" class="admin-ses-poster" alt="">` : ''}
       <div class="admin-ses-overlay"></div>
+      <button class="ses-pdf-btn" onclick="event.stopPropagation();genSeancePDF('${s.id}')" title="Télécharger PDF">📄</button>
       <div class="admin-ses-inner">
         <div class="admin-ses-top">
           <div class="admin-ses-date">📅 ${fmtDateShort(s.session_date)}</div>
@@ -7759,6 +7789,312 @@ document.addEventListener('keydown', function(e) {
     closeTrailer();
   }
 });
+
+
+/* ════════════════════════════════════════════════════════════════
+   PDF PREMIUM — Fiche de séance Cinéma Internat
+   Référent : Matthias
+   ════════════════════════════════════════════════════════════════ */
+
+async function genSeancePDF(sesId) {
+  if (typeof window.jspdf === 'undefined') {
+    toast('Bibliothèque PDF non chargée, réessayez dans un instant.', 'error');
+    return;
+  }
+
+  toast('Génération du PDF…', 'info');
+
+  // ── Données ──────────────────────────────────────────────────
+  const [{ data: ses }, { data: regs }] = await Promise.all([
+    db.from('cinema_sessions')
+      .select('*, films(title, poster_url, year, genre, duration, overview)')
+      .eq('id', sesId).single(),
+    db.from('registrations')
+      .select('status, waitlist_rank, students(first_name, last_name, class_name)')
+      .eq('session_id', sesId)
+      .order('registered_at', { ascending: true })
+  ]);
+
+  if (!ses) { toast('Séance introuvable', 'error'); return; }
+
+  const film     = ses.films || {};
+  const title    = film.title    || 'Film à annoncer';
+  const dateStr  = fmtDateShort(ses.session_date);
+  const poster   = film.poster_url || null;
+  const genre    = film.genre    || '';
+  const duration = film.duration ? film.duration + ' min' : '';
+  const cap      = ses.max_capacity || 20;
+  const referent = 'Matthias';
+
+  const confirmed = (regs || [])
+    .filter(r => r.status === 'registered')
+    .sort((a, b) => (a.students?.last_name || '').localeCompare(b.students?.last_name || '', 'fr'));
+  const waitlist = (regs || [])
+    .filter(r => r.status === 'waitlist')
+    .sort((a, b) => (a.waitlist_rank || 99) - (b.waitlist_rank || 99));
+
+  // ── Init doc ─────────────────────────────────────────────────
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+  const W = 210, H = 297;
+  const ML = 16, MR = 16;
+  const CW = W - ML - MR;
+  let y = 0;
+
+  // ── Palette ──────────────────────────────────────────────────
+  const C = {
+    bg:       [11, 11, 20],
+    surface:  [22, 22, 38],
+    surface2: [30, 30, 50],
+    gold:     [240, 165, 0],
+    goldSoft: [255, 195, 60],
+    white:    [255, 255, 255],
+    grey1:    [190, 190, 210],
+    grey2:    [110, 110, 135],
+    divider:  [40, 40, 65],
+    green:    [74, 222, 128],
+    greenDim: [20, 55, 30],
+    amber:    [251, 191, 36],
+    amberDim: [50, 38, 10],
+  };
+
+  // ── Helpers ──────────────────────────────────────────────────
+  const fill = c => doc.setFillColor(...c);
+  const draw = c => doc.setDrawColor(...c);
+  const tc   = c => doc.setTextColor(...c);
+  const font = (sz, style='normal') => { doc.setFont('helvetica', style); doc.setFontSize(sz); };
+  const rr   = (x, yy, w, h, c, r=2) => { fill(c); doc.roundedRect(x, yy, w, h, r, r, 'F'); };
+  const line = (yy, c, lw=0.2) => {
+    doc.setLineWidth(lw); draw(c);
+    doc.line(ML, yy, W - MR, yy);
+  };
+  const text = (t, x, yy, opts={}) => doc.text(t, x, yy, opts);
+
+  // Charge une image poster en base64
+  async function loadImg(url) {
+    try {
+      const res  = await fetch(url);
+      const blob = await res.blob();
+      return await new Promise(resolve => {
+        const rd = new FileReader();
+        rd.onload = () => resolve(rd.result);
+        rd.onerror = () => resolve(null);
+        rd.readAsDataURL(blob);
+      });
+    } catch { return null; }
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // BLOC EN-TÊTE — fond sombre pleine largeur
+  // ══════════════════════════════════════════════════════════════
+  const HEADER_H = poster ? 78 : 55;
+
+  fill(C.bg);
+  doc.rect(0, 0, W, HEADER_H, 'F');
+
+  // Chargement de l'affiche
+  let imgData = null;
+  if (poster) {
+    imgData = await loadImg(poster);
+  }
+
+  if (imgData) {
+    // Affiche à gauche, bien visible
+    const POSTER_W = 42;
+    const POSTER_H = 62;
+    const POSTER_X = ML;
+    const POSTER_Y = 8;
+
+    // Ombre douce derrière l'affiche
+    fill(C.surface);
+    doc.roundedRect(POSTER_X - 1, POSTER_Y - 1, POSTER_W + 2, POSTER_H + 2, 2, 2, 'F');
+    doc.addImage(imgData, 'JPEG', POSTER_X, POSTER_Y, POSTER_W, POSTER_H, '', 'FAST');
+
+    // Bloc texte à droite de l'affiche
+    const TX = POSTER_X + POSTER_W + 10;
+    const TW = W - TX - MR;
+
+    y = POSTER_Y + 4;
+
+    // Sous-titre application
+    font(7, 'normal'); tc(C.gold);
+    text('SÉANCE CINÉMA INTERNAT', TX, y);
+    y += 6;
+
+    // Titre film
+    font(16, 'bold'); tc(C.white);
+    const titleLines = doc.splitTextToSize(title, TW);
+    titleLines.slice(0, 2).forEach(l => { text(l, TX, y); y += 6.5; });
+
+    // Métadonnées film
+    const metas = [genre, duration].filter(Boolean).join('  ·  ');
+    if (metas) {
+      y += 1;
+      font(8, 'normal'); tc(C.grey2);
+      text(metas, TX, y);
+      y += 6;
+    }
+
+    // Date
+    font(9, 'bold'); tc(C.goldSoft);
+    text('📅  ' + dateStr, TX, y);
+    y += 5.5;
+
+    // Référent
+    font(8, 'normal'); tc(C.grey1);
+    text('Référent : ' + referent, TX, y);
+    y += 5;
+
+    // Capacité
+    font(8, 'normal'); tc(C.grey2);
+    text(confirmed.length + ' inscrits  /  ' + cap + ' places', TX, y);
+
+    y = HEADER_H;
+
+  } else {
+    // Pas d'affiche — header texte pur
+    y = 14;
+    font(7, 'normal'); tc(C.gold);
+    text('SÉANCE CINÉMA INTERNAT', ML, y, { align: 'left' });
+    y += 9;
+
+    font(18, 'bold'); tc(C.white);
+    const titleLines = doc.splitTextToSize(title, CW);
+    titleLines.slice(0, 2).forEach(l => { text(l, ML, y); y += 7.5; });
+    y += 2;
+
+    font(9, 'bold'); tc(C.goldSoft);
+    text('📅  ' + dateStr, ML, y);
+    font(8, 'normal'); tc(C.grey1);
+    text('Référent : ' + referent, ML + 60, y);
+    y += 5;
+    font(8, 'normal'); tc(C.grey2);
+    text(confirmed.length + ' inscrits  /  ' + cap + ' places', ML, y);
+    y = HEADER_H;
+  }
+
+  // Bande dorée séparatrice
+  fill(C.gold);
+  doc.rect(0, HEADER_H, W, 1.2, 'F');
+  y = HEADER_H + 1.2;
+
+  // ══════════════════════════════════════════════════════════════
+  // CORPS — fond sombre continu
+  // ══════════════════════════════════════════════════════════════
+  fill(C.bg);
+  doc.rect(0, y, W, H - y, 'F');
+
+  y += 10;
+
+  // ── Section INSCRITS ─────────────────────────────────────────
+  // Titre de section
+  rr(ML, y - 4, CW, 8, C.surface, 2);
+  fill(C.green); doc.rect(ML, y - 4, 2.5, 8, 'F');
+  font(9, 'bold'); tc(C.green);
+  text('INSCRITS CONFIRMÉS', ML + 6, y);
+  font(8, 'normal'); tc(C.grey2);
+  text(confirmed.length + ' / ' + cap, W - MR, y, { align: 'right' });
+  y += 8;
+
+  if (!confirmed.length) {
+    font(8, 'normal'); tc(C.grey2);
+    text('Aucun inscrit confirmé', ML + 4, y + 4);
+    y += 12;
+  } else {
+    // Grille : 2 colonnes si beaucoup d'inscrits
+    const cols = confirmed.length > 14 ? 2 : 1;
+    const colW = cols === 2 ? (CW - 4) / 2 : CW;
+    const ROW_H = 7;
+
+    confirmed.forEach((r, i) => {
+      const col    = i % cols;
+      const row    = Math.floor(i / cols);
+      const xStart = ML + col * (colW + 4);
+      const yRow   = y + row * ROW_H;
+
+      // Vérifier saut de page
+      if (yRow + ROW_H > H - 20) return; // overflow géré simplement
+
+      // Ligne alternée
+      if (i % (cols * 2) < cols) {
+        fill(C.surface);
+        doc.rect(xStart, yRow - 3.5, colW, ROW_H - 0.5, 'F');
+      }
+
+      const nom    = ((r.students?.last_name  || '').toUpperCase());
+      const prenom = (r.students?.first_name  || '');
+      const classe = (r.students?.class_name  || '');
+
+      font(8.5, 'bold');   tc(C.white);  text(nom, xStart + 3, yRow);
+      font(8.5, 'normal'); tc(C.grey1);  text(' ' + prenom, xStart + 3 + doc.getTextWidth(nom), yRow);
+
+      if (classe) {
+        font(7, 'normal'); tc(C.grey2);
+        text(classe, xStart + colW - 1, yRow, { align: 'right' });
+      }
+    });
+
+    const rows = Math.ceil(confirmed.length / cols);
+    y += rows * ROW_H + 4;
+  }
+
+  // ── Section LISTE D'ATTENTE ──────────────────────────────────
+  if (waitlist.length) {
+    y += 4;
+
+    // Titre section
+    rr(ML, y - 4, CW, 8, C.surface, 2);
+    fill(C.amber); doc.rect(ML, y - 4, 2.5, 8, 'F');
+    font(9, 'bold'); tc(C.amber);
+    text("LISTE D'ATTENTE", ML + 6, y);
+    font(8, 'normal'); tc(C.grey2);
+    text(waitlist.length + ' élève' + (waitlist.length > 1 ? 's' : ''), W - MR, y, { align: 'right' });
+    y += 8;
+
+    waitlist.forEach((r, i) => {
+      const yRow = y + i * 7;
+      if (yRow + 7 > H - 20) return;
+
+      if (i % 2 === 0) {
+        fill(C.surface);
+        doc.rect(ML, yRow - 3.5, CW, 6.5, 'F');
+      }
+
+      // Numéro de rang
+      font(7.5, 'bold'); tc(C.amber);
+      text((i + 1) + '.', ML + 3, yRow);
+
+      const nom    = (r.students?.last_name  || '').toUpperCase();
+      const prenom = (r.students?.first_name || '');
+      const classe = (r.students?.class_name || '');
+
+      font(8.5, 'bold');   tc(C.white);  text(nom, ML + 10, yRow);
+      font(8.5, 'normal'); tc(C.grey1);  text(' ' + prenom, ML + 10 + doc.getTextWidth(nom), yRow);
+      if (classe) {
+        font(7, 'normal'); tc(C.grey2);
+        text(classe, W - MR, yRow, { align: 'right' });
+      }
+    });
+
+    y += waitlist.length * 7 + 4;
+  }
+
+  // ── Pied de page ─────────────────────────────────────────────
+  fill(C.surface);
+  doc.rect(0, H - 12, W, 12, 'F');
+  fill(C.gold);
+  doc.rect(0, H - 12, W, 0.8, 'F');
+
+  font(7, 'normal'); tc(C.grey2);
+  const now = new Date().toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric' });
+  text('Cinéma Internat · ' + now, ML, H - 5);
+  text('Référent : ' + referent, W - MR, H - 5, { align: 'right' });
+
+  // ── Sauvegarde ───────────────────────────────────────────────
+  const safeName = title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+  doc.save('seance_' + safeName + '_' + ses.session_date + '.pdf');
+  toast('PDF généré ✅', 'success');
+}
 
 </script>
 </body>
