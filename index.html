@@ -7852,7 +7852,7 @@ async function genSeancePDF(sesId) {
   const PW = 210, PH = 297;
 
   /* Mode debug : passer DEBUG=true pour afficher les reperes */
-  const DEBUG = true;
+  const DEBUG = false;
 
   /* Systeme de coordonnees (image source : 1024x1536) */
   const IW = 1024, IH = 1536;
@@ -7864,12 +7864,12 @@ async function genSeancePDF(sesId) {
   /* Zones fixes en pixels source -> converties en mm */
   const ZONES = {
     poster:    { x:X(86),  y:Y(359), w:WW(238), h:HH(352) },
-    date:      { x:X(493), y:Y(386) },
-    titleLine: { x:X(572), y:Y(432), maxW: WW(340) },
-    referent:  { x:X(527), y:Y(480) },
-    inscrits:  { x:X(677), y:Y(528) },
-    partLeft:  { x:X(92),  y:Y(800), w:WW(400), rowH:HH(62) },
-    partRight: { x:X(545), y:Y(800), w:WW(412), rowH:HH(62) },
+    date:      { x:X(496), y:Y(362) },
+    titleLine: { x:X(576), y:Y(410), maxW: WW(340) },
+    referent:  { x:X(527), y:Y(460) },
+    inscrits:  { x:X(683), y:Y(517) },
+    partLeft:  { x:X(92),  y:Y(840), w:WW(400), rowH:HH(62) },
+    partRight: { x:X(545), y:Y(840), w:WW(412), rowH:HH(62) },
   };
 
   /* Image de fond pleine page (cover proportionnel) */
@@ -7889,8 +7889,8 @@ async function genSeancePDF(sesId) {
   const fS  = (sz, st='normal') => { doc.setFont('times', st);     doc.setFontSize(sz); };
   const fH  = (sz, st='normal') => { doc.setFont('helvetica', st); doc.setFontSize(sz); };
   const tx  = (s, x, y, o={}) => doc.text(String(s||''), x, y, o);
-  const INK      = [42,  28,  10];
-  const GOLD_INK = [120, 85,  20];
+  const INK      = [138, 79,  55];   /* #8A4F37 brun chaud vintage */
+  const GOLD_INK = [138, 79,  55];   /* même teinte pour compteur */
 
   /* Debug : reperes de zones */
   const dbgR = (x, y, w, h, lbl) => {
@@ -7928,24 +7928,24 @@ async function genSeancePDF(sesId) {
 
   /* 2. DATE */
   dbgPt(ZONES.date.x, ZONES.date.y, 'date');
-  fH(9, 'bold'); tc(INK);
+  fS(11, 'normal'); tc(INK);
   tx(dateStr, ZONES.date.x, ZONES.date.y);
 
   /* 3. TITRE */
   dbgPt(ZONES.titleLine.x, ZONES.titleLine.y, 'titre');
-  fH(8.5, 'bold'); tc(INK);
+  fS(12, 'bold'); tc(INK);
   const titleParts = doc.splitTextToSize(title, ZONES.titleLine.maxW);
   tx(titleParts[0], ZONES.titleLine.x, ZONES.titleLine.y);
   if (titleParts.length > 1) tx(titleParts[1], ZONES.titleLine.x, ZONES.titleLine.y + 4.5);
 
   /* 4. REFERENT */
   dbgPt(ZONES.referent.x, ZONES.referent.y, 'ref');
-  fH(9, 'bold'); tc(INK);
+  fS(11, 'normal'); tc(INK);
   tx(referent, ZONES.referent.x, ZONES.referent.y);
 
   /* 5. INSCRITS */
   dbgPt(ZONES.inscrits.x, ZONES.inscrits.y, 'inscrits');
-  fH(11, 'bold'); tc(GOLD_INK);
+  fS(12, 'bold'); tc(GOLD_INK);
   tx(confirmed.length + ' / ' + cap, ZONES.inscrits.x, ZONES.inscrits.y);
 
   /* 6. PARTICIPANTS : 20 lignes, 2 colonnes de 10 */
@@ -7969,12 +7969,12 @@ async function genSeancePDF(sesId) {
       const prenom =  r.students?.first_name || '';
       const classe =  r.students?.class_name || '';
       const yTxt   = yLine - 1.8;
-      fS(7.5, 'bold');   tc(INK);
+      fS(10, 'bold');   tc(INK);
       tx(nom, col.x + 1, yTxt);
-      fS(7.5, 'normal'); tc([75, 55, 25]);
+      fS(10, 'normal'); tc([160, 100, 70]);
       tx(' ' + prenom, col.x + 1 + doc.getTextWidth(nom), yTxt);
       if (classe) {
-        fH(6.5, 'normal'); tc([130, 95, 45]);
+        fS(8.5, 'normal'); tc([160, 110, 80]);
         tx(classe, col.x + col.w, yTxt, { align: 'right' });
       }
     }
