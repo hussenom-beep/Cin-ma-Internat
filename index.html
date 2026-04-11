@@ -7828,23 +7828,20 @@ async function genSeancePDF(sesId) {
   const confirmed = (regs || []).filter(r => r.status === 'registered')
     .sort((a,b) => (a.students?.last_name||'').localeCompare(b.students?.last_name||'','fr'));
 
-  /* Chargement affiche (CORS via canvas) */
-  async function loadImgCanvas(url) {
-    return new Promise(resolve => {
-      const img = new Image(); img.crossOrigin = 'anonymous';
-      img.onload = () => {
-        try {
-          const cv = document.createElement('canvas');
-          cv.width = img.naturalWidth; cv.height = img.naturalHeight;
-          cv.getContext('2d').drawImage(img, 0, 0);
-          resolve(cv.toDataURL('image/jpeg', 0.88));
-        } catch(e) { resolve(null); }
-      };
-      img.onerror = () => resolve(null);
-      img.src = url;
-    });
+  /* Chargement affiche via fetch + FileReader (fiable avec TMDB CORS) */
+  async function loadImgFetch(url) {
+    try {
+      const res  = await fetch(url, { mode: 'cors' });
+      const blob = await res.blob();
+      return await new Promise((resolve) => {
+        const rd = new FileReader();
+        rd.onload  = () => resolve(rd.result);
+        rd.onerror = () => resolve(null);
+        rd.readAsDataURL(blob);
+      });
+    } catch(e) { return null; }
   }
-  const posterData = poster ? await loadImgCanvas(poster) : null;
+  const posterData = poster ? await loadImgFetch(poster) : null;
 
   /* Init jsPDF */
   const { jsPDF } = window.jspdf;
@@ -7889,8 +7886,8 @@ async function genSeancePDF(sesId) {
   const fS  = (sz, st='normal') => { doc.setFont('times', st);     doc.setFontSize(sz); };
   const fH  = (sz, st='normal') => { doc.setFont('helvetica', st); doc.setFontSize(sz); };
   const tx  = (s, x, y, o={}) => doc.text(String(s||''), x, y, o);
-  const INK      = [138, 79,  55];   /* #8A4F37 brun chaud vintage */
-  const GOLD_INK = [138, 79,  55];   /* même teinte pour compteur */
+  const INK      = [122, 70,  50];   /* #7A4632 brun vintage profond */
+  const GOLD_INK = [122, 70,  50];   /* même teinte unifiée */
 
   /* Debug : reperes de zones */
   const dbgR = (x, y, w, h, lbl) => {
@@ -7928,25 +7925,25 @@ async function genSeancePDF(sesId) {
 
   /* 2. DATE */
   dbgPt(ZONES.date.x, ZONES.date.y, 'date');
-  fS(11, 'normal'); tc(INK);
+  fS(13, 'bold'); tc(INK);
   tx(dateStr, ZONES.date.x, ZONES.date.y);
 
   /* 3. TITRE */
   dbgPt(ZONES.titleLine.x, ZONES.titleLine.y, 'titre');
-  fS(12, 'bold'); tc(INK);
+  fS(15, 'bold'); tc(INK);
   const titleParts = doc.splitTextToSize(title, ZONES.titleLine.maxW);
   tx(titleParts[0], ZONES.titleLine.x, ZONES.titleLine.y);
   if (titleParts.length > 1) tx(titleParts[1], ZONES.titleLine.x, ZONES.titleLine.y + 4.5);
 
   /* 4. REFERENT */
   dbgPt(ZONES.referent.x, ZONES.referent.y, 'ref');
-  fS(11, 'normal'); tc(INK);
+  fS(13, 'normal'); tc(INK);
   tx(referent, ZONES.referent.x, ZONES.referent.y);
 
   /* 5. INSCRITS */
   dbgPt(ZONES.inscrits.x, ZONES.inscrits.y, 'inscrits');
-  fS(12, 'bold'); tc(GOLD_INK);
-  tx(confirmed.length + ' / ' + cap, ZONES.inscrits.x, ZONES.inscrits.y);
+  fS(14, 'bold'); tc(GOLD_INK);
+  tx(confirmed.length, ZONES.inscrits.x, ZONES.inscrits.y);
 
   /* 6. PARTICIPANTS : 20 lignes, 2 colonnes de 10 */
   const drawRow = (colIdx, rowIdx) => {
@@ -7969,12 +7966,10 @@ async function genSeancePDF(sesId) {
       const prenom =  r.students?.first_name || '';
       const classe =  r.students?.class_name || '';
       const yTxt   = yLine - 1.8;
-      fS(10, 'bold');   tc(INK);
-      tx(nom, col.x + 1, yTxt);
-      fS(10, 'normal'); tc([160, 100, 70]);
-      tx(' ' + prenom, col.x + 1 + doc.getTextWidth(nom), yTxt);
+      fS(12, 'normal'); tc(INK);
+      tx(nom + ' ' + prenom, col.x + 1, yTxt);
       if (classe) {
-        fS(8.5, 'normal'); tc([160, 110, 80]);
+        fS(11, 'normal'); tc([140, 90, 65]);
         tx(classe, col.x + col.w, yTxt, { align: 'right' });
       }
     }
