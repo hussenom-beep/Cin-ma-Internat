@@ -4924,10 +4924,15 @@ async function loadHome() {
     else if (open)  badgeHtml = `<span class="badge badge-green">✅ Inscriptions ouvertes</span>`;
     else            badgeHtml = `<span class="badge badge-muted">⏸ Inscriptions fermées</span>`;
 
-    // Bouton S'inscrire intelligent
+    // Pastille "Inscrit" si l'élève est inscrit
+    const registeredBadge = isRegistered 
+      ? `<span class="badge badge-green" style="margin-top:4px;">✅ Inscrit(e)</span>`
+      : '';
+
+    // Bouton S'inscrire / Se désinscrire
     let actionBtn = '';
     if (isRegistered) {
-      actionBtn = `<button class="session-banner-action is-registered" onclick="event.stopPropagation(); navigateTo('session')">✅ Inscrit</button>`;
+      actionBtn = `<button class="session-banner-action" style="background: linear-gradient(135deg, rgba(239,68,68,.12) 0%, rgba(239,68,68,.06) 100%); border-color: rgba(239,68,68,.3); color: var(--red);" onclick="event.stopPropagation(); toggleReg('${s.id}','unregister'); setTimeout(() => loadHome(), 500)">❌ Se désinscrire</button>`;
     } else if (open && !full) {
       actionBtn = `<button class="session-banner-action" onclick="event.stopPropagation(); toggleReg('${s.id}','register'); setTimeout(() => loadHome(), 500)">➕ S'inscrire</button>`;
     } else if (full) {
@@ -4957,7 +4962,8 @@ async function loadHome() {
           <div class="session-banner-content">
             <div class="session-banner-footer">
               ${badgeHtml}
-              <span class="badge badge-purple" style="margin-top:4px;">👥 ${regCount} / ${cap}</span>
+              ${registeredBadge}
+              <span class="badge badge-purple" style="margin-top:4px; cursor: pointer;" onclick="event.stopPropagation(); viewStudentRegistrants('${s.id}','${s.session_date}')">👥 ${regCount} / ${cap}</span>
               ${actionBtn}
             </div>
           </div>
