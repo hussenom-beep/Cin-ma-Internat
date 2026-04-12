@@ -975,7 +975,28 @@ button { cursor: pointer; }
 .home-profile-btn:hover { background: rgba(240,165,0,.22); border-color: var(--gold); }
 
 .home-section { padding: 20px 18px 0; }
-.home-section-title { font-size: 14.5px; font-weight: 800; color: var(--text-2); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 13px; }
+/* Titres de section - Style amélioré */
+.home-section-title { 
+  font-size: 14.5px; 
+  font-weight: 800; 
+  color: var(--text); 
+  text-transform: uppercase; 
+  letter-spacing: .06em; 
+  margin-bottom: 13px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(240,165,0,.15);
+  position: relative;
+}
+
+.home-section-title::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 48px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--gold) 0%, transparent 100%);
+}
 
 /* ----------------------------------------------------------------
    PROFIL ÉLÈVE — modal premium
@@ -1569,6 +1590,52 @@ button { cursor: pointer; }
 }
 .session-banner-hint { font-size: 12px; color: var(--text-3); }
 
+/* Bouton rapide S'inscrire sur la carte prochaine séance */
+.session-banner-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: linear-gradient(135deg, rgba(240,165,0,.15) 0%, rgba(240,165,0,.08) 100%);
+  border: 1px solid rgba(240,165,0,.35);
+  border-radius: 8px;
+  color: var(--gold);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  cursor: pointer;
+  transition: all .2s;
+  pointer-events: auto;
+}
+
+.session-banner-action:hover {
+  background: linear-gradient(135deg, rgba(240,165,0,.22) 0%, rgba(240,165,0,.12) 100%);
+  border-color: rgba(240,165,0,.5);
+  transform: translateY(-1px);
+}
+
+.session-banner-action:active {
+  transform: translateY(0);
+}
+
+.session-banner-action.is-registered {
+  background: linear-gradient(135deg, rgba(74,222,128,.12) 0%, rgba(74,222,128,.06) 100%);
+  border-color: rgba(74,222,128,.3);
+  color: var(--green);
+}
+
+.session-banner-action.is-registered:hover {
+  background: linear-gradient(135deg, rgba(74,222,128,.15) 0%, rgba(74,222,128,.08) 100%);
+  border-color: rgba(74,222,128,.4);
+}
+
+.session-banner-action.is-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 /* Variante vide */
 .session-banner-empty {
   background: var(--surface);
@@ -2016,10 +2083,23 @@ button { cursor: pointer; }
 .sd-section-title {
   font-size: 10px;
   font-weight: 700;
-  color: var(--text-3);
+  color: var(--text-2);
   text-transform: uppercase;
   letter-spacing: .09em;
-  margin-bottom: 9px;
+  margin-bottom: 11px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+  position: relative;
+}
+
+.sd-section-title::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 32px;
+  height: 1px;
+  background: linear-gradient(90deg, var(--gold) 0%, transparent 100%);
 }
 
 /* Grille de stats */
@@ -4087,6 +4167,16 @@ function fmtDateTime(iso) {
   return `${date} à ${time}`;
 }
 
+/* Formate la durée en minutes au format "Xh YY" */
+function formatRuntime(minutes) {
+  if (!minutes || minutes <= 0) return '';
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (h === 0) return `${m} min`;
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m.toString().padStart(2, '0')}`;
+}
+
 function nextWednesday() {
   const d = new Date();
   const day = d.getDay();
@@ -4672,7 +4762,7 @@ async function loadHome() {
 
   // Prochaine séance + nb inscrits
   const { data } = await db.from('cinema_sessions')
-    .select('*, films(title, poster_url)')
+    .select('*, films(title, poster_url, runtime)')
     .gte('session_date', today)
     .order('session_date', { ascending: true })
     .limit(1);
@@ -4689,12 +4779,23 @@ async function loadHome() {
     const s = data[0];
     const poster = s.films?.poster_url || '';
     const title  = s.films?.title || '🎬 Film à annoncer';
+    const runtime = s.films?.runtime || null;
 
     // Compter les inscrits + vérifier capacité
     const { count: regCount } = await db.from('registrations')
       .select('id', { count: 'exact', head: true })
       .eq('session_id', s.id)
       .eq('status', 'registered');
+    
+    // Vérifier si l'utilisateur est déjà inscrit
+    const { data: userReg } = await db.from('registrations')
+      .select('id')
+      .eq('session_id', s.id)
+      .eq('student_id', S.user.id)
+      .eq('status', 'registered')
+      .maybeSingle();
+    
+    const isRegistered = !!userReg;
     const cap   = s.max_capacity || 20;
     const full  = regCount >= cap;
     const open  = s.registrations_open;
@@ -4704,6 +4805,21 @@ async function loadHome() {
     else if (open)  badgeHtml = `<span class="badge badge-green">✅ Inscriptions ouvertes</span>`;
     else            badgeHtml = `<span class="badge badge-muted">⏸ Inscriptions fermées</span>`;
 
+    // Bouton S'inscrire intelligent
+    let actionBtn = '';
+    if (isRegistered) {
+      actionBtn = `<button class="session-banner-action is-registered" onclick="event.stopPropagation(); navigateTo('session')">✅ Inscrit</button>`;
+    } else if (open && !full) {
+      actionBtn = `<button class="session-banner-action" onclick="event.stopPropagation(); toggleReg('${s.id}','register'); setTimeout(() => loadHome(), 500)">➕ S'inscrire</button>`;
+    } else if (full) {
+      actionBtn = `<button class="session-banner-action is-disabled">🚫 Complet</button>`;
+    } else {
+      actionBtn = `<button class="session-banner-action is-disabled">⏸ Fermé</button>`;
+    }
+
+    // Durée formatée
+    const runtimeStr = runtime ? formatRuntime(runtime) : '';
+
     el.innerHTML = `<div class="session-banner" onclick="navigateTo('session')">
       ${poster ? `<img src="${poster}" class="session-banner-poster" alt="">` : ''}
       <div class="session-banner-overlay"></div>
@@ -4711,6 +4827,7 @@ async function loadHome() {
         <div class="session-banner-top">
           <div class="session-banner-date">📅 ${fmtDateShort(s.session_date)}</div>
           <div class="session-banner-film">${title}</div>
+          ${runtimeStr ? `<div style="font-size:12px;color:var(--text-3);margin-top:6px;">⏱ ${runtimeStr}</div>` : ''}
         </div>
         <div class="session-banner-bottom">
           <div class="session-banner-thumb">
@@ -4721,7 +4838,8 @@ async function loadHome() {
           <div class="session-banner-content">
             <div class="session-banner-footer">
               ${badgeHtml}
-              <span class="session-banner-hint">${regCount} / ${cap} inscrit${regCount > 1 ? 's' : ''}</span>
+              <span class="badge badge-purple" style="margin-top:4px;">👥 ${regCount} / ${cap}</span>
+              ${actionBtn}
             </div>
           </div>
         </div>
@@ -4867,21 +4985,22 @@ function renderFilms() {
 
   list.innerHTML = S.films.map(f => {
     const v = S.votes.has(f.id);
-    return `<div class="film-card">
-      <div class="film-card-poster" onclick="openDetail('${f.id}')">
+    const runtimeStr = f.duration ? formatRuntime(f.duration) : '';
+    return `<div class="film-card" onclick="openDetail('${f.id}')" style="cursor:pointer;">
+      <div class="film-card-poster">
         ${f.poster_url
           ? `<img src="${f.poster_url}" alt="${f.title}" loading="lazy" style="height:132px;">`
           : `<div class="no-poster">🎬</div>`}
       </div>
       <div class="film-card-body">
-        <div class="film-card-title" onclick="openDetail('${f.id}')">${f.title}</div>
+        <div class="film-card-title">${f.title}</div>
         <div class="film-card-meta">
           ${f.year ? `<span>${f.year}</span>` : ''}
           ${f.genre ? `<span>· ${f.genre}</span>` : ''}
-          ${f.duration ? `<span>· ${f.duration} min</span>` : ''}
+          ${runtimeStr ? `<span>· ${runtimeStr}</span>` : ''}
         </div>
         <div class="film-card-synopsis">${f.synopsis || 'Synopsis indisponible.'}</div>
-        <div class="film-card-actions">
+        <div class="film-card-actions" onclick="event.stopPropagation()">
           <button class="btn btn-sm btn-ghost" onclick="openDetail('${f.id}')">Voir →</button>
           <button class="btn btn-sm ${v ? 'btn-vote-on' : 'btn-vote-off'}"
                   id="vbtn-${f.id}"
@@ -4938,6 +5057,7 @@ async function openDetail(filmId) {
 
   document.getElementById('detail-htitle').textContent = f.title;
   const v = S.votes.has(f.id);
+  const runtimeStr = f.duration ? formatRuntime(f.duration) : '';
 
   document.getElementById('film-detail-content').innerHTML = `
     <div class="detail-poster-wrap">
@@ -4951,7 +5071,7 @@ async function openDetail(filmId) {
       <div class="detail-meta">
         ${f.year ? `<span class="badge badge-muted">${f.year}</span>` : ''}
         ${f.genre ? `<span class="badge badge-muted">${f.genre}</span>` : ''}
-        ${f.duration ? `<span class="badge badge-muted">${f.duration} min</span>` : ''}
+        ${runtimeStr ? `<span class="badge badge-muted">⏱ ${runtimeStr}</span>` : ''}
       </div>
       <div class="detail-synopsis">${f.synopsis || 'Aucun synopsis disponible pour ce film.'}</div>
       ${f.tmdb_id ? '<div id="trailer-slot-catalogue" style="margin-bottom:4px;"></div>' : ''}
@@ -5560,7 +5680,7 @@ async function loadSessions() {
 
   const today = new Date().toISOString().split('T')[0];
   const [{ data: sessions }, { data: myRegs }, { data: myBans }] = await Promise.all([
-    db.from('cinema_sessions').select('*, films(id, title, poster_url, tmdb_id)').gte('session_date', today).order('session_date'),
+    db.from('cinema_sessions').select('*, films(id, title, poster_url, tmdb_id, runtime)').gte('session_date', today).order('session_date'),
     S.user ? db.from('registrations').select('session_id, status, waitlist_rank').eq('student_id', S.user.id) : { data: [] },
     S.user ? db.from('session_bans').select('session_id, reason').eq('student_id', S.user.id) : { data: [] }
   ]);
@@ -5600,6 +5720,8 @@ async function loadSessions() {
     const full      = count >= cap;
     const poster    = s.films?.poster_url || '';
     const title     = s.films?.title || '🎬 Film à annoncer';
+    const runtime   = s.films?.runtime || null;
+    const runtimeStr = runtime ? formatRuntime(runtime) : '';
 
     // Badge état — priorité : état perso de l'élève
     let badgeHtml;
@@ -5645,6 +5767,7 @@ async function loadSessions() {
         <div class="sc-top">
           <div class="sc-date">📅 ${fmtDateShort(s.session_date)}</div>
           <div class="sc-film">${title}</div>
+          ${runtimeStr ? `<div style="font-size:12px;color:var(--text-3);margin-top:6px;">⏱ ${runtimeStr}</div>` : ''}
         </div>
         <div class="sc-bottom">
           <div class="sc-thumb">
