@@ -621,12 +621,13 @@ button { cursor: pointer; }
   overflow: hidden;
   display: flex;
   transition: border-color .2s, transform .2s;
+  min-height: 140px;
 }
 .film-card:hover { border-color: var(--border-2); transform: translateY(-1px); }
-.film-card-poster { width: 88px; flex-shrink: 0; background: var(--surface-2); position: relative; }
+.film-card-poster { width: 100px; flex-shrink: 0; background: var(--surface-2); position: relative; }
 .film-card-poster img { width: 100%; height: 100%; object-fit: cover; }
 .film-card-poster .no-poster {
-  width: 100%; height: 132px;
+  width: 100%; height: 150px;
   display: flex; align-items: center; justify-content: center;
   font-size: 28px; color: var(--text-3);
 }
@@ -1701,6 +1702,34 @@ button { cursor: pointer; }
   opacity: 0.5;
   cursor: not-allowed;
   pointer-events: none;
+}
+
+/* Bouton S'inscrire dans les cartes de séances — style harmonisé avec session-banner-action */
+.session-btn-register {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: linear-gradient(135deg, rgba(240,165,0,.15) 0%, rgba(240,165,0,.08) 100%);
+  border: 1px solid rgba(240,165,0,.35);
+  border-radius: 8px;
+  color: var(--gold);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  cursor: pointer;
+  transition: all .2s;
+}
+
+.session-btn-register:hover {
+  background: linear-gradient(135deg, rgba(240,165,0,.22) 0%, rgba(240,165,0,.12) 100%);
+  border-color: rgba(240,165,0,.5);
+  transform: translateY(-1px);
+}
+
+.session-btn-register:active {
+  transform: translateY(0);
 }
 
 /* Variante vide */
@@ -5056,7 +5085,7 @@ function renderFilms() {
     return `<div class="film-card" onclick="openDetail('${f.id}')" style="cursor:pointer;">
       <div class="film-card-poster">
         ${f.poster_url
-          ? `<img src="${f.poster_url}" alt="${f.title}" loading="lazy" style="height:132px;">`
+          ? `<img src="${f.poster_url}" alt="${f.title}" loading="lazy" style="height:150px;">`
           : `<div class="no-poster">🎬</div>`}
       </div>
       <div class="film-card-body">
@@ -5068,7 +5097,6 @@ function renderFilms() {
         </div>
         <div class="film-card-synopsis">${f.synopsis || 'Synopsis indisponible.'}</div>
         <div class="film-card-actions" onclick="event.stopPropagation()">
-          <button class="btn btn-sm btn-ghost" onclick="openDetail('${f.id}')">Voir →</button>
           <button class="btn btn-sm ${v ? 'btn-vote-on' : 'btn-vote-off'}"
                   id="vbtn-${f.id}"
                   onclick="toggleVote('${f.id}')">
@@ -5819,7 +5847,7 @@ async function loadSessions() {
       // Complet mais ouvert : proposer la liste d'attente
       actionBtn = `<button class="btn btn-sm btn-ghost" onclick="toggleReg('${s.id}','register')">⏳ Liste d'attente</button>`;
     } else {
-      actionBtn = `<button class="btn btn-sm btn-gold" onclick="toggleReg('${s.id}','register')">✅ S'inscrire</button>`;
+      actionBtn = `<button class="session-btn-register" onclick="toggleReg('${s.id}','register')">➕ S'inscrire</button>`;
     }
 
     const filmClickAttr = s.films?.tmdb_id
