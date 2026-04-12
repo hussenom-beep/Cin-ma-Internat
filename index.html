@@ -5105,7 +5105,11 @@ function renderFilms() {
   list.innerHTML = S.films.map(f => {
     const v = S.votes.has(f.id);
     const runtimeStr = f.duration ? formatRuntime(f.duration) : '';
-    return `<div class="film-card" onclick="openDetail('${f.id}')" style="cursor:pointer;">
+    // Ouvrir la fiche TMDB si disponible (plus riche), sinon fiche locale
+    const clickAction = f.tmdb_id 
+      ? `openTMDBDetail(${f.tmdb_id}, 'student')` 
+      : `openDetail('${f.id}')`;
+    return `<div class="film-card" onclick="${clickAction}" style="cursor:pointer;">
       <div class="film-card-poster">
         ${f.poster_url
           ? `<img src="${f.poster_url}" alt="${f.title}" loading="lazy" style="height:150px;">`
