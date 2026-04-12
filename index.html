@@ -407,6 +407,13 @@ button { cursor: pointer; }
 .ftextarea { resize: vertical; min-height: 80px; }
 .fselect { appearance: none; cursor: pointer; }
 
+/* Options du select avec fond sombre pour meilleure lisibilité */
+.fselect option {
+  background: rgba(26,26,40,.95);
+  color: var(--text);
+  padding: 8px;
+}
+
 
 /* ── Modale bande-annonce ───────────────────────────────────── */
 #modal-trailer {
@@ -621,7 +628,7 @@ button { cursor: pointer; }
   overflow: hidden;
   display: flex;
   transition: border-color .2s, transform .2s;
-  min-height: 140px;
+  height: 150px;
 }
 .film-card:hover { border-color: var(--border-2); transform: translateY(-1px); }
 .film-card-poster { width: 100px; flex-shrink: 0; background: var(--surface-2); position: relative; }
@@ -4378,13 +4385,29 @@ function showScreen(id) {
 }
 
 async function navigateTo(id, isBack = false) {
+  // Gérer les variantes de propose avec sous-onglet
+  let proposeSubtab = null;
+  if (id === 'propose-accepted') {
+    proposeSubtab = 'accepted';
+    id = 'propose';
+  } else if (id === 'propose-rejected') {
+    proposeSubtab = 'rejected';
+    id = 'propose';
+  }
+
   showScreen(id);
   switch(id) {
     case 'home':    await loadHome(); break;
     case 'films':   await loadFilms(); break;
     case 'propose':
       if (!isBack) _tmdbSearchState = null;
-      initPropose(); await loadStudentProposals(); break;
+      initPropose(); 
+      await loadStudentProposals();
+      // Si on vient d'une notification, activer le bon onglet
+      if (proposeSubtab) {
+        filterStudentHistory(proposeSubtab);
+      }
+      break;
     case 'session': await loadSessions(); break;
     case 'admin':   await loadAdmin(); break;
   }
@@ -4997,12 +5020,12 @@ async function loadHomeNews() {
     if (accepted) lines.push({
       icon: '🎬',
       text: accepted === 1 ? 'Une de tes propositions a été acceptée ✅' : `${accepted} de tes propositions ont été acceptées ✅`,
-      target: 'propose'
+      target: 'propose-accepted'
     });
     if (rejected) lines.push({
       icon: '❌',
       text: rejected === 1 ? 'Une de tes propositions a été refusée' : `${rejected} de tes propositions ont été refusées`,
-      target: 'propose'
+      target: 'propose-rejected'
     });
   }
 
