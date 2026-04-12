@@ -188,12 +188,21 @@ button { cursor: pointer; }
   align-items: center;
   gap: 10px;
   padding: 0 18px;
-  background: rgba(8,8,15,.92);
+  background: rgba(8,8,15,.95);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid rgba(240,165,0,.12);
+  box-shadow: 0 1px 0 0 rgba(240,165,0,.08);
 }
-.s-header h1 { font-size: 17px; font-weight: 700; flex: 1; }
+.s-header h1 { 
+  font-size: 17px; 
+  font-weight: 700; 
+  flex: 1;
+  background: linear-gradient(135deg, var(--text) 0%, rgba(240,240,238,.75) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
 .s-header .back { width: 36px; height: 36px; border-radius: 50%; background: var(--surface-2); border: none; color: var(--text); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; transition: background .2s; }
 .s-header .back:hover { background: var(--surface-3); }
 
@@ -4762,7 +4771,7 @@ async function loadHome() {
 
   // Prochaine séance + nb inscrits
   const { data } = await db.from('cinema_sessions')
-    .select('*, films(title, poster_url, runtime)')
+    .select('*, films(title, poster_url, duration)')
     .gte('session_date', today)
     .order('session_date', { ascending: true })
     .limit(1);
@@ -4779,7 +4788,7 @@ async function loadHome() {
     const s = data[0];
     const poster = s.films?.poster_url || '';
     const title  = s.films?.title || '🎬 Film à annoncer';
-    const runtime = s.films?.runtime || null;
+    const runtime = s.films?.duration || null;
 
     // Compter les inscrits + vérifier capacité
     const { count: regCount } = await db.from('registrations')
@@ -5680,7 +5689,7 @@ async function loadSessions() {
 
   const today = new Date().toISOString().split('T')[0];
   const [{ data: sessions }, { data: myRegs }, { data: myBans }] = await Promise.all([
-    db.from('cinema_sessions').select('*, films(id, title, poster_url, tmdb_id, runtime)').gte('session_date', today).order('session_date'),
+    db.from('cinema_sessions').select('*, films(id, title, poster_url, tmdb_id, duration)').gte('session_date', today).order('session_date'),
     S.user ? db.from('registrations').select('session_id, status, waitlist_rank').eq('student_id', S.user.id) : { data: [] },
     S.user ? db.from('session_bans').select('session_id, reason').eq('student_id', S.user.id) : { data: [] }
   ]);
@@ -5720,7 +5729,7 @@ async function loadSessions() {
     const full      = count >= cap;
     const poster    = s.films?.poster_url || '';
     const title     = s.films?.title || '🎬 Film à annoncer';
-    const runtime   = s.films?.runtime || null;
+    const runtime   = s.films?.duration || null;
     const runtimeStr = runtime ? formatRuntime(runtime) : '';
 
     // Badge état — priorité : état perso de l'élève
