@@ -456,7 +456,13 @@ button { cursor: pointer; }
   letter-spacing: .04em;
 }
 /* PIN inputs — 6 cases, taille ajustée pour tenir sur mobile */
+/* ================================================================
+   CASES PIN - États visuels améliorés
+   ================================================================ */
+
 .pins { display: flex; gap: 8px; justify-content: center; }
+
+/* État par défaut - Case vide */
 .pin {
   width: 46px;
   height: 54px;
@@ -464,18 +470,18 @@ button { cursor: pointer; }
   font-size: 24px;
   font-weight: 800;
   background: 
-    linear-gradient(135deg, rgba(34,34,58,.8) 0%, rgba(26,26,40,.8) 100%);
-  border: 2px solid rgba(240,165,0,.18);
+    linear-gradient(135deg, rgba(34,34,58,.75) 0%, rgba(26,26,40,.75) 100%);
+  border: 2px solid rgba(240,165,0,.15);
   border-radius: 12px;
   color: var(--text);
   font-family: 'DM Sans', monospace;
   outline: none;
-  transition: all .2s cubic-bezier(.4,0,.2,1);
+  transition: all .25s cubic-bezier(.4,0,.2,1);
   caret-color: transparent;
   position: relative;
   box-shadow: 
-    0 0 0 1px rgba(255,255,255,.03) inset,
-    0 2px 8px rgba(0,0,0,.3),
+    0 0 0 1px rgba(255,255,255,.02) inset,
+    0 2px 6px rgba(0,0,0,.25),
     0 0 0 0 rgba(240,165,0,0);
 }
 
@@ -487,29 +493,69 @@ button { cursor: pointer; }
   left: 4px;
   right: 4px;
   height: 40%;
-  background: linear-gradient(180deg, rgba(255,255,255,.04) 0%, transparent 100%);
+  background: linear-gradient(180deg, rgba(255,255,255,.03) 0%, transparent 100%);
   border-radius: 8px 8px 0 0;
   pointer-events: none;
+  transition: opacity .25s;
 }
 
-.pin:focus {
-  border-color: rgba(240,165,0,.6);
-  background: linear-gradient(135deg, rgba(34,34,58,.95) 0%, rgba(26,26,40,.95) 100%);
-  box-shadow: 
-    0 0 0 1px rgba(255,255,255,.05) inset,
-    0 2px 8px rgba(0,0,0,.4),
-    0 0 20px rgba(240,165,0,.3),
-    0 0 0 3px rgba(240,165,0,.1);
-  transform: translateY(-1px);
-}
-
-/* Animation quand le chiffre est entré */
-.pin:not(:placeholder-shown) {
-  border-color: rgba(240,165,0,.35);
+/* État rempli - Case validée */
+.pin.is-filled {
+  border-color: rgba(240,165,0,.4);
+  background: linear-gradient(135deg, rgba(34,34,58,.88) 0%, rgba(26,26,40,.88) 100%);
   box-shadow: 
     0 0 0 1px rgba(255,255,255,.04) inset,
     0 2px 8px rgba(0,0,0,.3),
-    0 0 12px rgba(240,165,0,.15);
+    0 0 16px rgba(240,165,0,.2);
+}
+
+.pin.is-filled::before {
+  opacity: 1;
+  background: linear-gradient(180deg, rgba(255,255,255,.05) 0%, transparent 100%);
+}
+
+/* État actif - Case en cours de saisie */
+.pin.is-active {
+  border-color: rgba(240,165,0,.75);
+  background: linear-gradient(135deg, rgba(40,40,65,.98) 0%, rgba(30,30,45,.98) 100%);
+  box-shadow: 
+    0 0 0 1px rgba(255,255,255,.08) inset,
+    0 3px 12px rgba(0,0,0,.4),
+    0 0 28px rgba(240,165,0,.45),
+    0 0 0 4px rgba(240,165,0,.15);
+  transform: translateY(-2px) scale(1.04);
+}
+
+.pin.is-active::before {
+  opacity: 1;
+  background: linear-gradient(180deg, rgba(255,255,255,.08) 0%, transparent 100%);
+}
+
+/* Fallback pour :focus si la classe n'est pas appliquée */
+.pin:focus {
+  border-color: rgba(240,165,0,.75);
+  background: linear-gradient(135deg, rgba(40,40,65,.98) 0%, rgba(30,30,45,.98) 100%);
+  box-shadow: 
+    0 0 0 1px rgba(255,255,255,.08) inset,
+    0 3px 12px rgba(0,0,0,.4),
+    0 0 28px rgba(240,165,0,.45),
+    0 0 0 4px rgba(240,165,0,.15);
+  transform: translateY(-2px) scale(1.04);
+}
+
+.pin:focus::before {
+  opacity: 1;
+  background: linear-gradient(180deg, rgba(255,255,255,.08) 0%, transparent 100%);
+}
+
+/* Fallback pour :not(:placeholder-shown) */
+.pin:not(:placeholder-shown):not(.is-active) {
+  border-color: rgba(240,165,0,.4);
+  background: linear-gradient(135deg, rgba(34,34,58,.88) 0%, rgba(26,26,40,.88) 100%);
+  box-shadow: 
+    0 0 0 1px rgba(255,255,255,.04) inset,
+    0 2px 8px rgba(0,0,0,.3),
+    0 0 16px rgba(240,165,0,.2);
 }
 
 /* ================================================================
@@ -1038,23 +1084,75 @@ button { cursor: pointer; }
 .profile-close-link:hover { color: var(--text-2); }
 
 /* Changement de PIN — cases 6 chiffres dans modal */
+/* Petites cases PIN - États visuels harmonisés */
 .pin-change-block { display: flex; flex-direction: column; gap: 18px; }
 .pin-change-label { font-size: 12px; font-weight: 700; color: var(--text-2); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; }
 .pins-sm { display: flex; gap: 6px; justify-content: center; }
+
+/* État par défaut - Case vide */
 .pin-sm {
-  width: 40px; height: 46px;
+  width: 40px;
+  height: 46px;
   text-align: center;
-  font-size: 18px; font-weight: 800;
-  background: var(--surface-2);
-  border: 2px solid var(--border);
+  font-size: 18px;
+  font-weight: 800;
+  background: linear-gradient(135deg, rgba(34,34,58,.75) 0%, rgba(26,26,40,.75) 100%);
+  border: 2px solid rgba(240,165,0,.15);
   border-radius: var(--radius-sm);
   color: var(--text);
   font-family: 'DM Sans', monospace;
   outline: none;
-  transition: border-color .18s;
+  transition: all .25s cubic-bezier(.4,0,.2,1);
   caret-color: transparent;
+  position: relative;
+  box-shadow: 
+    0 0 0 1px rgba(255,255,255,.02) inset,
+    0 2px 6px rgba(0,0,0,.25);
 }
-.pin-sm:focus { border-color: var(--gold); }
+
+/* État rempli */
+.pin-sm.is-filled {
+  border-color: rgba(240,165,0,.4);
+  background: linear-gradient(135deg, rgba(34,34,58,.88) 0%, rgba(26,26,40,.88) 100%);
+  box-shadow: 
+    0 0 0 1px rgba(255,255,255,.04) inset,
+    0 2px 8px rgba(0,0,0,.3),
+    0 0 14px rgba(240,165,0,.18);
+}
+
+/* État actif */
+.pin-sm.is-active {
+  border-color: rgba(240,165,0,.75);
+  background: linear-gradient(135deg, rgba(40,40,65,.98) 0%, rgba(30,30,45,.98) 100%);
+  box-shadow: 
+    0 0 0 1px rgba(255,255,255,.08) inset,
+    0 3px 10px rgba(0,0,0,.4),
+    0 0 24px rgba(240,165,0,.4),
+    0 0 0 3px rgba(240,165,0,.12);
+  transform: translateY(-1px) scale(1.03);
+}
+
+/* Fallback :focus */
+.pin-sm:focus { 
+  border-color: rgba(240,165,0,.75);
+  background: linear-gradient(135deg, rgba(40,40,65,.98) 0%, rgba(30,30,45,.98) 100%);
+  box-shadow: 
+    0 0 0 1px rgba(255,255,255,.08) inset,
+    0 3px 10px rgba(0,0,0,.4),
+    0 0 24px rgba(240,165,0,.4),
+    0 0 0 3px rgba(240,165,0,.12);
+  transform: translateY(-1px) scale(1.03);
+}
+
+/* Fallback :not(:placeholder-shown) */
+.pin-sm:not(:placeholder-shown):not(.is-active) {
+  border-color: rgba(240,165,0,.4);
+  background: linear-gradient(135deg, rgba(34,34,58,.88) 0%, rgba(26,26,40,.88) 100%);
+  box-shadow: 
+    0 0 0 1px rgba(255,255,255,.04) inset,
+    0 2px 8px rgba(0,0,0,.3),
+    0 0 14px rgba(240,165,0,.18);
+}
 
 /* Next session banner */
 /* Carte prochaine séance — version premium avec affiche */
@@ -4206,6 +4304,22 @@ function setupPins(...args) {
     ids = args.slice(0, -1);
   }
 
+  // Fonction helper pour mettre à jour les états visuels de toutes les cases
+  const updateVisualStates = () => {
+    ids.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      
+      // Retirer toutes les classes d'état
+      el.classList.remove('is-active', 'is-filled');
+      
+      // Ajouter is-filled si la case contient une valeur
+      if (el.dataset.real) {
+        el.classList.add('is-filled');
+      }
+    });
+  };
+
   ids.forEach((id, i) => {
     const el = document.getElementById(id);
     el.value = '';
@@ -4214,7 +4328,29 @@ function setupPins(...args) {
     const clone = el.cloneNode(true);
     clone.value = '';
     clone.dataset.real = '';
+    // Nettoyer les classes
+    clone.classList.remove('is-active', 'is-filled');
+    
     el.parentNode.replaceChild(clone, el);
+
+    // Gestion du focus
+    clone.addEventListener('focus', () => {
+      // Retirer is-active de toutes les autres cases
+      ids.forEach(otherId => {
+        const other = document.getElementById(otherId);
+        if (other && other !== clone) {
+          other.classList.remove('is-active');
+        }
+      });
+      // Ajouter is-active à la case courante
+      clone.classList.add('is-active');
+      updateVisualStates();
+    });
+
+    clone.addEventListener('blur', () => {
+      clone.classList.remove('is-active');
+      updateVisualStates();
+    });
 
     clone.addEventListener('input', () => {
       const digit = clone.value.replace(/\D/g, '').slice(-1);
@@ -4222,11 +4358,13 @@ function setupPins(...args) {
       if (!digit) {
         clone.value = '';
         clone.dataset.real = '';
+        updateVisualStates();
         return;
       }
 
       clone.dataset.real = digit;
       clone.value = '•';
+      updateVisualStates();
 
       if (i < ids.length - 1) {
         document.getElementById(ids[i + 1]).focus();
@@ -4241,6 +4379,7 @@ function setupPins(...args) {
         if (clone.dataset.real) {
           clone.dataset.real = '';
           clone.value = '';
+          updateVisualStates();
           e.preventDefault();
           return;
         }
@@ -4248,6 +4387,7 @@ function setupPins(...args) {
           const prev = document.getElementById(ids[i - 1]);
           prev.dataset.real = '';
           prev.value = '';
+          updateVisualStates();
           prev.focus();
           e.preventDefault();
         }
@@ -4256,7 +4396,12 @@ function setupPins(...args) {
 
     clone.addEventListener('paste', e => e.preventDefault());
 
-    if (i === 0) setTimeout(() => clone.focus(), 80);
+    if (i === 0) {
+      setTimeout(() => {
+        clone.focus();
+        updateVisualStates();
+      }, 80);
+    }
   });
 }
 
@@ -7956,6 +8101,22 @@ document.querySelectorAll('.overlay').forEach(o =>
 
 /* setupSmPins : même logique que setupPins mais pour les cases .pin-sm */
 function setupSmPins(...ids) {
+  // Fonction helper pour mettre à jour les états visuels de toutes les cases
+  const updateVisualStates = () => {
+    ids.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      
+      // Retirer toutes les classes d'état
+      el.classList.remove('is-active', 'is-filled');
+      
+      // Ajouter is-filled si la case contient une valeur
+      if (el.dataset.real) {
+        el.classList.add('is-filled');
+      }
+    });
+  };
+
   ids.forEach((id, i) => {
     const el = document.getElementById(id);
     el.value = '';
@@ -7964,7 +8125,29 @@ function setupSmPins(...ids) {
     const clone = el.cloneNode(true);
     clone.value = '';
     clone.dataset.real = '';
+    // Nettoyer les classes
+    clone.classList.remove('is-active', 'is-filled');
+    
     el.parentNode.replaceChild(clone, el);
+
+    // Gestion du focus
+    clone.addEventListener('focus', () => {
+      // Retirer is-active de toutes les autres cases
+      ids.forEach(otherId => {
+        const other = document.getElementById(otherId);
+        if (other && other !== clone) {
+          other.classList.remove('is-active');
+        }
+      });
+      // Ajouter is-active à la case courante
+      clone.classList.add('is-active');
+      updateVisualStates();
+    });
+
+    clone.addEventListener('blur', () => {
+      clone.classList.remove('is-active');
+      updateVisualStates();
+    });
 
     clone.addEventListener('input', () => {
       const digit = clone.value.replace(/\D/g, '').slice(-1);
@@ -7972,11 +8155,13 @@ function setupSmPins(...ids) {
       if (!digit) {
         clone.value = '';
         clone.dataset.real = '';
+        updateVisualStates();
         return;
       }
 
       clone.dataset.real = digit;
       clone.value = '•';
+      updateVisualStates();
 
       if (i < ids.length - 1) {
         document.getElementById(ids[i + 1]).focus();
@@ -7988,6 +8173,7 @@ function setupSmPins(...ids) {
         if (clone.dataset.real) {
           clone.dataset.real = '';
           clone.value = '';
+          updateVisualStates();
           e.preventDefault();
           return;
         }
@@ -7995,6 +8181,7 @@ function setupSmPins(...ids) {
           const prev = document.getElementById(ids[i - 1]);
           prev.dataset.real = '';
           prev.value = '';
+          updateVisualStates();
           prev.focus();
           e.preventDefault();
         }
