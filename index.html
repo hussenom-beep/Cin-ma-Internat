@@ -5389,7 +5389,7 @@ async function _renderTMDBScreen(detail, credits) {
 
   const year     = detail.release_date ? detail.release_date.split('-')[0] : '';
   const genres   = (detail.genres || []).map(g => g.name).join(', ');
-  const duration = detail.runtime ? `${detail.runtime} min` : '';
+  const duration = detail.runtime ? formatRuntime(detail.runtime) : '';
   const director = (credits.crew || []).find(c => c.job === 'Director');
   const cast     = (credits.cast || []).slice(0, 6);
 
@@ -5457,7 +5457,7 @@ async function _renderTMDBModal(detail, credits) {
 
   const year     = detail.release_date ? detail.release_date.split('-')[0] : '';
   const genres   = (detail.genres || []).map(g => g.name).join(', ');
-  const duration = detail.runtime ? `${detail.runtime} min` : '';
+  const duration = detail.runtime ? formatRuntime(detail.runtime) : '';
   document.getElementById('tmdb-d-meta').innerHTML =
     [year, genres, duration].filter(Boolean).map(t => `<span class="badge badge-muted">${t}</span>`).join('');
 
