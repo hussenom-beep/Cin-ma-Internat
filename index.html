@@ -8669,7 +8669,7 @@ async function genSeancePDF(sesId) {
 
   /* ── 2. DATE ── */
   dbgPt(ZONES.date.x, ZONES.date.y, 'date');
-  fC(14, 'bold'); tc(INK);
+  fC(16, 'bold'); tc(INK);
   tx(dateStr, ZONES.date.x, ZONES.date.y);
 
   /* ── 3. TITRE — 1 seule ligne, taille adaptative ── */
@@ -8704,18 +8704,11 @@ async function genSeancePDF(sesId) {
     if (r) {
       const nom    = (r.students?.last_name  || '').toUpperCase();
       const prenom =  r.students?.first_name || '';
-      const classe =  r.students?.class_name || '';
       const yTxt   = yLine - 1.5;
       
-      /* Nom et prénom : plus grand, en gras, plus présent */
+      /* Prénom puis nom : plus grand, en gras, plus présent */
       fC(15, 'bold'); tc(INK);
-      tx(nom + ' ' + prenom, col.x + 1, yTxt);
-      
-      /* Classe : discrète à droite */
-      if (classe) {
-        fC(10, 'normal'); tc([160, 105, 70]);
-        tx(classe, col.x + col.w - 1, yTxt, { align: 'right' });
-      }
+      tx(prenom + ' ' + nom, col.x + 1, yTxt);
     }
   };
 
