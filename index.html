@@ -763,6 +763,127 @@ button { cursor: pointer; }
 }
 
 /* ================================================================
+   DESKTOP ONLY - Enrichissement atmosphérique cinéma
+   ================================================================ */
+
+@media (min-width: 768px) {
+  
+  /* Particules dorées discrètes - couche 1 */
+  #screen-login::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 2;
+    opacity: 0.4;
+    background-image: 
+      /* Particules principales */
+      radial-gradient(circle 2px at 15% 20%, rgba(240,165,0,.8) 0%, transparent 100%),
+      radial-gradient(circle 1.5px at 82% 15%, rgba(240,165,0,.6) 0%, transparent 100%),
+      radial-gradient(circle 2.5px at 45% 12%, rgba(240,165,0,.7) 0%, transparent 100%),
+      radial-gradient(circle 1px at 68% 25%, rgba(240,165,0,.5) 0%, transparent 100%),
+      radial-gradient(circle 1.8px at 25% 78%, rgba(240,165,0,.65) 0%, transparent 100%),
+      radial-gradient(circle 2px at 88% 82%, rgba(240,165,0,.7) 0%, transparent 100%),
+      radial-gradient(circle 1.5px at 52% 88%, rgba(240,165,0,.55) 0%, transparent 100%),
+      radial-gradient(circle 1.2px at 10% 45%, rgba(240,165,0,.5) 0%, transparent 100%),
+      radial-gradient(circle 2.2px at 92% 55%, rgba(240,165,0,.75) 0%, transparent 100%),
+      radial-gradient(circle 1.6px at 38% 65%, rgba(240,165,0,.6) 0%, transparent 100%),
+      /* Halos lumineux diffus */
+      radial-gradient(ellipse 300px 200px at 20% 30%, rgba(240,165,0,.04) 0%, transparent 60%),
+      radial-gradient(ellipse 250px 180px at 78% 70%, rgba(240,165,0,.03) 0%, transparent 60%);
+    animation: particlesFloat 120s ease-in-out infinite;
+  }
+  
+  /* Animation très lente et discrète des particules */
+  @keyframes particlesFloat {
+    0%, 100% { 
+      opacity: 0.4;
+      transform: translateY(0) scale(1);
+    }
+    25% { 
+      opacity: 0.5;
+      transform: translateY(-8px) scale(1.02);
+    }
+    50% { 
+      opacity: 0.35;
+      transform: translateY(-4px) scale(0.98);
+    }
+    75% { 
+      opacity: 0.45;
+      transform: translateY(-10px) scale(1.01);
+    }
+  }
+  
+  /* Effet de profondeur - halos dorés latéraux */
+  .login-cinema-icon::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 400px;
+    height: 400px;
+    background: 
+      radial-gradient(ellipse at 30% 40%, rgba(240,165,0,.06) 0%, transparent 50%),
+      radial-gradient(ellipse at 70% 60%, rgba(240,165,0,.05) 0%, transparent 50%);
+    filter: blur(40px);
+    pointer-events: none;
+    z-index: -1;
+    animation: glowPulse 8s ease-in-out infinite;
+  }
+  
+  /* Animation de pulsation douce du halo */
+  @keyframes glowPulse {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 0.8; }
+  }
+  
+  /* Scintillement discret sur le titre */
+  .login-title {
+    animation: titleShimmer 6s ease-in-out infinite;
+  }
+  
+  @keyframes titleShimmer {
+    0%, 100% { 
+      filter: drop-shadow(0 2px 6px rgba(0,0,0,.4)) 
+              drop-shadow(0 0 20px rgba(240,165,0,.3));
+    }
+    50% { 
+      filter: drop-shadow(0 2px 6px rgba(0,0,0,.4)) 
+              drop-shadow(0 0 28px rgba(240,165,0,.45));
+    }
+  }
+  
+  /* Renforcement du glow de la carte sur desktop */
+  .login-box {
+    box-shadow: 
+      0 0 0 1px rgba(255,255,255,.04) inset,
+      0 4px 8px rgba(0,0,0,.3),
+      0 12px 24px rgba(0,0,0,.4),
+      0 24px 48px rgba(0,0,0,.5),
+      0 0 120px rgba(240,165,0,.2),
+      0 0 160px rgba(240,165,0,.12);
+  }
+  
+  /* Poussière lumineuse subtile en fond */
+  .login-sub::before {
+    content: '';
+    position: absolute;
+    top: -100px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 600px;
+    height: 200px;
+    background: 
+      radial-gradient(ellipse at center, rgba(240,165,0,.025) 0%, transparent 70%);
+    filter: blur(30px);
+    pointer-events: none;
+    z-index: -1;
+  }
+  
+}
+
+/* ================================================================
    HOME SCREEN
    ================================================================ */
 .home-hero {
