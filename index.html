@@ -8000,7 +8000,7 @@ async function importStudentsFromSettings() {
   const year = detectedYear || CFG.SCHOOL_YEAR;
 
   // ---- Charger tous les élèves existants ----
-  const { data: existing } = await db.from('students').select('id, eleve_uid, login_identifier, is_active, is_activated');
+  const { data: existing } = await db.from('students').select('id, eleve_uid, login_identifier, is_active, is_activated, activation_code');
   const byUid  = {};
   const allLogins = new Set();
   (existing || []).forEach(s => {
@@ -8048,12 +8048,14 @@ async function importStudentsFromSettings() {
         login_identifier: newLogin,
       };
       
-      // Si le compte n'était pas encore activé, générer un nouveau PIN initial
-      if (!existing_s.is_activated) {
+      // TOUJOURS générer un nouveau PIN initial si l'élève n'en a pas OU n'est pas activé
+      // Cela permet de corriger les élèves créés avec l'ancien système
+      if (!existing_s.is_activated || !existing_s.activation_code) {
         const initialPIN = generateInitialPIN();
         const pinHash = await sha256(initialPIN);
         patch.password_hash = pinHash;
         patch.activation_code = initialPIN; // Stockage temporaire pour export
+        patch.is_activated = false; // Forcer non activé si on régénère le PIN
       }
       
       // Désarchiver si archivé
