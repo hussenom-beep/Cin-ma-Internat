@@ -7988,12 +7988,12 @@ async function importStudentsFromSettings() {
   for (const line of csv.split('\n')) {
     const parts = line.split(',').map(p => p.replace(/["']/g,'').trim());
     if (parts.length < 2) continue;
-    const [fn, ln, cn, uid, yr] = parts;
+    const [fn, ln, cn, uid, yr, sx] = parts; // ⭐ Ajout sexe (6e colonne)
     if (['prénom','prenom','firstname','first_name','nom'].includes((fn||'').toLowerCase())) continue;
     if (!fn || !ln) continue;
     if (yr && !detectedYear) detectedYear = yr;
     rows.push({ first_name: fn, last_name: ln, class_name: cn || null,
-                eleve_uid: uid || null, school_year: yr || null });
+                eleve_uid: uid || null, school_year: yr || null, sexe: sx || null }); // ⭐ Ajout sexe
   }
 
   if (!rows.length) { toast('Aucun élève détecté', 'error'); return; }
@@ -8047,6 +8047,7 @@ async function importStudentsFromSettings() {
         class_name:       r.class_name,
         school_year:      year,
         login_identifier: newLogin,
+        sexe:             r.sexe || null, // ⭐ Ajout sexe
       };
       
       // TOUJOURS générer un nouveau PIN initial si l'élève n'en a pas OU n'est pas activé
@@ -8100,6 +8101,7 @@ async function importStudentsFromSettings() {
         password_hash:    pinHash,
         is_activated:     false,
         is_active:        true,
+        sexe:             r.sexe || null, // ⭐ Ajout sexe
       });
       if (r.eleve_uid) byUid[r.eleve_uid] = { id: null, eleve_uid: r.eleve_uid, login_identifier: login, is_active: true };
       created++;
