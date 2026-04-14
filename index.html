@@ -663,6 +663,14 @@ button { cursor: pointer; }
 .badge-green { background: var(--green-dim); color: var(--green); }
 .badge-red { background: var(--red-dim); color: var(--red); }
 .badge-muted { background: var(--surface-3); color: var(--text-2); }
+.badge-sexe {
+  display: inline-block;
+  font-size: 10px; font-weight: 700; line-height: 1;
+  padding: 2px 5px; border-radius: 4px;
+  background: var(--surface-3); color: var(--text-2);
+  vertical-align: middle; margin-left: 5px;
+  letter-spacing: .03em;
+}
 
 /* ================================================================
    DIVIDER
@@ -7539,6 +7547,7 @@ async function openStudentDetail(studentId) {
      </div>`;
 
   document.getElementById('sd-account-info').innerHTML = [
+    repere('Sexe', s.sexe || '—', !s.sexe),
     repere('Année scolaire', s.school_year || '—'),
     repere('Dernière connexion',
       s.last_login_at ? fmtDateTime(s.last_login_at) : 'Jamais', !s.last_login_at),
@@ -7889,11 +7898,12 @@ function _renderStudentTable() {
     const archivedBadge = !s.is_active
       ? `<span class="badge badge-muted" style="margin-left:4px;">⊘ Archivé</span>`
       : '';
+    const sexeBadge = s.sexe ? `<span class="badge-sexe">${s.sexe}</span>` : '';
 
     return `
     <tr style="cursor:pointer;" onclick="openStudentDetail('${s.id}')">
       <td style="font-weight:600;">${s.last_name || '—'}</td>
-      <td>${s.first_name || '—'}</td>
+      <td>${s.first_name || '—'}${sexeBadge}</td>
       <td>${s.class_name || '—'}</td>
       <td><code style="font-size:11.5px;">${s.login_identifier || s.activation_code || '—'}</code></td>
       <td>${statusBadge}${archivedBadge}</td>
