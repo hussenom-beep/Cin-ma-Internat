@@ -2376,29 +2376,6 @@ button { cursor: pointer; }
   line-height: 1;
 }
 .students-search-clear:hover { color: var(--gold); }
-.students-filter-pills {
-  display: flex;
-  gap: 5px;
-  flex-wrap: wrap;
-  margin-bottom: 12px;
-}
-.students-pill {
-  padding: 4px 11px;
-  border-radius: 20px;
-  font-size: 11.5px;
-  font-weight: 600;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  color: var(--text-3);
-  cursor: pointer;
-  font-family: inherit;
-  transition: all .15s;
-}
-.students-pill.active {
-  background: var(--gold-dim);
-  border-color: rgba(240,165,0,.35);
-  color: var(--gold);
-}
 /* En-tête de colonnes triables */
 .stbl th.sortable { cursor: pointer; user-select: none; }
 .stbl th.sortable:hover { color: var(--text-2); }
@@ -3340,20 +3317,48 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
         </div>
       </div>
 
-      <!-- Filtres rapides -->
-      <div class="students-filter-pills">
-        <button class="students-pill active" id="spill-visible"   onclick="setStudentFilter('visible',this)">Visibles</button>
-        <button class="students-pill"        id="spill-activated" onclick="setStudentFilter('activated',this)">✓ Compte activé</button>
-        <button class="students-pill"        id="spill-pending"   onclick="setStudentFilter('pending',this)">○ Compte non activé</button>
-        <button class="students-pill"        id="spill-archived"  onclick="setStudentFilter('archived',this)">⊘ Archivés</button>
+      <!-- Filtres -->
+      <div style="display:flex; gap:10px; flex-wrap:wrap; padding:8px 0 12px;">
+        <div style="flex:1; min-width:140px;">
+          <label style="display:block; font-size:10.5px; font-weight:700; text-transform:uppercase; color:var(--text-3); margin-bottom:4px; letter-spacing:0.3px;">Visibilité</label>
+          <select class="finput" id="filter-visibility" onchange="applyStudentFilters()" style="padding:6px 10px; font-size:12.5px;">
+            <option value="active">Actifs</option>
+            <option value="archived">Archivés</option>
+            <option value="all">Tous</option>
+          </select>
+        </div>
+        <div style="flex:1; min-width:140px;">
+          <label style="display:block; font-size:10.5px; font-weight:700; text-transform:uppercase; color:var(--text-3); margin-bottom:4px; letter-spacing:0.3px;">Activation</label>
+          <select class="finput" id="filter-activation" onchange="applyStudentFilters()" style="padding:6px 10px; font-size:12.5px;">
+            <option value="all">Tous</option>
+            <option value="activated">Activé</option>
+            <option value="not-activated">Non activé</option>
+          </select>
+        </div>
+        <div style="flex:1; min-width:140px;">
+          <label style="display:block; font-size:10.5px; font-weight:700; text-transform:uppercase; color:var(--text-3); margin-bottom:4px; letter-spacing:0.3px;">Sexe</label>
+          <select class="finput" id="filter-sexe" onchange="applyStudentFilters()" style="padding:6px 10px; font-size:12.5px;">
+            <option value="all">Tous</option>
+            <option value="F">Filles</option>
+            <option value="M">Garçons</option>
+          </select>
+        </div>
       </div>
 
       <!-- Barre de sélection rapide -->
       <div class="sel-bar" id="students-sel-bar">
-        <button class="sel-bar-btn pink" onclick="selectStudentsByGender('F')">♀ Cocher filles</button>
-        <button class="sel-bar-btn blue" onclick="selectStudentsByGender('M')">♂ Cocher garçons</button>
         <button class="sel-bar-btn" onclick="clearStudentSelection()">✕ Tout décocher</button>
         <span class="sel-bar-count" id="sel-bar-count"></span>
+      </div>
+
+      <!-- Zone d'action pour export PDF ciblé (apparaît quand il y a une sélection) -->
+      <div id="students-export-zone" style="display:none; margin: 10px 0; padding: 10px 12px; background: var(--surface-2); border: 1px solid var(--border-2); border-radius: 8px;">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <span id="export-zone-count" style="font-size:12px; font-weight:600; color:var(--text-2);"></span>
+          <button class="btn btn-gold" style="margin-left:auto; padding:6px 14px; font-size:12px;" onclick="exportSelectedStudentsPDF()">
+            📄 Export PDF
+          </button>
+        </div>
       </div>
 
       <!-- Tableau -->
@@ -7893,7 +7898,6 @@ async function _sdLoadSessions(studentId) {
    ================================================================ */
 
 let _studentsAll    = [];
-let _studentFilter  = 'visible';   // par défaut : uniquement les élèves visibles/actifs
 let _studentSearch  = '';
 let _studentSort    = { key: 'last_name', dir: 'asc' };
 let _selectedStudents = new Set(); // IDs des élèves cochés
@@ -7908,23 +7912,37 @@ function _sexeBadgeHTML(sexe) {
 async function loadAdminStudents() {
   const { data } = await db.from('students').select('*').order('last_name');
   _studentsAll = data || [];
-  // Réinitialiser au filtre par défaut "Visibles" à chaque chargement de l'onglet
-  _studentFilter = 'visible';
-  document.querySelectorAll('.students-pill').forEach(p => p.classList.remove('active'));
-  document.getElementById('spill-visible')?.classList.add('active');
+  // Réinitialiser les filtres au chargement
+  document.getElementById('filter-visibility').value = 'active';
+  document.getElementById('filter-activation').value = 'all';
+  document.getElementById('filter-sexe').value = 'all';
   _renderStudentTable();
 }
 
 function _renderStudentTable() {
   const q = _studentSearch.toLowerCase();
 
+  // Récupérer les valeurs des filtres
+  const filterVisibility = document.getElementById('filter-visibility')?.value || 'active';
+  const filterActivation = document.getElementById('filter-activation')?.value || 'all';
+  const filterSexe = document.getElementById('filter-sexe')?.value || 'all';
+
   // Filtre principal
   let rows = _studentsAll.filter(s => {
-    if (_studentFilter === 'visible')   return !!s.is_active;               // visibles = actifs
-    if (_studentFilter === 'activated') return !!s.is_active && !!s.is_activated;  // visibles + activés
-    if (_studentFilter === 'pending')   return !!s.is_active && !s.is_activated;   // visibles + non activés
-    if (_studentFilter === 'archived')  return !s.is_active;               // archivés uniquement
-    return !!s.is_active; // fallback
+    // Filtre visibilité
+    if (filterVisibility === 'active' && !s.is_active) return false;
+    if (filterVisibility === 'archived' && s.is_active) return false;
+    // 'all' : pas de filtre sur is_active
+
+    // Filtre activation
+    if (filterActivation === 'activated' && !s.is_activated) return false;
+    if (filterActivation === 'not-activated' && s.is_activated) return false;
+    // 'all' : pas de filtre sur is_activated
+
+    // Filtre sexe
+    if (filterSexe !== 'all' && s.sexe !== filterSexe) return false;
+
+    return true;
   });
 
   // Filtre recherche
@@ -7954,7 +7972,7 @@ function _renderStudentTable() {
 
   // Compteur
   const act = rows.filter(s => s.is_activated).length;
-  const countLabel = _studentFilter === 'archived'
+  const countLabel = filterVisibility === 'archived'
     ? `${rows.length} élève${rows.length > 1 ? 's' : ''} archivé${rows.length > 1 ? 's' : ''}`
     : `${rows.length} élève${rows.length > 1 ? 's' : ''}${act ? ` · ${act} compte${act > 1 ? 's' : ''} activé${act > 1 ? 's' : ''}` : ''}`;
   document.getElementById('students-count-label').textContent = countLabel;
@@ -7962,7 +7980,7 @@ function _renderStudentTable() {
   const tbody = document.getElementById('students-tbody');
   if (!rows.length) {
     const msg = q ? 'Aucun élève correspondant à la recherche'
-      : _studentFilter === 'archived' ? 'Aucun élève archivé'
+      : filterVisibility === 'archived' ? 'Aucun élève archivé'
       : 'Aucun élève importé';
     tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--text-3);padding:20px;">${msg}</td></tr>`;
     _updateSelCount();
@@ -7980,15 +7998,23 @@ function _renderStudentTable() {
     const selClass = _selectedStudents.has(s.id) ? ' row-selected' : '';
 
     return `
-    <tr class="${selClass}" data-student-id="${s.id}" style="cursor:pointer;" onclick="openStudentDetail('${s.id}')">
+    <tr class="${selClass}" data-student-id="${s.id}" style="cursor:pointer;" onclick="toggleStudentSelectionFromRow('${s.id}')">
       <td class="td-check"><input type="checkbox" ${checked}
           onclick="event.stopPropagation(); toggleStudentSelection('${s.id}', this.checked)"></td>
-      <td style="font-weight:600;">${s.last_name || '—'}</td>
-      <td>${s.first_name || '—'}</td>
+      <td style="font-weight:600;">
+        <span onclick="event.stopPropagation(); openStudentDetail('${s.id}')" style="cursor:pointer; text-decoration:underline; text-decoration-color:rgba(0,0,0,0.15);">
+          ${s.last_name || '—'}
+        </span>
+      </td>
+      <td>
+        <span onclick="event.stopPropagation(); openStudentDetail('${s.id}')" style="cursor:pointer; text-decoration:underline; text-decoration-color:rgba(0,0,0,0.15);">
+          ${s.first_name || '—'}
+        </span>
+      </td>
       <td>${s.class_name || '—'}</td>
       <td>${_sexeBadgeHTML(s.sexe)}</td>
       <td><code style="font-size:11.5px;">${s.login_identifier || s.activation_code || '—'}</code></td>
-      <td>${statusBadge}${archivedBadge}</td>
+      <td onclick="event.stopPropagation();">${statusBadge}${archivedBadge}</td>
     </tr>`;
   }).join('');
 
@@ -8019,10 +8045,7 @@ function clearStudentSearch() {
   _renderStudentTable();
 }
 
-function setStudentFilter(filter, btn) {
-  _studentFilter = filter;
-  document.querySelectorAll('.students-pill').forEach(p => p.classList.remove('active'));
-  if (btn) btn.classList.add('active');
+function applyStudentFilters() {
   _renderStudentTable();
 }
 
@@ -8046,19 +8069,19 @@ function toggleStudentSelection(id, checked) {
   _updateSelCount();
 }
 
-function selectStudentsByGender(gender) {
-  // Agit sur les élèves actuellement affichés dans le tableau
-  document.querySelectorAll('#students-tbody tr[data-student-id]').forEach(row => {
-    const sid = row.dataset.studentId;
-    const student = _studentsAll.find(s => s.id === sid);
-    if (!student) return;
-    if (student.sexe === gender) {
-      _selectedStudents.add(sid);
-      row.classList.add('row-selected');
-      const cb = row.querySelector('input[type=checkbox]');
-      if (cb) cb.checked = true;
-    }
-  });
+function toggleStudentSelectionFromRow(id) {
+  const isSelected = _selectedStudents.has(id);
+  const newState = !isSelected;
+  
+  if (newState) _selectedStudents.add(id);
+  else          _selectedStudents.delete(id);
+  
+  const row = document.querySelector(`tr[data-student-id="${id}"]`);
+  if (row) {
+    row.classList.toggle('row-selected', newState);
+    const cb = row.querySelector('input[type=checkbox]');
+    if (cb) cb.checked = newState;
+  }
   _updateSelCount();
 }
 
@@ -8091,6 +8114,19 @@ function _updateSelCount() {
   // Compteur dans la barre de sélection
   const countEl = document.getElementById('sel-bar-count');
   if (countEl) countEl.textContent = n ? `${n} sélectionné${n > 1 ? 's' : ''}` : '';
+  
+  // Zone d'export PDF ciblé
+  const exportZone = document.getElementById('students-export-zone');
+  const exportCount = document.getElementById('export-zone-count');
+  if (exportZone && exportCount) {
+    if (n > 0) {
+      exportZone.style.display = '';
+      exportCount.textContent = `${n} élève${n > 1 ? 's' : ''} sélectionné${n > 1 ? 's' : ''}`;
+    } else {
+      exportZone.style.display = 'none';
+    }
+  }
+  
   // Info dans le panneau Paramètres
   const infoEl = document.getElementById('export-pdf-sel-info');
   if (infoEl) {
@@ -8116,6 +8152,24 @@ function exportStudentsPDF() {
   // TODO : génération PDF à implémenter ici
   toast('Export PDF bientôt disponible', 'info');
   console.log('[PDF] Élèves sélectionnés (ordre final) :', selected.map(s => `${s.sexe} ${s.last_name} ${s.first_name}`));
+}
+
+/* Export PDF ciblé depuis la zone d'action de la liste élèves.
+   Même logique que exportStudentsPDF mais appelée depuis la liste. */
+function exportSelectedStudentsPDF() {
+  if (!_selectedStudents.size) { toast('Aucun élève sélectionné', 'error'); return; }
+  // Récupérer et trier : garçons → filles, puis alpha sur nom
+  const selected = _studentsAll
+    .filter(s => _selectedStudents.has(s.id))
+    .sort((a, b) => {
+      const sexOrder = s => s.sexe === 'M' ? 0 : s.sexe === 'F' ? 1 : 2;
+      const so = sexOrder(a) - sexOrder(b);
+      if (so !== 0) return so;
+      return (a.last_name || '').localeCompare(b.last_name || '', 'fr');
+    });
+  // TODO : génération PDF à implémenter ici
+  toast(`Export PDF de ${selected.length} élève${selected.length > 1 ? 's' : ''} bientôt disponible`, 'info');
+  console.log('[PDF Export ciblé] Élèves sélectionnés (ordre final) :', selected.map(s => `${s.sexe} ${s.last_name} ${s.first_name}`));
 }
 
 /* Import depuis le panneau Paramètres */
