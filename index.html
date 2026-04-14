@@ -4803,12 +4803,13 @@ async function handleActivate() {
   const { error } = await db.from('students').update({
     is_activated: true,
     password_hash: hash,
-    activated_at: new Date().toISOString(),
-    activation_code: null // Supprimer le PIN initial après activation
+    activated_at: new Date().toISOString()
+    // Note: on ne met pas activation_code à null ici pour éviter les erreurs
   }).eq('id', _tmpStudent.id);
 
   if (error) {
-    toast("Erreur d'activation", 'error');
+    console.error('Erreur activation:', error);
+    toast("Erreur d'activation - voir la console", 'error');
     return;
   }
 
