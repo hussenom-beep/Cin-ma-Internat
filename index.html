@@ -7904,8 +7904,8 @@ let _selectedStudents = new Set(); // IDs des élèves cochés
 
 function _sexeBadgeHTML(sexe) {
   if (!sexe) return '<span style="color:var(--text-3);">—</span>';
-  if (sexe === 'F') return '<span class="badge-sexe-f">♀ F</span>';
-  if (sexe === 'M') return '<span class="badge-sexe-m">♂ M</span>';
+  if (sexe === 'F') return '<span class="badge-sexe-f">♀</span>';
+  if (sexe === 'M') return '<span class="badge-sexe-m">♂</span>';
   return `<span style="color:var(--text-3);">${sexe}</span>`;
 }
 
