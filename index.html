@@ -3013,11 +3013,11 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
         <div class="fw-bold" style="font-size:17px;">Premier accès</div>
         <div class="text-sm text-muted mt-1" id="act-name"></div>
       </div>
-      <p class="text-sm text-muted text-center mb-2">Choisis un code à 6 chiffres, puis confirme-le.</p>
+      <p class="text-sm text-muted text-center mb-2" id="ls-activate-subtitle">Entre ton PIN initial (fourni sur ta fiche papier).</p>
 
       <!-- Rangée 1 : saisie du code (visible) -->
       <div style="margin-bottom:14px;">
-        <div class="text-xs text-muted text-center mb-1" style="letter-spacing:.05em;text-transform:uppercase;font-weight:700;">Ton code</div>
+        <div class="text-xs text-muted text-center mb-1" id="activate-row1-label" style="letter-spacing:.05em;text-transform:uppercase;font-weight:700;">PIN INITIAL</div>
         <div class="pins" id="pins-activate">
           <input type="text" inputmode="numeric" maxlength="1" class="pin" id="a1" autocomplete="off">
           <input type="text" inputmode="numeric" maxlength="1" class="pin" id="a2" autocomplete="off">
@@ -3030,7 +3030,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 
       <!-- Rangée 2 : confirmation du code (visible) -->
       <div style="margin-bottom:18px;">
-        <div class="text-xs text-muted text-center mb-1" style="letter-spacing:.05em;text-transform:uppercase;font-weight:700;">Confirme ton code</div>
+        <div class="text-xs text-muted text-center mb-1" id="activate-row2-label" style="letter-spacing:.05em;text-transform:uppercase;font-weight:700;">Confirme ton code</div>
         <div class="pins" id="pins-activate-confirm">
 			<input type="text" inputmode="numeric" maxlength="1" class="pin" id="ac1" autocomplete="off">
 			<input type="text" inputmode="numeric" maxlength="1" class="pin" id="ac2" autocomplete="off">
@@ -3041,7 +3041,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 		</div>
       </div>
 
-      <button class="btn btn-gold btn-full btn-lg" onclick="handleActivate()">Activer mon compte 🎉</button>
+      <button class="btn btn-gold btn-full btn-lg" onclick="handleActivate()">Continuer →</button>
       <button class="btn btn-ghost btn-full btn-sm mt-1" onclick="backCode()">← Retour</button>
     </div>
 
@@ -4212,6 +4212,7 @@ const S = {
 };
 
 let _tmpStudent = null;
+let _initialPinVerified = false;
 
 /* ================================================================
    UTILS
@@ -4245,9 +4246,18 @@ function normalizeLoginPart(str) {
 }
 
 function buildLoginIdentifier(firstName, lastName) {
-  const first = normalizeLoginPart(firstName);
-  const last  = normalizeLoginPart(lastName);
-  return [first, last].filter(Boolean).join('.');
+  // Nouvelle logique sécurisée : première lettre prénom + nom complet + 3 chiffres aléatoires
+  const firstLetter = normalizeLoginPart(firstName).charAt(0);
+  const fullLastName = normalizeLoginPart(lastName);
+  const randomDigits = Math.floor(100 + Math.random() * 900); // 3 chiffres entre 100 et 999
+  
+  if (!firstLetter || !fullLastName) return null;
+  return `${firstLetter}${fullLastName}${randomDigits}`;
+}
+
+function generateInitialPIN() {
+  // Génère un PIN initial aléatoire de 6 chiffres
+  return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
 function fmtDate(str) {
@@ -4441,7 +4451,11 @@ function showLS(id) {
   }
 }
 
-function backCode() { showLS('code'); }
+function backCode() { 
+  _initialPinVerified = false;
+  _tmpStudent = null;
+  showLS('code'); 
+}
 
 /* Saisie visible pour la création du code (chiffre affiché, pas de pastille).
    Même navigation que setupPins mais sans masquage. */
@@ -4700,8 +4714,14 @@ async function handleCode() {
   _tmpStudent = data;
 
   if (!data.is_activated) {
+    // Compte non activé : l'élève doit entrer son PIN initial puis créer son propre PIN
     document.getElementById('act-name').textContent =
       `Bienvenue ${data.first_name} ${data.last_name} !`;
+    document.getElementById('ls-activate-subtitle').textContent =
+      `Entre d'abord ton PIN initial (fourni sur ta fiche papier)`;
+    // Réinitialiser les labels pour l'étape 1
+    document.getElementById('activate-row1-label').textContent = 'PIN INITIAL';
+    document.getElementById('activate-row2-label').textContent = 'Confirme ton code';
     showLS('activate');
     openPinKeyboard('a1');
   } else {
@@ -4712,9 +4732,44 @@ async function handleCode() {
   }
 }
 
-// Activation — code visible saisi deux fois avec confirmation
+// Activation — 2 étapes : vérification PIN initial puis création nouveau PIN
 
 async function handleActivate() {
+  if (!_initialPinVerified) {
+    // Étape 1 : vérifier le PIN initial
+    const initialPin = getVisiblePin('a1','a2','a3','a4','a5','a6');
+    
+    if (initialPin.length !== 6) {
+      toast('Entre ton PIN initial à 6 chiffres', 'error');
+      setupVisiblePins('a1','a2','a3','a4','a5','a6', { autoFocus: true });
+      return;
+    }
+
+    const hash = await sha256(initialPin);
+    if (hash !== _tmpStudent.password_hash) {
+      toast('PIN initial incorrect', 'error');
+      setupVisiblePins('a1','a2','a3','a4','a5','a6', { autoFocus: true });
+      return;
+    }
+
+    // PIN initial correct ! Passer à l'étape 2
+    _initialPinVerified = true;
+    
+    // Changer les messages de l'interface
+    document.getElementById('ls-activate-subtitle').textContent =
+      `Maintenant, choisis ton propre code secret à 6 chiffres`;
+    document.getElementById('activate-row1-label').textContent = 'TON NOUVEAU CODE';
+    document.getElementById('activate-row2-label').textContent = 'CONFIRME TON CODE';
+    
+    // Réinitialiser les champs
+    setupVisiblePins('a1','a2','a3','a4','a5','a6', { autoFocus: true });
+    setupVisiblePins('ac1','ac2','ac3','ac4','ac5','ac6', { autoFocus: false });
+    
+    toast('PIN initial vérifié ! Choisis maintenant ton code personnel', 'success');
+    return;
+  }
+
+  // Étape 2 : créer le nouveau PIN personnel
   const pin = getVisiblePin('a1','a2','a3','a4','a5','a6');
   const confirm = getVisiblePin('ac1','ac2','ac3','ac4','ac5','ac6');
 
@@ -4743,7 +4798,8 @@ async function handleActivate() {
   const { error } = await db.from('students').update({
     is_activated: true,
     password_hash: hash,
-    activated_at: new Date().toISOString()
+    activated_at: new Date().toISOString(),
+    activation_code: null // Supprimer le PIN initial après activation
   }).eq('id', _tmpStudent.id);
 
   if (error) {
@@ -4751,6 +4807,9 @@ async function handleActivate() {
     return;
   }
 
+  // Réinitialiser l'état
+  _initialPinVerified = false;
+  
   loginAs(_tmpStudent);
   toast('Compte activé ! Bienvenue 🎉', 'success');
 }
@@ -4861,6 +4920,7 @@ function logout(reason) {
   S.user = null; S.isAdmin = false; S.films = []; S.votes = new Set();
   clearSession();
   _tmpStudent = null;
+  _initialPinVerified = false; // Reset état activation
   showLS('code');
   document.getElementById('inp-code').value = '';
   document.getElementById('inp-adminpwd').value = '';
@@ -7935,7 +7995,7 @@ async function importStudentsFromSettings() {
   const year = detectedYear || CFG.SCHOOL_YEAR;
 
   // ---- Charger tous les élèves existants ----
-  const { data: existing } = await db.from('students').select('id, eleve_uid, login_identifier, is_active');
+  const { data: existing } = await db.from('students').select('id, eleve_uid, login_identifier, is_active, is_activated');
   const byUid  = {};
   const allLogins = new Set();
   (existing || []).forEach(s => {
@@ -7954,15 +8014,24 @@ async function importStudentsFromSettings() {
     const existing_s = r.eleve_uid ? byUid[r.eleve_uid] : null;
 
     if (existing_s) {
-      // Recalculer le login à partir du nouveau prénom/nom
-      const newBase  = buildLoginIdentifier(r.first_name, r.last_name);
-      let   newLogin = newBase;
-      let   n        = 2;
-      // Chercher un login libre en excluant l'élève lui-même
-      while (allLogins.has(newLogin) && newLogin !== existing_s.login_identifier) {
-        newLogin = newBase + n; n++;
+      // Élève existant : recalculer identifiant avec nouvelle logique
+      let newLogin = buildLoginIdentifier(r.first_name, r.last_name);
+      let attempts = 0;
+      // Garantir l'unicité en régénérant les 3 chiffres si besoin
+      while (allLogins.has(newLogin) && newLogin !== existing_s.login_identifier && attempts < 50) {
+        newLogin = buildLoginIdentifier(r.first_name, r.last_name);
+        attempts++;
       }
-      // Mettre à jour allLogins : retirer l'ancien, ajouter le nouveau
+      // Si toujours en conflit après 50 tentatives, ajouter un suffixe
+      if (allLogins.has(newLogin) && newLogin !== existing_s.login_identifier) {
+        const base = newLogin.substring(0, newLogin.length - 3);
+        let n = 2;
+        while (allLogins.has(newLogin)) {
+          newLogin = base + (1000 + n).toString().substring(1); n++;
+        }
+      }
+      
+      // Mettre à jour allLogins
       if (existing_s.login_identifier) allLogins.delete(existing_s.login_identifier);
       allLogins.add(newLogin);
 
@@ -7973,6 +8042,15 @@ async function importStudentsFromSettings() {
         school_year:      year,
         login_identifier: newLogin,
       };
+      
+      // Si le compte n'était pas encore activé, générer un nouveau PIN initial
+      if (!existing_s.is_activated) {
+        const initialPIN = generateInitialPIN();
+        const pinHash = await sha256(initialPIN);
+        patch.password_hash = pinHash;
+        patch.activation_code = initialPIN; // Stockage temporaire pour export
+      }
+      
       // Désarchiver si archivé
       if (!existing_s.is_active) {
         patch.is_active = true;
@@ -7982,12 +8060,26 @@ async function importStudentsFromSettings() {
       }
       await db.from('students').update(patch).eq('id', existing_s.id);
     } else {
-      // Création — générer un login unique
-      let base = buildLoginIdentifier(r.first_name, r.last_name);
-      let login = base;
-      let n = 2;
-      while (allLogins.has(login)) { login = base + n; n++; }
+      // Création — générer identifiant unique + PIN initial
+      let login = buildLoginIdentifier(r.first_name, r.last_name);
+      let attempts = 0;
+      // Garantir l'unicité
+      while (allLogins.has(login) && attempts < 50) {
+        login = buildLoginIdentifier(r.first_name, r.last_name);
+        attempts++;
+      }
+      if (allLogins.has(login)) {
+        const base = login.substring(0, login.length - 3);
+        let n = 2;
+        while (allLogins.has(login)) {
+          login = base + (1000 + n).toString().substring(1); n++;
+        }
+      }
       allLogins.add(login);
+
+      // Générer PIN initial
+      const initialPIN = generateInitialPIN();
+      const pinHash = await sha256(initialPIN);
 
       await db.from('students').insert({
         first_name:       r.first_name,
@@ -7996,7 +8088,8 @@ async function importStudentsFromSettings() {
         school_year:      year,
         eleve_uid:        r.eleve_uid || null,
         login_identifier: login,
-        activation_code:  genCode(),
+        activation_code:  initialPIN, // Stockage temporaire pour export
+        password_hash:    pinHash,
         is_activated:     false,
         is_active:        true,
       });
@@ -8213,11 +8306,11 @@ function exportCodes() {
   const year = CFG.SCHOOL_YEAR;
   db.from('students').select('*').eq('school_year', year).order('last_name').then(({ data }) => {
     if (!data?.length) { toast('Aucun élève à exporter'); return; }
-    const csv = 'Prénom,Nom,Classe,Code,Activé\n' +
-      data.map(s => `${s.first_name},${s.last_name},${s.class_name||''},${s.activation_code},${s.is_activated?'Oui':'Non'}`).join('\n');
+    const csv = 'Prénom,Nom,Classe,Identifiant,PIN Initial,Activé\n' +
+      data.map(s => `${s.first_name},${s.last_name},${s.class_name||''},${s.login_identifier||''},${s.activation_code||''},${s.is_activated?'Oui':'Non'}`).join('\n');
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob(['\uFEFF'+csv], { type:'text/csv;charset=utf-8;' }));
-    a.download = `codes-cinema-${year}.csv`;
+    a.download = `acces-cinema-${year}.csv`;
     a.click();
     toast('Export téléchargé ⬇');
   });
