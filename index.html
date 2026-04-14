@@ -8311,7 +8311,8 @@ function onCSVFile(e) {
 
 function exportCodes() {
   const year = CFG.SCHOOL_YEAR;
-  db.from('students').select('*').eq('school_year', year).order('last_name').then(({ data }) => {
+  // Exporter TOUS les élèves actifs (is_active = true) au lieu de filtrer par année
+  db.from('students').select('*').eq('is_active', true).order('last_name').then(({ data }) => {
     if (!data?.length) { toast('Aucun élève à exporter'); return; }
     const csv = 'Prénom,Nom,Classe,Identifiant,PIN Initial,Activé\n' +
       data.map(s => `${s.first_name},${s.last_name},${s.class_name||''},${s.login_identifier||''},${s.activation_code||''},${s.is_activated?'Oui':'Non'}`).join('\n');
