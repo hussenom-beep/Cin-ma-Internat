@@ -663,14 +663,44 @@ button { cursor: pointer; }
 .badge-green { background: var(--green-dim); color: var(--green); }
 .badge-red { background: var(--red-dim); color: var(--red); }
 .badge-muted { background: var(--surface-3); color: var(--text-2); }
-.badge-sexe {
-  display: inline-block;
-  font-size: 10px; font-weight: 700; line-height: 1;
-  padding: 2px 5px; border-radius: 4px;
-  background: var(--surface-3); color: var(--text-2);
-  vertical-align: middle; margin-left: 5px;
-  letter-spacing: .03em;
+/* Badges sexe */
+.badge-sexe-f {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 11px; font-weight: 700; line-height: 1;
+  padding: 3px 8px; border-radius: 20px;
+  background: rgba(255,100,150,0.15); color: #ff80aa;
+  vertical-align: middle;
 }
+.badge-sexe-m {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 11px; font-weight: 700; line-height: 1;
+  padding: 3px 8px; border-radius: 20px;
+  background: rgba(80,150,255,0.15); color: #70a8ff;
+  vertical-align: middle;
+}
+/* Colonne checkbox tableau élèves */
+.stbl .th-check { width: 36px; padding: 0 6px; text-align: center; }
+.stbl td.td-check { padding: 0 6px; text-align: center; }
+.stbl td.td-check input[type=checkbox] { cursor: pointer; accent-color: var(--gold); width: 15px; height: 15px; }
+.stbl .th-check input[type=checkbox] { cursor: pointer; accent-color: var(--gold); width: 15px; height: 15px; }
+/* Ligne sélectionnée */
+.stbl tr.row-selected td { background: rgba(240,165,0,0.07); }
+/* Barre de sélection rapide */
+.sel-bar {
+  display: flex; gap: 6px; flex-wrap: wrap;
+  padding: 8px 0 4px;
+}
+.sel-bar-btn {
+  font-size: 11.5px; font-weight: 600;
+  padding: 5px 12px; border-radius: 20px;
+  border: 1px solid var(--border-2);
+  background: var(--surface-2); color: var(--text-2);
+  cursor: pointer; transition: background .15s, color .15s;
+}
+.sel-bar-btn:hover { background: var(--surface-3); color: var(--text); }
+.sel-bar-btn.pink  { color: #ff80aa; border-color: rgba(255,100,150,.3); }
+.sel-bar-btn.blue  { color: #70a8ff; border-color: rgba(80,150,255,.3); }
+.sel-bar-count { font-size: 11px; color: var(--text-3); align-self: center; margin-left: auto; }
 
 /* ================================================================
    DIVIDER
@@ -3318,11 +3348,20 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
         <button class="students-pill"        id="spill-archived"  onclick="setStudentFilter('archived',this)">⊘ Archivés</button>
       </div>
 
+      <!-- Barre de sélection rapide -->
+      <div class="sel-bar" id="students-sel-bar">
+        <button class="sel-bar-btn pink" onclick="selectStudentsByGender('F')">♀ Cocher filles</button>
+        <button class="sel-bar-btn blue" onclick="selectStudentsByGender('M')">♂ Cocher garçons</button>
+        <button class="sel-bar-btn" onclick="clearStudentSelection()">✕ Tout décocher</button>
+        <span class="sel-bar-count" id="sel-bar-count"></span>
+      </div>
+
       <!-- Tableau -->
       <div class="scroll-x">
         <table class="stbl">
           <thead>
             <tr>
+              <th class="th-check"><input type="checkbox" id="check-all-students" onchange="toggleAllStudentCheckboxes(this.checked)" title="Tout cocher / décocher"></th>
               <th class="sortable" onclick="sortStudents('last_name')" id="sh-last_name">
                 Nom <span class="sort-arrow"></span>
               </th>
@@ -3330,6 +3369,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
                 Prénom <span class="sort-arrow"></span>
               </th>
               <th>Classe</th>
+              <th>Sexe</th>
               <th>Identifiant</th>
               <th class="sortable" onclick="sortStudents('status')" id="sh-status">
                 Statut <span class="sort-arrow"></span>
@@ -3337,7 +3377,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
             </tr>
           </thead>
           <tbody id="students-tbody">
-            <tr><td colspan="5" style="text-align:center;color:var(--text-3);padding:20px;">Chargement...</td></tr>
+            <tr><td colspan="7" style="text-align:center;color:var(--text-3);padding:20px;">Chargement...</td></tr>
           </tbody>
         </table>
       </div>
@@ -3933,6 +3973,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
           <div class="sd-name" id="sd-name">—</div>
           <div class="sd-meta">
             <span id="sd-class-badge"></span>
+            <span id="sd-sexe-badge" style="display:none;"></span>
             <span id="sd-status-badge"></span>
           </div>
           <div>
@@ -4071,6 +4112,23 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
           Exporte les codes d'activation des élèves.
         </p>
         <button class="btn btn-ghost btn-full" onclick="exportCodes()">⬇ Télécharger codes CSV</button>
+      </div>
+
+      <div style="height:1px;background:var(--border);margin:4px 0 20px;"></div>
+
+      <!-- Export PDF élèves -->
+      <div class="sd-section">
+        <div class="sd-section-title">📄 Export PDF élèves</div>
+        <p class="text-sm text-muted" style="margin-bottom:12px;">
+          Génère une fiche PDF pour les élèves sélectionnés dans le tableau.<br>
+          <span style="opacity:.7;font-size:11px;">Ordre : garçons puis filles, par ordre alphabétique.</span>
+        </p>
+        <p class="text-sm" id="export-pdf-sel-info" style="margin-bottom:12px;color:var(--text-2);">
+          — Aucun élève sélectionné
+        </p>
+        <button class="btn btn-ghost btn-full" onclick="exportStudentsPDF()" style="opacity:.5;cursor:not-allowed;" disabled title="Disponible prochainement">
+          📄 Générer le PDF (bientôt disponible)
+        </button>
       </div>
 
       <div style="height:1px;background:var(--border);margin:4px 0 20px;"></div>
@@ -7538,6 +7596,18 @@ async function openStudentDetail(studentId) {
       </button>`;
   }
 
+  // Badge sexe dans la ligne identité
+  const sexeBadgeEl = document.getElementById('sd-sexe-badge');
+  if (sexeBadgeEl) {
+    if (s.sexe) {
+      sexeBadgeEl.innerHTML = _sexeBadgeHTML(s.sexe);
+      sexeBadgeEl.style.display = '';
+    } else {
+      sexeBadgeEl.innerHTML = '';
+      sexeBadgeEl.style.display = 'none';
+    }
+  }
+
   const repere = (label, val, dim = false) =>
     `<div class="sd-repere-row">
        <span class="sd-repere-label">${label}</span>
@@ -7547,7 +7617,6 @@ async function openStudentDetail(studentId) {
      </div>`;
 
   document.getElementById('sd-account-info').innerHTML = [
-    repere('Sexe', s.sexe || '—', !s.sexe),
     repere('Année scolaire', s.school_year || '—'),
     repere('Dernière connexion',
       s.last_login_at ? fmtDateTime(s.last_login_at) : 'Jamais', !s.last_login_at),
@@ -7827,6 +7896,14 @@ let _studentsAll    = [];
 let _studentFilter  = 'visible';   // par défaut : uniquement les élèves visibles/actifs
 let _studentSearch  = '';
 let _studentSort    = { key: 'last_name', dir: 'asc' };
+let _selectedStudents = new Set(); // IDs des élèves cochés
+
+function _sexeBadgeHTML(sexe) {
+  if (!sexe) return '<span style="color:var(--text-3);">—</span>';
+  if (sexe === 'F') return '<span class="badge-sexe-f">♀ F</span>';
+  if (sexe === 'M') return '<span class="badge-sexe-m">♂ M</span>';
+  return `<span style="color:var(--text-3);">${sexe}</span>`;
+}
 
 async function loadAdminStudents() {
   const { data } = await db.from('students').select('*').order('last_name');
@@ -7887,7 +7964,8 @@ function _renderStudentTable() {
     const msg = q ? 'Aucun élève correspondant à la recherche'
       : _studentFilter === 'archived' ? 'Aucun élève archivé'
       : 'Aucun élève importé';
-    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--text-3);padding:20px;">${msg}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--text-3);padding:20px;">${msg}</td></tr>`;
+    _updateSelCount();
     return;
   }
 
@@ -7898,17 +7976,23 @@ function _renderStudentTable() {
     const archivedBadge = !s.is_active
       ? `<span class="badge badge-muted" style="margin-left:4px;">⊘ Archivé</span>`
       : '';
-    const sexeBadge = s.sexe ? `<span class="badge-sexe">${s.sexe}</span>` : '';
+    const checked = _selectedStudents.has(s.id) ? 'checked' : '';
+    const selClass = _selectedStudents.has(s.id) ? ' row-selected' : '';
 
     return `
-    <tr style="cursor:pointer;" onclick="openStudentDetail('${s.id}')">
+    <tr class="${selClass}" data-student-id="${s.id}" style="cursor:pointer;" onclick="openStudentDetail('${s.id}')">
+      <td class="td-check"><input type="checkbox" ${checked}
+          onclick="event.stopPropagation(); toggleStudentSelection('${s.id}', this.checked)"></td>
       <td style="font-weight:600;">${s.last_name || '—'}</td>
-      <td>${s.first_name || '—'}${sexeBadge}</td>
+      <td>${s.first_name || '—'}</td>
       <td>${s.class_name || '—'}</td>
+      <td>${_sexeBadgeHTML(s.sexe)}</td>
       <td><code style="font-size:11.5px;">${s.login_identifier || s.activation_code || '—'}</code></td>
       <td>${statusBadge}${archivedBadge}</td>
     </tr>`;
   }).join('');
+
+  _updateSelCount();
 
   // Flèches de tri
   ['last_name','first_name','status'].forEach(k => {
@@ -7949,6 +8033,89 @@ function sortStudents(key) {
     _studentSort = { key, dir: 'asc' };
   }
   _renderStudentTable();
+}
+
+/* ── Sélection d'élèves ─────────────────────────────────────────── */
+
+function toggleStudentSelection(id, checked) {
+  if (checked) _selectedStudents.add(id);
+  else         _selectedStudents.delete(id);
+  // Mettre à jour l'aspect visuel de la ligne
+  const row = document.querySelector(`tr[data-student-id="${id}"]`);
+  if (row) row.classList.toggle('row-selected', checked);
+  _updateSelCount();
+}
+
+function selectStudentsByGender(gender) {
+  // Agit sur les élèves actuellement affichés dans le tableau
+  document.querySelectorAll('#students-tbody tr[data-student-id]').forEach(row => {
+    const sid = row.dataset.studentId;
+    const student = _studentsAll.find(s => s.id === sid);
+    if (!student) return;
+    if (student.sexe === gender) {
+      _selectedStudents.add(sid);
+      row.classList.add('row-selected');
+      const cb = row.querySelector('input[type=checkbox]');
+      if (cb) cb.checked = true;
+    }
+  });
+  _updateSelCount();
+}
+
+function clearStudentSelection() {
+  _selectedStudents.clear();
+  document.querySelectorAll('#students-tbody tr[data-student-id]').forEach(row => {
+    row.classList.remove('row-selected');
+    const cb = row.querySelector('input[type=checkbox]');
+    if (cb) cb.checked = false;
+  });
+  const allCb = document.getElementById('check-all-students');
+  if (allCb) allCb.checked = false;
+  _updateSelCount();
+}
+
+function toggleAllStudentCheckboxes(checked) {
+  document.querySelectorAll('#students-tbody tr[data-student-id]').forEach(row => {
+    const sid = row.dataset.studentId;
+    if (checked) _selectedStudents.add(sid);
+    else         _selectedStudents.delete(sid);
+    row.classList.toggle('row-selected', checked);
+    const cb = row.querySelector('input[type=checkbox]');
+    if (cb) cb.checked = checked;
+  });
+  _updateSelCount();
+}
+
+function _updateSelCount() {
+  const n = _selectedStudents.size;
+  // Compteur dans la barre de sélection
+  const countEl = document.getElementById('sel-bar-count');
+  if (countEl) countEl.textContent = n ? `${n} sélectionné${n > 1 ? 's' : ''}` : '';
+  // Info dans le panneau Paramètres
+  const infoEl = document.getElementById('export-pdf-sel-info');
+  if (infoEl) {
+    infoEl.textContent = n
+      ? `${n} élève${n > 1 ? 's' : ''} sélectionné${n > 1 ? 's' : ''}`
+      : '— Aucun élève sélectionné';
+  }
+}
+
+/* Stub export PDF — sera branché depuis les Paramètres.
+   Tri prévu : garçons (M) d'abord, puis filles (F), par ordre alphabétique dans chaque groupe. */
+function exportStudentsPDF() {
+  if (!_selectedStudents.size) { toast('Aucun élève sélectionné', 'error'); return; }
+  // Récupérer et trier : garçons → filles, puis alpha sur nom
+  const selected = _studentsAll
+    .filter(s => _selectedStudents.has(s.id))
+    .sort((a, b) => {
+      const sexOrder = s => s.sexe === 'M' ? 0 : s.sexe === 'F' ? 1 : 2;
+      const so = sexOrder(a) - sexOrder(b);
+      if (so !== 0) return so;
+      return (a.last_name || '').localeCompare(b.last_name || '', 'fr');
+    });
+  // TODO : génération PDF à implémenter ici
+  toast('Export PDF bientôt disponible', 'info');
+  console.log('[PDF] Élèves sélectionnés (ordre final) :', selected.map(s => `${s.sexe} ${s.last_name} ${s.first_name}`));
 }
 
 /* Import depuis le panneau Paramètres */
