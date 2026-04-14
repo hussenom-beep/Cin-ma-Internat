@@ -3028,8 +3028,8 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
         </div>
       </div>
 
-      <!-- Rangée 2 : confirmation du code (visible) -->
-      <div style="margin-bottom:18px;">
+      <!-- Rangée 2 : confirmation du code (cachée au départ, affichée après validation PIN initial) -->
+      <div id="activate-row2-wrapper" style="margin-bottom:18px;" class="hidden">
         <div class="text-xs text-muted text-center mb-1" id="activate-row2-label" style="letter-spacing:.05em;text-transform:uppercase;font-weight:700;">Confirme ton code</div>
         <div class="pins" id="pins-activate-confirm">
 			<input type="text" inputmode="numeric" maxlength="1" class="pin" id="ac1" autocomplete="off">
@@ -4718,10 +4718,12 @@ async function handleCode() {
     document.getElementById('act-name').textContent =
       `Bienvenue ${data.first_name} ${data.last_name} !`;
     document.getElementById('ls-activate-subtitle').textContent =
-      `Entre d'abord ton PIN initial (fourni sur ta fiche papier)`;
+      `Entre le PIN initial de ta fiche papier`;
     // Réinitialiser les labels pour l'étape 1
     document.getElementById('activate-row1-label').textContent = 'PIN INITIAL';
-    document.getElementById('activate-row2-label').textContent = 'Confirme ton code';
+    document.getElementById('activate-row2-label').textContent = 'CONFIRME TON CODE';
+    // Cacher la rangée 2 au départ (étape 1 : PIN initial seulement)
+    document.getElementById('activate-row2-wrapper').classList.add('hidden');
     showLS('activate');
     openPinKeyboard('a1');
   } else {
@@ -4760,6 +4762,9 @@ async function handleActivate() {
       `Maintenant, choisis ton propre code secret à 6 chiffres`;
     document.getElementById('activate-row1-label').textContent = 'TON NOUVEAU CODE';
     document.getElementById('activate-row2-label').textContent = 'CONFIRME TON CODE';
+    
+    // Afficher la rangée 2 (étape 2 : création du nouveau code)
+    document.getElementById('activate-row2-wrapper').classList.remove('hidden');
     
     // Réinitialiser les champs
     setupVisiblePins('a1','a2','a3','a4','a5','a6', { autoFocus: true });
