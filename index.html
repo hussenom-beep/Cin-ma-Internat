@@ -4125,11 +4125,8 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       <div class="sd-section">
         <div class="sd-section-title">📄 Export PDF élèves</div>
         <p class="text-sm text-muted" style="margin-bottom:12px;">
-          Génère une fiche PDF pour les élèves sélectionnés dans le tableau.<br>
+          Génère une fiche PDF pour <strong>tous les élèves</strong> de la liste.<br>
           <span style="opacity:.7;font-size:11px;">Ordre : filles puis garçons, par ordre alphabétique. Format : 10 fiches par page A4.</span>
-        </p>
-        <p class="text-sm" id="export-pdf-sel-info" style="margin-bottom:12px;color:var(--text-2);">
-          — Aucun élève sélectionné
         </p>
         <button class="btn btn-gold btn-full" onclick="exportStudentsPDF()">
           📄 Générer le PDF des fiches
@@ -8138,14 +8135,6 @@ function _updateSelCount() {
       exportZone.style.display = 'none';
     }
   }
-  
-  // Info dans le panneau Paramètres
-  const infoEl = document.getElementById('export-pdf-sel-info');
-  if (infoEl) {
-    infoEl.textContent = n
-      ? `${n} élève${n > 1 ? 's' : ''} sélectionné${n > 1 ? 's' : ''}`
-      : '— Aucun élève sélectionné';
-  }
 }
 
 /* Stub export PDF — sera branché depuis les Paramètres.
@@ -8294,33 +8283,35 @@ async function _generateStudentCardsPDF(students) {
 }
 
 /* Export depuis Paramètres (tous les élèves sélectionnés) */
+/* Export global depuis Paramètres (tous les élèves) */
 async function exportStudentsPDF() {
-  if (!_selectedStudents.size) { toast('Aucun élève sélectionné', 'error'); return; }
+  if (!_studentsAll || _studentsAll.length === 0) { 
+    toast('Aucun élève dans la liste', 'error'); 
+    return; 
+  }
   
-  // Récupérer et trier : FILLES → GARÇONS, puis alpha sur nom
-  const selected = _studentsAll
-    .filter(s => _selectedStudents.has(s.id))
-    .sort((a, b) => {
-      const normalizeSexe = (val) => {
-        if (!val) return null;
-        const v = val.toLowerCase().trim();
-        if (v === 'f' || v === 'fille' || v === 'femme') return 'F';
-        if (v === 'm' || v === 'garçon' || v === 'garcon' || v === 'homme') return 'M';
-        return null;
-      };
-      
-      const sexA = normalizeSexe(a.sexe);
-      const sexB = normalizeSexe(b.sexe);
-      
-      // Filles (F) = 0, Garçons (M) = 1, Autres = 2
-      const sexOrder = s => s === 'F' ? 0 : s === 'M' ? 1 : 2;
-      const so = sexOrder(sexA) - sexOrder(sexB);
-      if (so !== 0) return so;
-      
-      return (a.last_name || '').localeCompare(b.last_name || '', 'fr');
-    });
+  // Trier TOUS les élèves : FILLES → GARÇONS, puis alpha sur nom
+  const allStudents = [..._studentsAll].sort((a, b) => {
+    const normalizeSexe = (val) => {
+      if (!val) return null;
+      const v = val.toLowerCase().trim();
+      if (v === 'f' || v === 'fille' || v === 'femme') return 'F';
+      if (v === 'm' || v === 'garçon' || v === 'garcon' || v === 'homme') return 'M';
+      return null;
+    };
+    
+    const sexA = normalizeSexe(a.sexe);
+    const sexB = normalizeSexe(b.sexe);
+    
+    // Filles (F) = 0, Garçons (M) = 1, Autres = 2
+    const sexOrder = s => s === 'F' ? 0 : s === 'M' ? 1 : 2;
+    const so = sexOrder(sexA) - sexOrder(sexB);
+    if (so !== 0) return so;
+    
+    return (a.last_name || '').localeCompare(b.last_name || '', 'fr');
+  });
   
-  await _generateStudentCardsPDF(selected);
+  await _generateStudentCardsPDF(allStudents);
 }
 
 /* Export ciblé depuis la zone d'action de la liste élèves */
