@@ -3969,6 +3969,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
         <button class="sd-tab"        id="sd-tab-proposals"  onclick="sdSwitchTab('proposals')">Films proposés</button>
         <button class="sd-tab"        id="sd-tab-votes"      onclick="sdSwitchTab('votes')">Votes</button>
         <button class="sd-tab"        id="sd-tab-sessions"   onclick="sdSwitchTab('sessions')">Inscriptions</button>
+        <button class="sd-tab"        id="sd-tab-watched"    onclick="sdSwitchTab('watched')">Films vus</button>
       </div>
 
       <!-- Identité (toujours visible en haut) -->
@@ -4035,6 +4036,13 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       <!-- ---- ONGLET : Inscriptions ---- -->
       <div id="sd-pane-sessions" class="hidden">
         <div id="sd-sessions-content">
+          <div class="loader" style="padding:28px;"><div class="spinner"></div></div>
+        </div>
+      </div>
+
+      <!-- ---- ONGLET : Films vus ---- -->
+      <div id="sd-pane-watched" class="hidden">
+        <div id="sd-watched-content">
           <div class="loader" style="padding:28px;"><div class="spinner"></div></div>
         </div>
       </div>
@@ -4999,6 +5007,8 @@ function logout(reason) {
   document.getElementById('inp-code').value = '';
   document.getElementById('inp-adminpwd').value = '';
   showScreen('login');
+  // Restaurer l'identifiant mémorisé après déconnexion
+  rememberLoad();
   if (reason === 'expired') {
     setTimeout(() => toast('⏱ Session expirée — reconnecte-toi', 'error', 4000), 200);
   }
@@ -7649,7 +7659,7 @@ async function openStudentDetailByUid(eleveUid) {
 
 /* Gestion des onglets */
 function sdSwitchTab(tab) {
-  ['overview','proposals','votes','sessions'].forEach(t => {
+  ['overview','proposals','votes','sessions','watched'].forEach(t => {
     document.getElementById(`sd-tab-${t}`)?.classList.toggle('active', t === tab);
     document.getElementById(`sd-pane-${t}`)?.classList.toggle('hidden', t !== tab);
   });
@@ -7657,6 +7667,7 @@ function sdSwitchTab(tab) {
   if (tab === 'proposals') _sdLoadProposals(_sdCurrentStudentId);
   if (tab === 'votes')     _sdLoadVotes(_sdCurrentStudentId);
   if (tab === 'sessions')  _sdLoadSessions(_sdCurrentStudentId);
+  if (tab === 'watched')   _sdLoadWatched(_sdCurrentStudentId);
 }
 
 /* ---- Vue d'ensemble ---- */
@@ -7890,6 +7901,67 @@ async function _sdLoadSessions(studentId) {
   }
   el.innerHTML = html;
 }
+
+/* ---- Films vus ---- */
+async function _sdLoadWatched(studentId) {
+  const el = document.getElementById('sd-watched-content');
+  
+  // Récupérer les inscriptions de l'élève avec status='registered'
+  // et joindre avec les séances qui ont un film marqué comme 'screened'
+  const { data: watched } = await db
+    .from('registrations')
+    .select('registered_at,cinema_sessions(session_date,films(id,title,poster_url,status,screened_at))')
+    .eq('student_id', studentId)
+    .eq('status', 'registered')
+    .order('registered_at', { ascending: false });
+  
+  // Filtrer pour ne garder que les films effectivement marqués comme vus (screened)
+  const screenedFilms = (watched || [])
+    .filter(r => r.cinema_sessions?.films?.status === 'screened')
+    .map(r => ({
+      film: r.cinema_sessions.films,
+      sessionDate: r.cinema_sessions.session_date,
+      registeredAt: r.registered_at
+    }));
+  
+  if (!screenedFilms.length) {
+    el.innerHTML = '<p class="text-sm text-muted" style="padding:10px 0;">Aucun film vu pour le moment.</p>';
+    return;
+  }
+  
+  const html = `
+    <p class="text-sm text-muted" style="margin-bottom:8px;">
+      ${screenedFilms.length} film${screenedFilms.length > 1 ? 's' : ''} vu${screenedFilms.length > 1 ? 's' : ''}
+    </p>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      ${screenedFilms.map(item => {
+        const film = item.film;
+        const poster = film.poster_url || '';
+        return `
+          <div style="display:flex;gap:11px;align-items:flex-start;background:var(--surface-2);border-radius:var(--radius-sm);padding:10px 12px;">
+            ${poster
+              ? `<img src="${poster}" style="width:34px;height:51px;object-fit:cover;border-radius:4px;flex-shrink:0;" alt="">`
+              : `<div style="width:34px;height:51px;background:var(--surface-3);border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;">🎬</div>`}
+            <div style="flex:1;min-width:0;">
+              <div style="font-weight:700;font-size:13.5px;margin-bottom:3px;">${film.title || '—'}</div>
+              ${item.sessionDate 
+                ? `<div style="font-size:12px;color:var(--gold);font-weight:700;margin-bottom:4px;">📅 ${fmtDateShort(item.sessionDate)}</div>` 
+                : ''}
+              <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                <span class="badge badge-purple">✅ Diffusé</span>
+                ${film.screened_at 
+                  ? `<span class="sd-activity-date">${fmtDateTime(film.screened_at)}</span>` 
+                  : ''}
+              </div>
+            </div>
+          </div>`;
+      }).join('')}
+    </div>
+  `;
+  
+  el.innerHTML = html;
+}
+
 /* ================================================================
    ADMIN STUDENTS — tableur avec recherche, filtres, tri
    ================================================================ */
