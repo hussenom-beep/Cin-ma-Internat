@@ -8252,13 +8252,13 @@ async function _generateStudentCardsPDF(students) {
     doc.setFont('helvetica', 'bold');
     doc.text(student.login_identifier || '—', contentX, contentY + 27);
 
-    // PIN temporaire (lisible mais moins dominant)
+    // PIN temporaire (sur une ligne, lisible mais moins dominant)
     doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
-    doc.text('Code PIN temporaire :', contentX, contentY + 35);
+    doc.text('PIN temporaire :', contentX, contentY + 35);
     doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
-    doc.text(student.activation_code || '—', contentX, contentY + 41);
+    doc.text(student.activation_code || '—', contentX + 28, contentY + 35);
 
     // Consigne changement de PIN
     doc.setFontSize(7);
@@ -8267,14 +8267,14 @@ async function _generateStudentCardsPDF(students) {
       'Lors de ta première connexion, tu devras choisir ton propre code PIN.',
       textWidth
     );
-    doc.text(consigne1, contentX, contentY + 48);
+    doc.text(consigne1, contentX, contentY + 42);
 
     // Consigne ajout à l'écran d'accueil
     const consigne2 = doc.splitTextToSize(
       'Après connexion, ajoute la page à ton écran d\'accueil (tuto dans Compte).',
       textWidth
     );
-    doc.text(consigne2, contentX, contentY + 53);
+    doc.text(consigne2, contentX, contentY + 47);
 
     // === QR Code à droite ===
     const qrX = x + cardWidth - margin - qrSize;
