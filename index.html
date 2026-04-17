@@ -6528,40 +6528,59 @@ async function checkScheduledFilms() {
 
       if (futureSessions?.length) continue; // encore programmé dans le futur
 
-      // === NOUVEAU : Enregistrer l'historique des élèves qui ont vu ce film ===
+      // === Enregistrer l'historique des élèves qui ont vu ce film ===
       // Récupérer tous les élèves INSCRITS (status='registered') à cette séance
-      try {
-        const { data: registeredStudents } = await db.from('registrations')
-          .select('student_id, registered_at')
-          .eq('session_id', s.id)
-          .eq('status', 'registered');
+      const { data: registeredStudents, error: regError } = await db.from('registrations')
+        .select('student_id, registered_at')
+        .eq('session_id', s.id)
+        .eq('status', 'registered');
 
-        if (registeredStudents?.length) {
-          // Enregistrer chaque élève dans l'historique persistant
-          const watchedAt = new Date(s.session_date + 'T12:00:00').toISOString();
+      if (regError) {
+        console.error('[checkScheduledFilms] Erreur récupération registrations:', regError);
+      } else if (registeredStudents?.length) {
+        console.log(`[checkScheduledFilms] ${registeredStudents.length} élève(s) inscrit(s) à la séance ${s.id}, film ${s.film_id}`);
+        
+        // Enregistrer chaque élève dans l'historique persistant
+        const watchedAt = new Date(s.session_date + 'T12:00:00').toISOString();
+        
+        for (const reg of registeredStudents) {
+          // Tentative d'insertion dans student_watched_films
+          const { data: insertData, error: insertError } = await db
+            .from('student_watched_films')
+            .insert({
+              student_id: reg.student_id,
+              film_id: s.film_id,
+              session_id: s.id,
+              watched_at: watchedAt,
+              registered_at: reg.registered_at
+            });
           
-          for (const reg of registeredStudents) {
-            // Insertion avec upsert pour éviter les doublons
-            // Note: cette table doit exister (voir student_watched_films.sql)
-            try {
-              await db.from('student_watched_films').upsert({
+          if (insertError) {
+            // Si erreur de doublon (code 23505), c'est OK - l'élève a déjà vu ce film
+            if (insertError.code === '23505') {
+              console.log(`[checkScheduledFilms] Élève ${reg.student_id} a déjà vu le film ${s.film_id} (doublon ignoré)`);
+            } 
+            // Si la table n'existe pas (code 42P01), on log mais on continue
+            else if (insertError.code === '42P01') {
+              console.warn('[checkScheduledFilms] Table student_watched_films n\'existe pas encore. Exécutez student_watched_films.sql');
+            } 
+            // Autre erreur : on log en détail
+            else {
+              console.error('[checkScheduledFilms] Erreur insertion student_watched_films:', {
+                code: insertError.code,
+                message: insertError.message,
+                details: insertError.details,
+                hint: insertError.hint,
                 student_id: reg.student_id,
-                film_id: s.film_id,
-                session_id: s.id,
-                watched_at: watchedAt,
-                registered_at: reg.registered_at
-              }, { 
-                onConflict: 'student_id,film_id',
-                ignoreDuplicates: true 
+                film_id: s.film_id
               });
-            } catch(histErr) {
-              // Si la table n'existe pas encore, on ignore silencieusement
-              // L'historique sera créé après migration SQL
             }
+          } else {
+            console.log(`[checkScheduledFilms] ✅ Historique enregistré : élève ${reg.student_id} a vu film ${s.film_id}`);
           }
         }
-      } catch(regErr) {
-        // Si erreur récupération inscriptions, on continue quand même
+      } else {
+        console.log(`[checkScheduledFilms] Aucun élève inscrit à la séance ${s.id}`);
       }
 
       // Passer le film en screened
@@ -8007,68 +8026,95 @@ async function _sdLoadSessions(studentId) {
 async function _sdLoadWatched(studentId) {
   const el = document.getElementById('sd-watched-content');
   
+  console.log(`[_sdLoadWatched] Chargement films vus pour élève ${studentId}`);
+  
   try {
-    // NOUVELLE LOGIQUE : Lire depuis la table d'historique persistante
-    // Cette table survit au nettoyage des anciennes séances
+    // Lire depuis la table d'historique persistante
+    // Utiliser une jointure explicite avec le nom de la foreign key
     const { data: watchedFilms, error } = await db
       .from('student_watched_films')
-      .select('watched_at, registered_at, films(id, title, poster_url, screened_at)')
+      .select(`
+        watched_at,
+        registered_at,
+        film_id,
+        films!student_watched_films_film_id_fkey (
+          id,
+          title,
+          poster_url,
+          screened_at
+        )
+      `)
       .eq('student_id', studentId)
       .order('watched_at', { ascending: false });
     
-    // Si la table n'existe pas encore, fallback sur ancienne logique
-    if (error && error.code === '42P01') {
-      // Table n'existe pas - utiliser ancienne méthode temporairement
-      const { data: watched } = await db
-        .from('registrations')
-        .select('registered_at,cinema_sessions(session_date,films(id,title,poster_url,status,screened_at))')
-        .eq('student_id', studentId)
-        .eq('status', 'registered')
-        .order('registered_at', { ascending: false });
+    if (error) {
+      console.error('[_sdLoadWatched] Erreur lecture student_watched_films:', {
+        code: error.code,
+        message: error.message,
+        details: error.details
+      });
       
-      const screenedFilms = (watched || [])
-        .filter(r => r.cinema_sessions?.films?.status === 'screened')
-        .map(r => ({
-          films: r.cinema_sessions.films,
-          watched_at: r.cinema_sessions.films.screened_at,
-          registered_at: r.registered_at
-        }));
-      
-      if (!screenedFilms.length) {
-        el.innerHTML = '<p class="text-sm text-muted" style="padding:10px 0;">Aucun film vu pour le moment.</p>';
+      // Si la table n'existe pas encore (code 42P01), fallback sur ancienne logique
+      if (error.code === '42P01') {
+        console.log('[_sdLoadWatched] Table student_watched_films non trouvée, fallback sur registrations');
+        
+        const { data: watched } = await db
+          .from('registrations')
+          .select('registered_at,cinema_sessions(session_date,films(id,title,poster_url,status,screened_at))')
+          .eq('student_id', studentId)
+          .eq('status', 'registered')
+          .order('registered_at', { ascending: false });
+        
+        const screenedFilms = (watched || [])
+          .filter(r => r.cinema_sessions?.films?.status === 'screened')
+          .map(r => ({
+            films: r.cinema_sessions.films,
+            watched_at: r.cinema_sessions.films.screened_at,
+            registered_at: r.registered_at
+          }));
+        
+        if (!screenedFilms.length) {
+          el.innerHTML = '<p class="text-sm text-muted" style="padding:10px 0;">Aucun film vu pour le moment.</p>';
+          return;
+        }
+        
+        const html = `
+          <p class="text-sm text-muted" style="margin-bottom:8px;">
+            ${screenedFilms.length} film${screenedFilms.length > 1 ? 's' : ''} vu${screenedFilms.length > 1 ? 's' : ''} (ancienne méthode)
+          </p>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            ${screenedFilms.map(item => {
+              const film = item.films;
+              const poster = film?.poster_url || '';
+              const title = film?.title || 'Film';
+              return `
+                <div style="display:flex;gap:11px;align-items:flex-start;background:var(--surface-2);border-radius:var(--radius-sm);padding:10px 12px;">
+                  ${poster
+                    ? `<img src="${poster}" style="width:34px;height:51px;object-fit:cover;border-radius:4px;flex-shrink:0;" alt="">`
+                    : `<div style="width:34px;height:51px;background:var(--surface-3);border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;">🎬</div>`}
+                  <div style="flex:1;min-width:0;">
+                    <div style="font-weight:700;font-size:13.5px;margin-bottom:3px;">${title}</div>
+                    ${item.watched_at 
+                      ? `<div style="font-size:12px;color:var(--gold);font-weight:700;margin-bottom:4px;">📅 ${fmtDateShort(item.watched_at.split('T')[0])}</div>` 
+                      : ''}
+                    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                      <span class="badge badge-purple">✅ Diffusé</span>
+                    </div>
+                  </div>
+                </div>`;
+            }).join('')}
+          </div>
+        `;
+        el.innerHTML = html;
         return;
       }
       
-      const html = `
-        <p class="text-sm text-muted" style="margin-bottom:8px;">
-          ${screenedFilms.length} film${screenedFilms.length > 1 ? 's' : ''} vu${screenedFilms.length > 1 ? 's' : ''}
-        </p>
-        <div style="display:flex;flex-direction:column;gap:8px;">
-          ${screenedFilms.map(item => {
-            const film = item.films;
-            const poster = film?.poster_url || '';
-            const title = film?.title || 'Film';
-            return `
-              <div style="display:flex;gap:11px;align-items:flex-start;background:var(--surface-2);border-radius:var(--radius-sm);padding:10px 12px;">
-                ${poster
-                  ? `<img src="${poster}" style="width:34px;height:51px;object-fit:cover;border-radius:4px;flex-shrink:0;" alt="">`
-                  : `<div style="width:34px;height:51px;background:var(--surface-3);border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;">🎬</div>`}
-                <div style="flex:1;min-width:0;">
-                  <div style="font-weight:700;font-size:13.5px;margin-bottom:3px;">${title}</div>
-                  ${item.watched_at 
-                    ? `<div style="font-size:12px;color:var(--gold);font-weight:700;margin-bottom:4px;">📅 ${fmtDateShort(item.watched_at.split('T')[0])}</div>` 
-                    : ''}
-                  <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-                    <span class="badge badge-purple">✅ Diffusé</span>
-                  </div>
-                </div>
-              </div>`;
-          }).join('')}
-        </div>
-      `;
-      el.innerHTML = html;
+      // Autre erreur : afficher message d'erreur
+      el.innerHTML = `<p class="text-sm text-muted" style="padding:10px 0;color:var(--red);">Erreur de chargement : ${error.message}</p>`;
       return;
     }
+    
+    console.log(`[_sdLoadWatched] ${watchedFilms?.length || 0} film(s) trouvé(s) dans student_watched_films`);
     
     if (!watchedFilms?.length) {
       el.innerHTML = '<p class="text-sm text-muted" style="padding:10px 0;">Aucun film vu pour le moment.</p>';
@@ -8108,8 +8154,8 @@ async function _sdLoadWatched(studentId) {
     
     el.innerHTML = html;
   } catch(err) {
-    console.error('_sdLoadWatched error:', err);
-    el.innerHTML = '<p class="text-sm text-muted" style="padding:10px 0;">Erreur de chargement.</p>';
+    console.error('[_sdLoadWatched] Exception non gérée:', err);
+    el.innerHTML = `<p class="text-sm text-muted" style="padding:10px 0;color:var(--red);">Erreur : ${err.message}</p>`;
   }
 }
 
