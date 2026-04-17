@@ -2993,6 +2993,40 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
   pointer-events: none;
   letter-spacing: .02em;
 }
+
+/* Modales inscrits en pop centrée sur desktop */
+#modal-registrants .overlay,
+#modal-student-registrants .overlay {
+  align-items: center;
+  justify-content: center;
+}
+
+#modal-registrants .sheet,
+#modal-student-registrants .sheet {
+  width: 90%;
+  max-width: 520px;
+  max-height: 75vh;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, var(--surface) 0%, var(--surface-2) 100%);
+  border: 2px solid var(--border-2);
+  box-shadow: 0 8px 32px rgba(0,0,0,.5), 0 0 0 1px rgba(240,165,0,.15);
+  padding: 24px 28px 28px;
+}
+
+#modal-registrants .sheet-handle,
+#modal-student-registrants .sheet-handle {
+  display: none;
+}
+
+#modal-registrants .sheet-title,
+#modal-student-registrants .sheet-title {
+  font-size: 20px;
+  color: var(--text);
+  text-shadow: 0 1px 2px rgba(0,0,0,.3);
+  border-bottom: 2px solid var(--border-2);
+  padding-bottom: 12px;
+  margin-bottom: 20px;
+}
 }
   </style>
 <body>
@@ -6357,22 +6391,31 @@ async function loadAdminDashboard() {
 
   // Bloc "Prochaine séance"
   const nextSesHtml = nextSes
-    ? `<div class="admin-dash-session">
-         <div class="admin-dash-session-thumb">
-           ${nextPoster
-             ? `<img src="${nextPoster}" alt="${nextTitle}">`
-             : `<div class="admin-dash-session-thumb-empty">🎬</div>`}
-         </div>
-         <div class="admin-dash-session-info">
-           <div class="admin-dash-session-date">📅 ${fmtDateShort(nextSes.session_date)}</div>
-           <div class="admin-dash-session-title">${nextTitle}</div>
-           <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
-             <span class="badge ${nextCount>=nextCap?'badge-red':nextSes.registrations_open?'badge-green':'badge-muted'}">
-               ${nextCount>=nextCap?'🚫 Complet':nextSes.registrations_open?'✅ Ouvertes':'⏸ Fermées'}
-             </span>
-             <span class="badge badge-muted">👥 ${nextCount} / ${nextCap}</span>
+    ? `<div class="session-banner" onclick="aTab('sessions')" style="cursor:pointer;">
+         ${nextPoster ? `<img src="${nextPoster}" class="session-banner-poster" alt="">` : ''}
+         <div class="session-banner-overlay"></div>
+         <div class="session-banner-inner">
+           <div class="session-banner-top">
+             <div class="session-banner-date">📅 ${fmtDateShort(nextSes.session_date)}</div>
+             <div class="session-banner-film">${nextTitle}</div>
            </div>
-           <button class="btn btn-ghost btn-sm" onclick="aTab('sessions')">Gérer →</button>
+           <div class="session-banner-bottom">
+             <div class="session-banner-thumb">
+               ${nextPoster
+                 ? `<img src="${nextPoster}" alt="${nextTitle}">`
+                 : `<div class="session-banner-thumb-empty">🎬</div>`}
+             </div>
+             <div class="session-banner-content">
+               <div class="session-banner-footer">
+                 <span class="badge ${nextCount>=nextCap?'badge-red':nextSes.registrations_open?'badge-green':'badge-muted'}">
+                   ${nextCount>=nextCap?'🚫 Complet':nextSes.registrations_open?'✅ Ouvertes':'⏸ Fermées'}
+                 </span>
+                 <span class="badge badge-purple" style="cursor:pointer;" onclick="event.stopPropagation(); viewRegistrants('${nextSes.id}','${nextSes.session_date}')">
+                   👥 ${nextCount} / ${nextCap}
+                 </span>
+               </div>
+             </div>
+           </div>
          </div>
        </div>`
     : `<p class="admin-dash-empty">Aucune séance programmée</p>`;
