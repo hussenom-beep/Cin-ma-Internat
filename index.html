@@ -6496,13 +6496,14 @@ async function loadAdminDashboard() {
 /* ----------------------------------------------------------------
    Auto-transition : si un film (actif ou scheduled) a une séance
    dont la date est passée → passer en screened avec screened_at
+   ET enregistrer l'historique des élèves qui l'ont vu
    ---------------------------------------------------------------- */
 async function checkScheduledFilms() {
   try {
     const today = new Date().toISOString().split('T')[0];
     // Chercher toutes les séances passées qui ont un film lié
     const { data: pastSessions } = await db.from('cinema_sessions')
-      .select('film_id, session_date')
+      .select('id, film_id, session_date')
       .not('film_id', 'is', null)
       .lt('session_date', today);
 
@@ -6527,12 +6528,51 @@ async function checkScheduledFilms() {
 
       if (futureSessions?.length) continue; // encore programmé dans le futur
 
+      // === NOUVEAU : Enregistrer l'historique des élèves qui ont vu ce film ===
+      // Récupérer tous les élèves INSCRITS (status='registered') à cette séance
+      try {
+        const { data: registeredStudents } = await db.from('registrations')
+          .select('student_id, registered_at')
+          .eq('session_id', s.id)
+          .eq('status', 'registered');
+
+        if (registeredStudents?.length) {
+          // Enregistrer chaque élève dans l'historique persistant
+          const watchedAt = new Date(s.session_date + 'T12:00:00').toISOString();
+          
+          for (const reg of registeredStudents) {
+            // Insertion avec upsert pour éviter les doublons
+            // Note: cette table doit exister (voir student_watched_films.sql)
+            try {
+              await db.from('student_watched_films').upsert({
+                student_id: reg.student_id,
+                film_id: s.film_id,
+                session_id: s.id,
+                watched_at: watchedAt,
+                registered_at: reg.registered_at
+              }, { 
+                onConflict: 'student_id,film_id',
+                ignoreDuplicates: true 
+              });
+            } catch(histErr) {
+              // Si la table n'existe pas encore, on ignore silencieusement
+              // L'historique sera créé après migration SQL
+            }
+          }
+        }
+      } catch(regErr) {
+        // Si erreur récupération inscriptions, on continue quand même
+      }
+
+      // Passer le film en screened
       await db.from('films').update({
         status:      'screened',
         screened_at: new Date(s.session_date + 'T12:00:00').toISOString()
       }).eq('id', film.id);
     }
-  } catch(e) { /* silencieux */ }
+  } catch(e) { 
+    console.error('checkScheduledFilms error:', e);
+  }
 }
 async function cleanupPastSessions() {
   try {
@@ -7967,60 +8007,110 @@ async function _sdLoadSessions(studentId) {
 async function _sdLoadWatched(studentId) {
   const el = document.getElementById('sd-watched-content');
   
-  // Récupérer les inscriptions de l'élève avec status='registered'
-  // et joindre avec les séances qui ont un film marqué comme 'screened'
-  const { data: watched } = await db
-    .from('registrations')
-    .select('registered_at,cinema_sessions(session_date,films(id,title,poster_url,status,screened_at))')
-    .eq('student_id', studentId)
-    .eq('status', 'registered')
-    .order('registered_at', { ascending: false });
-  
-  // Filtrer pour ne garder que les films effectivement marqués comme vus (screened)
-  const screenedFilms = (watched || [])
-    .filter(r => r.cinema_sessions?.films?.status === 'screened')
-    .map(r => ({
-      film: r.cinema_sessions.films,
-      sessionDate: r.cinema_sessions.session_date,
-      registeredAt: r.registered_at
-    }));
-  
-  if (!screenedFilms.length) {
-    el.innerHTML = '<p class="text-sm text-muted" style="padding:10px 0;">Aucun film vu pour le moment.</p>';
-    return;
-  }
-  
-  const html = `
-    <p class="text-sm text-muted" style="margin-bottom:8px;">
-      ${screenedFilms.length} film${screenedFilms.length > 1 ? 's' : ''} vu${screenedFilms.length > 1 ? 's' : ''}
-    </p>
-    <div style="display:flex;flex-direction:column;gap:8px;">
-      ${screenedFilms.map(item => {
-        const film = item.film;
-        const poster = film.poster_url || '';
-        return `
-          <div style="display:flex;gap:11px;align-items:flex-start;background:var(--surface-2);border-radius:var(--radius-sm);padding:10px 12px;">
-            ${poster
-              ? `<img src="${poster}" style="width:34px;height:51px;object-fit:cover;border-radius:4px;flex-shrink:0;" alt="">`
-              : `<div style="width:34px;height:51px;background:var(--surface-3);border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;">🎬</div>`}
-            <div style="flex:1;min-width:0;">
-              <div style="font-weight:700;font-size:13.5px;margin-bottom:3px;">${film.title || '—'}</div>
-              ${item.sessionDate 
-                ? `<div style="font-size:12px;color:var(--gold);font-weight:700;margin-bottom:4px;">📅 ${fmtDateShort(item.sessionDate)}</div>` 
-                : ''}
-              <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-                <span class="badge badge-purple">✅ Diffusé</span>
-                ${film.screened_at 
-                  ? `<span class="sd-activity-date">${fmtDateTime(film.screened_at)}</span>` 
+  try {
+    // NOUVELLE LOGIQUE : Lire depuis la table d'historique persistante
+    // Cette table survit au nettoyage des anciennes séances
+    const { data: watchedFilms, error } = await db
+      .from('student_watched_films')
+      .select('watched_at, registered_at, films(id, title, poster_url, screened_at)')
+      .eq('student_id', studentId)
+      .order('watched_at', { ascending: false });
+    
+    // Si la table n'existe pas encore, fallback sur ancienne logique
+    if (error && error.code === '42P01') {
+      // Table n'existe pas - utiliser ancienne méthode temporairement
+      const { data: watched } = await db
+        .from('registrations')
+        .select('registered_at,cinema_sessions(session_date,films(id,title,poster_url,status,screened_at))')
+        .eq('student_id', studentId)
+        .eq('status', 'registered')
+        .order('registered_at', { ascending: false });
+      
+      const screenedFilms = (watched || [])
+        .filter(r => r.cinema_sessions?.films?.status === 'screened')
+        .map(r => ({
+          films: r.cinema_sessions.films,
+          watched_at: r.cinema_sessions.films.screened_at,
+          registered_at: r.registered_at
+        }));
+      
+      if (!screenedFilms.length) {
+        el.innerHTML = '<p class="text-sm text-muted" style="padding:10px 0;">Aucun film vu pour le moment.</p>';
+        return;
+      }
+      
+      const html = `
+        <p class="text-sm text-muted" style="margin-bottom:8px;">
+          ${screenedFilms.length} film${screenedFilms.length > 1 ? 's' : ''} vu${screenedFilms.length > 1 ? 's' : ''}
+        </p>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          ${screenedFilms.map(item => {
+            const film = item.films;
+            const poster = film?.poster_url || '';
+            const title = film?.title || 'Film';
+            return `
+              <div style="display:flex;gap:11px;align-items:flex-start;background:var(--surface-2);border-radius:var(--radius-sm);padding:10px 12px;">
+                ${poster
+                  ? `<img src="${poster}" style="width:34px;height:51px;object-fit:cover;border-radius:4px;flex-shrink:0;" alt="">`
+                  : `<div style="width:34px;height:51px;background:var(--surface-3);border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;">🎬</div>`}
+                <div style="flex:1;min-width:0;">
+                  <div style="font-weight:700;font-size:13.5px;margin-bottom:3px;">${title}</div>
+                  ${item.watched_at 
+                    ? `<div style="font-size:12px;color:var(--gold);font-weight:700;margin-bottom:4px;">📅 ${fmtDateShort(item.watched_at.split('T')[0])}</div>` 
+                    : ''}
+                  <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                    <span class="badge badge-purple">✅ Diffusé</span>
+                  </div>
+                </div>
+              </div>`;
+          }).join('')}
+        </div>
+      `;
+      el.innerHTML = html;
+      return;
+    }
+    
+    if (!watchedFilms?.length) {
+      el.innerHTML = '<p class="text-sm text-muted" style="padding:10px 0;">Aucun film vu pour le moment.</p>';
+      return;
+    }
+    
+    const html = `
+      <p class="text-sm text-muted" style="margin-bottom:8px;">
+        ${watchedFilms.length} film${watchedFilms.length > 1 ? 's' : ''} vu${watchedFilms.length > 1 ? 's' : ''}
+      </p>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        ${watchedFilms.map(item => {
+          const film = item.films;
+          const poster = film?.poster_url || '';
+          const title = film?.title || 'Film supprimé';
+          return `
+            <div style="display:flex;gap:11px;align-items:flex-start;background:var(--surface-2);border-radius:var(--radius-sm);padding:10px 12px;">
+              ${poster
+                ? `<img src="${poster}" style="width:34px;height:51px;object-fit:cover;border-radius:4px;flex-shrink:0;" alt="">`
+                : `<div style="width:34px;height:51px;background:var(--surface-3);border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;">🎬</div>`}
+              <div style="flex:1;min-width:0;">
+                <div style="font-weight:700;font-size:13.5px;margin-bottom:3px;">${title}</div>
+                ${item.watched_at 
+                  ? `<div style="font-size:12px;color:var(--gold);font-weight:700;margin-bottom:4px;">📅 ${fmtDateShort(item.watched_at.split('T')[0])}</div>` 
                   : ''}
+                <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                  <span class="badge badge-purple">✅ Diffusé</span>
+                  ${film?.screened_at 
+                    ? `<span class="sd-activity-date">${fmtDateTime(film.screened_at)}</span>` 
+                    : ''}
+                </div>
               </div>
-            </div>
-          </div>`;
-      }).join('')}
-    </div>
-  `;
-  
-  el.innerHTML = html;
+            </div>`;
+        }).join('')}
+      </div>
+    `;
+    
+    el.innerHTML = html;
+  } catch(err) {
+    console.error('_sdLoadWatched error:', err);
+    el.innerHTML = '<p class="text-sm text-muted" style="padding:10px 0;">Erreur de chargement.</p>';
+  }
 }
 
 /* ================================================================
