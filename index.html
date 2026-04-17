@@ -2894,6 +2894,22 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     font-size: 17px;
     margin-bottom: 8px;
   }
+
+  /* Admin items (.ai) - Effet hover premium desktop */
+  .ai {
+    transition: transform .2s cubic-bezier(.4,0,.2,1), 
+                border-color .2s,
+                background .2s,
+                box-shadow .2s;
+  }
+  .ai:hover {
+    transform: translateX(3px);
+    background: var(--surface-2);
+    border-color: var(--gold);
+    border-left: 3px solid var(--gold);
+    box-shadow: 0 2px 8px rgba(0,0,0,.15);
+    padding-left: 11px; /* Compense la bordure gauche plus épaisse */
+  }
 }
 
 /* ================================================================
