@@ -6514,116 +6514,163 @@ async function loadAdminDashboard() {
    dont la date est passée → passer en screened avec screened_at
    ET enregistrer l'historique des élèves qui l'ont vu
    ---------------------------------------------------------------- */
+async function recordWatchedForSession(session) {
+  if (!session?.id || !session?.film_id) {
+    console.warn('[recordWatchedForSession] Session invalide', session);
+    return { count: 0, ok: false };
+  }
+
+  const watchedAt = new Date(session.session_date + 'T12:00:00').toISOString();
+
+  const { data: regs, error: regError } = await db
+    .from('registrations')
+    .select('student_id, registered_at')
+    .eq('session_id', session.id)
+    .eq('status', 'registered');
+
+  if (regError) {
+    console.error('[recordWatchedForSession] Erreur lecture inscriptions:', regError);
+    return { count: 0, ok: false };
+  }
+
+  if (!regs?.length) {
+    console.log(`[recordWatchedForSession] Aucun inscrit confirmé pour la séance ${session.id}`);
+    return { count: 0, ok: true };
+  }
+
+  let saved = 0;
+
+  for (const reg of regs) {
+    const { error } = await db.rpc('record_watched_film', {
+      p_student_id: reg.student_id,
+      p_film_id: session.film_id,
+      p_session_id: session.id,
+      p_watched_at: watchedAt,
+      p_registered_at: reg.registered_at || null
+    });
+
+    if (error) {
+      console.error('[recordWatchedForSession] Erreur RPC record_watched_film:', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        session_id: session.id,
+        film_id: session.film_id,
+        student_id: reg.student_id
+      });
+    } else {
+      saved++;
+    }
+  }
+
+  console.log(`[recordWatchedForSession] ${saved}/${regs.length} historique(s) enregistré(s) pour la séance ${session.id}`);
+  return { count: saved, ok: saved === regs.length };
+}
+
 async function checkScheduledFilms() {
   try {
     const today = new Date().toISOString().split('T')[0];
-    // Chercher toutes les séances passées qui ont un film lié
-    const { data: pastSessions } = await db.from('cinema_sessions')
+
+    const { data: pastSessions, error: sesError } = await db
+      .from('cinema_sessions')
       .select('id, film_id, session_date')
       .not('film_id', 'is', null)
       .lt('session_date', today);
 
+    if (sesError) {
+      console.error('[checkScheduledFilms] Erreur lecture séances passées:', sesError);
+      return;
+    }
+
     if (!pastSessions?.length) return;
 
     for (const s of pastSessions) {
-      // Ne traiter que les films encore actifs ou scheduled
-      const { data: film } = await db.from('films')
+      const { data: film, error: filmError } = await db
+        .from('films')
         .select('id, status')
         .eq('id', s.film_id)
-        .in('status', ['active', 'scheduled'])
         .maybeSingle();
+
+      if (filmError) {
+        console.error('[checkScheduledFilms] Erreur lecture film:', filmError);
+        continue;
+      }
 
       if (!film) continue;
 
-      // Vérifier qu'il n'a pas de séance FUTURE
-      const { data: futureSessions } = await db.from('cinema_sessions')
+      // Très important :
+      // on enregistre l'historique même si le film est déjà screened.
+      // Ça permet de réparer les cas où le film est passé en vu,
+      // mais où les élèves n'ont pas été enregistrés.
+      await recordWatchedForSession(s);
+
+      const { data: futureSessions, error: futureError } = await db
+        .from('cinema_sessions')
         .select('id')
         .eq('film_id', film.id)
         .gte('session_date', today)
         .limit(1);
 
-      if (futureSessions?.length) continue; // encore programmé dans le futur
-
-      // === Enregistrer l'historique des élèves qui ont vu ce film ===
-      // Récupérer tous les élèves INSCRITS (status='registered') à cette séance
-      const { data: registeredStudents, error: regError } = await db.from('registrations')
-        .select('student_id, registered_at')
-        .eq('session_id', s.id)
-        .eq('status', 'registered');
-
-      if (regError) {
-        console.error('[checkScheduledFilms] Erreur récupération registrations:', regError);
-      } else if (registeredStudents?.length) {
-        console.log(`[checkScheduledFilms] ${registeredStudents.length} élève(s) inscrit(s) à la séance ${s.id}, film ${s.film_id}`);
-        
-        // Enregistrer chaque élève dans l'historique persistant
-        const watchedAt = new Date(s.session_date + 'T12:00:00').toISOString();
-        
-        for (const reg of registeredStudents) {
-          // Tentative d'insertion dans student_watched_films
-          const { data: insertData, error: insertError } = await db
-            .from('student_watched_films')
-            .insert({
-              student_id: reg.student_id,
-              film_id: s.film_id,
-              session_id: s.id,
-              watched_at: watchedAt,
-              registered_at: reg.registered_at
-            });
-          
-          if (insertError) {
-            // Si erreur de doublon (code 23505), c'est OK - l'élève a déjà vu ce film
-            if (insertError.code === '23505') {
-              console.log(`[checkScheduledFilms] Élève ${reg.student_id} a déjà vu le film ${s.film_id} (doublon ignoré)`);
-            } 
-            // Si la table n'existe pas (code 42P01), on log mais on continue
-            else if (insertError.code === '42P01') {
-              console.warn('[checkScheduledFilms] Table student_watched_films n\'existe pas encore. Exécutez student_watched_films.sql');
-            } 
-            // Autre erreur : on log en détail
-            else {
-              console.error('[checkScheduledFilms] Erreur insertion student_watched_films:', {
-                code: insertError.code,
-                message: insertError.message,
-                details: insertError.details,
-                hint: insertError.hint,
-                student_id: reg.student_id,
-                film_id: s.film_id
-              });
-            }
-          } else {
-            console.log(`[checkScheduledFilms] ✅ Historique enregistré : élève ${reg.student_id} a vu film ${s.film_id}`);
-          }
-        }
-      } else {
-        console.log(`[checkScheduledFilms] Aucun élève inscrit à la séance ${s.id}`);
+      if (futureError) {
+        console.error('[checkScheduledFilms] Erreur vérification séances futures:', futureError);
+        continue;
       }
 
-      // Passer le film en screened
-      await db.from('films').update({
-        status:      'screened',
-        screened_at: new Date(s.session_date + 'T12:00:00').toISOString()
-      }).eq('id', film.id);
+      // S'il reste une séance future pour ce même film,
+      // on garde le film programmé/actif mais l'historique de la séance passée est quand même enregistré.
+      if (futureSessions?.length) continue;
+
+      // On ne modifie le statut que si le film n'est pas déjà visionné.
+      if (film.status !== 'screened') {
+        const { error: updateError } = await db
+          .from('films')
+          .update({
+            status: 'screened',
+            screened_at: new Date(s.session_date + 'T12:00:00').toISOString()
+          })
+          .eq('id', film.id);
+
+        if (updateError) {
+          console.error('[checkScheduledFilms] Erreur passage film en screened:', updateError);
+        }
+      }
     }
-  } catch(e) { 
+  } catch (e) {
     console.error('checkScheduledFilms error:', e);
   }
 }
+
 async function cleanupPastSessions() {
   try {
     const today = new Date().toISOString().split('T')[0];
 
-    const { data: oldSessions } = await db.from('cinema_sessions')
-      .select('id')
+    const { data: oldSessions, error } = await db
+      .from('cinema_sessions')
+      .select('id, film_id, session_date')
       .lt('session_date', today);
 
+    if (error) {
+      console.error('cleanupPastSessions lecture error', error);
+      return;
+    }
+
     if (!oldSessions?.length) return;
+
+    // Sécurité absolue :
+    // avant de supprimer les anciennes inscriptions/séances,
+    // on tente d'abord d'enregistrer les films vus.
+    for (const s of oldSessions) {
+      if (s.film_id) {
+        await recordWatchedForSession(s);
+      }
+    }
 
     const ids = oldSessions.map(s => s.id);
 
     await db.from('registrations').delete().in('session_id', ids);
     await db.from('cinema_sessions').delete().in('id', ids);
-  } catch(e) {
+  } catch (e) {
     console.error('cleanupPastSessions error', e);
   }
 }
@@ -6880,13 +6927,53 @@ function openMarkScreened(id) {
 }
 
 async function confirmMarkScreened() {
-  const id   = document.getElementById('screened-film-id').value;
+  const id = document.getElementById('screened-film-id').value;
   const date = document.getElementById('screened-date').value;
-  if (!date) { toast('Sélectionne une date', 'error'); return; }
-  await db.from('films').update({
-    status:     'screened',
-    screened_at: new Date(date + 'T12:00:00').toISOString()
-  }).eq('id', id);
+
+  if (!date) {
+    toast('Sélectionne une date', 'error');
+    return;
+  }
+
+  const screenedAt = new Date(date + 'T12:00:00').toISOString();
+
+  // On cherche les séances liées à ce film jusqu'à cette date,
+  // pour enregistrer les élèves inscrits avant de passer le film en vu.
+  const { data: sessions, error: sesError } = await db
+    .from('cinema_sessions')
+    .select('id, film_id, session_date')
+    .eq('film_id', id)
+    .lte('session_date', date)
+    .order('session_date', { ascending: false });
+
+  if (sesError) {
+    console.error('[confirmMarkScreened] Erreur lecture séances liées:', sesError);
+    toast('Erreur lecture séance liée au film', 'error');
+    return;
+  }
+
+  if (sessions?.length) {
+    for (const s of sessions) {
+      await recordWatchedForSession(s);
+    }
+  } else {
+    console.warn('[confirmMarkScreened] Aucune séance liée trouvée pour ce film. Le film sera marqué vu, mais aucun élève ne pourra être associé automatiquement.');
+  }
+
+  const { error: updateError } = await db
+    .from('films')
+    .update({
+      status: 'screened',
+      screened_at: screenedAt
+    })
+    .eq('id', id);
+
+  if (updateError) {
+    console.error('[confirmMarkScreened] Erreur update film:', updateError);
+    toast('Erreur passage en film vu', 'error');
+    return;
+  }
+
   closeModal('modal-mark-screened');
   toast('Film marqué comme diffusé ✅', 'success');
   loadAdminFilms();
