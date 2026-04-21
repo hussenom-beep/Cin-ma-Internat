@@ -3118,6 +3118,221 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
   letter-spacing: .02em;
 }
 
+/* ================================================================
+   MODALE FICHE SÉANCE ÉLÈVE — centrale premium
+   ================================================================ */
+#modal-student-session-detail {
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 18px;
+}
+
+#modal-student-session-detail .sheet {
+  width: 94%;
+  max-width: 540px;
+  max-height: 88vh;
+  border-radius: var(--radius-lg);
+  padding: 0;
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--surface) 0%, var(--surface-2) 100%);
+  border: 1px solid rgba(240,165,0,.28);
+  box-shadow:
+    0 14px 48px rgba(0,0,0,.75),
+    0 0 0 1px rgba(255,255,255,.03) inset,
+    0 0 42px rgba(240,165,0,.12);
+}
+
+#modal-student-session-detail .sheet-handle {
+  display: none;
+}
+
+.ssd-scroll {
+  max-height: 88vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.ssd-hero {
+  position: relative;
+  min-height: 290px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.ssd-hero-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: .28;
+  filter: blur(1px);
+}
+
+.ssd-hero-overlay {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(to bottom, rgba(8,8,15,.18) 0%, rgba(8,8,15,.72) 56%, rgba(8,8,15,.98) 100%),
+    radial-gradient(circle at 20% 20%, rgba(240,165,0,.14), transparent 45%);
+}
+
+.ssd-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 4;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,.16);
+  background: rgba(0,0,0,.55);
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+}
+
+.ssd-hero-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  min-height: 290px;
+  padding: 56px 18px 18px;
+}
+
+.ssd-main-poster {
+  width: 105px;
+  height: 158px;
+  object-fit: cover;
+  border-radius: 9px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.75);
+  border: 1px solid rgba(255,255,255,.16);
+  flex-shrink: 0;
+  background: var(--surface-3);
+}
+
+.ssd-main-poster-empty {
+  width: 105px;
+  height: 158px;
+  border-radius: 9px;
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 34px;
+  flex-shrink: 0;
+}
+
+.ssd-hero-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.ssd-kicker {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--gold);
+  text-transform: uppercase;
+  letter-spacing: .09em;
+  margin-bottom: 7px;
+}
+
+.ssd-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 25px;
+  font-weight: 700;
+  line-height: 1.12;
+  color: #fff;
+  margin-bottom: 10px;
+  text-shadow: 0 2px 12px rgba(0,0,0,.65);
+}
+
+.ssd-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ssd-meta .badge {
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.12);
+  color: rgba(255,255,255,.88);
+}
+
+.ssd-body {
+  padding: 16px 18px 20px;
+}
+
+.ssd-section {
+  margin-bottom: 15px;
+}
+
+.ssd-section-title {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  margin-bottom: 8px;
+}
+
+.ssd-synopsis {
+  font-size: 13.5px;
+  line-height: 1.75;
+  color: var(--text-2);
+}
+
+.ssd-session-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 13px;
+}
+
+.ssd-badges {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+  margin-bottom: 9px;
+}
+
+.ssd-help {
+  font-size: 12px;
+  color: var(--text-2);
+  background: rgba(240,165,0,.08);
+  border: 1px solid rgba(240,165,0,.14);
+  border-radius: 8px;
+  padding: 8px 10px;
+  line-height: 1.55;
+}
+
+.ssd-actions {
+  padding: 0 18px 18px;
+}
+
+@media (max-width: 420px) {
+  .ssd-hero-content {
+    gap: 13px;
+    padding-left: 15px;
+    padding-right: 15px;
+  }
+
+  .ssd-main-poster,
+  .ssd-main-poster-empty {
+    width: 88px;
+    height: 132px;
+  }
+
+  .ssd-title {
+    font-size: 22px;
+  }
+}
+
 /* Modales inscrits en pop centrée sur desktop */
 #modal-registrants,
 #modal-student-registrants {
@@ -3910,51 +4125,66 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 <!-- ================================================================
      MODAL: Fiche séance / film détaillée (élève)
      ================================================================ -->
+<!-- ================================================================
+     MODAL: Fiche séance / film détaillée (élève)
+     ================================================================ -->
 <div class="overlay hidden" id="modal-student-session-detail">
-  <div class="sheet" style="max-width:480px;">
-    <div class="sheet-handle"></div>
-    
-    <!-- Affiche de fond -->
-    <div id="ssd-poster-bg" style="position:relative;width:100%;height:240px;background:var(--surface-2);border-radius:var(--radius-md);overflow:hidden;margin-bottom:16px;">
-      <img id="ssd-poster-img" src="" alt="" style="width:100%;height:100%;object-fit:cover;opacity:0.3;">
-      <div style="position:absolute;inset:0;background:linear-gradient(to bottom, rgba(18,18,18,0) 0%, rgba(18,18,18,0.95) 100%);"></div>
-      
-      <!-- Infos principales en bas de l'affiche -->
-      <div style="position:absolute;bottom:0;left:0;right:0;padding:16px;">
-        <div id="ssd-title" style="font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:white;margin-bottom:6px;text-shadow:0 2px 8px rgba(0,0,0,0.6);"></div>
-        <div id="ssd-meta" style="font-size:13px;color:rgba(255,255,255,0.85);display:flex;gap:10px;flex-wrap:wrap;"></div>
+  <div class="sheet">
+    <div class="ssd-scroll">
+
+      <div class="ssd-hero">
+        <img id="ssd-bg-img" class="ssd-hero-bg" src="" alt="">
+        <div class="ssd-hero-overlay"></div>
+
+        <button class="ssd-close" onclick="closeModal('modal-student-session-detail')">✕</button>
+
+        <div class="ssd-hero-content">
+          <img id="ssd-poster-img" class="ssd-main-poster" src="" alt="">
+          <div id="ssd-poster-empty" class="ssd-main-poster-empty hidden">🎬</div>
+
+          <div class="ssd-hero-info">
+            <div class="ssd-kicker">Prochaine séance</div>
+            <div id="ssd-title" class="ssd-title">—</div>
+            <div id="ssd-meta" class="ssd-meta"></div>
+          </div>
+        </div>
       </div>
-    </div>
-    
-    <!-- Synopsis -->
-    <div id="ssd-synopsis-block" class="hidden" style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:14px;">
-      <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Synopsis</div>
-      <div id="ssd-synopsis" style="font-size:13px;color:var(--text-2);line-height:1.6;"></div>
-    </div>
-    
-    <!-- Bande-annonce -->
-    <div id="ssd-trailer-block" class="hidden" style="margin-bottom:14px;">
-      <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">🎬 Bande-annonce</div>
-      <div id="ssd-trailer-container" style="position:relative;width:100%;padding-bottom:56.25%;background:var(--surface-3);border-radius:var(--radius-sm);overflow:hidden;">
-        <iframe id="ssd-trailer-iframe" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+      <div class="ssd-body">
+
+        <div id="ssd-trailer-block" class="hidden ssd-section">
+          <button id="ssd-trailer-btn" class="btn-trailer" type="button">
+            <span class="trailer-play-icon">▶</span>
+            <span>Voir la bande-annonce</span>
+            <span class="trailer-lang-badge">BA</span>
+          </button>
+        </div>
+
+        <div id="ssd-synopsis-block" class="hidden ssd-section">
+          <div class="ssd-section-title">Synopsis</div>
+          <div id="ssd-synopsis" class="ssd-synopsis"></div>
+        </div>
+
+        <div class="ssd-section">
+          <div class="ssd-section-title">Ma séance</div>
+          <div class="ssd-session-box">
+            <div class="ssd-badges">
+              <span id="ssd-status-badge"></span>
+              <span id="ssd-registrants-badge" style="cursor:pointer;"></span>
+              <span id="ssd-user-badge"></span>
+            </div>
+            <div id="ssd-help-text" class="ssd-help hidden"></div>
+          </div>
+        </div>
+
       </div>
-    </div>
-    
-    <!-- Statut et inscrits -->
-    <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:14px;">
-      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
-        <span id="ssd-status-badge"></span>
-        <span id="ssd-registrants-badge" style="cursor:pointer;"></span>
-        <span id="ssd-user-badge"></span>
+
+      <div class="ssd-actions">
+        <button id="ssd-action-btn" class="btn btn-gold btn-full btn-lg" style="margin-bottom:10px;">—</button>
+        <button class="btn btn-ghost btn-full btn-sm" onclick="closeModal('modal-student-session-detail')">Fermer</button>
       </div>
-      <div id="ssd-help-text" class="hidden" style="font-size:11px;color:var(--text-3);background:rgba(240,165,0,.08);border:1px solid rgba(240,165,0,.15);border-radius:6px;padding:6px 10px;line-height:1.5;margin-top:8px;"></div>
+
     </div>
-    
-    <!-- Bouton d'action -->
-    <button id="ssd-action-btn" class="btn btn-gold btn-full btn-lg" style="margin-bottom:10px;">—</button>
-    
-    <!-- Bouton fermer -->
-    <button class="btn btn-ghost btn-full btn-sm" onclick="closeModal('modal-student-session-detail')">Fermer</button>
   </div>
 </div>
 
@@ -4796,6 +5026,32 @@ function fmtDate(str) {
 function fmtDateShort(str) {
   const d = new Date(str + 'T12:00:00');
   return d.toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric' });
+}
+
+function fmtDateSafe(value) {
+  if (!value) return null;
+
+  // Si c'est déjà une date simple YYYY-MM-DD
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return fmtDateShort(value);
+  }
+
+  // Si c'est un timestamp ISO
+  if (typeof value === 'string') {
+    const datePart = value.split('T')[0];
+    if (/^\d{4}-\d{2}-\d{2}$/.test(datePart)) {
+      return fmtDateShort(datePart);
+    }
+  }
+
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return null;
+
+  return d.toLocaleDateString('fr-FR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  });
 }
 
 /* Date + heure à partir d'un ISO timestamp complet */
@@ -7048,13 +7304,15 @@ async function openStudentSessionDetail(sessionId) {
   const open = session.registrations_open;
   
   // Remplir la modale
+  const bgEl = document.getElementById('ssd-bg-img');
   const posterEl = document.getElementById('ssd-poster-img');
+  const posterEmptyEl = document.getElementById('ssd-poster-empty');
   const titleEl = document.getElementById('ssd-title');
   const metaEl = document.getElementById('ssd-meta');
   const synopsisBlock = document.getElementById('ssd-synopsis-block');
   const synopsisEl = document.getElementById('ssd-synopsis');
   const trailerBlock = document.getElementById('ssd-trailer-block');
-  const trailerIframe = document.getElementById('ssd-trailer-iframe');
+  const trailerBtn = document.getElementById('ssd-trailer-btn');
   const statusBadgeEl = document.getElementById('ssd-status-badge');
   const registrantsBadgeEl = document.getElementById('ssd-registrants-badge');
   const userBadgeEl = document.getElementById('ssd-user-badge');
@@ -7062,8 +7320,20 @@ async function openStudentSessionDetail(sessionId) {
   const actionBtnEl = document.getElementById('ssd-action-btn');
   
   // Affiche
-  posterEl.src = film.poster_url || '';
-  posterEl.style.display = film.poster_url ? '' : 'none';
+// Affiche + fond
+if (film.poster_url) {
+  posterEl.src = film.poster_url;
+  bgEl.src = film.poster_url;
+  posterEl.classList.remove('hidden');
+  bgEl.classList.remove('hidden');
+  if (posterEmptyEl) posterEmptyEl.classList.add('hidden');
+} else {
+  posterEl.src = '';
+  bgEl.src = '';
+  posterEl.classList.add('hidden');
+  bgEl.classList.add('hidden');
+  if (posterEmptyEl) posterEmptyEl.classList.remove('hidden');
+}
   
   // Titre
   titleEl.textContent = film.title || '🎬 Film à annoncer';
@@ -7074,7 +7344,7 @@ async function openStudentSessionDetail(sessionId) {
   if (film.duration) metaParts.push(`⏱ ${formatRuntime(film.duration)}`);
   if (film.genre) metaParts.push(film.genre);
   if (tmdbRating) metaParts.push(`⭐ ${tmdbRating.toFixed(1)}/10`);
-  metaEl.innerHTML = metaParts.map(p => `<span>${p}</span>`).join('');
+  metaEl.innerHTML = metaParts.map(p => `<span class="badge">${p}</span>`).join('');
   
   // Synopsis
   if (film.synopsis) {
@@ -7085,12 +7355,13 @@ async function openStudentSessionDetail(sessionId) {
   }
   
   // Bande-annonce
-  if (film.youtube_trailer_key) {
-    trailerIframe.src = `https://www.youtube.com/embed/${film.youtube_trailer_key}?rel=0&modestbranding=1`;
-    trailerBlock.classList.remove('hidden');
-  } else {
-    trailerBlock.classList.add('hidden');
-  }
+if (film.youtube_trailer_key) {
+  trailerBlock.classList.remove('hidden');
+  trailerBtn.onclick = () => openTrailer(film.youtube_trailer_key, 'BA');
+} else {
+  trailerBlock.classList.add('hidden');
+  trailerBtn.onclick = null;
+}
   
   // Badge statut
   let statusBadgeHtml;
@@ -8064,7 +8335,9 @@ async function loadAdminProposals() {
         if (!screenedFilmsMap[f.tmdb_id]) {
           screenedFilmsMap[f.tmdb_id] = [];
         }
-        screenedFilmsMap[f.tmdb_id].push(f.screened_at);
+        if (f.screened_at) {
+  screenedFilmsMap[f.tmdb_id].push(f.screened_at);
+}
       });
     }
   }
@@ -8079,12 +8352,17 @@ async function loadAdminProposals() {
     // Afficher "Déjà diffusé" si le film est screened
     if (p.tmdb_id && screenedFilmsMap[p.tmdb_id]) {
       const dates = screenedFilmsMap[p.tmdb_id].filter(Boolean);
-      if (dates.length === 1) {
-        const dateStr = fmtDateShort(dates[0]);
-        extra += `<div style="font-size:11px;color:var(--text-3);background:rgba(240,165,0,.1);border:1px solid rgba(240,165,0,.2);border-radius:5px;padding:4px 8px;margin-top:6px;display:inline-block;">🎬 Déjà diffusé le ${dateStr}</div>`;
-      } else if (dates.length > 1) {
-        extra += `<div style="font-size:11px;color:var(--text-3);background:rgba(240,165,0,.1);border:1px solid rgba(240,165,0,.2);border-radius:5px;padding:4px 8px;margin-top:6px;display:inline-block;">🎬 Déjà diffusé ${dates.length} fois</div>`;
-      }
+      const validDateLabels = (dates || [])
+  .map(d => fmtDateSafe(d))
+  .filter(Boolean);
+
+if (validDateLabels.length === 1) {
+  extra += `<div style="font-size:11px;color:var(--text-3);background:rgba(240,165,0,.1);border:1px solid rgba(240,165,0,.2);border-radius:5px;padding:4px 8px;margin-top:6px;display:inline-block;">🎬 Déjà diffusé le ${validDateLabels[0]}</div>`;
+} else if (validDateLabels.length > 1) {
+  extra += `<div style="font-size:11px;color:var(--text-3);background:rgba(240,165,0,.1);border:1px solid rgba(240,165,0,.2);border-radius:5px;padding:4px 8px;margin-top:6px;display:inline-block;">🎬 Déjà diffusé ${validDateLabels.length} fois : ${validDateLabels.join(', ')}</div>`;
+} else if ((dates || []).length > 0) {
+  extra += `<div style="font-size:11px;color:var(--text-3);background:rgba(240,165,0,.1);border:1px solid rgba(240,165,0,.2);border-radius:5px;padding:4px 8px;margin-top:6px;display:inline-block;">🎬 Déjà diffusé</div>`;
+}
     }
     
     if (Array.isArray(p.quick_reasons) && p.quick_reasons.length > 0) {
