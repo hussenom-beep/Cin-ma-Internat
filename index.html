@@ -414,6 +414,41 @@ button { cursor: pointer; }
   padding: 8px;
 }
 
+/* Boutons raisons rapides */
+.quick-reason-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-2);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all .15s;
+  white-space: nowrap;
+}
+.quick-reason-btn .qr-icon {
+  font-size: 14px;
+}
+.quick-reason-btn:hover {
+  background: var(--surface-2);
+  border-color: var(--gold);
+  color: var(--text);
+}
+.quick-reason-btn.selected {
+  background: var(--gold-dim);
+  border-color: var(--gold);
+  color: var(--gold);
+  font-weight: 600;
+}
+.quick-reason-btn.selected .qr-icon {
+  filter: drop-shadow(0 0 2px currentColor);
+}
+
+
 
 /* ── Modale bande-annonce ───────────────────────────────────── */
 #modal-trailer {
@@ -1910,6 +1945,18 @@ button { cursor: pointer; }
   border-radius: 6px;
   padding: 5px 10px;
   line-height: 1.45;
+}
+
+/* Texte d'aide statut séance */
+.session-help-text {
+  font-size: 11px;
+  color: var(--text-3);
+  background: rgba(240,165,0,.08);
+  border: 1px solid rgba(240,165,0,.15);
+  border-radius: 6px;
+  padding: 6px 10px;
+  line-height: 1.5;
+  margin-top: 8px;
 }
 
 /* ---- Carte admin séance ---- */
@@ -3745,6 +3792,11 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 
     <!-- Actions -->
     <div class="profile-actions">
+      <button class="profile-action-btn" onclick="openStudentWatchedFilms()">
+        <span class="pa-icon">🎞</span>
+        <span class="pa-text">Mes films vus</span>
+        <span class="pa-arrow">›</span>
+      </button>
       <button class="profile-action-btn" onclick="openChangePIN()">
         <span class="pa-icon">🔐</span>
         <span class="pa-text">Changer mon code secret</span>
@@ -3763,6 +3815,24 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 
     <div class="profile-close-row">
       <button class="profile-close-link" onclick="closeModal('modal-profile')">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     MODAL: Films vus de l'élève
+     ================================================================ -->
+<div class="overlay hidden" id="modal-student-watched">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">🎞 Mes films vus</div>
+    
+    <div id="student-watched-content" style="max-height:60vh;overflow-y:auto;padding:0 4px;">
+      <div class="loader" style="padding:24px;"><div class="spinner"></div></div>
+    </div>
+    
+    <div style="padding:12px 0 0;border-top:1px solid var(--border);margin-top:12px;">
+      <button class="btn btn-ghost w-full" onclick="closeModal('modal-student-watched')">Fermer</button>
     </div>
   </div>
 </div>
@@ -3954,15 +4024,89 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       </div>
     </div>
 
+    <!-- Raisons rapides -->
+    <div class="fgroup" style="margin-bottom:16px;">
+      <label class="flabel">Pourquoi ce film ? (optionnel)</label>
+      <div id="quick-reasons-container" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">
+        <button type="button" class="quick-reason-btn" data-reason="Film culte" onclick="toggleQuickReason(this)">
+          <span class="qr-icon">⭐</span> Film culte
+        </button>
+        <button type="button" class="quick-reason-btn" data-reason="Film drôle" onclick="toggleQuickReason(this)">
+          <span class="qr-icon">😄</span> Film drôle
+        </button>
+        <button type="button" class="quick-reason-btn" data-reason="Film d'horreur" onclick="toggleQuickReason(this)">
+          <span class="qr-icon">👻</span> Film d'horreur
+        </button>
+        <button type="button" class="quick-reason-btn" data-reason="Classique à découvrir" onclick="toggleQuickReason(this)">
+          <span class="qr-icon">🎬</span> Classique à découvrir
+        </button>
+        <button type="button" class="quick-reason-btn" data-reason="À voir en groupe" onclick="toggleQuickReason(this)">
+          <span class="qr-icon">👥</span> À voir en groupe
+        </button>
+      </div>
+    </div>
+
     <div class="fgroup">
       <label class="flabel">Ton commentaire (facultatif)</label>
       <textarea class="ftextarea" id="pconf-comment" rows="3"
-        placeholder="Pourquoi ce film ? Une occasion particulière ?"></textarea>
+        placeholder="Un mot sur ce film ? Une occasion particulière ?"></textarea>
     </div>
 
     <div style="display:flex;gap:10px;margin-top:4px;">
       <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('modal-propose-confirm')">Annuler</button>
       <button class="btn btn-gold" style="flex:1;" id="pconf-submit" onclick="sendProposalConfirmed()">Envoyer ✉️</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     MODAL: Éditer une proposition en attente
+     ================================================================ -->
+<div class="overlay hidden" id="modal-edit-proposal">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Modifier ma proposition</div>
+
+    <!-- Mini-carte film -->
+    <div style="display:flex;gap:13px;align-items:flex-start;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:13px;margin-bottom:18px;">
+      <img id="edit-prop-poster" src="" alt="" style="width:52px;height:78px;object-fit:cover;border-radius:5px;background:var(--surface-3);flex-shrink:0;">
+      <div style="min-width:0;">
+        <div class="fw-bold" id="edit-prop-title" style="font-size:15px;margin-bottom:3px;"></div>
+        <div class="text-sm text-muted" id="edit-prop-year"></div>
+      </div>
+    </div>
+
+    <!-- Raisons rapides -->
+    <div class="fgroup" style="margin-bottom:16px;">
+      <label class="flabel">Pourquoi ce film ? (optionnel)</label>
+      <div id="edit-quick-reasons-container" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">
+        <button type="button" class="quick-reason-btn" data-reason="Film culte" onclick="toggleQuickReason(this)">
+          <span class="qr-icon">⭐</span> Film culte
+        </button>
+        <button type="button" class="quick-reason-btn" data-reason="Film drôle" onclick="toggleQuickReason(this)">
+          <span class="qr-icon">😄</span> Film drôle
+        </button>
+        <button type="button" class="quick-reason-btn" data-reason="Film d'horreur" onclick="toggleQuickReason(this)">
+          <span class="qr-icon">👻</span> Film d'horreur
+        </button>
+        <button type="button" class="quick-reason-btn" data-reason="Classique à découvrir" onclick="toggleQuickReason(this)">
+          <span class="qr-icon">🎬</span> Classique à découvrir
+        </button>
+        <button type="button" class="quick-reason-btn" data-reason="À voir en groupe" onclick="toggleQuickReason(this)">
+          <span class="qr-icon">👥</span> À voir en groupe
+        </button>
+      </div>
+    </div>
+
+    <div class="fgroup">
+      <label class="flabel">Ton commentaire (facultatif)</label>
+      <textarea class="ftextarea" id="edit-prop-comment" rows="3"
+        placeholder="Un mot sur ce film ? Une occasion particulière ?"></textarea>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-top:4px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('modal-edit-proposal')">Annuler</button>
+      <button class="btn btn-gold" style="flex:1;" id="edit-prop-submit" onclick="saveProposalEdit()">Enregistrer ✅</button>
     </div>
   </div>
 </div>
@@ -5876,6 +6020,10 @@ async function sendProposalConfirmed() {
   const btn = document.getElementById('pconf-submit');
   const m = _proposalDraft;
   const comment = (document.getElementById('pconf-comment')?.value || '').trim();
+  
+  // Récupérer les raisons rapides sélectionnées
+  const selectedReasons = Array.from(document.querySelectorAll('.quick-reason-btn.selected'))
+    .map(btn => btn.dataset.reason);
 
   btn.disabled = true;
   btn.textContent = 'Envoi…';
@@ -5897,7 +6045,8 @@ async function sendProposalConfirmed() {
     year: m.release_date ? parseInt(m.release_date.split('-')[0]) : null,
     synopsis: m.overview || '',
     status: 'pending',
-    student_comment: comment || null
+    student_comment: comment || null,
+    quick_reasons: selectedReasons.length > 0 ? selectedReasons : null
   });
 
   btn.disabled = false;
@@ -5938,7 +6087,7 @@ async function loadStudentProposals() {
   const sortField = (status === 'pending') ? 'proposed_at' : 'reviewed_at';
 
   const { data } = await db.from('proposals')
-    .select('id,title,poster_url,year,status,proposed_at,reviewed_at,admin_refusal_reason')
+    .select('id,title,poster_url,year,status,proposed_at,reviewed_at,admin_refusal_reason,student_comment,quick_reasons')
     .eq('student_id', S.user.id)
     .eq('status', status)
     .order(sortField, { ascending: false });
@@ -5958,6 +6107,30 @@ async function loadStudentProposals() {
       ? p.reviewed_at.split('T')[0]
       : p.proposed_at.split('T')[0];
     const dateLabel = (status !== 'pending' && p.reviewed_at) ? 'Traitée le' : 'Proposée le';
+    
+    // Raisons rapides
+    const reasonsHTML = (p.quick_reasons && p.quick_reasons.length > 0)
+      ? `<div style="display:flex;flex-wrap:wrap;gap:5px;margin:6px 0;">
+          ${p.quick_reasons.map(r => `<span class="badge badge-purple" style="font-size:11px;">${r}</span>`).join('')}
+         </div>`
+      : '';
+    
+    // Commentaire
+    const commentHTML = p.student_comment
+      ? `<div style="font-size:12px;color:var(--text-2);font-style:italic;margin:6px 0;">"${p.student_comment}"</div>`
+      : '';
+    
+    // Boutons Modifier/Supprimer pour propositions en attente
+    const actionsHTML = (p.status === 'pending')
+      ? `<div style="display:flex;gap:6px;margin-top:8px;">
+          <button class="btn-sm btn-ghost" style="font-size:11px;padding:5px 10px;" onclick="editProposal(${p.id})">
+            ✏️ Modifier
+          </button>
+          <button class="btn-sm btn-ghost" style="font-size:11px;padding:5px 10px;color:var(--red);" onclick="deleteProposal(${p.id}, '${p.title.replace(/'/g, "\\'")}')">
+            🗑️ Supprimer
+          </button>
+         </div>`
+      : '';
 
     return `
     <div class="history-item">
@@ -5967,9 +6140,12 @@ async function loadStudentProposals() {
       <div class="history-info">
         <div class="history-film">${p.title}${p.year ? ` <span style="font-weight:400;color:var(--text-3);">(${p.year})</span>` : ''}</div>
         <div style="margin:4px 0;"><span class="badge ${badgeCls[p.status] || 'badge-muted'}">${badgeLbl[p.status] || p.status}</span></div>
+        ${reasonsHTML}
+        ${commentHTML}
         ${p.status === 'rejected' && p.admin_refusal_reason
           ? `<div class="history-reason">Raison : ${p.admin_refusal_reason}</div>` : ''}
         <div class="history-date">${dateLabel} ${fmtDateShort(displayDate)}</div>
+        ${actionsHTML}
       </div>
     </div>`;
   }).join('');
@@ -6065,12 +6241,25 @@ async function loadSessions() {
 
     // Badge état — priorité : état perso de l'élève
     let badgeHtml;
-    if (banned)      badgeHtml = `<span class="badge badge-red">🚫 Non autorisé</span>`;
-    else if (reg)    badgeHtml = `<span class="badge badge-green">✅ Inscrit(e)</span>`;
-    else if (onWait) badgeHtml = `<span class="badge badge-gold">⏳ En attente${waitRank[s.id] ? ` · n°${waitRank[s.id]}` : ''}</span>`;
-    else if (full)   badgeHtml = `<span class="badge badge-muted">🚫 Complet</span>`;
-    else if (open)   badgeHtml = `<span class="badge badge-green">✅ Ouvertes</span>`;
-    else             badgeHtml = `<span class="badge badge-muted">⏸ Fermées</span>`;
+    let helpText = '';
+    
+    if (banned) {
+      badgeHtml = `<span class="badge badge-red">🚫 Non autorisé</span>`;
+    } else if (reg) {
+      badgeHtml = `<span class="badge badge-green">✅ Inscrit(e)</span>`;
+      helpText = `<div class="session-help-text">Tu es inscrit à cette séance. Pense à te désinscrire si tu ne peux plus venir.</div>`;
+    } else if (onWait) {
+      badgeHtml = `<span class="badge badge-gold">⏳ En attente${waitRank[s.id] ? ` · n°${waitRank[s.id]}` : ''}</span>`;
+      helpText = `<div class="session-help-text">Tu es en liste d'attente. Si une place se libère, tu seras automatiquement inscrit.</div>`;
+    } else if (full) {
+      badgeHtml = `<span class="badge badge-muted">🚫 Complet</span>`;
+      helpText = open ? `<div class="session-help-text">La séance est complète. Tu peux rejoindre la liste d'attente.</div>` : '';
+    } else if (open) {
+      badgeHtml = `<span class="badge badge-green">✅ Ouvertes</span>`;
+    } else {
+      badgeHtml = `<span class="badge badge-muted">⏸ Fermées</span>`;
+      helpText = `<div class="session-help-text">Les inscriptions sont fermées pour cette séance.</div>`;
+    }
 
     // Capacité affichée : inscrits confirmés / max, + attente si > 0
     const capDisplay = `${count} / ${cap}${waitCount > 0 ? ` · ${waitCount} en attente` : ''}`;
@@ -6120,6 +6309,7 @@ async function loadSessions() {
               ${badgeHtml}
               <span class="badge badge-count" onclick="event.stopPropagation();viewStudentRegistrants('${s.id}','${s.session_date}')">👥 ${capDisplay}</span>
             </div>
+            ${helpText}
             ${banReasonHtml}
             <div class="sc-actions" onclick="event.stopPropagation()">
               ${actionBtn}
@@ -6158,7 +6348,7 @@ async function toggleReg(sessionId, action) {
       return;
     }
 
-    toast('Désinscription effectuée');
+    toast('Ta place est libérée. Elle sera proposée automatiquement au premier élève en attente.', 'success');
   } else {
     // Vérification ban côté client
     const { data: bans } = await db.from('session_bans')
@@ -10001,6 +10191,198 @@ if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initLoginParticles);
 } else {
   initLoginParticles();
+}
+
+
+/* ================================================================
+   NOUVELLES FONCTIONNALITÉS ÉLÈVE
+   ================================================================ */
+
+// Toggle sélection raison rapide
+function toggleQuickReason(btn) {
+  btn.classList.toggle('selected');
+}
+
+// Ouvrir la modale Films vus de l'élève
+async function openStudentWatchedFilms() {
+  closeModal('modal-profile');
+  openModal('modal-student-watched');
+  
+  const el = document.getElementById('student-watched-content');
+  el.innerHTML = '<div class="loader" style="padding:24px;"><div class="spinner"></div></div>';
+  
+  if (!S.user) {
+    el.innerHTML = '<p class="text-sm text-muted" style="padding:24px;">Connecte-toi pour voir tes films vus.</p>';
+    return;
+  }
+  
+  console.log(`[openStudentWatchedFilms] Chargement films vus pour élève ${S.user.id}`);
+  
+  try {
+    const { data: watchedFilms, error } = await db
+      .from('student_watched_films')
+      .select(`
+        watched_at,
+        registered_at,
+        film_id,
+        films!student_watched_films_film_id_fkey (
+          id,
+          title,
+          poster_url,
+          screened_at,
+          duration,
+          genre
+        )
+      `)
+      .eq('student_id', S.user.id)
+      .order('watched_at', { ascending: false });
+    
+    if (error) {
+      console.error('[openStudentWatchedFilms] Erreur:', error);
+      
+      // Si table n'existe pas, message explicite
+      if (error.code === '42P01') {
+        el.innerHTML = '<p class="text-sm text-muted" style="padding:24px;">La fonction "Films vus" n\'est pas encore activée. Contacte l\'admin.</p>';
+        return;
+      }
+      
+      el.innerHTML = `<p class="text-sm text-muted" style="padding:24px;color:var(--red);">Erreur : ${error.message}</p>`;
+      return;
+    }
+    
+    console.log(`[openStudentWatchedFilms] ${watchedFilms?.length || 0} film(s) trouvé(s)`);
+    
+    if (!watchedFilms?.length) {
+      el.innerHTML = '<p class="text-sm text-muted" style="padding:24px;">Tu n\'as pas encore de film vu pour le moment.</p>';
+      return;
+    }
+    
+    const html = `
+      <p class="text-sm text-muted" style="padding:0 4px 12px;color:var(--text-3);">
+        ${watchedFilms.length} film${watchedFilms.length > 1 ? 's' : ''} vu${watchedFilms.length > 1 ? 's' : ''}
+      </p>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        ${watchedFilms.map(item => {
+          const film = item.films;
+          const poster = film?.poster_url || '';
+          const title = film?.title || 'Film supprimé';
+          const duration = film?.duration ? `${film.duration} min` : '';
+          const genre = film?.genre || '';
+          const meta = [duration, genre].filter(Boolean).join(' · ');
+          
+          return `
+            <div style="display:flex;gap:12px;align-items:flex-start;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;">
+              ${poster
+                ? `<img src="${poster}" style="width:40px;height:60px;object-fit:cover;border-radius:4px;flex-shrink:0;" alt="">`
+                : `<div style="width:40px;height:60px;background:var(--surface-3);border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:16px;">🎬</div>`}
+              <div style="flex:1;min-width:0;">
+                <div style="font-weight:700;font-size:14px;margin-bottom:3px;">${title}</div>
+                ${meta ? `<div style="font-size:11px;color:var(--text-3);margin-bottom:5px;">${meta}</div>` : ''}
+                ${item.watched_at 
+                  ? `<div style="font-size:12px;color:var(--gold);font-weight:600;">📅 Vu le ${fmtDateShort(item.watched_at.split('T')[0])}</div>` 
+                  : ''}
+              </div>
+            </div>`;
+        }).join('')}
+      </div>
+    `;
+    
+    el.innerHTML = html;
+  } catch(err) {
+    console.error('[openStudentWatchedFilms] Exception:', err);
+    el.innerHTML = `<p class="text-sm text-muted" style="padding:24px;color:var(--red);">Erreur : ${err.message}</p>`;
+  }
+}
+
+// Modifier une proposition en attente
+let _editingProposal = null;
+
+async function editProposal(proposalId) {
+  const { data: proposal } = await db.from('proposals')
+    .select('*')
+    .eq('id', proposalId)
+    .eq('student_id', S.user.id)
+    .eq('status', 'pending')
+    .maybeSingle();
+  
+  if (!proposal) {
+    toast('Proposition introuvable ou non modifiable', 'error');
+    return;
+  }
+  
+  _editingProposal = proposal;
+  
+  // Remplir la modale d'édition
+  document.getElementById('edit-prop-title').textContent = proposal.title;
+  document.getElementById('edit-prop-year').textContent = proposal.year ? `(${proposal.year})` : '';
+  document.getElementById('edit-prop-comment').value = proposal.student_comment || '';
+  document.getElementById('edit-prop-poster').src = proposal.poster_url || '';
+  
+  // Pré-sélectionner les raisons rapides
+  document.querySelectorAll('#edit-quick-reasons-container .quick-reason-btn').forEach(btn => {
+    btn.classList.remove('selected');
+    if (proposal.quick_reasons && proposal.quick_reasons.includes(btn.dataset.reason)) {
+      btn.classList.add('selected');
+    }
+  });
+  
+  openModal('modal-edit-proposal');
+}
+
+async function saveProposalEdit() {
+  if (!_editingProposal) return;
+  
+  const comment = document.getElementById('edit-prop-comment').value.trim();
+  const selectedReasons = Array.from(document.querySelectorAll('#edit-quick-reasons-container .quick-reason-btn.selected'))
+    .map(btn => btn.dataset.reason);
+  
+  const btn = document.getElementById('edit-prop-submit');
+  btn.disabled = true;
+  btn.textContent = 'Enregistrement…';
+  
+  const { error } = await db.from('proposals')
+    .update({
+      student_comment: comment || null,
+      quick_reasons: selectedReasons.length > 0 ? selectedReasons : null
+    })
+    .eq('id', _editingProposal.id)
+    .eq('student_id', S.user.id)
+    .eq('status', 'pending');
+  
+  btn.disabled = false;
+  btn.textContent = 'Enregistrer';
+  
+  if (error) {
+    console.error('Erreur modification:', error);
+    toast('Erreur lors de la modification', 'error');
+    return;
+  }
+  
+  closeModal('modal-edit-proposal');
+  _editingProposal = null;
+  toast('Proposition modifiée ✅', 'success');
+  await loadStudentProposals();
+}
+
+// Supprimer une proposition en attente
+async function deleteProposal(proposalId, title) {
+  const confirmed = confirm(`Supprimer cette proposition ?\n\n"${title}"\n\nElle ne sera plus visible par l'admin.`);
+  if (!confirmed) return;
+  
+  const { error } = await db.from('proposals')
+    .delete()
+    .eq('id', proposalId)
+    .eq('student_id', S.user.id)
+    .eq('status', 'pending');
+  
+  if (error) {
+    console.error('Erreur suppression:', error);
+    toast('Erreur lors de la suppression', 'error');
+    return;
+  }
+  
+  toast('Proposition supprimée', 'success');
+  await loadStudentProposals();
 }
 
 
