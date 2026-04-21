@@ -6935,20 +6935,77 @@ async function viewStudentRegistrants(sesId, date) {
 
 /* Ouvre la fiche séance / film détaillée pour l'élève */
 async function openStudentSessionDetail(sessionId) {
-  if (!sessionId || !S.user) return;
+  if (!sessionId || !S.user) {
+    console.error('[openStudentSessionDetail] Paramètres manquants:', { sessionId, user: S.user });
+    return;
+  }
   
-  // Récupérer les données de la séance
-  const { data: session } = await db.from('cinema_sessions')
-    .select('*, films(id, title, poster_url, duration, genre, synopsis, tmdb_id, youtube_trailer_key)')
+  console.log('[openStudentSessionDetail] Chargement séance:', sessionId);
+  
+  // ÉTAPE 1 : Récupérer la séance seule (sans jointure fragile)
+  const { data: session, error: sessionError } = await db.from('cinema_sessions')
+    .select('id, film_id, session_date, max_capacity, registrations_open')
     .eq('id', sessionId)
-    .single();
+    .maybeSingle();
+  
+  if (sessionError) {
+    console.error('[openStudentSessionDetail] Erreur Supabase (séance):', {
+      code: sessionError.code,
+      message: sessionError.message,
+      details: sessionError.details,
+      hint: sessionError.hint,
+      sessionId
+    });
+    toast('Erreur lors du chargement de la séance', 'error');
+    return;
+  }
   
   if (!session) {
+    console.error('[openStudentSessionDetail] Séance introuvable:', sessionId);
     toast('Séance introuvable', 'error');
     return;
   }
   
-  const film = session.films || {};
+  console.log('[openStudentSessionDetail] Séance trouvée:', session);
+  
+  // ÉTAPE 2 : Récupérer le film séparément si film_id existe
+  let film = null;
+  if (session.film_id) {
+    const { data: filmData, error: filmError } = await db.from('films')
+      .select('id, title, poster_url, duration, genre, synopsis, tmdb_id, youtube_trailer_key, status, screened_at')
+      .eq('id', session.film_id)
+      .maybeSingle();
+    
+    if (filmError) {
+      console.error('[openStudentSessionDetail] Erreur Supabase (film):', {
+        code: filmError.code,
+        message: filmError.message,
+        details: filmError.details,
+        hint: filmError.hint,
+        film_id: session.film_id
+      });
+      // Continue sans film plutôt que de bloquer
+      film = null;
+    } else {
+      film = filmData;
+      console.log('[openStudentSessionDetail] Film trouvé:', film);
+    }
+  } else {
+    console.log('[openStudentSessionDetail] Aucun film_id pour cette séance');
+  }
+  
+  // Si pas de film, utiliser des valeurs par défaut
+  if (!film) {
+    film = {
+      title: '🎬 Film à annoncer',
+      poster_url: null,
+      duration: null,
+      genre: null,
+      synopsis: null,
+      tmdb_id: null,
+      youtube_trailer_key: null
+    };
+  }
   
   // Récupérer note TMDB si disponible
   let tmdbRating = null;
@@ -7991,6 +8048,26 @@ async function loadAdminProposals() {
   }
 
   data.forEach(p => { _proposalCache[p.id] = p; });
+  
+  // Vérifier si les films proposés ont déjà été diffusés
+  const tmdbIds = data.map(p => p.tmdb_id).filter(Boolean);
+  const screenedFilmsMap = {};
+  
+  if (tmdbIds.length > 0) {
+    const { data: screenedFilms } = await db.from('films')
+      .select('tmdb_id, screened_at, title')
+      .eq('status', 'screened')
+      .in('tmdb_id', tmdbIds);
+    
+    if (screenedFilms) {
+      screenedFilms.forEach(f => {
+        if (!screenedFilmsMap[f.tmdb_id]) {
+          screenedFilmsMap[f.tmdb_id] = [];
+        }
+        screenedFilmsMap[f.tmdb_id].push(f.screened_at);
+      });
+    }
+  }
 
   list.innerHTML = data.map(p => {
     const studentName = `${p.students?.first_name || '?'} ${p.students?.last_name || ''}`;
@@ -7998,6 +8075,18 @@ async function loadAdminProposals() {
       ? `<button class="admin-student-link" onclick="event.stopPropagation();openStudentDetail('${p.students.id}')" title="Voir la fiche élève">${studentName}</button>`
       : `<span>${studentName}</span>`;
     let extra = '';
+    
+    // Afficher "Déjà diffusé" si le film est screened
+    if (p.tmdb_id && screenedFilmsMap[p.tmdb_id]) {
+      const dates = screenedFilmsMap[p.tmdb_id].filter(Boolean);
+      if (dates.length === 1) {
+        const dateStr = fmtDateShort(dates[0]);
+        extra += `<div style="font-size:11px;color:var(--text-3);background:rgba(240,165,0,.1);border:1px solid rgba(240,165,0,.2);border-radius:5px;padding:4px 8px;margin-top:6px;display:inline-block;">🎬 Déjà diffusé le ${dateStr}</div>`;
+      } else if (dates.length > 1) {
+        extra += `<div style="font-size:11px;color:var(--text-3);background:rgba(240,165,0,.1);border:1px solid rgba(240,165,0,.2);border-radius:5px;padding:4px 8px;margin-top:6px;display:inline-block;">🎬 Déjà diffusé ${dates.length} fois</div>`;
+      }
+    }
+    
     if (Array.isArray(p.quick_reasons) && p.quick_reasons.length > 0) {
       extra += `<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px;">
         ${p.quick_reasons.map(r => `<span class="badge badge-purple" style="font-size:11px;">🎯 ${r}</span>`).join('')}
