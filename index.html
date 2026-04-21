@@ -5986,6 +5986,41 @@ function rejectProposalFromTMDB() {
 }
 
 let _proposalDraft = null;
+let _studentProposalCache = {};
+let _editingProposalId = null;
+
+function toggleQuickReason(btn) {
+  if (!btn) return;
+  btn.classList.toggle('selected');
+}
+
+function getSelectedQuickReasons(containerId) {
+  const root = document.getElementById(containerId);
+  if (!root) return [];
+  return Array.from(root.querySelectorAll('.quick-reason-btn.selected'))
+    .map(btn => btn.dataset.reason)
+    .filter(Boolean);
+}
+
+function resetQuickReasons(containerId) {
+  const root = document.getElementById(containerId);
+  if (!root) return;
+  root.querySelectorAll('.quick-reason-btn.selected')
+    .forEach(btn => btn.classList.remove('selected'));
+}
+
+function setSelectedQuickReasons(containerId, reasons) {
+  const root = document.getElementById(containerId);
+  if (!root) return;
+
+  const selected = Array.isArray(reasons)
+    ? reasons
+    : (typeof reasons === 'string' && reasons ? [reasons] : []);
+
+  root.querySelectorAll('.quick-reason-btn').forEach(btn => {
+    btn.classList.toggle('selected', selected.includes(btn.dataset.reason));
+  });
+}
 
 function confirmProposeFilm() {
   if (!_tmdbMovie || !S.user) return;
@@ -6007,6 +6042,7 @@ function confirmProposeFilm() {
   titleEl.textContent = m.title || '—';
   yearEl.textContent = m.release_date ? m.release_date.split('-')[0] : '';
   commentEl.value = '';
+  resetQuickReasons('quick-reasons-container');
 
   openModal('modal-propose-confirm');
 }
@@ -6020,10 +6056,7 @@ async function sendProposalConfirmed() {
   const btn = document.getElementById('pconf-submit');
   const m = _proposalDraft;
   const comment = (document.getElementById('pconf-comment')?.value || '').trim();
-  
-  // Récupérer les raisons rapides sélectionnées
-  const selectedReasons = Array.from(document.querySelectorAll('.quick-reason-btn.selected'))
-    .map(btn => btn.dataset.reason);
+  const quickReasons = getSelectedQuickReasons('quick-reasons-container');
 
   btn.disabled = true;
   btn.textContent = 'Envoi…';
@@ -6046,19 +6079,21 @@ async function sendProposalConfirmed() {
     synopsis: m.overview || '',
     status: 'pending',
     student_comment: comment || null,
-    quick_reasons: selectedReasons.length > 0 ? selectedReasons : null
+    quick_reasons: quickReasons
   });
 
   btn.disabled = false;
   btn.textContent = 'Envoyer ✉️';
 
   if (error) {
+    console.error('sendProposalConfirmed error:', error);
     toast('Erreur lors de la proposition', 'error');
     return;
   }
 
   closeModal('modal-propose-confirm');
   _proposalDraft = null;
+  resetQuickReasons('quick-reasons-container');
 
   toast('Proposition envoyée ! L’admin la validera 📨', 'success');
 
@@ -6079,18 +6114,31 @@ function filterStudentHistory(status) {
 }
 
 async function loadStudentProposals() {
-  const list   = document.getElementById('prop-history-list');
+  const list = document.getElementById('prop-history-list');
   const status = _historyFilter;
+
   if (!list || !S.user) return;
+
   list.innerHTML = '<div class="loader" style="padding:24px;"><div class="spinner"></div></div>';
 
   const sortField = (status === 'pending') ? 'proposed_at' : 'reviewed_at';
 
-  const { data } = await db.from('proposals')
+  const { data, error } = await db.from('proposals')
     .select('id,title,poster_url,year,status,proposed_at,reviewed_at,admin_refusal_reason,student_comment,quick_reasons')
     .eq('student_id', S.user.id)
     .eq('status', status)
     .order(sortField, { ascending: false });
+
+  if (error) {
+    console.error('loadStudentProposals error:', error);
+    list.innerHTML = `<p class="text-sm text-muted" style="padding:0 18px 4px;color:var(--red);">Erreur lors du chargement des propositions.</p>`;
+    return;
+  }
+
+  _studentProposalCache = {};
+  (data || []).forEach(p => {
+    _studentProposalCache[p.id] = p;
+  });
 
   if (!data?.length) {
     const lbls = { pending:'en attente', accepted:'acceptée', rejected:'refusée' };
@@ -6102,55 +6150,157 @@ async function loadStudentProposals() {
   const badgeLbl = { pending:'⏳ En attente', accepted:'✅ Acceptée', rejected:'❌ Refusée' };
 
   list.innerHTML = data.map(p => {
-    // Date à afficher : traitement admin si dispo, sinon date de proposition
     const displayDate = (status !== 'pending' && p.reviewed_at)
       ? p.reviewed_at.split('T')[0]
       : p.proposed_at.split('T')[0];
+
     const dateLabel = (status !== 'pending' && p.reviewed_at) ? 'Traitée le' : 'Proposée le';
-    
-    // Raisons rapides
-    const reasonsHTML = (p.quick_reasons && p.quick_reasons.length > 0)
+
+    const reasonsHTML = Array.isArray(p.quick_reasons) && p.quick_reasons.length
       ? `<div style="display:flex;flex-wrap:wrap;gap:5px;margin:6px 0;">
           ${p.quick_reasons.map(r => `<span class="badge badge-purple" style="font-size:11px;">${r}</span>`).join('')}
-         </div>`
+        </div>`
       : '';
-    
-    // Commentaire
+
     const commentHTML = p.student_comment
-      ? `<div style="font-size:12px;color:var(--text-2);font-style:italic;margin:6px 0;">"${p.student_comment}"</div>`
+      ? `<div style="font-size:12px;color:var(--text-2);font-style:italic;margin:6px 0;">“${p.student_comment}”</div>`
       : '';
-    
-    // Boutons Modifier/Supprimer pour propositions en attente
-    const actionsHTML = (p.status === 'pending')
-      ? `<div style="display:flex;gap:6px;margin-top:8px;">
-          <button class="btn-sm btn-ghost" style="font-size:11px;padding:5px 10px;" onclick="editProposal(${p.id})">
-            ✏️ Modifier
-          </button>
-          <button class="btn-sm btn-ghost" style="font-size:11px;padding:5px 10px;color:var(--red);" onclick="deleteProposal(${p.id}, '${p.title.replace(/'/g, "\\'")}')">
-            🗑️ Supprimer
-          </button>
-         </div>`
+
+    const actionsHTML = p.status === 'pending'
+      ? `<div style="display:flex;gap:7px;margin-top:9px;flex-wrap:wrap;">
+          <button class="btn btn-sm btn-ghost" onclick="openEditProposal('${p.id}')">✏️ Modifier</button>
+          <button class="btn btn-sm btn-red" onclick="deleteStudentProposal('${p.id}')">🗑️ Supprimer</button>
+        </div>`
       : '';
 
     return `
-    <div class="history-item">
-      ${p.poster_url
-        ? `<img src="${p.poster_url}" class="history-poster" alt="">`
-        : `<div class="history-poster-ph">🎬</div>`}
-      <div class="history-info">
-        <div class="history-film">${p.title}${p.year ? ` <span style="font-weight:400;color:var(--text-3);">(${p.year})</span>` : ''}</div>
-        <div style="margin:4px 0;"><span class="badge ${badgeCls[p.status] || 'badge-muted'}">${badgeLbl[p.status] || p.status}</span></div>
-        ${reasonsHTML}
-        ${commentHTML}
-        ${p.status === 'rejected' && p.admin_refusal_reason
-          ? `<div class="history-reason">Raison : ${p.admin_refusal_reason}</div>` : ''}
-        <div class="history-date">${dateLabel} ${fmtDateShort(displayDate)}</div>
-        ${actionsHTML}
-      </div>
-    </div>`;
+      <div class="history-item">
+        ${p.poster_url
+          ? `<img src="${p.poster_url}" class="history-poster" alt="">`
+          : `<div class="history-poster-ph">🎬</div>`}
+        <div class="history-info">
+          <div class="history-film">${p.title}${p.year ? ` <span style="font-weight:400;color:var(--text-3);">(${p.year})</span>` : ''}</div>
+          <div style="margin:4px 0;"><span class="badge ${badgeCls[p.status] || 'badge-muted'}">${badgeLbl[p.status] || p.status}</span></div>
+          ${reasonsHTML}
+          ${commentHTML}
+          ${p.status === 'rejected' && p.admin_refusal_reason
+            ? `<div class="history-reason">Raison : ${p.admin_refusal_reason}</div>` : ''}
+          <div class="history-date">${dateLabel} ${fmtDateShort(displayDate)}</div>
+          ${actionsHTML}
+        </div>
+      </div>`;
   }).join('');
 }
 
+function openEditProposal(id) {
+  const p = _studentProposalCache[id];
+
+  if (!p) {
+    toast('Proposition introuvable, recharge la page', 'error');
+    return;
+  }
+
+  if (p.status !== 'pending') {
+    toast('Cette proposition a déjà été traitée', 'error');
+    return;
+  }
+
+  _editingProposalId = id;
+
+  const posterEl = document.getElementById('edit-prop-poster');
+  const titleEl = document.getElementById('edit-prop-title');
+  const yearEl = document.getElementById('edit-prop-year');
+  const commentEl = document.getElementById('edit-prop-comment');
+
+  if (posterEl) {
+    posterEl.src = p.poster_url || '';
+    posterEl.style.display = p.poster_url ? '' : 'none';
+  }
+
+  if (titleEl) titleEl.textContent = p.title || '—';
+  if (yearEl) yearEl.textContent = p.year || '';
+  if (commentEl) commentEl.value = p.student_comment || '';
+
+  setSelectedQuickReasons('edit-quick-reasons-container', p.quick_reasons || []);
+
+  openModal('modal-edit-proposal');
+}
+
+async function saveProposalEdit() {
+  if (!_editingProposalId || !S.user) {
+    toast('Aucune proposition à modifier', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('edit-prop-submit');
+  const comment = (document.getElementById('edit-prop-comment')?.value || '').trim();
+  const quickReasons = getSelectedQuickReasons('edit-quick-reasons-container');
+
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Enregistrement…';
+  }
+
+  const { error } = await db.from('proposals')
+    .update({
+      student_comment: comment || null,
+      quick_reasons: quickReasons
+    })
+    .eq('id', _editingProposalId)
+    .eq('student_id', S.user.id)
+    .eq('status', 'pending');
+
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = 'Enregistrer ✅';
+  }
+
+  if (error) {
+    console.error('saveProposalEdit error:', error);
+    toast('Erreur lors de la modification', 'error');
+    return;
+  }
+
+  closeModal('modal-edit-proposal');
+  _editingProposalId = null;
+  resetQuickReasons('edit-quick-reasons-container');
+
+  toast('Proposition modifiée ✅', 'success');
+  await loadStudentProposals();
+}
+
+async function deleteStudentProposal(id) {
+  const p = _studentProposalCache[id];
+
+  if (!p) {
+    toast('Proposition introuvable, recharge la page', 'error');
+    return;
+  }
+
+  if (p.status !== 'pending') {
+    toast('Cette proposition a déjà été traitée', 'error');
+    return;
+  }
+
+  const confirmed = confirm(`Supprimer cette proposition ?\n\n"${p.title}"\n\nElle ne sera plus visible par l'admin.`);
+
+  if (!confirmed) return;
+
+  const { error } = await db.from('proposals')
+    .delete()
+    .eq('id', id)
+    .eq('student_id', S.user.id)
+    .eq('status', 'pending');
+
+  if (error) {
+    console.error('deleteStudentProposal error:', error);
+    toast('Erreur lors de la suppression', 'error');
+    return;
+  }
+
+  toast('Proposition supprimée ✅', 'success');
+  await loadStudentProposals();
+}
 
 async function fillAdminForm(encoded) {
   const m = JSON.parse(decodeURIComponent(encoded));
