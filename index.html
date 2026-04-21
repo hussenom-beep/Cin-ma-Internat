@@ -3286,6 +3286,51 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
   color: var(--text-2);
 }
 
+.ssd-crew-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+
+.ssd-crew-row:last-child {
+  margin-bottom: 0;
+}
+
+.ssd-crew-label {
+  font-weight: 600;
+  color: var(--text-3);
+  min-width: 80px;
+  flex-shrink: 0;
+}
+
+.ssd-crew-value {
+  color: var(--text-2);
+}
+
+.ssd-cast-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ssd-cast-chip {
+  display: inline-block;
+  padding: 4px 10px;
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-size: 12px;
+  color: var(--text-2);
+  transition: all .2s;
+}
+
+.ssd-cast-chip:hover {
+  background: rgba(240,165,0,.1);
+  border-color: rgba(240,165,0,.3);
+  color: var(--gold);
+}
+
 .ssd-session-box {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -4163,6 +4208,11 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
         <div id="ssd-synopsis-block" class="hidden ssd-section">
           <div class="ssd-section-title">Synopsis</div>
           <div id="ssd-synopsis" class="ssd-synopsis"></div>
+        </div>
+
+        <div id="ssd-crew-block" class="hidden ssd-section">
+          <div class="ssd-section-title">Équipe</div>
+          <div id="ssd-crew-content"></div>
         </div>
 
         <div class="ssd-section">
@@ -7263,19 +7313,40 @@ async function openStudentSessionDetail(sessionId) {
     };
   }
   
-  // Récupérer note TMDB si disponible
-  let tmdbRating = null;
+  // ÉTAPE 3 : Récupérer les données complètes TMDB si tmdb_id existe
+  let tmdbDetail = null;
+  let tmdbCredits = null;
+  
   if (film.tmdb_id) {
     try {
-      const res = await fetch(`https://api.themoviedb.org/3/movie/${film.tmdb_id}?api_key=${CFG.TMDB_KEY}&language=fr-FR`);
-      if (res.ok) {
-        const tmdbData = await res.json();
-        tmdbRating = tmdbData.vote_average;
-      }
+      const [detailRes, creditsRes] = await Promise.all([
+        fetch(`https://api.themoviedb.org/3/movie/${film.tmdb_id}?api_key=${CFG.TMDB_KEY}&language=fr-FR`),
+        fetch(`https://api.themoviedb.org/3/movie/${film.tmdb_id}/credits?api_key=${CFG.TMDB_KEY}&language=fr-FR`)
+      ]);
+      
+      if (detailRes.ok) tmdbDetail = await detailRes.json();
+      if (creditsRes.ok) tmdbCredits = await creditsRes.json();
+      
+      console.log('[openStudentSessionDetail] TMDB data:', { detail: tmdbDetail, credits: tmdbCredits });
     } catch (e) {
       console.log('[openStudentSessionDetail] TMDB fetch failed:', e);
     }
   }
+  
+  // FUSION INTELLIGENTE : Priorité TMDB > Local > Fallback
+  const finalTitle = (tmdbDetail?.title) || film.title || '🎬 Film à annoncer';
+  const finalPoster = (tmdbDetail?.poster_path ? `https://image.tmdb.org/t/p/w500${tmdbDetail.poster_path}` : null) || film.poster_url || null;
+  const finalBackdrop = (tmdbDetail?.backdrop_path ? `https://image.tmdb.org/t/p/w1280${tmdbDetail.backdrop_path}` : null) || finalPoster || null;
+  const finalSynopsis = tmdbDetail?.overview || film.synopsis || null;
+  const finalDuration = tmdbDetail?.runtime || film.duration || null;
+  const finalGenres = tmdbDetail?.genres?.map(g => g.name).join(', ') || film.genre || null;
+  const finalRating = tmdbDetail?.vote_average || null;
+  const finalYear = tmdbDetail?.release_date ? tmdbDetail.release_date.split('-')[0] : null;
+  const finalTrailer = film.youtube_trailer_key || null;
+  
+  // Extraction acteurs et réalisateur
+  const director = tmdbCredits?.crew?.find(c => c.job === 'Director');
+  const cast = tmdbCredits?.cast?.slice(0, 6) || [];
   
   // Compter les inscrits
   const { count: regCount } = await db.from('registrations')
@@ -7311,6 +7382,8 @@ async function openStudentSessionDetail(sessionId) {
   const metaEl = document.getElementById('ssd-meta');
   const synopsisBlock = document.getElementById('ssd-synopsis-block');
   const synopsisEl = document.getElementById('ssd-synopsis');
+  const crewBlock = document.getElementById('ssd-crew-block');
+  const crewContent = document.getElementById('ssd-crew-content');
   const trailerBlock = document.getElementById('ssd-trailer-block');
   const trailerBtn = document.getElementById('ssd-trailer-btn');
   const statusBadgeEl = document.getElementById('ssd-status-badge');
@@ -7319,49 +7392,79 @@ async function openStudentSessionDetail(sessionId) {
   const helpTextEl = document.getElementById('ssd-help-text');
   const actionBtnEl = document.getElementById('ssd-action-btn');
   
-  // Affiche
-// Affiche + fond
-if (film.poster_url) {
-  posterEl.src = film.poster_url;
-  bgEl.src = film.poster_url;
-  posterEl.classList.remove('hidden');
-  bgEl.classList.remove('hidden');
-  if (posterEmptyEl) posterEmptyEl.classList.add('hidden');
-} else {
-  posterEl.src = '';
-  bgEl.src = '';
-  posterEl.classList.add('hidden');
-  bgEl.classList.add('hidden');
-  if (posterEmptyEl) posterEmptyEl.classList.remove('hidden');
-}
+  // Affiche + fond
+  if (finalPoster) {
+    posterEl.src = finalPoster;
+    posterEl.classList.remove('hidden');
+    if (posterEmptyEl) posterEmptyEl.classList.add('hidden');
+  } else {
+    posterEl.src = '';
+    posterEl.classList.add('hidden');
+    if (posterEmptyEl) posterEmptyEl.classList.remove('hidden');
+  }
+  
+  if (finalBackdrop) {
+    bgEl.src = finalBackdrop;
+    bgEl.classList.remove('hidden');
+  } else {
+    bgEl.src = '';
+    bgEl.classList.add('hidden');
+  }
   
   // Titre
-  titleEl.textContent = film.title || '🎬 Film à annoncer';
+  titleEl.textContent = finalTitle;
   
-  // Métadonnées
+  // Métadonnées avec badges
   const metaParts = [];
   metaParts.push(`📅 ${fmtDateShort(session.session_date)}`);
-  if (film.duration) metaParts.push(`⏱ ${formatRuntime(film.duration)}`);
-  if (film.genre) metaParts.push(film.genre);
-  if (tmdbRating) metaParts.push(`⭐ ${tmdbRating.toFixed(1)}/10`);
-  metaEl.innerHTML = metaParts.map(p => `<span class="badge">${p}</span>`).join('');
+  if (finalDuration) metaParts.push(`⏱ ${formatRuntime(finalDuration)}`);
+  if (finalGenres) metaParts.push(finalGenres);
+  if (finalYear) metaParts.push(finalYear);
+  if (finalRating) metaParts.push(`⭐ ${finalRating.toFixed(1)}/10`);
+  metaEl.innerHTML = metaParts.map(p => `<span class="badge badge-muted">${p}</span>`).join('');
   
   // Synopsis
-  if (film.synopsis) {
-    synopsisEl.textContent = film.synopsis;
+  if (finalSynopsis) {
+    synopsisEl.textContent = finalSynopsis;
     synopsisBlock.classList.remove('hidden');
   } else {
     synopsisBlock.classList.add('hidden');
   }
   
+  // Bloc acteurs/réalisateur
+  if (director || cast.length > 0) {
+    let crewHtml = '';
+    
+    if (director) {
+      crewHtml += `<div class="ssd-crew-row">
+        <span class="ssd-crew-label">Réalisation</span>
+        <span class="ssd-crew-value">${director.name}</span>
+      </div>`;
+    }
+    
+    if (cast.length > 0) {
+      crewHtml += `<div class="ssd-crew-row">
+        <span class="ssd-crew-label">Avec</span>
+        <div class="ssd-cast-chips">
+          ${cast.map(a => `<span class="ssd-cast-chip">${a.name}</span>`).join('')}
+        </div>
+      </div>`;
+    }
+    
+    crewContent.innerHTML = crewHtml;
+    crewBlock.classList.remove('hidden');
+  } else {
+    crewBlock.classList.add('hidden');
+  }
+  
   // Bande-annonce
-if (film.youtube_trailer_key) {
-  trailerBlock.classList.remove('hidden');
-  trailerBtn.onclick = () => openTrailer(film.youtube_trailer_key, 'BA');
-} else {
-  trailerBlock.classList.add('hidden');
-  trailerBtn.onclick = null;
-}
+  if (finalTrailer) {
+    trailerBlock.classList.remove('hidden');
+    trailerBtn.onclick = () => openTrailer(finalTrailer, 'BA');
+  } else {
+    trailerBlock.classList.add('hidden');
+    trailerBtn.onclick = null;
+  }
   
   // Badge statut
   let statusBadgeHtml;
