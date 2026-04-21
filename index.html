@@ -1252,6 +1252,67 @@ button { cursor: pointer; }
 }
 .profile-close-link:hover { color: var(--text-2); }
 
+/* ---- FAQ élève ---- */
+.faq-item {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+
+.faq-question {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  transition: background .2s;
+  user-select: none;
+}
+
+.faq-question:hover {
+  background: var(--surface-3);
+}
+
+.faq-question:active {
+  background: rgba(240,165,0,.08);
+}
+
+.faq-arrow {
+  font-size: 18px;
+  color: var(--text-3);
+  transition: transform .2s, color .2s;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+.faq-question.active .faq-arrow {
+  transform: rotate(90deg);
+  color: var(--gold);
+}
+
+.faq-answer {
+  padding: 0 16px 14px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text-2);
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.faq-answer.hidden {
+  display: none;
+}
+
+.faq-answer strong {
+  color: var(--gold);
+  font-weight: 600;
+}
+
 /* Changement de PIN — cases 6 chiffres dans modal */
 /* Petites cases PIN - États visuels harmonisés */
 .pin-change-block { display: flex; flex-direction: column; gap: 18px; }
@@ -3811,6 +3872,11 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
         <span class="pa-text">Ajouter sur l'écran d'accueil</span>
         <span class="pa-arrow">›</span>
       </button>
+      <button class="profile-action-btn" onclick="openStudentFAQ()">
+        <span class="pa-icon">❔</span>
+        <span class="pa-text">Aide / FAQ</span>
+        <span class="pa-arrow">›</span>
+      </button>
       <button class="btn-logout" onclick="closeModal('modal-profile'); logout();">
         <span class="btn-logout-icon">⏻</span>
         Se déconnecter
@@ -3838,6 +3904,57 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     <div style="padding:12px 0 0;border-top:1px solid var(--border);margin-top:12px;">
       <button class="btn btn-ghost w-full" onclick="closeModal('modal-student-watched')">Fermer</button>
     </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     MODAL: Fiche séance / film détaillée (élève)
+     ================================================================ -->
+<div class="overlay hidden" id="modal-student-session-detail">
+  <div class="sheet" style="max-width:480px;">
+    <div class="sheet-handle"></div>
+    
+    <!-- Affiche de fond -->
+    <div id="ssd-poster-bg" style="position:relative;width:100%;height:240px;background:var(--surface-2);border-radius:var(--radius-md);overflow:hidden;margin-bottom:16px;">
+      <img id="ssd-poster-img" src="" alt="" style="width:100%;height:100%;object-fit:cover;opacity:0.3;">
+      <div style="position:absolute;inset:0;background:linear-gradient(to bottom, rgba(18,18,18,0) 0%, rgba(18,18,18,0.95) 100%);"></div>
+      
+      <!-- Infos principales en bas de l'affiche -->
+      <div style="position:absolute;bottom:0;left:0;right:0;padding:16px;">
+        <div id="ssd-title" style="font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:white;margin-bottom:6px;text-shadow:0 2px 8px rgba(0,0,0,0.6);"></div>
+        <div id="ssd-meta" style="font-size:13px;color:rgba(255,255,255,0.85);display:flex;gap:10px;flex-wrap:wrap;"></div>
+      </div>
+    </div>
+    
+    <!-- Synopsis -->
+    <div id="ssd-synopsis-block" class="hidden" style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:14px;">
+      <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Synopsis</div>
+      <div id="ssd-synopsis" style="font-size:13px;color:var(--text-2);line-height:1.6;"></div>
+    </div>
+    
+    <!-- Bande-annonce -->
+    <div id="ssd-trailer-block" class="hidden" style="margin-bottom:14px;">
+      <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">🎬 Bande-annonce</div>
+      <div id="ssd-trailer-container" style="position:relative;width:100%;padding-bottom:56.25%;background:var(--surface-3);border-radius:var(--radius-sm);overflow:hidden;">
+        <iframe id="ssd-trailer-iframe" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+      </div>
+    </div>
+    
+    <!-- Statut et inscrits -->
+    <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:14px;">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+        <span id="ssd-status-badge"></span>
+        <span id="ssd-registrants-badge" style="cursor:pointer;"></span>
+        <span id="ssd-user-badge"></span>
+      </div>
+      <div id="ssd-help-text" class="hidden" style="font-size:11px;color:var(--text-3);background:rgba(240,165,0,.08);border:1px solid rgba(240,165,0,.15);border-radius:6px;padding:6px 10px;line-height:1.5;margin-top:8px;"></div>
+    </div>
+    
+    <!-- Bouton d'action -->
+    <button id="ssd-action-btn" class="btn btn-gold btn-full btn-lg" style="margin-bottom:10px;">—</button>
+    
+    <!-- Bouton fermer -->
+    <button class="btn btn-ghost btn-full btn-sm" onclick="closeModal('modal-student-session-detail')">Fermer</button>
   </div>
 </div>
 
@@ -3891,6 +4008,120 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     </div>
 
     <button class="btn btn-ghost btn-full" style="margin-top:6px;" onclick="closeModal('modal-add-to-home')">Fermer</button>
+  </div>
+</div>
+
+<!-- ================================================================
+     MODAL: FAQ / Aide élève
+     ================================================================ -->
+<div class="overlay hidden" id="modal-student-faq">
+  <div class="sheet" style="max-width:520px;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">❔ Aide / Questions fréquentes</div>
+    
+    <div style="max-height:65vh;overflow-y:auto;padding:0 4px;">
+      
+      <!-- Question 1 -->
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleFAQ(this)">
+          <span>Comment m'inscrire à une séance ?</span>
+          <span class="faq-arrow">›</span>
+        </div>
+        <div class="faq-answer hidden">
+          Va dans <strong>Séances</strong>, puis appuie sur <strong>S'inscrire</strong>.<br>
+          Si la séance est pleine, tu peux rejoindre la liste d'attente.
+        </div>
+      </div>
+      
+      <!-- Question 2 -->
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleFAQ(this)">
+          <span>Que veut dire "liste d'attente" ?</span>
+          <span class="faq-arrow">›</span>
+        </div>
+        <div class="faq-answer hidden">
+          Tu n'es pas encore inscrit définitivement.<br>
+          Si une place se libère, tu remontes automatiquement.
+        </div>
+      </div>
+      
+      <!-- Question 3 -->
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleFAQ(this)">
+          <span>Comment me désinscrire ?</span>
+          <span class="faq-arrow">›</span>
+        </div>
+        <div class="faq-answer hidden">
+          Retourne sur la séance, puis appuie sur <strong>Se désinscrire</strong>.<br>
+          Ta place pourra être donnée à un autre élève.
+        </div>
+      </div>
+      
+      <!-- Question 4 -->
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleFAQ(this)">
+          <span>Comment proposer un film ?</span>
+          <span class="faq-arrow">›</span>
+        </div>
+        <div class="faq-answer hidden">
+          Va dans <strong>Proposer</strong>, recherche ton film, puis envoie ta proposition.<br>
+          Elle sera vérifiée avant d'apparaître dans les votes.
+        </div>
+      </div>
+      
+      <!-- Question 5 -->
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleFAQ(this)">
+          <span>Puis-je modifier ma proposition ?</span>
+          <span class="faq-arrow">›</span>
+        </div>
+        <div class="faq-answer hidden">
+          Oui, tant qu'elle est <strong>en attente</strong>.<br>
+          Une fois acceptée ou refusée, elle ne peut plus être modifiée.
+        </div>
+      </div>
+      
+      <!-- Question 6 -->
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleFAQ(this)">
+          <span>Comment voter pour un film ?</span>
+          <span class="faq-arrow">›</span>
+        </div>
+        <div class="faq-answer hidden">
+          Va dans <strong>Films</strong>, puis appuie sur le bouton de vote.<br>
+          Tu peux retirer ton vote si tu changes d'avis.
+        </div>
+      </div>
+      
+      <!-- Question 7 -->
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleFAQ(this)">
+          <span>Pourquoi ma proposition peut être refusée ?</span>
+          <span class="faq-arrow">›</span>
+        </div>
+        <div class="faq-answer hidden">
+          Un film peut être refusé s'il n'est pas adapté, déjà prévu, ou pas possible pour la soirée.<br>
+          La raison peut être indiquée par l'administrateur.
+        </div>
+      </div>
+      
+      <!-- Question 8 -->
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleFAQ(this)">
+          <span>À quoi servent les films vus ?</span>
+          <span class="faq-arrow">›</span>
+        </div>
+        <div class="faq-answer hidden">
+          Ils gardent ton historique des séances auxquelles tu as participé.<br>
+          Tu peux les retrouver dans <strong>Mes films vus</strong>.
+        </div>
+      </div>
+      
+    </div>
+    
+    <div style="padding:12px 0 0;border-top:1px solid var(--border);margin-top:12px;">
+      <button class="btn btn-ghost w-full" onclick="closeModal('modal-student-faq')">Fermer</button>
+    </div>
   </div>
 </div>
 
@@ -5207,6 +5438,31 @@ function openAddToHome() {
   closeModal('modal-profile');
   openModal('modal-add-to-home');
 }
+
+/* Ouvre la FAQ élève */
+function openStudentFAQ() {
+  closeModal('modal-profile');
+  openModal('modal-student-faq');
+}
+
+/* Toggle accordéon FAQ */
+function toggleFAQ(questionEl) {
+  const answerEl = questionEl.nextElementSibling;
+  const isOpen = questionEl.classList.contains('active');
+  
+  // Fermer toutes les autres questions
+  document.querySelectorAll('.faq-question.active').forEach(q => {
+    q.classList.remove('active');
+    q.nextElementSibling.classList.add('hidden');
+  });
+  
+  // Ouvrir/fermer la question cliquée
+  if (!isOpen) {
+    questionEl.classList.add('active');
+    answerEl.classList.remove('hidden');
+  }
+}
+
 function updateProfileBtn() {
   if (!S.user) return;
   const fn = S.user.firstName || '';
@@ -5308,7 +5564,7 @@ async function loadHome() {
     // Durée formatée
     const runtimeStr = runtime ? formatRuntime(runtime) : '';
 
-    el.innerHTML = `<div class="session-banner" onclick="navigateTo('session')">
+    el.innerHTML = `<div class="session-banner" onclick="openStudentSessionDetail('${s.id}')">
       ${poster ? `<img src="${poster}" class="session-banner-poster" alt="">` : ''}
       <div class="session-banner-overlay"></div>
       <div class="session-banner-inner">
@@ -5921,12 +6177,14 @@ async function _checkDuplicateData(detail, ctx) {
     const inCatalogue = byId || (byTitle && byTitle.length > 0);
     if (inCatalogue) {
       const f = inCatalogue.id ? inCatalogue : byTitle[0];
-      const blockStatuses = ['active','scheduled','screened'];
+      // Films bloquants : active (en vote) et scheduled (déjà programmé)
+      // screened (déjà vu) = avertissement seulement, reproposition autorisée
+      const blockStatuses = ['active','scheduled'];
       const isBlocking = blockStatuses.includes(f.status);
       const msgs = {
-        active:    { cls:'ok',   txt:'✅ Ce film est déjà dans le catalogue.' },
-        scheduled: { cls:'info', txt:'📅 Ce film est déjà programmé pour une prochaine séance.' },
-        screened:  { cls:'info', txt:'🎬 Ce film a déjà été diffusé.' },
+        active:    { cls:'warn', txt:'✅ Ce film est déjà dans le catalogue en vote.' },
+        scheduled: { cls:'warn', txt:'📅 Ce film est déjà programmé pour une prochaine séance.' },
+        screened:  { cls:'info', txt:'🎬 Ce film a déjà été diffusé, mais tu peux quand même le proposer à nouveau.' },
         archived:  { cls:'info', txt:'⊘ Ce film existe mais est archivé.' },
       };
       const { cls, txt } = msgs[f.status] || { cls:'info', txt:'ℹ️ Ce film existe déjà.' };
@@ -6673,6 +6931,182 @@ async function viewStudentRegistrants(sesId, date) {
 
   el.innerHTML = html;
   openModal('modal-student-registrants');
+}
+
+/* Ouvre la fiche séance / film détaillée pour l'élève */
+async function openStudentSessionDetail(sessionId) {
+  if (!sessionId || !S.user) return;
+  
+  // Récupérer les données de la séance
+  const { data: session } = await db.from('cinema_sessions')
+    .select('*, films(id, title, poster_url, duration, genre, synopsis, tmdb_id, youtube_trailer_key)')
+    .eq('id', sessionId)
+    .single();
+  
+  if (!session) {
+    toast('Séance introuvable', 'error');
+    return;
+  }
+  
+  const film = session.films || {};
+  
+  // Récupérer note TMDB si disponible
+  let tmdbRating = null;
+  if (film.tmdb_id) {
+    try {
+      const res = await fetch(`https://api.themoviedb.org/3/movie/${film.tmdb_id}?api_key=${CFG.TMDB_KEY}&language=fr-FR`);
+      if (res.ok) {
+        const tmdbData = await res.json();
+        tmdbRating = tmdbData.vote_average;
+      }
+    } catch (e) {
+      console.log('[openStudentSessionDetail] TMDB fetch failed:', e);
+    }
+  }
+  
+  // Compter les inscrits
+  const { count: regCount } = await db.from('registrations')
+    .select('id', { count: 'exact', head: true })
+    .eq('session_id', sessionId)
+    .eq('status', 'registered');
+  
+  const { count: waitCount } = await db.from('registrations')
+    .select('id', { count: 'exact', head: true })
+    .eq('session_id', sessionId)
+    .eq('status', 'waitlist');
+  
+  // Vérifier le statut de l'élève
+  const { data: myReg } = await db.from('registrations')
+    .select('status, waitlist_rank')
+    .eq('session_id', sessionId)
+    .eq('student_id', S.user.id)
+    .maybeSingle();
+  
+  const isRegistered = myReg?.status === 'registered';
+  const isWaitlist = myReg?.status === 'waitlist';
+  const waitRank = myReg?.waitlist_rank || null;
+  
+  const cap = session.max_capacity || 20;
+  const full = regCount >= cap;
+  const open = session.registrations_open;
+  
+  // Remplir la modale
+  const posterEl = document.getElementById('ssd-poster-img');
+  const titleEl = document.getElementById('ssd-title');
+  const metaEl = document.getElementById('ssd-meta');
+  const synopsisBlock = document.getElementById('ssd-synopsis-block');
+  const synopsisEl = document.getElementById('ssd-synopsis');
+  const trailerBlock = document.getElementById('ssd-trailer-block');
+  const trailerIframe = document.getElementById('ssd-trailer-iframe');
+  const statusBadgeEl = document.getElementById('ssd-status-badge');
+  const registrantsBadgeEl = document.getElementById('ssd-registrants-badge');
+  const userBadgeEl = document.getElementById('ssd-user-badge');
+  const helpTextEl = document.getElementById('ssd-help-text');
+  const actionBtnEl = document.getElementById('ssd-action-btn');
+  
+  // Affiche
+  posterEl.src = film.poster_url || '';
+  posterEl.style.display = film.poster_url ? '' : 'none';
+  
+  // Titre
+  titleEl.textContent = film.title || '🎬 Film à annoncer';
+  
+  // Métadonnées
+  const metaParts = [];
+  metaParts.push(`📅 ${fmtDateShort(session.session_date)}`);
+  if (film.duration) metaParts.push(`⏱ ${formatRuntime(film.duration)}`);
+  if (film.genre) metaParts.push(film.genre);
+  if (tmdbRating) metaParts.push(`⭐ ${tmdbRating.toFixed(1)}/10`);
+  metaEl.innerHTML = metaParts.map(p => `<span>${p}</span>`).join('');
+  
+  // Synopsis
+  if (film.synopsis) {
+    synopsisEl.textContent = film.synopsis;
+    synopsisBlock.classList.remove('hidden');
+  } else {
+    synopsisBlock.classList.add('hidden');
+  }
+  
+  // Bande-annonce
+  if (film.youtube_trailer_key) {
+    trailerIframe.src = `https://www.youtube.com/embed/${film.youtube_trailer_key}?rel=0&modestbranding=1`;
+    trailerBlock.classList.remove('hidden');
+  } else {
+    trailerBlock.classList.add('hidden');
+  }
+  
+  // Badge statut
+  let statusBadgeHtml;
+  if (full && open) statusBadgeHtml = `<span class="badge badge-red">🚫 Complet</span>`;
+  else if (full) statusBadgeHtml = `<span class="badge badge-muted">🚫 Complet</span>`;
+  else if (open) statusBadgeHtml = `<span class="badge badge-green">✅ Inscriptions ouvertes</span>`;
+  else statusBadgeHtml = `<span class="badge badge-muted">⏸ Inscriptions fermées</span>`;
+  statusBadgeEl.innerHTML = statusBadgeHtml;
+  
+  // Badge inscrits (cliquable)
+  const waitDisplay = waitCount > 0 ? ` · ${waitCount} en attente` : '';
+  registrantsBadgeEl.innerHTML = `<span class="badge badge-purple" onclick="event.stopPropagation(); viewStudentRegistrants('${sessionId}','${session.session_date}')">👥 ${regCount} / ${cap}${waitDisplay}</span>`;
+  
+  // Badge utilisateur
+  if (isRegistered) {
+    userBadgeEl.innerHTML = `<span class="badge badge-green">✅ Inscrit(e)</span>`;
+  } else if (isWaitlist) {
+    userBadgeEl.innerHTML = `<span class="badge badge-gold">⏳ En attente${waitRank ? ` · n°${waitRank}` : ''}</span>`;
+  } else {
+    userBadgeEl.innerHTML = '';
+  }
+  
+  // Texte d'aide
+  let helpText = '';
+  if (isRegistered) {
+    helpText = 'Tu es inscrit à cette séance. Pense à te désinscrire si tu ne peux plus venir.';
+  } else if (isWaitlist) {
+    helpText = 'Tu es en liste d\'attente. Si une place se libère, tu seras automatiquement inscrit.';
+  } else if (full && open) {
+    helpText = 'La séance est complète. Tu peux rejoindre la liste d\'attente.';
+  } else if (!open) {
+    helpText = 'Les inscriptions sont fermées pour cette séance.';
+  } else {
+    helpText = 'Tu peux t\'inscrire si tu souhaites participer à cette séance.';
+  }
+  
+  if (helpText) {
+    helpTextEl.textContent = helpText;
+    helpTextEl.classList.remove('hidden');
+  } else {
+    helpTextEl.classList.add('hidden');
+  }
+  
+  // Bouton d'action
+  if (isRegistered || isWaitlist) {
+    actionBtnEl.textContent = isRegistered ? '❌ Se désinscrire' : '↩ Quitter la liste d\'attente';
+    actionBtnEl.className = 'btn btn-red btn-full btn-lg';
+    actionBtnEl.onclick = async () => {
+      await toggleReg(sessionId, 'unregister');
+      await openStudentSessionDetail(sessionId); // Recharger
+    };
+  } else if (!open) {
+    actionBtnEl.textContent = '⏸ Inscriptions fermées';
+    actionBtnEl.className = 'btn btn-ghost btn-full btn-lg';
+    actionBtnEl.onclick = null;
+    actionBtnEl.style.cursor = 'not-allowed';
+  } else if (full) {
+    actionBtnEl.textContent = '⏳ Rejoindre la liste d\'attente';
+    actionBtnEl.className = 'btn btn-ghost btn-full btn-lg';
+    actionBtnEl.onclick = async () => {
+      await toggleReg(sessionId, 'register');
+      await openStudentSessionDetail(sessionId); // Recharger
+    };
+  } else {
+    actionBtnEl.textContent = '➕ S\'inscrire';
+    actionBtnEl.className = 'btn btn-gold btn-full btn-lg';
+    actionBtnEl.onclick = async () => {
+      await toggleReg(sessionId, 'register');
+      await openStudentSessionDetail(sessionId); // Recharger
+    };
+  }
+  
+  openModal('modal-student-session-detail');
 }
 
 /* ================================================================
