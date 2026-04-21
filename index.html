@@ -7241,12 +7241,13 @@ async function viewStudentRegistrants(sesId, date) {
 
 /* Ouvre la fiche séance / film détaillée pour l'élève */
 async function openStudentSessionDetail(sessionId) {
+  console.log('[SSD] ========================================');
+  console.log('[SSD] sessionId reçu:', sessionId);
+  
   if (!sessionId || !S.user) {
-    console.error('[openStudentSessionDetail] Paramètres manquants:', { sessionId, user: S.user });
+    console.error('[SSD] Paramètres manquants:', { sessionId, user: S.user });
     return;
   }
-  
-  console.log('[openStudentSessionDetail] Chargement séance:', sessionId);
   
   // ÉTAPE 1 : Récupérer la séance seule (sans jointure fragile)
   const { data: session, error: sessionError } = await db.from('cinema_sessions')
@@ -7254,8 +7255,10 @@ async function openStudentSessionDetail(sessionId) {
     .eq('id', sessionId)
     .maybeSingle();
   
+  console.log('[SSD] session récupérée:', session);
+  
   if (sessionError) {
-    console.error('[openStudentSessionDetail] Erreur Supabase (séance):', {
+    console.error('[SSD] Erreur Supabase (séance):', {
       code: sessionError.code,
       message: sessionError.message,
       details: sessionError.details,
@@ -7267,12 +7270,12 @@ async function openStudentSessionDetail(sessionId) {
   }
   
   if (!session) {
-    console.error('[openStudentSessionDetail] Séance introuvable:', sessionId);
+    console.error('[SSD] Séance introuvable:', sessionId);
     toast('Séance introuvable', 'error');
     return;
   }
   
-  console.log('[openStudentSessionDetail] Séance trouvée:', session);
+  console.log('[SSD] film_id:', session?.film_id);
   
   // ÉTAPE 2 : Récupérer le film séparément si film_id existe
   let film = null;
@@ -7283,7 +7286,7 @@ async function openStudentSessionDetail(sessionId) {
       .maybeSingle();
     
     if (filmError) {
-      console.error('[openStudentSessionDetail] Erreur Supabase (film):', {
+      console.error('[SSD] Erreur Supabase (film):', {
         code: filmError.code,
         message: filmError.message,
         details: filmError.details,
@@ -7294,16 +7297,17 @@ async function openStudentSessionDetail(sessionId) {
       film = null;
     } else {
       film = filmData;
-      console.log('[openStudentSessionDetail] Film trouvé:', film);
+      console.log('[SSD] film local récupéré:', film);
     }
   } else {
-    console.log('[openStudentSessionDetail] Aucun film_id pour cette séance');
+    console.warn('[SSD] Aucun film_id pour cette séance');
   }
   
   // Si pas de film, utiliser des valeurs par défaut
   if (!film) {
+    console.warn('[SSD] Pas de film trouvé, utilisation valeurs par défaut');
     film = {
-      title: '🎬 Film à annoncer',
+      title: 'Film à annoncer',
       poster_url: null,
       duration: null,
       genre: null,
@@ -7313,28 +7317,42 @@ async function openStudentSessionDetail(sessionId) {
     };
   }
   
+  console.log('[SSD] film.tmdb_id:', film?.tmdb_id);
+  
   // ÉTAPE 3 : Récupérer les données complètes TMDB si tmdb_id existe
   let tmdbDetail = null;
   let tmdbCredits = null;
   
   if (film.tmdb_id) {
     try {
+      console.log('[SSD] Appel TMDB pour tmdb_id:', film.tmdb_id);
       const [detailRes, creditsRes] = await Promise.all([
         fetch(`https://api.themoviedb.org/3/movie/${film.tmdb_id}?api_key=${CFG.TMDB_KEY}&language=fr-FR`),
         fetch(`https://api.themoviedb.org/3/movie/${film.tmdb_id}/credits?api_key=${CFG.TMDB_KEY}&language=fr-FR`)
       ]);
       
-      if (detailRes.ok) tmdbDetail = await detailRes.json();
-      if (creditsRes.ok) tmdbCredits = await creditsRes.json();
+      if (detailRes.ok) {
+        tmdbDetail = await detailRes.json();
+        console.log('[SSD] tmdbDetail récupéré:', tmdbDetail);
+      } else {
+        console.warn('[SSD] Échec détail TMDB, status:', detailRes.status);
+      }
       
-      console.log('[openStudentSessionDetail] TMDB data:', { detail: tmdbDetail, credits: tmdbCredits });
+      if (creditsRes.ok) {
+        tmdbCredits = await creditsRes.json();
+        console.log('[SSD] tmdbCredits récupéré:', tmdbCredits);
+      } else {
+        console.warn('[SSD] Échec crédits TMDB, status:', creditsRes.status);
+      }
     } catch (e) {
-      console.log('[openStudentSessionDetail] TMDB fetch failed:', e);
+      console.warn('[SSD] Échec récupération TMDB, fallback local utilisé:', e);
     }
+  } else {
+    console.warn('[SSD] Pas de tmdb_id pour ce film : données TMDB indisponibles');
   }
   
   // FUSION INTELLIGENTE : Priorité TMDB > Local > Fallback
-  const finalTitle = (tmdbDetail?.title) || film.title || '🎬 Film à annoncer';
+  const finalTitle = (tmdbDetail?.title) || film.title || 'Film à annoncer';
   const finalPoster = (tmdbDetail?.poster_path ? `https://image.tmdb.org/t/p/w500${tmdbDetail.poster_path}` : null) || film.poster_url || null;
   const finalBackdrop = (tmdbDetail?.backdrop_path ? `https://image.tmdb.org/t/p/w1280${tmdbDetail.backdrop_path}` : null) || finalPoster || null;
   const finalSynopsis = tmdbDetail?.overview || film.synopsis || null;
@@ -7347,6 +7365,19 @@ async function openStudentSessionDetail(sessionId) {
   // Extraction acteurs et réalisateur
   const director = tmdbCredits?.crew?.find(c => c.job === 'Director');
   const cast = tmdbCredits?.cast?.slice(0, 6) || [];
+  
+  console.log('[SSD] données finales:', {
+    finalTitle,
+    finalPoster,
+    finalBackdrop,
+    finalSynopsis: finalSynopsis ? finalSynopsis.substring(0, 50) + '...' : null,
+    finalDuration,
+    finalGenres,
+    finalRating,
+    finalYear,
+    director: director?.name || null,
+    cast: cast.map(a => a.name)
+  });
   
   // Compter les inscrits
   const { count: regCount } = await db.from('registrations')
@@ -7375,6 +7406,7 @@ async function openStudentSessionDetail(sessionId) {
   const open = session.registrations_open;
   
   // Remplir la modale
+  console.log('[SSD] Récupération éléments HTML...');
   const bgEl = document.getElementById('ssd-bg-img');
   const posterEl = document.getElementById('ssd-poster-img');
   const posterEmptyEl = document.getElementById('ssd-poster-empty');
@@ -7392,27 +7424,57 @@ async function openStudentSessionDetail(sessionId) {
   const helpTextEl = document.getElementById('ssd-help-text');
   const actionBtnEl = document.getElementById('ssd-action-btn');
   
+  // Vérification éléments critiques
+  if (!titleEl) console.error('[SSD] Élément ssd-title introuvable !');
+  if (!metaEl) console.error('[SSD] Élément ssd-meta introuvable !');
+  if (!posterEl) console.error('[SSD] Élément ssd-poster-img introuvable !');
+  if (!bgEl) console.error('[SSD] Élément ssd-bg-img introuvable !');
+  if (!synopsisBlock) console.error('[SSD] Élément ssd-synopsis-block introuvable !');
+  if (!synopsisEl) console.error('[SSD] Élément ssd-synopsis introuvable !');
+  if (!crewBlock) console.error('[SSD] Élément ssd-crew-block introuvable !');
+  if (!crewContent) console.error('[SSD] Élément ssd-crew-content introuvable !');
+  
+  console.log('[SSD] Tous les éléments HTML trouvés');
+  
   // Affiche + fond
+  console.log('[SSD] Remplissage affiche et fond...');
   if (finalPoster) {
-    posterEl.src = finalPoster;
-    posterEl.classList.remove('hidden');
+    if (posterEl) {
+      posterEl.src = finalPoster;
+      posterEl.classList.remove('hidden');
+      console.log('[SSD] Affiche définie:', finalPoster);
+    }
     if (posterEmptyEl) posterEmptyEl.classList.add('hidden');
   } else {
-    posterEl.src = '';
-    posterEl.classList.add('hidden');
-    if (posterEmptyEl) posterEmptyEl.classList.remove('hidden');
+    if (posterEl) {
+      posterEl.src = '';
+      posterEl.classList.add('hidden');
+    }
+    if (posterEmptyEl) {
+      posterEmptyEl.classList.remove('hidden');
+      console.log('[SSD] Pas d\'affiche, placeholder affiché');
+    }
   }
   
   if (finalBackdrop) {
-    bgEl.src = finalBackdrop;
-    bgEl.classList.remove('hidden');
+    if (bgEl) {
+      bgEl.src = finalBackdrop;
+      bgEl.classList.remove('hidden');
+      console.log('[SSD] Backdrop défini:', finalBackdrop);
+    }
   } else {
-    bgEl.src = '';
-    bgEl.classList.add('hidden');
+    if (bgEl) {
+      bgEl.src = '';
+      bgEl.classList.add('hidden');
+      console.log('[SSD] Pas de backdrop');
+    }
   }
   
   // Titre
-  titleEl.textContent = finalTitle;
+  if (titleEl) {
+    titleEl.textContent = finalTitle;
+    console.log('[SSD] Titre défini:', finalTitle);
+  }
   
   // Métadonnées avec badges
   const metaParts = [];
@@ -7421,49 +7483,67 @@ async function openStudentSessionDetail(sessionId) {
   if (finalGenres) metaParts.push(finalGenres);
   if (finalYear) metaParts.push(finalYear);
   if (finalRating) metaParts.push(`⭐ ${finalRating.toFixed(1)}/10`);
-  metaEl.innerHTML = metaParts.map(p => `<span class="badge badge-muted">${p}</span>`).join('');
   
-  // Synopsis
-  if (finalSynopsis) {
-    synopsisEl.textContent = finalSynopsis;
-    synopsisBlock.classList.remove('hidden');
-  } else {
-    synopsisBlock.classList.add('hidden');
+  if (metaEl) {
+    metaEl.innerHTML = metaParts.map(p => `<span class="badge badge-muted">${p}</span>`).join('');
+    console.log('[SSD] Métadonnées définies:', metaParts);
+  }
+  
+  // Synopsis avec fallback
+  if (synopsisEl && synopsisBlock) {
+    if (finalSynopsis) {
+      synopsisEl.textContent = finalSynopsis;
+      synopsisBlock.classList.remove('hidden');
+      console.log('[SSD] Synopsis affiché:', finalSynopsis.substring(0, 50) + '...');
+    } else {
+      synopsisEl.textContent = 'Aucun synopsis disponible pour le moment.';
+      synopsisBlock.classList.remove('hidden');
+      console.log('[SSD] Synopsis manquant, fallback affiché');
+    }
   }
   
   // Bloc acteurs/réalisateur
-  if (director || cast.length > 0) {
-    let crewHtml = '';
-    
-    if (director) {
-      crewHtml += `<div class="ssd-crew-row">
+  if (crewContent && crewBlock) {
+    if (director || cast.length > 0) {
+      let crewHtml = '';
+      
+      if (director) {
+        crewHtml += `<div class="ssd-crew-row">
         <span class="ssd-crew-label">Réalisation</span>
         <span class="ssd-crew-value">${director.name}</span>
       </div>`;
-    }
-    
-    if (cast.length > 0) {
-      crewHtml += `<div class="ssd-crew-row">
+        console.log('[SSD] Réalisateur:', director.name);
+      }
+      
+      if (cast.length > 0) {
+        crewHtml += `<div class="ssd-crew-row">
         <span class="ssd-crew-label">Avec</span>
         <div class="ssd-cast-chips">
           ${cast.map(a => `<span class="ssd-cast-chip">${a.name}</span>`).join('')}
         </div>
       </div>`;
+        console.log('[SSD] Acteurs:', cast.map(a => a.name).join(', '));
+      }
+      
+      crewContent.innerHTML = crewHtml;
+      crewBlock.classList.remove('hidden');
+    } else {
+      crewBlock.classList.add('hidden');
+      console.log('[SSD] Pas d\'acteurs/réalisateur TMDB');
     }
-    
-    crewContent.innerHTML = crewHtml;
-    crewBlock.classList.remove('hidden');
-  } else {
-    crewBlock.classList.add('hidden');
   }
   
   // Bande-annonce
-  if (finalTrailer) {
-    trailerBlock.classList.remove('hidden');
-    trailerBtn.onclick = () => openTrailer(finalTrailer, 'BA');
-  } else {
-    trailerBlock.classList.add('hidden');
-    trailerBtn.onclick = null;
+  if (trailerBlock && trailerBtn) {
+    if (finalTrailer) {
+      trailerBlock.classList.remove('hidden');
+      trailerBtn.onclick = () => openTrailer(finalTrailer, 'BA');
+      console.log('[SSD] Bande-annonce disponible');
+    } else {
+      trailerBlock.classList.add('hidden');
+      trailerBtn.onclick = null;
+      console.log('[SSD] Pas de bande-annonce');
+    }
   }
   
   // Badge statut
@@ -7537,6 +7617,8 @@ async function openStudentSessionDetail(sessionId) {
     };
   }
   
+  console.log('[SSD] Fiche séance complètement remplie, ouverture modale...');
+  console.log('[SSD] ========================================');
   openModal('modal-student-session-detail');
 }
 
