@@ -3757,7 +3757,11 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 
         <!-- Bouton d'action (admin ou élève) — le commentaire se saisit dans la 2e étape -->
 
-        <!-- Zone proposition : commentaire élève + Accepter/Refuser (visible seulement depuis une proposition) -->
+        <!-- Zone proposition : raison rapide + commentaire élève + Accepter/Refuser (visible seulement depuis une proposition) -->
+        <div id="tmdb-d-proposal-reason" class="hidden" style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 13px;margin-bottom:12px;">
+          <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;">Raison de la proposition</div>
+          <div id="tmdb-d-proposal-reason-text" style="font-size:13px;color:var(--gold);line-height:1.6;"></div>
+        </div>
         <div id="tmdb-d-proposal-comment" class="hidden" style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 13px;margin-bottom:12px;">
           <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;">Commentaire élève</div>
           <div id="tmdb-d-proposal-comment-text" style="font-size:13px;color:var(--text);line-height:1.6;"></div>
@@ -4127,6 +4131,10 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       </div>
     </div>
     <div style="font-size:13.5px;color:var(--text-2);line-height:1.75;margin-bottom:16px;" id="pd-synopsis">—</div>
+    <div id="pd-reason-block" class="hidden" style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 13px;margin-bottom:14px;">
+      <div class="text-xs text-muted" style="margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em;font-weight:700;">Raison de la proposition</div>
+      <div style="font-size:13px;color:var(--gold);" id="pd-reason">—</div>
+    </div>
     <div id="pd-comment-block" class="hidden" style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 13px;margin-bottom:14px;">
       <div class="text-xs text-muted" style="margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em;font-weight:700;">Commentaire élève</div>
       <div style="font-size:13px;color:var(--text);" id="pd-comment">—</div>
@@ -5704,8 +5712,9 @@ function saveTmdbSearchState(ctx) {
    ---------------------------------------------------------------- */
 let _tmdbCtx            = null;
 let _tmdbMovie          = null;
-let _tmdbProposalNote   = null;
-let _tmdbProposalId     = null;   // ID proposition si ouvert depuis une proposition admin
+let _tmdbProposalNote    = null;
+let _tmdbProposalReasons = null;
+let _tmdbProposalId      = null;   // ID proposition si ouvert depuis une proposition admin
 
 async function openTMDBDetail(tmdbId, ctx) {
   _tmdbCtx   = ctx;
@@ -5858,11 +5867,23 @@ actionBtn.onclick = dup.msg ? null : confirmAddFilm;
   // --- Contexte proposition ou film catalogue ---
   const proposalCommentEl  = document.getElementById('tmdb-d-proposal-comment');
   const proposalCommentTxt = document.getElementById('tmdb-d-proposal-comment-text');
+  const proposalReasonEl   = document.getElementById('tmdb-d-proposal-reason');
+  const proposalReasonTxt  = document.getElementById('tmdb-d-proposal-reason-text');
   const proposalActionsEl  = document.getElementById('tmdb-d-proposal-actions');
 
   if (_tmdbProposalId) {
     // Ouvert depuis une proposition : masquer "Ajouter", montrer Accepter/Refuser
     actionBtn.classList.add('hidden');
+    
+    // Afficher la raison rapide si elle existe
+    if (_tmdbProposalReasons && Array.isArray(_tmdbProposalReasons) && _tmdbProposalReasons.length > 0) {
+      proposalReasonTxt.textContent = _tmdbProposalReasons[0];
+      proposalReasonEl.classList.remove('hidden');
+    } else {
+      proposalReasonEl.classList.add('hidden');
+    }
+    
+    // Afficher le commentaire si il existe
     if (_tmdbProposalNote) {
       proposalCommentTxt.textContent = _tmdbProposalNote;
       proposalCommentEl.classList.remove('hidden');
@@ -5874,6 +5895,7 @@ actionBtn.onclick = dup.msg ? null : confirmAddFilm;
   } else {
     // Ouvert depuis un film catalogue : affichage normal
     actionBtn.classList.remove('hidden');
+    proposalReasonEl.classList.add('hidden');
     proposalCommentEl.classList.add('hidden');
     proposalActionsEl.classList.add('hidden');
   }
@@ -5991,15 +6013,38 @@ let _editingProposalId = null;
 
 function toggleQuickReason(btn) {
   if (!btn) return;
-  btn.classList.toggle('selected');
+  
+  // Trouver le conteneur parent (quick-reasons-container ou edit-quick-reasons-container)
+  const container = btn.closest('[id$="quick-reasons-container"]');
+  if (!container) {
+    btn.classList.toggle('selected');
+    return;
+  }
+  
+  // Si le bouton est déjà sélectionné, on le désélectionne
+  if (btn.classList.contains('selected')) {
+    btn.classList.remove('selected');
+    return;
+  }
+  
+  // Sinon, désélectionner tous les autres boutons du même conteneur
+  container.querySelectorAll('.quick-reason-btn.selected').forEach(b => {
+    if (b !== btn) b.classList.remove('selected');
+  });
+  
+  // Sélectionner le bouton cliqué
+  btn.classList.add('selected');
 }
 
 function getSelectedQuickReasons(containerId) {
   const root = document.getElementById(containerId);
-  if (!root) return [];
-  return Array.from(root.querySelectorAll('.quick-reason-btn.selected'))
-    .map(btn => btn.dataset.reason)
-    .filter(Boolean);
+  if (!root) return null;
+  
+  const selected = root.querySelector('.quick-reason-btn.selected');
+  if (!selected) return null;
+  
+  // Retourner un tableau avec une seule raison (pour compatibilité avec quick_reasons TEXT[])
+  return [selected.dataset.reason].filter(Boolean);
 }
 
 function resetQuickReasons(containerId) {
@@ -6241,14 +6286,22 @@ async function saveProposalEdit() {
     btn.textContent = 'Enregistrement…';
   }
 
-  const { error } = await db.from('proposals')
+  console.log('[saveProposalEdit] Tentative de mise à jour:', {
+    id: _editingProposalId,
+    student_id: S.user.id,
+    comment,
+    quickReasons
+  });
+
+  const { data, error } = await db.from('proposals')
     .update({
       student_comment: comment || null,
       quick_reasons: quickReasons
     })
     .eq('id', _editingProposalId)
     .eq('student_id', S.user.id)
-    .eq('status', 'pending');
+    .eq('status', 'pending')
+    .select();
 
   if (btn) {
     btn.disabled = false;
@@ -6256,11 +6309,32 @@ async function saveProposalEdit() {
   }
 
   if (error) {
-    console.error('saveProposalEdit error:', error);
-    toast('Erreur lors de la modification', 'error');
+    console.error('[saveProposalEdit] ERREUR SUPABASE:', {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint
+    });
+    
+    // Messages d'erreur spécifiques
+    if (error.code === '42501') {
+      toast('Permission refusée. Vérifiez les policies RLS.', 'error');
+    } else if (error.code === 'PGRST116') {
+      toast('Proposition non trouvée ou non modifiable', 'error');
+    } else {
+      toast(`Erreur : ${error.message}`, 'error');
+    }
     return;
   }
 
+  if (!data || data.length === 0) {
+    console.warn('[saveProposalEdit] Aucune ligne mise à jour. Proposition probablement déjà traitée ou inexistante.');
+    toast('Proposition non modifiable (peut-être déjà traitée)', 'error');
+    return;
+  }
+
+  console.log('[saveProposalEdit] Mise à jour réussie:', data);
+  
   closeModal('modal-edit-proposal');
   _editingProposalId = null;
   resetQuickReasons('edit-quick-reasons-container');
@@ -7132,8 +7206,9 @@ let _adminFilmCache = {};
 async function openAdminFilmDetail(data) {
   if (typeof data === 'string') data = JSON.parse(data);
   _adminFilmCache[data.id] = data;
-  _tmdbProposalId   = null;   // pas depuis une proposition
-  _tmdbProposalNote = null;
+  _tmdbProposalId      = null;   // pas depuis une proposition
+  _tmdbProposalNote    = null;
+  _tmdbProposalReasons = null;
 
   if (data.tmdb_id) {
     await openTMDBDetail(data.tmdb_id, 'admin');
@@ -7151,8 +7226,9 @@ async function openAdminFilmDetailById(id) {
     data = f;
     _adminFilmCache[id] = f;
   }
-  _tmdbProposalId   = null;   // pas depuis une proposition
-  _tmdbProposalNote = null;
+  _tmdbProposalId      = null;   // pas depuis une proposition
+  _tmdbProposalNote    = null;
+  _tmdbProposalReasons = null;
 
   if (data.tmdb_id) {
     await openTMDBDetail(data.tmdb_id, 'admin');
@@ -7488,6 +7564,11 @@ async function loadAdminProposals() {
       ? `<button class="admin-student-link" onclick="event.stopPropagation();openStudentDetail('${p.students.id}')" title="Voir la fiche élève">${studentName}</button>`
       : `<span>${studentName}</span>`;
     let extra = '';
+    if (Array.isArray(p.quick_reasons) && p.quick_reasons.length > 0) {
+      extra += `<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px;">
+        ${p.quick_reasons.map(r => `<span class="badge badge-purple" style="font-size:11px;">🎯 ${r}</span>`).join('')}
+      </div>`;
+    }
     if (p.student_comment) {
       extra += `<div class="text-sm text-muted mt-1" style="background:var(--surface-3);border-radius:6px;padding:6px 10px;margin-top:6px;">💬 <em>${p.student_comment}</em></div>`;
     }
@@ -7577,21 +7658,34 @@ async function openProposalDetail(id) {
 
   // Si on a un TMDB id → vraie fiche TMDB admin avec boutons proposition
   if (p.tmdb_id) {
-    _tmdbProposalNote = p.student_comment || null;
-    _tmdbProposalId   = p.id;
+    _tmdbProposalNote    = p.student_comment || null;
+    _tmdbProposalReasons = p.quick_reasons || null;
+    _tmdbProposalId      = p.id;
     await openTMDBDetail(p.tmdb_id, 'admin');
     return;
   }
 
   // Fallback ancienne petite fiche (sans TMDB)
-  _tmdbProposalNote = null;
-  _tmdbProposalId   = null;
+  _tmdbProposalNote    = null;
+  _tmdbProposalReasons = null;
+  _tmdbProposalId      = null;
   document.getElementById('pd-title').textContent    = p.title + (p.year ? ` (${p.year})` : '');
   document.getElementById('pd-meta').textContent     = [p.genre, p.duration ? p.duration + ' min' : ''].filter(Boolean).join(' · ') || '—';
   document.getElementById('pd-synopsis').textContent = p.synopsis || 'Aucun synopsis disponible.';
   const posterEl = document.getElementById('pd-poster');
   posterEl.src   = p.poster_url || '';
   posterEl.style.display = p.poster_url ? '' : 'none';
+
+  // Afficher la raison rapide si elle existe
+  const reasonBlock = document.getElementById('pd-reason-block');
+  if (Array.isArray(p.quick_reasons) && p.quick_reasons.length > 0) {
+    if (reasonBlock) {
+      reasonBlock.classList.remove('hidden');
+      document.getElementById('pd-reason').textContent = p.quick_reasons[0];
+    }
+  } else {
+    if (reasonBlock) reasonBlock.classList.add('hidden');
+  }
 
   const cb = document.getElementById('pd-comment-block');
   if (p.student_comment) {
@@ -9557,8 +9651,9 @@ function openModal(id) {
 function closeModal(id) {
   document.getElementById(id).classList.add('hidden');
   if (id === 'modal-tmdb-detail') {
-    _tmdbProposalNote = null;
-    _tmdbProposalId   = null;
+    _tmdbProposalNote    = null;
+    _tmdbProposalReasons = null;
+    _tmdbProposalId      = null;
   }
 }
 
@@ -10348,11 +10443,6 @@ if (document.readyState === 'loading') {
    NOUVELLES FONCTIONNALITÉS ÉLÈVE
    ================================================================ */
 
-// Toggle sélection raison rapide
-function toggleQuickReason(btn) {
-  btn.classList.toggle('selected');
-}
-
 // Ouvrir la modale Films vus de l'élève
 async function openStudentWatchedFilms() {
   closeModal('modal-profile');
@@ -10442,76 +10532,6 @@ async function openStudentWatchedFilms() {
     console.error('[openStudentWatchedFilms] Exception:', err);
     el.innerHTML = `<p class="text-sm text-muted" style="padding:24px;color:var(--red);">Erreur : ${err.message}</p>`;
   }
-}
-
-// Modifier une proposition en attente
-let _editingProposal = null;
-
-async function editProposal(proposalId) {
-  const { data: proposal } = await db.from('proposals')
-    .select('*')
-    .eq('id', proposalId)
-    .eq('student_id', S.user.id)
-    .eq('status', 'pending')
-    .maybeSingle();
-  
-  if (!proposal) {
-    toast('Proposition introuvable ou non modifiable', 'error');
-    return;
-  }
-  
-  _editingProposal = proposal;
-  
-  // Remplir la modale d'édition
-  document.getElementById('edit-prop-title').textContent = proposal.title;
-  document.getElementById('edit-prop-year').textContent = proposal.year ? `(${proposal.year})` : '';
-  document.getElementById('edit-prop-comment').value = proposal.student_comment || '';
-  document.getElementById('edit-prop-poster').src = proposal.poster_url || '';
-  
-  // Pré-sélectionner les raisons rapides
-  document.querySelectorAll('#edit-quick-reasons-container .quick-reason-btn').forEach(btn => {
-    btn.classList.remove('selected');
-    if (proposal.quick_reasons && proposal.quick_reasons.includes(btn.dataset.reason)) {
-      btn.classList.add('selected');
-    }
-  });
-  
-  openModal('modal-edit-proposal');
-}
-
-async function saveProposalEdit() {
-  if (!_editingProposal) return;
-  
-  const comment = document.getElementById('edit-prop-comment').value.trim();
-  const selectedReasons = Array.from(document.querySelectorAll('#edit-quick-reasons-container .quick-reason-btn.selected'))
-    .map(btn => btn.dataset.reason);
-  
-  const btn = document.getElementById('edit-prop-submit');
-  btn.disabled = true;
-  btn.textContent = 'Enregistrement…';
-  
-  const { error } = await db.from('proposals')
-    .update({
-      student_comment: comment || null,
-      quick_reasons: selectedReasons.length > 0 ? selectedReasons : null
-    })
-    .eq('id', _editingProposal.id)
-    .eq('student_id', S.user.id)
-    .eq('status', 'pending');
-  
-  btn.disabled = false;
-  btn.textContent = 'Enregistrer';
-  
-  if (error) {
-    console.error('Erreur modification:', error);
-    toast('Erreur lors de la modification', 'error');
-    return;
-  }
-  
-  closeModal('modal-edit-proposal');
-  _editingProposal = null;
-  toast('Proposition modifiée ✅', 'success');
-  await loadStudentProposals();
 }
 
 // Supprimer une proposition en attente
