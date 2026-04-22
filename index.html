@@ -5540,28 +5540,45 @@ function openForgotPin() {
 async function submitForgotPinRequest() {
   const login = document.getElementById('inp-forgot-identifier').value.trim().toLowerCase();
   
+  console.log('[submitForgotPinRequest] Début - identifiant:', login);
+  
   if (!login) {
     toast('Entre ton identifiant', 'error');
     return;
   }
 
-  // Vérifier que l'identifiant correspond à un élève actif
+  // Recherche robuste de l'élève (sans forcer is_active dans la requête)
   const { data: student, error: studentError } = await db.from('students')
     .select('*')
     .eq('login_identifier', login)
-    .eq('is_active', true)
     .maybeSingle();
 
   if (studentError) {
-    console.error('Erreur vérification élève:', studentError);
-    toast('Erreur lors de la vérification', 'error');
+    console.error('[submitForgotPinRequest] Erreur vérification élève:', {
+      code: studentError.code,
+      message: studentError.message,
+      details: studentError.details,
+      hint: studentError.hint,
+      login: login
+    });
+    toast(`Erreur Supabase : ${studentError.message || 'Impossible de vérifier l\'identifiant'}`, 'error');
     return;
   }
 
   if (!student) {
+    console.warn('[submitForgotPinRequest] Identifiant introuvable:', login);
     toast('Identifiant introuvable', 'error');
     return;
   }
+
+  // Vérifier côté JS si l'élève est actif
+  if (student.is_active === false) {
+    console.warn('[submitForgotPinRequest] Élève archivé:', student.id);
+    toast('Ton compte est archivé. Contacte un surveillant.', 'error');
+    return;
+  }
+
+  console.log('[submitForgotPinRequest] Élève trouvé:', student.id, student.first_name, student.last_name);
 
   // Vérifier s'il existe déjà une demande pending de type forgot_pin pour cet élève
   const { data: existingRequest, error: checkError } = await db.from('student_requests')
@@ -5572,32 +5589,54 @@ async function submitForgotPinRequest() {
     .maybeSingle();
 
   if (checkError) {
-    console.error('Erreur vérification demande:', checkError);
-    toast('Erreur lors de la vérification', 'error');
+    console.error('[submitForgotPinRequest] Erreur vérification demande existante:', {
+      code: checkError.code,
+      message: checkError.message,
+      details: checkError.details,
+      hint: checkError.hint,
+      student_id: student.id
+    });
+    toast(`Erreur Supabase : ${checkError.message || 'Impossible de vérifier les demandes'}`, 'error');
     return;
   }
 
   if (existingRequest) {
+    console.log('[submitForgotPinRequest] Demande déjà existante:', existingRequest.id);
     toast('Une demande est déjà en attente. Va voir un surveillant.', 'info');
     closeModal('modal-forgot-pin');
     return;
   }
 
   // Insérer la demande
-  const { error: insertError } = await db.from('student_requests').insert({
+  console.log('[submitForgotPinRequest] Insertion demande pour student_id:', student.id);
+  
+  const { data: insertedData, error: insertError } = await db.from('student_requests').insert({
     student_id: student.id,
     type: 'forgot_pin',
     category: 'probleme_code',
     message: 'Code oublié',
     status: 'pending'
-  });
+  }).select();
 
   if (insertError) {
-    console.error('Erreur insertion demande:', insertError);
-    toast('Erreur lors de l\'envoi de la demande', 'error');
+    console.error('[submitForgotPinRequest] Erreur insertion demande:', {
+      code: insertError.code,
+      message: insertError.message,
+      details: insertError.details,
+      hint: insertError.hint,
+      data: {
+        student_id: student.id,
+        type: 'forgot_pin',
+        category: 'probleme_code',
+        message: 'Code oublié',
+        status: 'pending'
+      }
+    });
+    toast(`Erreur Supabase : ${insertError.message || 'Impossible d\'envoyer la demande'}`, 'error');
     return;
   }
 
+  console.log('[submitForgotPinRequest] Demande insérée avec succès:', insertedData);
   closeModal('modal-forgot-pin');
   toast('Ta demande a été envoyée. Va voir un surveillant pour récupérer ton nouveau code.', 'success');
   document.getElementById('inp-forgot-identifier').value = '';
@@ -5615,13 +5654,28 @@ function openContactSupervisor() {
 }
 
 async function submitSupervisorMessage() {
+  console.log('[submitSupervisorMessage] Début');
+  
   if (!S.user) {
+    console.error('[submitSupervisorMessage] S.user est null ou undefined');
     toast('Erreur : utilisateur non connecté', 'error');
+    return;
+  }
+
+  if (!S.user.id) {
+    console.error('[submitSupervisorMessage] S.user.id est manquant:', S.user);
+    toast('Erreur : ID utilisateur manquant. Reconnecte-toi.', 'error');
     return;
   }
 
   const category = document.getElementById('sel-contact-reason').value;
   const message = document.getElementById('txt-contact-message').value.trim();
+
+  console.log('[submitSupervisorMessage] Données:', {
+    student_id: S.user.id,
+    category: category,
+    message_length: message.length
+  });
 
   if (!message) {
     toast('Entre un message', 'error');
@@ -5630,20 +5684,33 @@ async function submitSupervisorMessage() {
   }
 
   // Insérer la demande
-  const { error } = await db.from('student_requests').insert({
+  const { data: insertedData, error } = await db.from('student_requests').insert({
     student_id: S.user.id,
     type: 'message',
     category: category,
     message: message,
     status: 'pending'
-  });
+  }).select();
 
   if (error) {
-    console.error('Erreur insertion message:', error);
-    toast('Erreur lors de l\'envoi du message', 'error');
+    console.error('[submitSupervisorMessage] Erreur insertion message:', {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      data: {
+        student_id: S.user.id,
+        type: 'message',
+        category: category,
+        message: message,
+        status: 'pending'
+      }
+    });
+    toast(`Erreur Supabase : ${error.message || 'Impossible d\'envoyer le message'}`, 'error');
     return;
   }
 
+  console.log('[submitSupervisorMessage] Message inséré avec succès:', insertedData);
   closeModal('modal-contact-supervisor');
   toast('Message envoyé au surveillant', 'success');
   
@@ -8167,18 +8234,37 @@ if (validDateLabels.length === 1) {
    ================================================================ */
 async function refreshPendingRequestsBadge() {
   try {
-    const { count } = await db.from('student_requests')
+    const { count, error } = await db.from('student_requests')
       .select('id', { count: 'exact', head: true })
       .eq('status', 'pending');
+    
+    if (error) {
+      console.error('[refreshPendingRequestsBadge] Erreur comptage:', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint
+      });
+      return;
+    }
+    
+    console.log('[refreshPendingRequestsBadge] Demandes pending:', count);
+    
     const badge = document.getElementById('pending-requests-badge');
-    if (!badge) return;
+    if (!badge) {
+      console.warn('[refreshPendingRequestsBadge] Badge introuvable');
+      return;
+    }
+    
     if (count > 0) {
       badge.textContent = count;
       badge.classList.remove('hidden');
     } else {
       badge.classList.add('hidden');
     }
-  } catch(e) { /* silencieux */ }
+  } catch(e) { 
+    console.error('[refreshPendingRequestsBadge] Exception:', e);
+  }
 }
 
 async function loadAdminRequests() {
@@ -8186,6 +8272,9 @@ async function loadAdminRequests() {
   const filter = _requestFilter;
   list.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
 
+  console.log('[loadAdminRequests] Chargement demandes, filtre:', filter);
+
+  // Essayer d'abord avec jointure
   let query = db.from('student_requests')
     .select('*, students(id, first_name, last_name, class_name, login_identifier)')
     .order('created_at', { ascending: false });
@@ -8198,12 +8287,66 @@ async function loadAdminRequests() {
     query = query.eq('status', 'handled');
   }
 
-  const { data, error } = await query;
+  let { data, error } = await query;
 
+  // Si la jointure échoue, essayer sans jointure
   if (error) {
-    console.error('Erreur chargement demandes:', error);
-    list.innerHTML = '<div class="empty"><div class="icon">❌</div><h3>Erreur de chargement</h3></div>';
-    return;
+    console.warn('[loadAdminRequests] Échec jointure students, tentative sans jointure:', {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint
+    });
+    
+    let fallbackQuery = db.from('student_requests')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (filter === 'forgot_pin') {
+      fallbackQuery = fallbackQuery.eq('type', 'forgot_pin').eq('status', 'pending');
+    } else if (filter === 'message') {
+      fallbackQuery = fallbackQuery.eq('type', 'message').eq('status', 'pending');
+    } else if (filter === 'handled') {
+      fallbackQuery = fallbackQuery.eq('status', 'handled');
+    }
+
+    const fallbackResult = await fallbackQuery;
+    data = fallbackResult.data;
+    error = fallbackResult.error;
+
+    if (error) {
+      console.error('[loadAdminRequests] Erreur chargement demandes (même sans jointure):', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint
+      });
+      list.innerHTML = `<div class="empty"><div class="icon">❌</div><h3>Erreur de chargement</h3><p>Erreur Supabase : ${error.message || 'Inconnu'}</p></div>`;
+      return;
+    }
+
+    console.log('[loadAdminRequests] Données chargées sans jointure, fetch manuel des students');
+    
+    // Charger manuellement les infos students
+    if (data && data.length > 0) {
+      const studentIds = [...new Set(data.map(r => r.student_id).filter(Boolean))];
+      if (studentIds.length > 0) {
+        const { data: students, error: studentsError } = await db.from('students')
+          .select('id, first_name, last_name, class_name, login_identifier')
+          .in('id', studentIds);
+        
+        if (!studentsError && students) {
+          const studentsMap = {};
+          students.forEach(s => { studentsMap[s.id] = s; });
+          data.forEach(r => {
+            r.students = studentsMap[r.student_id] || null;
+          });
+          console.log('[loadAdminRequests] Infos students ajoutées manuellement');
+        } else {
+          console.warn('[loadAdminRequests] Impossible de charger students:', studentsError);
+        }
+      }
+    }
   }
 
   if (!data || data.length === 0) {
@@ -8217,6 +8360,8 @@ async function loadAdminRequests() {
     return;
   }
 
+  console.log('[loadAdminRequests] Demandes chargées:', data.length);
+
   // Traduire les catégories
   const categoryLabels = {
     probleme_code: 'Problème de code',
@@ -8228,10 +8373,11 @@ async function loadAdminRequests() {
 
   list.innerHTML = data.map(r => {
     const student = r.students || {};
-    const studentName = `${student.first_name || '?'} ${student.last_name || ''}`;
-    const studentLink = student.id
-      ? `<button class="admin-student-link" onclick="event.stopPropagation();openStudentDetail('${student.id}')" title="Voir la fiche élève">${studentName}</button>`
-      : `<span>${studentName}</span>`;
+    const studentName = `${student.first_name || '?'} ${student.last_name || '?'}`;
+    const studentId = student.id || r.student_id || null;
+    const studentLink = studentId
+      ? `<button class="admin-student-link" onclick="event.stopPropagation();openStudentDetail('${studentId}')" title="Voir la fiche élève">${studentName}</button>`
+      : `<span>${studentName} (ID: ${r.student_id || '?'})</span>`;
 
     const createdDate = r.created_at ? fmtDateShort(r.created_at) : '—';
     const handledDate = r.handled_at ? fmtDateShort(r.handled_at) : '—';
@@ -8249,7 +8395,7 @@ async function loadAdminRequests() {
           </div>
         </div>
         <div class="ai-actions">
-          <button class="btn btn-sm btn-gold" onclick="openResetPin('${student.id}', '${studentName}'); window._currentRequestId='${r.id}';">🔐 Réinitialiser</button>
+          ${studentId ? `<button class="btn btn-sm btn-gold" onclick="openResetPin('${studentId}', '${studentName}'); window._currentRequestId='${r.id}';">🔐 Réinitialiser</button>` : ''}
           <button class="btn btn-sm btn-ghost" onclick="markRequestHandled('${r.id}')">✓ Traité</button>
         </div>
       </div>`;
@@ -8295,6 +8441,8 @@ async function loadAdminRequests() {
 }
 
 async function markRequestHandled(requestId) {
+  console.log('[markRequestHandled] Marquage demande:', requestId);
+  
   const { error } = await db.from('student_requests')
     .update({ 
       status: 'handled', 
@@ -8303,11 +8451,18 @@ async function markRequestHandled(requestId) {
     .eq('id', requestId);
 
   if (error) {
-    console.error('Erreur marquage demande:', error);
-    toast('Erreur lors du marquage', 'error');
+    console.error('[markRequestHandled] Erreur marquage demande:', {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      requestId: requestId
+    });
+    toast(`Erreur Supabase : ${error.message || 'Impossible de marquer la demande'}`, 'error');
     return;
   }
 
+  console.log('[markRequestHandled] Demande marquée avec succès:', requestId);
   toast('Demande marquée comme traitée', 'success');
   await refreshPendingRequestsBadge();
   await loadAdminRequests();
