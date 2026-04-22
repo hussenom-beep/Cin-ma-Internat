@@ -3482,8 +3482,8 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       <div class="admin-panel-title">Demandes élèves</div>
       <!-- Sous-onglets filtres types -->
       <div class="sub-tabs" id="req-subtabs">
-        <button class="sub-tab active" onclick="filterRequests('forgot_pin')">🔑 Codes oubliés</button>
-        <button class="sub-tab" onclick="filterRequests('message')">💬 Messages</button>
+        <button class="sub-tab active" onclick="filterRequests('forgot_pin')">🔑 Codes oubliés <span class="pending-badge hidden" id="req-forgot-badge">0</span></button>
+        <button class="sub-tab" onclick="filterRequests('message')">💬 Messages <span class="pending-badge hidden" id="req-message-badge">0</span></button>
         <button class="sub-tab" onclick="filterRequests('handled')">✅ Traitées</button>
       </div>
       <div class="admin-list" id="admin-requests-list"><div class="loader"><div class="spinner"></div></div></div>
@@ -4865,6 +4865,7 @@ function fmtDateSafe(value) {
 function fmtDateTime(iso) {
   if (!iso) return '—';
   const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
   const date = d.toLocaleDateString('fr-FR', { day:'numeric', month:'short', year:'numeric' });
   const time = d.toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
   return `${date} à ${time}`;
@@ -8234,33 +8235,78 @@ if (validDateLabels.length === 1) {
    ================================================================ */
 async function refreshPendingRequestsBadge() {
   try {
-    const { count, error } = await db.from('student_requests')
+    // Compter toutes les demandes pending (badge principal)
+    const { count: totalCount, error: totalError } = await db.from('student_requests')
       .select('id', { count: 'exact', head: true })
       .eq('status', 'pending');
     
-    if (error) {
-      console.error('[refreshPendingRequestsBadge] Erreur comptage:', {
-        code: error.code,
-        message: error.message,
-        details: error.details,
-        hint: error.hint
+    if (totalError) {
+      console.error('[refreshPendingRequestsBadge] Erreur comptage total:', {
+        code: totalError.code,
+        message: totalError.message,
+        details: totalError.details,
+        hint: totalError.hint
       });
       return;
     }
     
-    console.log('[refreshPendingRequestsBadge] Demandes pending:', count);
+    // Compter forgot_pin pending
+    const { count: forgotCount, error: forgotError } = await db.from('student_requests')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'pending')
+      .eq('type', 'forgot_pin');
     
-    const badge = document.getElementById('pending-requests-badge');
-    if (!badge) {
-      console.warn('[refreshPendingRequestsBadge] Badge introuvable');
-      return;
+    if (forgotError) {
+      console.error('[refreshPendingRequestsBadge] Erreur comptage forgot_pin:', forgotError);
     }
     
-    if (count > 0) {
-      badge.textContent = count;
-      badge.classList.remove('hidden');
-    } else {
-      badge.classList.add('hidden');
+    // Compter message pending
+    const { count: messageCount, error: messageError } = await db.from('student_requests')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'pending')
+      .eq('type', 'message');
+    
+    if (messageError) {
+      console.error('[refreshPendingRequestsBadge] Erreur comptage message:', messageError);
+    }
+    
+    console.log('[refreshPendingRequestsBadge] Comptages:', {
+      total: totalCount,
+      forgot_pin: forgotCount,
+      message: messageCount
+    });
+    
+    // Badge principal (onglet Demandes)
+    const mainBadge = document.getElementById('pending-requests-badge');
+    if (mainBadge) {
+      if (totalCount > 0) {
+        mainBadge.textContent = totalCount;
+        mainBadge.classList.remove('hidden');
+      } else {
+        mainBadge.classList.add('hidden');
+      }
+    }
+    
+    // Badge Codes oubliés
+    const forgotBadge = document.getElementById('req-forgot-badge');
+    if (forgotBadge) {
+      if (forgotCount > 0) {
+        forgotBadge.textContent = forgotCount;
+        forgotBadge.classList.remove('hidden');
+      } else {
+        forgotBadge.classList.add('hidden');
+      }
+    }
+    
+    // Badge Messages
+    const messageBadge = document.getElementById('req-message-badge');
+    if (messageBadge) {
+      if (messageCount > 0) {
+        messageBadge.textContent = messageCount;
+        messageBadge.classList.remove('hidden');
+      } else {
+        messageBadge.classList.add('hidden');
+      }
     }
   } catch(e) { 
     console.error('[refreshPendingRequestsBadge] Exception:', e);
@@ -8379,8 +8425,8 @@ async function loadAdminRequests() {
       ? `<button class="admin-student-link" onclick="event.stopPropagation();openStudentDetail('${studentId}')" title="Voir la fiche élève">${studentName}</button>`
       : `<span>${studentName} (ID: ${r.student_id || '?'})</span>`;
 
-    const createdDate = r.created_at ? fmtDateShort(r.created_at) : '—';
-    const handledDate = r.handled_at ? fmtDateShort(r.handled_at) : '—';
+    const createdDate = r.created_at ? fmtDateTime(r.created_at) : '—';
+    const handledDate = r.handled_at ? fmtDateTime(r.handled_at) : '—';
 
     if (filter === 'forgot_pin') {
       // Carte pour code oublié
@@ -8391,7 +8437,7 @@ async function loadAdminRequests() {
           <div class="ai-sub">Par ${studentLink} · ${student.class_name || '?'}</div>
           <div class="text-sm text-muted mt-1">
             <div><strong>Identifiant :</strong> ${student.login_identifier || '?'}</div>
-            <div><strong>Demande :</strong> ${createdDate}</div>
+            <div><strong>Demandé le :</strong> ${createdDate}</div>
           </div>
         </div>
         <div class="ai-actions">
@@ -8411,7 +8457,7 @@ async function loadAdminRequests() {
             ${r.message || 'Aucun message'}
           </div>
           <div class="text-sm text-muted mt-1">
-            <strong>Date :</strong> ${createdDate}
+            <strong>Demandé le :</strong> ${createdDate}
           </div>
         </div>
         <div class="ai-actions">
@@ -8429,9 +8475,12 @@ async function loadAdminRequests() {
           <div class="ai-sub">Par ${studentLink} · ${student.class_name || '?'}</div>
           ${r.message ? `<div class="text-sm text-muted mt-1" style="background:var(--surface-3);border-radius:6px;padding:6px 10px;margin-top:4px;">${r.message}</div>` : ''}
           <div class="text-sm text-muted mt-1">
-            <div><strong>Créée :</strong> ${createdDate}</div>
-            <div><strong>Traitée :</strong> ${handledDate}</div>
+            <div><strong>Demandé le :</strong> ${createdDate}</div>
+            <div><strong>Traité le :</strong> ${handledDate}</div>
           </div>
+        </div>
+        <div class="ai-actions">
+          <button class="btn btn-sm btn-red" onclick="deleteHandledRequest('${r.id}')">🗑 Supprimer</button>
         </div>
       </div>`;
     }
@@ -8464,6 +8513,39 @@ async function markRequestHandled(requestId) {
 
   console.log('[markRequestHandled] Demande marquée avec succès:', requestId);
   toast('Demande marquée comme traitée', 'success');
+  await refreshPendingRequestsBadge();
+  await loadAdminRequests();
+}
+
+async function deleteHandledRequest(requestId) {
+  console.log('[deleteHandledRequest] Suppression demande:', requestId);
+  
+  // Demander confirmation
+  if (!confirm('Supprimer définitivement cette demande traitée ?')) {
+    console.log('[deleteHandledRequest] Suppression annulée');
+    return;
+  }
+  
+  // Supprimer uniquement si status='handled' pour sécurité
+  const { error } = await db.from('student_requests')
+    .delete()
+    .eq('id', requestId)
+    .eq('status', 'handled');
+
+  if (error) {
+    console.error('[deleteHandledRequest] Erreur suppression:', {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      requestId: requestId
+    });
+    toast(`Erreur Supabase : ${error.message || 'Impossible de supprimer'}`, 'error');
+    return;
+  }
+
+  console.log('[deleteHandledRequest] Demande supprimée avec succès:', requestId);
+  toast('Demande supprimée', 'success');
   await refreshPendingRequestsBadge();
   await loadAdminRequests();
 }
