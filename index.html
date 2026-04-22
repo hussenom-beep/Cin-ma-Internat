@@ -1184,10 +1184,81 @@ button { cursor: pointer; }
   padding: 3px 12px;
   font-weight: 500;
 }
+.profile-identifier {
+  font-size: 11.5px;
+  color: var(--text-3);
+  margin-top: 4px;
+  font-weight: 400;
+}
+
+/* Carte installation mise en avant */
+.profile-install-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: rgba(240, 165, 0, 0.05);
+  border: 1px solid rgba(240, 165, 0, 0.25);
+  border-radius: var(--radius-md);
+  margin-bottom: 18px;
+  cursor: pointer;
+  transition: all .2s ease;
+}
+.profile-install-card:hover {
+  background: rgba(240, 165, 0, 0.08);
+  border-color: rgba(240, 165, 0, 0.35);
+  transform: translateY(-1px);
+}
+.profile-install-card:active {
+  transform: translateY(0);
+}
+.profile-install-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+.profile-install-content {
+  flex: 1;
+}
+.profile-install-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gold);
+  margin-bottom: 3px;
+}
+.profile-install-text {
+  font-size: 12px;
+  color: var(--text-2);
+  line-height: 1.4;
+}
+.profile-install-arrow {
+  font-size: 20px;
+  color: var(--gold);
+  opacity: 0.6;
+  flex-shrink: 0;
+}
+
+/* Sections du profil */
+.profile-section {
+  margin-bottom: 16px;
+}
+.profile-section-title {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  padding: 0 4px 8px;
+}
+.profile-section .profile-action-btn {
+  margin-bottom: 6px;
+}
+.profile-section .profile-action-btn:last-child {
+  margin-bottom: 0;
+}
 
 /* Actions du profil */
-.profile-actions { display: flex; flex-direction: column; gap: 9px; align-items: stretch; }
-.profile-actions .btn-logout { align-self: center; }
+.profile-actions { display: flex; flex-direction: column; gap: 0; align-items: stretch; }
+.profile-actions .btn-logout { align-self: center; margin-top: 12px; }
 
 /* ----------------------------------------------------------------
    PROFIL ÉLÈVE — positionnement carte flottante (haut centré)
@@ -3868,40 +3939,63 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
   <div class="sheet">
     <div class="sheet-handle"></div>
 
-    <!-- En-tête : avatar + nom + classe -->
+    <!-- En-tête : avatar + nom + classe + identifiant -->
     <div class="profile-header">
       <div class="profile-avatar" id="prof-avatar">?</div>
       <div class="profile-name" id="prof-fullname">—</div>
       <div class="profile-class" id="prof-class">—</div>
+      <div class="profile-identifier" id="prof-identifier"></div>
     </div>
 
-    <!-- Actions -->
+    <!-- Carte installation mise en avant -->
+    <div class="profile-install-card" onclick="openAddToHome()">
+      <div class="profile-install-icon">📲</div>
+      <div class="profile-install-content">
+        <div class="profile-install-title">Installer l'application</div>
+        <div class="profile-install-text">Ajoute Cinéma Internat sur ton écran d'accueil pour l'ouvrir facilement.</div>
+      </div>
+      <div class="profile-install-arrow">›</div>
+    </div>
+
+    <!-- Actions organisées par sections -->
     <div class="profile-actions">
-      <button class="profile-action-btn" onclick="openStudentWatchedFilms()">
-        <span class="pa-icon">🎞</span>
-        <span class="pa-text">Mes films vus</span>
-        <span class="pa-arrow">›</span>
-      </button>
-      <button class="profile-action-btn" onclick="openChangePIN()">
-        <span class="pa-icon">🔐</span>
-        <span class="pa-text">Changer mon code secret</span>
-        <span class="pa-arrow">›</span>
-      </button>
-      <button class="profile-action-btn" onclick="openAddToHome()">
-        <span class="pa-icon">📲</span>
-        <span class="pa-text">Ajouter sur l'écran d'accueil</span>
-        <span class="pa-arrow">›</span>
-      </button>
-      <button class="profile-action-btn" onclick="openStudentFAQ()">
-        <span class="pa-icon">❔</span>
-        <span class="pa-text">Aide / FAQ</span>
-        <span class="pa-arrow">›</span>
-      </button>
-      <button class="profile-action-btn" onclick="openContactSupervisor()">
-        <span class="pa-icon">📨</span>
-        <span class="pa-text">Contacter un surveillant</span>
-        <span class="pa-arrow">›</span>
-      </button>
+      
+      <!-- Section Mon cinéma -->
+      <div class="profile-section">
+        <div class="profile-section-title">MON CINÉMA</div>
+        <button class="profile-action-btn" onclick="openStudentWatchedFilms()">
+          <span class="pa-icon">🎞</span>
+          <span class="pa-text">Mes films vus</span>
+          <span class="pa-arrow">›</span>
+        </button>
+      </div>
+
+      <!-- Section Mon compte -->
+      <div class="profile-section">
+        <div class="profile-section-title">MON COMPTE</div>
+        <button class="profile-action-btn" onclick="openChangePIN()">
+          <span class="pa-icon">🔐</span>
+          <span class="pa-text">Changer mon code secret</span>
+          <span class="pa-arrow">›</span>
+        </button>
+      </div>
+
+      <!-- Section Besoin d'aide -->
+      <div class="profile-section">
+        <div class="profile-section-title">BESOIN D'AIDE ?</div>
+        <button class="profile-action-btn" onclick="openContactSupervisor()">
+          <span class="pa-icon">📨</span>
+          <span class="pa-text">Contacter un surveillant</span>
+          <span class="pa-arrow">›</span>
+        </button>
+        <button class="profile-action-btn" onclick="openStudentFAQ()">
+          <span class="pa-icon">❔</span>
+          <span class="pa-text">Aide / FAQ</span>
+          <span class="pa-arrow">›</span>
+        </button>
+      </div>
+
+      <!-- Déconnexion séparée -->
       <button class="btn-logout" onclick="closeModal('modal-profile'); logout();">
         <span class="btn-logout-icon">⏻</span>
         Se déconnecter
@@ -10611,6 +10705,14 @@ function openModal(id) {
     document.getElementById('prof-avatar').textContent   = initials;
     document.getElementById('prof-fullname').textContent = [fn, ln].filter(Boolean).join(' ') || '—';
     document.getElementById('prof-class').textContent    = S.user.className || '—';
+    
+    // Afficher l'identifiant si disponible
+    const identEl = document.getElementById('prof-identifier');
+    if (identEl && S.user.loginIdentifier) {
+      identEl.textContent = `Identifiant : ${S.user.loginIdentifier}`;
+    } else if (identEl) {
+      identEl.textContent = '';
+    }
   }
   // Réinitialiser le switch import à l'ouverture des Paramètres
   if (id === 'modal-admin-settings') {
