@@ -3196,6 +3196,9 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
         <span class="remember-label">Se souvenir de mon identifiant</span>
       </label>
       <button class="btn btn-gold btn-full btn-lg" onclick="handleCode()">Continuer →</button>
+      <div style="text-align:center;margin-top:12px;">
+        <a href="#" onclick="event.preventDefault(); openForgotPin();" style="font-size:13px;color:var(--text-3);text-decoration:none;">Code oublié ?</a>
+      </div>
     </div>
 
     <!-- Étape 2 : activation (1er accès) — PIN 6 chiffres masqués -->
@@ -3412,6 +3415,10 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       <button class="admin-tab" onclick="aTab('proposals')">💡 Propositions</button>
       <span class="pending-badge hidden" id="pending-proposals-badge">0</span>
     </div>
+    <div class="admin-tab-wrap">
+      <button class="admin-tab" onclick="aTab('requests')">📨 Demandes</button>
+      <span class="pending-badge hidden" id="pending-requests-badge">0</span>
+    </div>
     <button class="admin-tab" onclick="aTab('sessions')">🎟️ Séances</button>
     <button class="admin-tab" onclick="aTab('students')">👥 Élèves</button>
   </div>
@@ -3468,6 +3475,18 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
         <button class="sub-tab" onclick="filterProposals('rejected')">❌ Refusées</button>
       </div>
       <div class="admin-list" id="admin-proposals-list"><div class="loader"><div class="spinner"></div></div></div>
+    </div>
+
+    <!-- Requests panel -->
+    <div class="admin-panel hidden" id="ap-requests">
+      <div class="admin-panel-title">Demandes élèves</div>
+      <!-- Sous-onglets filtres types -->
+      <div class="sub-tabs" id="req-subtabs">
+        <button class="sub-tab active" onclick="filterRequests('forgot_pin')">🔑 Codes oubliés</button>
+        <button class="sub-tab" onclick="filterRequests('message')">💬 Messages</button>
+        <button class="sub-tab" onclick="filterRequests('handled')">✅ Traitées</button>
+      </div>
+      <div class="admin-list" id="admin-requests-list"><div class="loader"><div class="spinner"></div></div></div>
     </div>
 
     <!-- Sessions panel -->
@@ -3878,6 +3897,11 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
         <span class="pa-text">Aide / FAQ</span>
         <span class="pa-arrow">›</span>
       </button>
+      <button class="profile-action-btn" onclick="openContactSupervisor()">
+        <span class="pa-icon">📨</span>
+        <span class="pa-text">Contacter un surveillant</span>
+        <span class="pa-arrow">›</span>
+      </button>
       <button class="btn-logout" onclick="closeModal('modal-profile'); logout();">
         <span class="btn-logout-icon">⏻</span>
         Se déconnecter
@@ -3886,6 +3910,63 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 
     <div class="profile-close-row">
       <button class="profile-close-link" onclick="closeModal('modal-profile')">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     MODAL: Code oublié
+     ================================================================ -->
+<div class="overlay hidden" id="modal-forgot-pin">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">🔑 Code oublié</div>
+    <p class="text-sm text-muted" style="margin-bottom:20px;">
+      Entre ton identifiant pour qu'un surveillant puisse te générer un nouveau code temporaire.
+    </p>
+
+    <div class="fgroup">
+      <label class="flabel">Ton identifiant</label>
+      <input type="text" class="finput" id="inp-forgot-identifier" placeholder="Ex : prénom.nom">
+    </div>
+
+    <div style="display:flex;gap:8px;margin-top:20px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('modal-forgot-pin')">Annuler</button>
+      <button class="btn btn-gold" style="flex:1;" onclick="submitForgotPinRequest()">Envoyer la demande</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     MODAL: Contacter un surveillant
+     ================================================================ -->
+<div class="overlay hidden" id="modal-contact-supervisor">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">📨 Contacter un surveillant</div>
+    <p class="text-sm text-muted" style="margin-bottom:20px;">
+      Un surveillant verra ton message et pourra t'aider.
+    </p>
+
+    <div class="fgroup">
+      <label class="flabel">Motif</label>
+      <select class="fselect" id="sel-contact-reason">
+        <option value="probleme_code">Problème de code</option>
+        <option value="question_seance">Question sur une séance</option>
+        <option value="probleme_inscription">Problème d'inscription</option>
+        <option value="proposition_film">Proposition de film</option>
+        <option value="autre">Autre</option>
+      </select>
+    </div>
+
+    <div class="fgroup">
+      <label class="flabel">Message</label>
+      <textarea class="ftextarea" id="txt-contact-message" rows="5" placeholder="Décris ton problème ou ta question..."></textarea>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-top:20px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('modal-contact-supervisor')">Annuler</button>
+      <button class="btn btn-gold" style="flex:1;" onclick="submitSupervisorMessage()">Envoyer</button>
     </div>
   </div>
 </div>
@@ -4601,11 +4682,11 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       <label class="flabel">Mot de passe admin</label>
       <input type="password" class="finput" id="reset-pin-adminpwd"
              placeholder="••••••••"
-             onkeydown="if(event.key==='Enter') confirmResetPin()">
+             onkeydown="if(event.key==='Enter') confirmResetPin(window._currentRequestId || null)">
     </div>
     <div style="display:flex;gap:10px;margin-top:6px;">
       <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('modal-reset-pin')">Annuler</button>
-      <button class="btn btn-red"   style="flex:1;" onclick="confirmResetPin()">Réinitialiser ✓</button>
+      <button class="btn btn-red"   style="flex:1;" onclick="confirmResetPin(window._currentRequestId || null); window._currentRequestId = null;">Réinitialiser ✓</button>
     </div>
   </div>
 </div>
@@ -5443,6 +5524,132 @@ function toggleFAQ(questionEl) {
     questionEl.classList.add('active');
     answerEl.classList.remove('hidden');
   }
+}
+
+/* ================================================================
+   CODE OUBLIÉ
+   ================================================================ */
+function openForgotPin() {
+  // Préremplir avec la valeur déjà saisie dans inp-code si elle existe
+  const currentCode = document.getElementById('inp-code')?.value.trim() || '';
+  document.getElementById('inp-forgot-identifier').value = currentCode;
+  openModal('modal-forgot-pin');
+  setTimeout(() => document.getElementById('inp-forgot-identifier')?.focus(), 80);
+}
+
+async function submitForgotPinRequest() {
+  const login = document.getElementById('inp-forgot-identifier').value.trim().toLowerCase();
+  
+  if (!login) {
+    toast('Entre ton identifiant', 'error');
+    return;
+  }
+
+  // Vérifier que l'identifiant correspond à un élève actif
+  const { data: student, error: studentError } = await db.from('students')
+    .select('*')
+    .eq('login_identifier', login)
+    .eq('is_active', true)
+    .maybeSingle();
+
+  if (studentError) {
+    console.error('Erreur vérification élève:', studentError);
+    toast('Erreur lors de la vérification', 'error');
+    return;
+  }
+
+  if (!student) {
+    toast('Identifiant introuvable', 'error');
+    return;
+  }
+
+  // Vérifier s'il existe déjà une demande pending de type forgot_pin pour cet élève
+  const { data: existingRequest, error: checkError } = await db.from('student_requests')
+    .select('id')
+    .eq('student_id', student.id)
+    .eq('type', 'forgot_pin')
+    .eq('status', 'pending')
+    .maybeSingle();
+
+  if (checkError) {
+    console.error('Erreur vérification demande:', checkError);
+    toast('Erreur lors de la vérification', 'error');
+    return;
+  }
+
+  if (existingRequest) {
+    toast('Une demande est déjà en attente. Va voir un surveillant.', 'info');
+    closeModal('modal-forgot-pin');
+    return;
+  }
+
+  // Insérer la demande
+  const { error: insertError } = await db.from('student_requests').insert({
+    student_id: student.id,
+    type: 'forgot_pin',
+    category: 'probleme_code',
+    message: 'Code oublié',
+    status: 'pending'
+  });
+
+  if (insertError) {
+    console.error('Erreur insertion demande:', insertError);
+    toast('Erreur lors de l\'envoi de la demande', 'error');
+    return;
+  }
+
+  closeModal('modal-forgot-pin');
+  toast('Ta demande a été envoyée. Va voir un surveillant pour récupérer ton nouveau code.', 'success');
+  document.getElementById('inp-forgot-identifier').value = '';
+}
+
+/* ================================================================
+   CONTACTER UN SURVEILLANT
+   ================================================================ */
+function openContactSupervisor() {
+  closeModal('modal-profile');
+  document.getElementById('sel-contact-reason').value = 'autre';
+  document.getElementById('txt-contact-message').value = '';
+  openModal('modal-contact-supervisor');
+  setTimeout(() => document.getElementById('txt-contact-message')?.focus(), 80);
+}
+
+async function submitSupervisorMessage() {
+  if (!S.user) {
+    toast('Erreur : utilisateur non connecté', 'error');
+    return;
+  }
+
+  const category = document.getElementById('sel-contact-reason').value;
+  const message = document.getElementById('txt-contact-message').value.trim();
+
+  if (!message) {
+    toast('Entre un message', 'error');
+    document.getElementById('txt-contact-message').focus();
+    return;
+  }
+
+  // Insérer la demande
+  const { error } = await db.from('student_requests').insert({
+    student_id: S.user.id,
+    type: 'message',
+    category: category,
+    message: message,
+    status: 'pending'
+  });
+
+  if (error) {
+    console.error('Erreur insertion message:', error);
+    toast('Erreur lors de l\'envoi du message', 'error');
+    return;
+  }
+
+  closeModal('modal-contact-supervisor');
+  toast('Message envoyé au surveillant', 'success');
+  
+  // Vider le formulaire
+  document.getElementById('sel-contact-reason').value = 'autre';
+  document.getElementById('txt-contact-message').value = '';
 }
 
 function updateProfileBtn() {
@@ -6976,7 +7183,7 @@ async function openStudentSessionDetail(sessionId) {
 /* ================================================================
    ADMIN — TAB SWITCHING
    ================================================================ */
-const PANELS = ['dashboard','films','votes','proposals','sessions','students'];
+const PANELS = ['dashboard','films','votes','proposals','requests','sessions','students'];
 
 // État courant des sous-onglets
 let _filmFilter     = 'active';
@@ -7043,6 +7250,20 @@ function filterProposals(status) {
   loadAdminProposals();
 }
 
+/* ================================================================
+   ADMIN DEMANDES — filtres et chargement
+   ================================================================ */
+let _requestFilter = 'forgot_pin';
+
+function filterRequests(type) {
+  _requestFilter = type;
+  const filters = ['forgot_pin', 'message', 'handled'];
+  document.querySelectorAll('#req-subtabs .sub-tab').forEach((btn, i) => {
+    btn.classList.toggle('active', filters[i] === type);
+  });
+  loadAdminRequests();
+}
+
 function aTab(tab) {
   PANELS.forEach((p, i) => {
     document.querySelectorAll('.admin-tab')[i].classList.toggle('active', p === tab);
@@ -7053,6 +7274,7 @@ function aTab(tab) {
     case 'films':     loadAdminFilms();     break;
     case 'votes':     loadAdminVotes();     break;
     case 'proposals': loadAdminProposals(); break;
+    case 'requests':  loadAdminRequests();  break;
     case 'sessions':  loadAdminSessions();  break;
     case 'students':  loadAdminStudents();  break;
   }
@@ -7062,6 +7284,7 @@ async function loadAdmin() {
   await checkScheduledFilms();
   await cleanupPastSessions();
   refreshPendingProposalsBadge();
+  refreshPendingRequestsBadge();
   aTab('dashboard');
 }
 
@@ -7937,6 +8160,157 @@ if (validDateLabels.length === 1) {
   }).join('');
 
   refreshPendingProposalsBadge();
+}
+
+/* ================================================================
+   ADMIN DEMANDES — chargement et gestion
+   ================================================================ */
+async function refreshPendingRequestsBadge() {
+  try {
+    const { count } = await db.from('student_requests')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'pending');
+    const badge = document.getElementById('pending-requests-badge');
+    if (!badge) return;
+    if (count > 0) {
+      badge.textContent = count;
+      badge.classList.remove('hidden');
+    } else {
+      badge.classList.add('hidden');
+    }
+  } catch(e) { /* silencieux */ }
+}
+
+async function loadAdminRequests() {
+  const list = document.getElementById('admin-requests-list');
+  const filter = _requestFilter;
+  list.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
+
+  let query = db.from('student_requests')
+    .select('*, students(id, first_name, last_name, class_name, login_identifier)')
+    .order('created_at', { ascending: false });
+
+  if (filter === 'forgot_pin') {
+    query = query.eq('type', 'forgot_pin').eq('status', 'pending');
+  } else if (filter === 'message') {
+    query = query.eq('type', 'message').eq('status', 'pending');
+  } else if (filter === 'handled') {
+    query = query.eq('status', 'handled');
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error('Erreur chargement demandes:', error);
+    list.innerHTML = '<div class="empty"><div class="icon">❌</div><h3>Erreur de chargement</h3></div>';
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    const labels = {
+      forgot_pin: 'aucun code oublié en attente',
+      message: 'aucun message en attente',
+      handled: 'aucune demande traitée'
+    };
+    list.innerHTML = `<div class="empty"><div class="icon">📨</div><h3>Aucune demande</h3><p>${labels[filter] || ''}</p></div>`;
+    refreshPendingRequestsBadge();
+    return;
+  }
+
+  // Traduire les catégories
+  const categoryLabels = {
+    probleme_code: 'Problème de code',
+    question_seance: 'Question sur une séance',
+    probleme_inscription: 'Problème d\'inscription',
+    proposition_film: 'Proposition de film',
+    autre: 'Autre'
+  };
+
+  list.innerHTML = data.map(r => {
+    const student = r.students || {};
+    const studentName = `${student.first_name || '?'} ${student.last_name || ''}`;
+    const studentLink = student.id
+      ? `<button class="admin-student-link" onclick="event.stopPropagation();openStudentDetail('${student.id}')" title="Voir la fiche élève">${studentName}</button>`
+      : `<span>${studentName}</span>`;
+
+    const createdDate = r.created_at ? fmtDateShort(r.created_at) : '—';
+    const handledDate = r.handled_at ? fmtDateShort(r.handled_at) : '—';
+
+    if (filter === 'forgot_pin') {
+      // Carte pour code oublié
+      return `
+      <div class="ai">
+        <div class="ai-info">
+          <div class="ai-title">🔑 Code oublié</div>
+          <div class="ai-sub">Par ${studentLink} · ${student.class_name || '?'}</div>
+          <div class="text-sm text-muted mt-1">
+            <div><strong>Identifiant :</strong> ${student.login_identifier || '?'}</div>
+            <div><strong>Demande :</strong> ${createdDate}</div>
+          </div>
+        </div>
+        <div class="ai-actions">
+          <button class="btn btn-sm btn-gold" onclick="openResetPin('${student.id}', '${studentName}'); window._currentRequestId='${r.id}';">🔐 Réinitialiser</button>
+          <button class="btn btn-sm btn-ghost" onclick="markRequestHandled('${r.id}')">✓ Traité</button>
+        </div>
+      </div>`;
+    } else if (filter === 'message') {
+      // Carte pour message
+      const categoryLabel = categoryLabels[r.category] || r.category || 'Non spécifié';
+      return `
+      <div class="ai">
+        <div class="ai-info">
+          <div class="ai-title">💬 ${categoryLabel}</div>
+          <div class="ai-sub">Par ${studentLink} · ${student.class_name || '?'}</div>
+          <div class="text-sm text-muted mt-1" style="background:var(--surface-3);border-radius:6px;padding:8px 10px;margin-top:6px;">
+            ${r.message || 'Aucun message'}
+          </div>
+          <div class="text-sm text-muted mt-1">
+            <strong>Date :</strong> ${createdDate}
+          </div>
+        </div>
+        <div class="ai-actions">
+          <button class="btn btn-sm btn-green" onclick="markRequestHandled('${r.id}')">✓ Traité</button>
+        </div>
+      </div>`;
+    } else {
+      // Carte pour traitées
+      const typeLabel = r.type === 'forgot_pin' ? '🔑 Code oublié' : '💬 Message';
+      const categoryLabel = r.category ? categoryLabels[r.category] || r.category : '';
+      return `
+      <div class="ai">
+        <div class="ai-info">
+          <div class="ai-title">${typeLabel}${categoryLabel ? ' · ' + categoryLabel : ''}</div>
+          <div class="ai-sub">Par ${studentLink} · ${student.class_name || '?'}</div>
+          ${r.message ? `<div class="text-sm text-muted mt-1" style="background:var(--surface-3);border-radius:6px;padding:6px 10px;margin-top:4px;">${r.message}</div>` : ''}
+          <div class="text-sm text-muted mt-1">
+            <div><strong>Créée :</strong> ${createdDate}</div>
+            <div><strong>Traitée :</strong> ${handledDate}</div>
+          </div>
+        </div>
+      </div>`;
+    }
+  }).join('');
+
+  refreshPendingRequestsBadge();
+}
+
+async function markRequestHandled(requestId) {
+  const { error } = await db.from('student_requests')
+    .update({ 
+      status: 'handled', 
+      handled_at: new Date().toISOString() 
+    })
+    .eq('id', requestId);
+
+  if (error) {
+    console.error('Erreur marquage demande:', error);
+    toast('Erreur lors du marquage', 'error');
+    return;
+  }
+
+  toast('Demande marquée comme traitée', 'success');
+  await refreshPendingRequestsBadge();
+  await loadAdminRequests();
 }
 
 /* Accepter une proposition — utilise le cache, pas de JSON dans onclick */
@@ -9772,7 +10146,7 @@ function openResetPin(studentId, studentName) {
   setTimeout(() => document.getElementById('reset-pin-adminpwd')?.focus(), 80);
 }
 
-async function confirmResetPin() {
+async function confirmResetPin(requestId = null) {
   const studentId = document.getElementById('reset-pin-student-id').value;
   const pwd = document.getElementById('reset-pin-adminpwd').value.trim();
 
@@ -9792,16 +10166,40 @@ async function confirmResetPin() {
     return;
   }
 
-  // Réinitialiser le code
-  const { error } = await db.from('students').update({
-    is_activated:  false,
-    password_hash: null
-  }).eq('id', studentId);
+  // Générer un nouveau PIN temporaire
+  const newPin = generateInitialPIN();
+  const hash = await sha256(newPin);
 
-  if (error) { toast('Erreur lors de la réinitialisation', 'error'); return; }
+  // Réinitialiser le code avec le nouveau PIN temporaire
+  const updateData = {
+    is_activated:    false,
+    activation_code: newPin,
+    password_hash:   hash,
+    activated_at:    null
+  };
+
+  const { error } = await db.from('students').update(updateData).eq('id', studentId);
+
+  if (error) { 
+    toast('Erreur lors de la réinitialisation', 'error'); 
+    return; 
+  }
+
+  // Si la réinitialisation vient d'une demande, la marquer comme traitée
+  if (requestId) {
+    await db.from('student_requests')
+      .update({ status: 'handled', handled_at: new Date().toISOString() })
+      .eq('id', requestId);
+    await refreshPendingRequestsBadge();
+    await loadAdminRequests();
+  }
 
   closeModal('modal-reset-pin');
-  toast("Code réinitialisé — l'élève choisira un nouveau code à sa prochaine connexion", 'success');
+  
+  // Afficher le nouveau PIN temporaire clairement
+  alert(`✅ Code réinitialisé avec succès !\n\n🔑 Nouveau PIN temporaire : ${newPin}\n\nCommunique ce code à l'élève.\nIl devra l'utiliser pour se connecter et choisir son nouveau code personnel.`);
+  
+  toast("Code réinitialisé — nouveau PIN temporaire généré", 'success');
 
   // Rafraîchir la fiche si ouverte
   if (_sdCurrentStudentId === studentId) openStudentDetail(studentId);
