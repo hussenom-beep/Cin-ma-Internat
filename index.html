@@ -3069,6 +3069,117 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
   font-weight: 600;
 }
 
+.ssh-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.ssh-action-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .2s ease;
+  font-family: inherit;
+}
+
+.ssh-action-badge:hover {
+  background: var(--surface);
+  border-color: var(--gold);
+}
+
+.ssh-action-badge.open {
+  background: rgba(76, 175, 80, 0.15);
+  border-color: rgba(76, 175, 80, 0.3);
+  color: #4caf50;
+}
+
+.ssh-action-badge.closed {
+  background: rgba(158, 158, 158, 0.15);
+  border-color: rgba(158, 158, 158, 0.3);
+  color: var(--text-3);
+}
+
+/* Zone d'appel */
+.session-attendance-zone {
+  background: var(--surface-2);
+  border-top: 2px solid var(--border);
+  padding: 20px;
+}
+
+.saz-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.saz-title {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0;
+}
+
+/* Cartes vue d'ensemble */
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+}
+
+.overview-card {
+  background: var(--surface-3);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  border: 1px solid var(--border);
+}
+
+.overview-card-title {
+  font-size: 11px;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.overview-card-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-1);
+  margin-bottom: 4px;
+}
+
+.overview-card-sub {
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.overview-card.full-width {
+  grid-column: 1 / -1;
+}
+
+.overview-notes {
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-2);
+  white-space: pre-wrap;
+}
+
 .session-sheet-tabs {
   display: flex;
   gap: 6px;
@@ -4457,6 +4568,15 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
           <span class="ssh-date" id="ssh-date">—</span>
           <span class="ssh-time" id="ssh-time"></span>
         </div>
+        <div class="ssh-actions">
+          <button class="ssh-action-badge" id="ssh-reg-badge" onclick="toggleSessionRegistrations()">
+            <span id="ssh-reg-icon">✅</span>
+            <span id="ssh-reg-text">Ouvertes</span>
+          </button>
+          <button class="btn btn-sm btn-gold" id="ssh-attendance-btn" onclick="openAttendanceMode()">
+            📋 Faire l'appel
+          </button>
+        </div>
         <div class="ssh-stats">
           <div class="ssh-stat">
             <span class="ssh-stat-label">Capacité</span>
@@ -4470,10 +4590,6 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
             <span class="ssh-stat-label">Liste d'attente</span>
             <span class="ssh-stat-value" id="ssh-waitlist">—</span>
           </div>
-          <div class="ssh-stat">
-            <span class="ssh-stat-label">Inscriptions</span>
-            <span class="ssh-stat-value" id="ssh-reg-status">—</span>
-          </div>
         </div>
       </div>
     </div>
@@ -4483,7 +4599,6 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       <button class="sst-tab active" onclick="switchSessionTab('overview')">📊 Vue d'ensemble</button>
       <button class="sst-tab" onclick="switchSessionTab('registered')">✓ Inscrits</button>
       <button class="sst-tab" onclick="switchSessionTab('waitlist')">⏳ Liste d'attente</button>
-      <button class="sst-tab" id="sst-tab-attendance" onclick="switchSessionTab('attendance')">📋 Appel</button>
     </div>
 
     <!-- Contenu onglets -->
@@ -4492,7 +4607,6 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       <!-- Onglet Vue d'ensemble -->
       <div class="sst-pane active" id="sst-pane-overview">
         <div class="sst-section">
-          <h3 class="sst-section-title">Résumé</h3>
           <div id="sst-overview-content">
             <!-- Stats, notes, actions globales -->
           </div>
@@ -4519,35 +4633,36 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
         </div>
       </div>
 
-      <!-- Onglet Appel -->
-      <div class="sst-pane hidden" id="sst-pane-attendance">
-        <div class="sst-section">
-          <div id="sst-attendance-locked" class="sst-locked hidden">
-            <div class="sst-locked-icon">🕐</div>
-            <div class="sst-locked-title">L'appel n'est pas encore disponible</div>
-            <div class="sst-locked-text">
-              L'appel sera disponible le jour de la séance à partir de 20h00.
-            </div>
-          </div>
-          <div id="sst-attendance-active" class="hidden">
-            <div class="sst-attendance-header">
-              <h3 class="sst-section-title">Faire l'appel</h3>
-              <div class="sst-attendance-info">
-                Appuyez sur les absents pour les marquer. Par défaut, tout le monde est présent.
-              </div>
-            </div>
-            <div class="sst-attendance-list" id="sst-attendance-list">
-              <!-- Liste cliquable pour l'appel -->
-            </div>
-            <div class="sst-attendance-actions">
-              <button class="btn btn-primary btn-lg" onclick="saveAttendance()">
-                ✓ Valider l'appel
-              </button>
-            </div>
-          </div>
+    </div>
+
+    <!-- Zone d'appel (hors onglets) -->
+    <div class="session-attendance-zone hidden" id="session-attendance-zone">
+      <div class="saz-header">
+        <h3 class="saz-title">📋 Faire l'appel</h3>
+        <button class="btn btn-sm btn-ghost" onclick="closeAttendanceMode()">✕ Fermer</button>
+      </div>
+      
+      <div id="sst-attendance-locked" class="sst-locked hidden">
+        <div class="sst-locked-icon">🕐</div>
+        <div class="sst-locked-title">L'appel n'est pas encore disponible</div>
+        <div class="sst-locked-text">
+          L'appel sera disponible le jour de la séance à partir de 20h00.
         </div>
       </div>
-
+      
+      <div id="sst-attendance-active" class="hidden">
+        <div class="sst-attendance-info">
+          Appuyez sur les absents pour les marquer. Par défaut, tout le monde est présent.
+        </div>
+        <div class="sst-attendance-list" id="sst-attendance-list">
+          <!-- Liste cliquable pour l'appel -->
+        </div>
+        <div class="sst-attendance-actions">
+          <button class="btn btn-primary btn-lg" onclick="saveAttendance()">
+            ✓ Valider l'appel
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- Fermeture -->
@@ -8195,14 +8310,24 @@ function checkAttendanceAllowed(session) {
 async function openSessionSheet(sessionId, initialTab = 'overview') {
   console.log('[openSessionSheet] Ouverture fiche séance:', sessionId, initialTab);
   
+  // Réinitialiser l'état : montrer les onglets, cacher la zone d'appel
+  document.querySelector('.session-sheet-tabs')?.classList.remove('hidden');
+  document.querySelector('.session-sheet-content')?.classList.remove('hidden');
+  const zone = document.getElementById('session-attendance-zone');
+  if (zone) {
+    zone.classList.add('hidden');
+  }
+  
   // Charger les données de la séance
   await loadSessionSheetData(sessionId);
   
   // Ouvrir la modale
   openModal('modal-session-sheet');
   
-  // Basculer sur l'onglet demandé
-  if (initialTab !== 'overview') {
+  // Si demandé, ouvrir directement le mode appel
+  if (initialTab === 'attendance') {
+    openAttendanceMode();
+  } else if (initialTab !== 'overview') {
     switchSessionTab(initialTab);
   }
 }
@@ -8244,36 +8369,103 @@ async function loadSessionSheetData(sessionId) {
     
     const film = session.films || {};
     const posterUrl = film.poster_url || '';
+    const capacity = session.max_capacity || 20;
+    const fillRate = Math.round((registeredCount / capacity) * 100);
     
     // Remplir l'en-tête
     document.getElementById('ssh-poster-img').src = posterUrl;
     document.getElementById('ssh-title').textContent = film.title || 'Film à annoncer';
     document.getElementById('ssh-date').textContent = fmtDateShort(session.session_date);
     document.getElementById('ssh-time').textContent = session.session_time ? `🕐 ${session.session_time}` : '';
-    document.getElementById('ssh-capacity').textContent = session.max_capacity || 20;
+    document.getElementById('ssh-capacity').textContent = capacity;
     document.getElementById('ssh-registered').textContent = registeredCount || 0;
     document.getElementById('ssh-waitlist').textContent = waitlistCount || 0;
-    document.getElementById('ssh-reg-status').textContent = session.registrations_open ? 'Ouvertes' : 'Fermées';
     
-    // Charger l'onglet Vue d'ensemble
+    // Badge inscriptions cliquable
+    const regBadge = document.getElementById('ssh-reg-badge');
+    const regIcon = document.getElementById('ssh-reg-icon');
+    const regText = document.getElementById('ssh-reg-text');
+    if (session.registrations_open) {
+      regBadge.classList.add('open');
+      regBadge.classList.remove('closed');
+      regIcon.textContent = '✅';
+      regText.textContent = 'Ouvertes';
+    } else {
+      regBadge.classList.add('closed');
+      regBadge.classList.remove('open');
+      regIcon.textContent = '⏸';
+      regText.textContent = 'Fermées';
+    }
+    
+    // Bouton appel
+    const attendBtn = document.getElementById('ssh-attendance-btn');
+    const canAttend = checkAttendanceAllowed(session);
+    if (!canAttend) {
+      attendBtn.classList.add('btn-ghost');
+      attendBtn.classList.remove('btn-gold');
+    } else {
+      attendBtn.classList.add('btn-gold');
+      attendBtn.classList.remove('btn-ghost');
+    }
+    
+    // Charger la vue d'ensemble enrichie
     const overviewEl = document.getElementById('sst-overview-content');
     if (overviewEl) {
+      const attendStatus = canAttend 
+        ? '<span style="color: var(--gold);">✓ Appel disponible maintenant</span>'
+        : '<span style="color: var(--text-3);">Appel disponible à partir de 20h le jour de la séance</span>';
+      
       overviewEl.innerHTML = `
-        <div style="display: flex; flex-direction: column; gap: 12px;">
-          <div style="padding: 12px; background: var(--surface-3); border-radius: var(--radius-sm);">
-            <div style="font-size: 13px; color: var(--text-2); margin-bottom: 4px;">Taux de remplissage</div>
-            <div style="font-size: 20px; font-weight: 700;">
-              ${registeredCount} / ${session.max_capacity || 20}
-              <span style="font-size: 14px; color: var(--text-3);">
-                (${Math.round((registeredCount / (session.max_capacity || 20)) * 100)}%)
-              </span>
-            </div>
+        <div class="overview-grid">
+          <div class="overview-card">
+            <div class="overview-card-title">Taux de remplissage</div>
+            <div class="overview-card-value">${fillRate}%</div>
+            <div class="overview-card-sub">${registeredCount} / ${capacity} inscrits</div>
           </div>
-          ${film.duration ? `
-            <div style="padding: 12px; background: var(--surface-3); border-radius: var(--radius-sm);">
-              <div style="font-size: 13px; color: var(--text-2); margin-bottom: 4px;">Durée du film</div>
-              <div style="font-size: 16px; font-weight: 600;">${formatRuntime(film.duration)}</div>
+          
+          <div class="overview-card">
+            <div class="overview-card-title">Inscriptions</div>
+            <div class="overview-card-value" style="color: ${session.registrations_open ? '#4caf50' : 'var(--text-3)'};">
+              ${session.registrations_open ? '✅ Ouvertes' : '⏸ Fermées'}
             </div>
+            <div class="overview-card-sub">Cliquez le badge ci-dessus pour basculer</div>
+          </div>
+          
+          <div class="overview-card">
+            <div class="overview-card-title">Liste d'attente</div>
+            <div class="overview-card-value">${waitlistCount || 0}</div>
+            <div class="overview-card-sub">${waitlistCount > 0 ? 'élève' + (waitlistCount > 1 ? 's' : '') + ' en attente' : 'Aucun élève en attente'}</div>
+          </div>
+          
+          ${session.session_time ? `
+          <div class="overview-card">
+            <div class="overview-card-title">Heure de séance</div>
+            <div class="overview-card-value">🕐 ${session.session_time}</div>
+            <div class="overview-card-sub">Le ${fmtDateShort(session.session_date)}</div>
+          </div>
+          ` : ''}
+          
+          ${film.duration ? `
+          <div class="overview-card">
+            <div class="overview-card-title">Durée du film</div>
+            <div class="overview-card-value">${formatRuntime(film.duration)}</div>
+            <div class="overview-card-sub">${film.title || '—'}</div>
+          </div>
+          ` : ''}
+          
+          <div class="overview-card">
+            <div class="overview-card-title">Appel</div>
+            <div class="overview-card-value" style="font-size: 14px; font-weight: 600;">
+              ${attendStatus}
+            </div>
+            <div class="overview-card-sub">Cliquez "Faire l'appel" ci-dessus</div>
+          </div>
+          
+          ${session.notes ? `
+          <div class="overview-card full-width">
+            <div class="overview-card-title">📝 Notes admin</div>
+            <div class="overview-notes">${session.notes}</div>
+          </div>
           ` : ''}
         </div>
       `;
@@ -8504,6 +8696,92 @@ async function saveAttendance() {
   } catch (e) {
     console.error('[saveAttendance] Exception:', e);
     toast('Erreur technique', 'error');
+  }
+}
+
+/* ================================================================
+   FICHE SÉANCE - GESTION INSCRIPTIONS ET APPEL
+   ================================================================ */
+
+async function toggleSessionRegistrations() {
+  const session = window._currentSessionData;
+  if (!session) return;
+  
+  const newStatus = !session.registrations_open;
+  
+  try {
+    const { error } = await db
+      .from('cinema_sessions')
+      .update({ registrations_open: newStatus })
+      .eq('id', session.id);
+    
+    if (error) {
+      console.error('[toggleSessionRegistrations] Erreur:', error);
+      toast('Erreur lors de la modification', 'error');
+      return;
+    }
+    
+    toast(newStatus ? 'Inscriptions ouvertes' : 'Inscriptions fermées', 'success');
+    
+    // Mettre à jour la session en mémoire
+    session.registrations_open = newStatus;
+    
+    // Mettre à jour le badge
+    const regBadge = document.getElementById('ssh-reg-badge');
+    const regIcon = document.getElementById('ssh-reg-icon');
+    const regText = document.getElementById('ssh-reg-text');
+    if (newStatus) {
+      regBadge.classList.add('open');
+      regBadge.classList.remove('closed');
+      regIcon.textContent = '✅';
+      regText.textContent = 'Ouvertes';
+    } else {
+      regBadge.classList.add('closed');
+      regBadge.classList.remove('open');
+      regIcon.textContent = '⏸';
+      regText.textContent = 'Fermées';
+    }
+    
+    // Recharger la vue d'ensemble
+    await loadSessionSheetData(session.id);
+    
+  } catch (e) {
+    console.error('[toggleSessionRegistrations] Exception:', e);
+    toast('Erreur technique', 'error');
+  }
+}
+
+function openAttendanceMode() {
+  const session = window._currentSessionData;
+  if (!session) return;
+  
+  const canAttend = checkAttendanceAllowed(session);
+  
+  if (!canAttend) {
+    toast('L\'appel sera disponible à partir de 20h le jour de la séance', 'info');
+    return;
+  }
+  
+  // Cacher les onglets
+  document.querySelector('.session-sheet-tabs')?.classList.add('hidden');
+  document.querySelector('.session-sheet-content')?.classList.add('hidden');
+  
+  // Afficher la zone d'appel
+  const zone = document.getElementById('session-attendance-zone');
+  if (zone) {
+    zone.classList.remove('hidden');
+  }
+}
+
+function closeAttendanceMode() {
+  // Afficher les onglets
+  document.querySelector('.session-sheet-tabs')?.classList.remove('hidden');
+  document.querySelector('.session-sheet-content')?.classList.remove('hidden');
+  
+  // Cacher la zone d'appel
+  const zone = document.getElementById('session-attendance-zone');
+  if (zone) {
+    zone.classList.add('hidden');
   }
 }
 
