@@ -7910,42 +7910,110 @@ async function toggleReg(sessionId, action) {
 
 /* Inscrits d'une séance — vue élève */
 async function viewStudentRegistrants(sesId, date) {
-  const { data } = await db.from('registrations')
-    .select('status, students(first_name, last_name, class_name)')
-    .eq('session_id', sesId)
-    .order('registered_at');
-
   document.getElementById('modal-sreg-title').textContent = `Inscrits — ${fmtDateShort(date)}`;
   const el = document.getElementById('student-registrants-content');
-
-  if (!data?.length) {
-    el.innerHTML = '<p class="text-muted text-center" style="padding:20px;">Aucun inscrit pour l\'instant.</p>';
+  
+  try {
+    // Étape 1 : Charger les registrations
+    const { data: registrations, error: regError } = await db
+      .from('registrations')
+      .select('id, student_id, status, registered_at')
+      .eq('session_id', sesId)
+      .order('registered_at');
+    
+    console.log('[viewStudentRegistrants] Registrations trouvées:', registrations?.length || 0);
+    
+    if (regError) {
+      console.error('[viewStudentRegistrants] Erreur registrations:', regError);
+      el.innerHTML = '<p class="text-muted text-center" style="padding:20px;">Erreur de chargement.</p>';
+      openModal('modal-student-registrants');
+      return;
+    }
+    
+    if (!registrations || registrations.length === 0) {
+      el.innerHTML = '<p class="text-muted text-center" style="padding:20px;">Aucun inscrit pour l\'instant.</p>';
+      openModal('modal-student-registrants');
+      return;
+    }
+    
+    // Étape 2 : Récupérer les student_id
+    const studentIds = registrations.map(r => r.student_id).filter(Boolean);
+    
+    if (studentIds.length === 0) {
+      console.warn('[viewStudentRegistrants] Aucun student_id valide');
+      el.innerHTML = '<p class="text-muted text-center" style="padding:20px;">Erreur : inscriptions sans élève associé.</p>';
+      openModal('modal-student-registrants');
+      return;
+    }
+    
+    // Étape 3 : Récupérer les students
+    const { data: students, error: studError } = await db
+      .from('students')
+      .select('id, first_name, last_name, class_name')
+      .in('id', studentIds);
+    
+    console.log('[viewStudentRegistrants] Students récupérés:', students?.length || 0);
+    
+    if (studError) {
+      console.error('[viewStudentRegistrants] Erreur students:', studError);
+      el.innerHTML = '<p class="text-muted text-center" style="padding:20px;">Erreur de chargement des élèves.</p>';
+      openModal('modal-student-registrants');
+      return;
+    }
+    
+    // Étape 4 : Créer une map student_id -> student
+    const studentMap = {};
+    if (students) {
+      students.forEach(s => {
+        studentMap[s.id] = s;
+      });
+    }
+    
+    // Étape 5 : Reconstruire les registrations avec les infos élèves
+    const enrichedRegistrations = registrations.map(r => {
+      const student = studentMap[r.student_id];
+      return {
+        ...r,
+        students: student || null
+      };
+    });
+    
+    const registered = enrichedRegistrations.filter(r => r.status === 'registered');
+    const waitlist = enrichedRegistrations.filter(r => r.status === 'waitlist');
+    
+    const rowHtml = arr => arr.map(r => {
+      const firstName = r.students?.first_name || 'Élève';
+      const lastName = r.students?.last_name || 'introuvable';
+      const className = r.students?.class_name || '—';
+      
+      return `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--surface-2);border-radius:8px;">
+          <span style="font-weight:600;font-size:14px;">${firstName} ${lastName}</span>
+          <span class="badge badge-muted">${className}</span>
+        </div>
+      `;
+    }).join('');
+    
+    let html = '';
+    if (registered.length) {
+      html += `<p class="text-sm text-muted mb-1" style="padding:0 2px 8px;">${registered.length} inscrit${registered.length > 1 ? 's' : ''}</p>
+        <div style="display:flex;flex-direction:column;gap:7px;">${rowHtml(registered)}</div>`;
+    }
+    if (waitlist.length) {
+      html += `<p class="text-sm text-muted mb-1" style="padding:${registered.length ? '14px' : '0'} 2px 8px;color:var(--gold);">
+        ⏳ ${waitlist.length} en liste d'attente</p>
+        <div style="display:flex;flex-direction:column;gap:7px;">${rowHtml(waitlist)}</div>`;
+    }
+    
+    console.log('[viewStudentRegistrants] Lignes affichées:', registered.length + waitlist.length);
+    el.innerHTML = html;
     openModal('modal-student-registrants');
-    return;
+    
+  } catch (e) {
+    console.error('[viewStudentRegistrants] Exception:', e);
+    el.innerHTML = '<p class="text-muted text-center" style="padding:20px;">Erreur technique.</p>';
+    openModal('modal-student-registrants');
   }
-
-  const registered = data.filter(r => r.status === 'registered');
-  const waitlist   = data.filter(r => r.status === 'waitlist');
-
-  const rowHtml = arr => arr.map(r => `
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--surface-2);border-radius:8px;">
-      <span style="font-weight:600;font-size:14px;">${r.students?.first_name || ''} ${r.students?.last_name || ''}</span>
-      <span class="badge badge-muted">${r.students?.class_name || '—'}</span>
-    </div>`).join('');
-
-  let html = '';
-  if (registered.length) {
-    html += `<p class="text-sm text-muted mb-1" style="padding:0 2px 8px;">${registered.length} inscrit${registered.length > 1 ? 's' : ''}</p>
-      <div style="display:flex;flex-direction:column;gap:7px;">${rowHtml(registered)}</div>`;
-  }
-  if (waitlist.length) {
-    html += `<p class="text-sm text-muted mb-1" style="padding:${registered.length ? '14px' : '0'} 2px 8px;color:var(--gold);">
-      ⏳ ${waitlist.length} en liste d'attente</p>
-      <div style="display:flex;flex-direction:column;gap:7px;">${rowHtml(waitlist)}</div>`;
-  }
-
-  el.innerHTML = html;
-  openModal('modal-student-registrants');
 }
 
 /* Ouvre la fiche séance / film détaillée pour l'élève */
@@ -8397,76 +8465,29 @@ async function loadSessionSheetData(sessionId) {
       regText.textContent = 'Fermées';
     }
     
-    // Bouton appel
+    // Bouton appel - toujours en style doré premium
     const attendBtn = document.getElementById('ssh-attendance-btn');
     const canAttend = checkAttendanceAllowed(session);
+    // Garder le bouton doré dans tous les cas (premium)
+    attendBtn.classList.add('btn-gold');
+    attendBtn.classList.remove('btn-ghost');
     if (!canAttend) {
-      attendBtn.classList.add('btn-ghost');
-      attendBtn.classList.remove('btn-gold');
+      // Optionnel : légère réduction d'opacité si pas autorisé
+      attendBtn.style.opacity = '0.85';
     } else {
-      attendBtn.classList.add('btn-gold');
-      attendBtn.classList.remove('btn-ghost');
+      attendBtn.style.opacity = '1';
     }
     
-    // Charger la vue d'ensemble enrichie
+    // Charger la vue d'ensemble SIMPLIFIÉE
     const overviewEl = document.getElementById('sst-overview-content');
     if (overviewEl) {
-      const attendStatus = canAttend 
-        ? '<span style="color: var(--gold);">✓ Appel disponible maintenant</span>'
-        : '<span style="color: var(--text-3);">Appel disponible à partir de 20h le jour de la séance</span>';
-      
       overviewEl.innerHTML = `
         <div class="overview-grid">
           <div class="overview-card">
             <div class="overview-card-title">Taux de remplissage</div>
             <div class="overview-card-value">${fillRate}%</div>
-            <div class="overview-card-sub">${registeredCount} / ${capacity} inscrits</div>
+            <div class="overview-card-sub">${registeredCount} / ${capacity}</div>
           </div>
-          
-          <div class="overview-card">
-            <div class="overview-card-title">Inscriptions</div>
-            <div class="overview-card-value" style="color: ${session.registrations_open ? '#4caf50' : 'var(--text-3)'};">
-              ${session.registrations_open ? '✅ Ouvertes' : '⏸ Fermées'}
-            </div>
-            <div class="overview-card-sub">Cliquez le badge ci-dessus pour basculer</div>
-          </div>
-          
-          <div class="overview-card">
-            <div class="overview-card-title">Liste d'attente</div>
-            <div class="overview-card-value">${waitlistCount || 0}</div>
-            <div class="overview-card-sub">${waitlistCount > 0 ? 'élève' + (waitlistCount > 1 ? 's' : '') + ' en attente' : 'Aucun élève en attente'}</div>
-          </div>
-          
-          ${session.session_time ? `
-          <div class="overview-card">
-            <div class="overview-card-title">Heure de séance</div>
-            <div class="overview-card-value">🕐 ${session.session_time}</div>
-            <div class="overview-card-sub">Le ${fmtDateShort(session.session_date)}</div>
-          </div>
-          ` : ''}
-          
-          ${film.duration ? `
-          <div class="overview-card">
-            <div class="overview-card-title">Durée du film</div>
-            <div class="overview-card-value">${formatRuntime(film.duration)}</div>
-            <div class="overview-card-sub">${film.title || '—'}</div>
-          </div>
-          ` : ''}
-          
-          <div class="overview-card">
-            <div class="overview-card-title">Appel</div>
-            <div class="overview-card-value" style="font-size: 14px; font-weight: 600;">
-              ${attendStatus}
-            </div>
-            <div class="overview-card-sub">Cliquez "Faire l'appel" ci-dessus</div>
-          </div>
-          
-          ${session.notes ? `
-          <div class="overview-card full-width">
-            <div class="overview-card-title">📝 Notes admin</div>
-            <div class="overview-notes">${session.notes}</div>
-          </div>
-          ` : ''}
         </div>
       `;
     }
@@ -8508,20 +8529,74 @@ async function loadSessionRegistered(sessionId) {
   if (!el) return;
   
   try {
-    const { data: registrations } = await db
+    // Étape 1 : Charger les registrations avec status='registered'
+    const { data: registrations, error: regError } = await db
       .from('registrations')
-      .select('id, registered_at, students(first_name, last_name, class_name)')
+      .select('id, student_id, registered_at')
       .eq('session_id', sessionId)
       .eq('status', 'registered')
       .order('registered_at');
     
-    if (!registrations?.length) {
+    console.log('[loadSessionRegistered] Registrations trouvées:', registrations?.length || 0);
+    
+    if (regError) {
+      console.error('[loadSessionRegistered] Erreur registrations:', regError);
+      el.innerHTML = '<div class="text-muted">Erreur de chargement</div>';
+      return;
+    }
+    
+    if (!registrations || registrations.length === 0) {
       el.innerHTML = '<div class="text-muted">Aucun inscrit pour cette séance.</div>';
       return;
     }
     
+    // Étape 2 : Récupérer les student_id
+    const studentIds = registrations.map(r => r.student_id).filter(Boolean);
+    
+    if (studentIds.length === 0) {
+      console.warn('[loadSessionRegistered] Aucun student_id valide dans les registrations');
+      el.innerHTML = '<div class="text-muted">Erreur : inscriptions sans élève associé</div>';
+      return;
+    }
+    
+    // Étape 3 : Récupérer les students correspondants
+    const { data: students, error: studError } = await db
+      .from('students')
+      .select('id, first_name, last_name, class_name')
+      .in('id', studentIds);
+    
+    console.log('[loadSessionRegistered] Students récupérés:', students?.length || 0);
+    
+    if (studError) {
+      console.error('[loadSessionRegistered] Erreur students:', studError);
+      el.innerHTML = '<div class="text-muted">Erreur de chargement des élèves</div>';
+      return;
+    }
+    
+    // Étape 4 : Créer une map student_id -> student
+    const studentMap = {};
+    if (students) {
+      students.forEach(s => {
+        studentMap[s.id] = s;
+      });
+    }
+    
+    // Étape 5 : Construire l'affichage
     const html = registrations.map(r => {
-      const student = r.students;
+      const student = studentMap[r.student_id];
+      
+      if (!student) {
+        console.warn('[loadSessionRegistered] Student introuvable pour registration:', r.id, 'student_id:', r.student_id);
+        return `
+          <div class="ai">
+            <div class="ai-info">
+              <div class="ai-title">Élève introuvable</div>
+              <div class="ai-sub">ID: ${r.student_id || '?'}</div>
+            </div>
+          </div>
+        `;
+      }
+      
       const fullName = `${student.first_name} ${student.last_name}`;
       return `
         <div class="ai">
@@ -8533,11 +8608,12 @@ async function loadSessionRegistered(sessionId) {
       `;
     }).join('');
     
+    console.log('[loadSessionRegistered] Lignes affichées:', registrations.length);
     el.innerHTML = html;
     
   } catch (e) {
     console.error('[loadSessionRegistered] Exception:', e);
-    el.innerHTML = '<div class="text-muted">Erreur de chargement</div>';
+    el.innerHTML = '<div class="text-muted">Erreur technique</div>';
   }
 }
 
