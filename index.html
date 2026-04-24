@@ -2851,6 +2851,422 @@ button { cursor: pointer; }
 code { font-family: 'Courier New', monospace; background: var(--surface-3); padding: 2px 7px; border-radius: 5px; font-size: 12px; color: var(--gold); letter-spacing: .05em; }
 
 /* ================================================================
+   ACCUEIL ADMIN — PROCHAINE SÉANCE
+   ================================================================ */
+.next-session-card {
+  background: var(--surface-2);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  margin-bottom: 24px;
+  display: flex;
+  gap: 20px;
+  border: 1px solid var(--border);
+}
+
+.nsc-poster {
+  flex-shrink: 0;
+  width: 140px;
+  height: 210px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--surface-3);
+}
+
+.nsc-poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.nsc-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.nsc-badge {
+  display: inline-block;
+  background: rgba(240,165,0,0.15);
+  color: var(--gold);
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  width: fit-content;
+}
+
+.nsc-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 0;
+}
+
+.nsc-time {
+  font-size: 14px;
+  color: var(--text-2);
+}
+
+.nsc-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.nsc-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.nsc-stat-label {
+  font-size: 11px;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+.nsc-stat-value {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-1);
+}
+
+.nsc-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: auto;
+  flex-wrap: wrap;
+}
+
+.nsc-empty {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.nsc-empty-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+  opacity: 0.3;
+}
+
+.nsc-empty-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-2);
+  margin-bottom: 20px;
+}
+
+.admin-home-secondary {
+  margin-top: 24px;
+}
+
+.ahs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.ahs-block {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+}
+
+/* ================================================================
+   FICHE SÉANCE ADMIN — MODALE LARGE
+   ================================================================ */
+.sheet-large {
+  max-width: 900px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.session-sheet-header {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 20px;
+}
+
+.ssh-poster {
+  flex-shrink: 0;
+  width: 100px;
+  height: 150px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--surface-3);
+}
+
+.ssh-poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ssh-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ssh-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0;
+  line-height: 1.3;
+}
+
+.ssh-meta {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.ssh-date {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gold);
+}
+
+.ssh-time {
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.ssh-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.ssh-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ssh-stat-label {
+  font-size: 10px;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+.ssh-stat-value {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.session-sheet-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+}
+
+.sst-tab {
+  padding: 12px 16px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-2);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .2s ease;
+  white-space: nowrap;
+}
+
+.sst-tab:hover {
+  color: var(--text-1);
+  background: var(--surface-3);
+}
+
+.sst-tab.active {
+  color: var(--gold);
+  border-bottom-color: var(--gold);
+}
+
+.session-sheet-content {
+  padding: 20px;
+  min-height: 300px;
+}
+
+.sst-pane {
+  display: none;
+}
+
+.sst-pane.active {
+  display: block;
+}
+
+.sst-section {
+  margin-bottom: 24px;
+}
+
+.sst-section-title {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 14px;
+  color: var(--text-1);
+}
+
+.sst-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sst-locked {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.sst-locked-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.3;
+}
+
+.sst-locked-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.sst-locked-text {
+  font-size: 13px;
+  color: var(--text-2);
+  line-height: 1.5;
+}
+
+.sst-attendance-header {
+  margin-bottom: 20px;
+}
+
+.sst-attendance-info {
+  font-size: 13px;
+  color: var(--text-2);
+  padding: 10px 14px;
+  background: var(--surface-3);
+  border-radius: var(--radius-sm);
+  margin-top: 10px;
+}
+
+.sst-attendance-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 24px;
+}
+
+.sst-attendance-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: var(--surface-2);
+  border: 2px solid transparent;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all .2s ease;
+  user-select: none;
+}
+
+.sst-attendance-item:hover {
+  background: var(--surface-3);
+}
+
+.sst-attendance-item.present {
+  border-color: rgba(76, 175, 80, 0.3);
+  background: rgba(76, 175, 80, 0.08);
+}
+
+.sst-attendance-item.absent {
+  border-color: rgba(244, 67, 54, 0.3);
+  background: rgba(244, 67, 54, 0.08);
+  opacity: 0.7;
+}
+
+.sst-attendance-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.sst-attendance-item.present .sst-attendance-icon::before {
+  content: '✓';
+  color: #4caf50;
+}
+
+.sst-attendance-item.absent .sst-attendance-icon::before {
+  content: '✗';
+  color: #f44336;
+}
+
+.sst-attendance-student {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.sst-attendance-name {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.sst-attendance-class {
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.sst-attendance-actions {
+  display: flex;
+  justify-content: center;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.session-sheet-close {
+  padding: 16px 20px;
+  border-top: 1px solid var(--border);
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .next-session-card {
+    flex-direction: column;
+  }
+  
+  .nsc-poster {
+    width: 100%;
+    height: 280px;
+  }
+  
+  .session-sheet-header {
+    flex-direction: column;
+  }
+  
+  .ssh-poster {
+    width: 100%;
+    height: 200px;
+  }
+}
+
+/* ================================================================
    RESPONSIVE — DESKTOP ADMIN
    ================================================================ */
 /* Dashboard admin — rendu mobile de base (avant le media query desktop) */
@@ -3499,7 +3915,22 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     <!-- Dashboard panel (desktop) -->
     <div class="admin-panel" id="ap-dashboard">
       <div id="admin-dash-content">
-        <div class="loader"><div class="spinner"></div></div>
+        <!-- Grosse carte prochaine séance -->
+        <div class="next-session-card" id="next-session-card">
+          <div class="loader"><div class="spinner"></div></div>
+        </div>
+        
+        <!-- Blocs secondaires -->
+        <div class="admin-home-secondary">
+          <div class="ahs-grid">
+            <div class="ahs-block">
+              <h3 style="font-size: 14px; font-weight: 700; margin-bottom: 12px;">Demandes élèves</h3>
+              <div id="dash-requests-summary">
+                <div class="loader"><div class="spinner"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -4004,6 +4435,124 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 
     <div class="profile-close-row">
       <button class="profile-close-link" onclick="closeModal('modal-profile')">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     MODAL: Fiche Séance Admin
+     ================================================================ -->
+<div class="overlay hidden" id="modal-session-sheet">
+  <div class="sheet sheet-large">
+    <div class="sheet-handle"></div>
+    
+    <!-- En-tête séance -->
+    <div class="session-sheet-header">
+      <div class="ssh-poster">
+        <img id="ssh-poster-img" src="" alt="">
+      </div>
+      <div class="ssh-info">
+        <h2 class="ssh-title" id="ssh-title">—</h2>
+        <div class="ssh-meta">
+          <span class="ssh-date" id="ssh-date">—</span>
+          <span class="ssh-time" id="ssh-time"></span>
+        </div>
+        <div class="ssh-stats">
+          <div class="ssh-stat">
+            <span class="ssh-stat-label">Capacité</span>
+            <span class="ssh-stat-value" id="ssh-capacity">—</span>
+          </div>
+          <div class="ssh-stat">
+            <span class="ssh-stat-label">Inscrits</span>
+            <span class="ssh-stat-value" id="ssh-registered">—</span>
+          </div>
+          <div class="ssh-stat">
+            <span class="ssh-stat-label">Liste d'attente</span>
+            <span class="ssh-stat-value" id="ssh-waitlist">—</span>
+          </div>
+          <div class="ssh-stat">
+            <span class="ssh-stat-label">Inscriptions</span>
+            <span class="ssh-stat-value" id="ssh-reg-status">—</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Onglets -->
+    <div class="session-sheet-tabs">
+      <button class="sst-tab active" onclick="switchSessionTab('overview')">📊 Vue d'ensemble</button>
+      <button class="sst-tab" onclick="switchSessionTab('registered')">✓ Inscrits</button>
+      <button class="sst-tab" onclick="switchSessionTab('waitlist')">⏳ Liste d'attente</button>
+      <button class="sst-tab" id="sst-tab-attendance" onclick="switchSessionTab('attendance')">📋 Appel</button>
+    </div>
+
+    <!-- Contenu onglets -->
+    <div class="session-sheet-content">
+      
+      <!-- Onglet Vue d'ensemble -->
+      <div class="sst-pane active" id="sst-pane-overview">
+        <div class="sst-section">
+          <h3 class="sst-section-title">Résumé</h3>
+          <div id="sst-overview-content">
+            <!-- Stats, notes, actions globales -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Onglet Inscrits -->
+      <div class="sst-pane hidden" id="sst-pane-registered">
+        <div class="sst-section">
+          <h3 class="sst-section-title">Liste des inscrits</h3>
+          <div class="sst-list" id="sst-registered-list">
+            <!-- Liste des inscrits -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Onglet Liste d'attente -->
+      <div class="sst-pane hidden" id="sst-pane-waitlist">
+        <div class="sst-section">
+          <h3 class="sst-section-title">Liste d'attente</h3>
+          <div class="sst-list" id="sst-waitlist-list">
+            <!-- Liste d'attente -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Onglet Appel -->
+      <div class="sst-pane hidden" id="sst-pane-attendance">
+        <div class="sst-section">
+          <div id="sst-attendance-locked" class="sst-locked hidden">
+            <div class="sst-locked-icon">🕐</div>
+            <div class="sst-locked-title">L'appel n'est pas encore disponible</div>
+            <div class="sst-locked-text">
+              L'appel sera disponible le jour de la séance à partir de 20h00.
+            </div>
+          </div>
+          <div id="sst-attendance-active" class="hidden">
+            <div class="sst-attendance-header">
+              <h3 class="sst-section-title">Faire l'appel</h3>
+              <div class="sst-attendance-info">
+                Appuyez sur les absents pour les marquer. Par défaut, tout le monde est présent.
+              </div>
+            </div>
+            <div class="sst-attendance-list" id="sst-attendance-list">
+              <!-- Liste cliquable pour l'appel -->
+            </div>
+            <div class="sst-attendance-actions">
+              <button class="btn btn-primary btn-lg" onclick="saveAttendance()">
+                ✓ Valider l'appel
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Fermeture -->
+    <div class="session-sheet-close">
+      <button class="btn btn-ghost" onclick="closeModal('modal-session-sheet')">Fermer</button>
     </div>
   </div>
 </div>
@@ -7454,156 +8003,508 @@ async function loadAdmin() {
    ADMIN DASHBOARD — page d'accueil admin (desktop)
    ================================================================ */
 async function loadAdminDashboard() {
-  const el = document.getElementById('admin-dash-content');
+  console.log('[loadAdminDashboard] Chargement accueil admin');
+  
+  // Charger la grosse carte prochaine séance
+  await loadNextSessionCard();
+  
+  // Charger le résumé des demandes dans le bloc secondaire
+  await loadDashRequestsSummary();
+}
+
+/* ================================================================
+   ACCUEIL ADMIN - PROCHAINE SÉANCE
+   ================================================================ */
+
+async function loadNextSessionCard() {
+  const el = document.getElementById('next-session-card');
   if (!el) return;
-  el.innerHTML = '<div class="loader" style="padding:40px;"><div class="spinner"></div></div>';
-
+  
+  console.log('[loadNextSessionCard] Chargement prochaine séance');
+  
   const today = new Date().toISOString().split('T')[0];
-
-  const [
-    { count: pendingProps },
-    { count: notActivated },
-    { count: activeFilms },
-    { count: activatedStudents },
-    { count: visibleStudents },
-    { data: upcomingSessions },
-    { data: recentProposal }
-  ] = await Promise.all([
-    db.from('proposals').select('id',{count:'exact',head:true}).eq('status','pending'),
-    db.from('students').select('id',{count:'exact',head:true}).eq('is_active',true).eq('is_activated',false),
-    db.from('films').select('id',{count:'exact',head:true}).in('status',['active','scheduled']),
-    db.from('students').select('id',{count:'exact',head:true}).eq('is_active',true).eq('is_activated',true),
-    db.from('students').select('id',{count:'exact',head:true}).eq('is_active',true),
-    db.from('cinema_sessions')
-      .select('id, session_date, registrations_open, max_capacity, film_id, films(title, poster_url)')
+  
+  try {
+    // Récupérer la prochaine séance future
+    const { data: sessions, error: sesError } = await db
+      .from('cinema_sessions')
+      .select('*, films(id, title, poster_url, tmdb_id)')
       .gte('session_date', today)
-      .order('session_date', {ascending:true})
-      .limit(3),
-    db.from('proposals').select('title, proposed_at').eq('status','pending')
-      .order('proposed_at',{ascending:false}).limit(1)
-  ]);
-
-  // Compter inscrits pour les séances
-  const sesIds = (upcomingSessions||[]).map(s => s.id);
-  let regCounts = {};
-  if (sesIds.length) {
-    const { data: regs } = await db.from('registrations')
-      .select('session_id').eq('status','registered').in('session_id', sesIds);
-    (regs||[]).forEach(r => { regCounts[r.session_id] = (regCounts[r.session_id]||0)+1; });
-  }
-
-  const nextSes = upcomingSessions?.[0] || null;
-  const nextCount = nextSes ? (regCounts[nextSes.id]||0) : 0;
-  const nextCap   = nextSes?.max_capacity || 20;
-  const nextPoster = nextSes?.films?.poster_url || '';
-  const nextTitle  = nextSes?.films?.title || '— Film à annoncer';
-
-  // Bloc "À surveiller"
-  const watchItems = [];
-  if (pendingProps > 0) watchItems.push({ label: `${pendingProps} proposition${pendingProps>1?'s':''} en attente`, cls:'warn', action:`aTab('proposals')` });
-  if (notActivated > 0) watchItems.push({ label: `${notActivated} compte${notActivated>1?'s':''} non activé${notActivated>1?'s':''}`, cls:'warn', action:`aTab('students')` });
-  if (nextSes && nextCount >= nextCap) watchItems.push({ label: `Prochaine séance complète`, cls:'alert', action:`aTab('sessions')` });
-
-  const watchHtml = watchItems.length
-    ? watchItems.map(i =>
-        `<div class="admin-dash-row" style="cursor:pointer;" onclick="${i.action}">
-           <span class="admin-dash-row-label">${i.label}</span>
-           <span class="admin-dash-row-val ${i.cls}">→</span>
-         </div>`).join('')
-    : `<p class="admin-dash-empty">✅ Rien à signaler</p>`;
-
-  // Bloc "Prochaine séance"
-  const nextSesHtml = nextSes
-    ? `<div class="session-banner" onclick="aTab('sessions')" style="cursor:pointer;">
-         ${nextPoster ? `<img src="${nextPoster}" class="session-banner-poster" alt="">` : ''}
-         <div class="session-banner-overlay"></div>
-         <div class="session-banner-inner">
-           <div class="session-banner-top">
-             <div class="session-banner-date">📅 ${fmtDateShort(nextSes.session_date)}</div>
-             <div class="session-banner-film">${nextTitle}</div>
-           </div>
-           <div class="session-banner-bottom">
-             <div class="session-banner-thumb">
-               ${nextPoster
-                 ? `<img src="${nextPoster}" alt="${nextTitle}">`
-                 : `<div class="session-banner-thumb-empty">🎬</div>`}
-             </div>
-             <div class="session-banner-content">
-               <div class="session-banner-footer">
-                 <span class="badge ${nextCount>=nextCap?'badge-red':nextSes.registrations_open?'badge-green':'badge-muted'}">
-                   ${nextCount>=nextCap?'🚫 Complet':nextSes.registrations_open?'✅ Ouvertes':'⏸ Fermées'}
-                 </span>
-                 <span class="badge badge-purple" style="cursor:pointer;" onclick="event.stopPropagation(); viewRegistrants('${nextSes.id}','${nextSes.session_date}')">
-                   👥 ${nextCount} / ${nextCap}
-                 </span>
-               </div>
-             </div>
-           </div>
-         </div>
-       </div>`
-    : `<p class="admin-dash-empty">Aucune séance programmée</p>`;
-
-  // Bloc "Résumé rapide"
-  const futureCount = (upcomingSessions||[]).length;
-  const notActPct = visibleStudents > 0 ? Math.round((notActivated/visibleStudents)*100) : 0;
-  const summaryHtml = [
-    { label:'Films actifs / programmés', val: activeFilms ?? '—' },
-    { label:'Séances à venir',           val: futureCount },
-    { label:'Élèves visibles',           val: visibleStudents ?? '—' },
-    { label:'Comptes activés',           val: `${activatedStudents ?? '—'} / ${visibleStudents ?? '—'}` },
-    { label:'En attente d\'activation',  val: notActivated > 0 ? notActivated : '✅ Tous activés', cls: notActivated > 0 ? 'warn' : '' },
-  ].map(r =>
-    `<div class="admin-dash-row">
-       <span class="admin-dash-row-label">${r.label}</span>
-       <span class="admin-dash-row-val ${r.cls||''}">${r.val}</span>
-     </div>`
-  ).join('');
-
-  // Bloc "Alertes utiles"
-  const alerts = [];
-  (upcomingSessions||[]).forEach(s => {
-    const cnt = regCounts[s.id]||0;
-    const cap = s.max_capacity || 20;
-    if (cnt >= cap) alerts.push({ icon:'🚫', text:`Séance du ${fmtDateShort(s.session_date)} — Complète (${cnt}/${cap})` });
-    else if (cnt >= cap * 0.8) alerts.push({ icon:'⚠️', text:`Séance du ${fmtDateShort(s.session_date)} — Presque pleine (${cnt}/${cap})` });
-    if (s.registrations_open) alerts.push({ icon:'🟢', text:`Inscriptions ouvertes — ${s.films?.title||'—'} (${fmtDateShort(s.session_date)})` });
-  });
-  if (recentProposal?.[0]) {
-    alerts.push({ icon:'💡', text:`Nouvelle proposition en attente : « ${recentProposal[0].title} »` });
-  }
-  if (!upcomingSessions?.length) {
-    alerts.push({ icon:'📅', text:`Aucune séance programmée prochainement` });
-  }
-
-  const alertsHtml = alerts.length
-    ? alerts.slice(0,4).map(a =>
-        `<div class="admin-dash-alert-item">
-           <span class="admin-dash-alert-icon">${a.icon}</span>
-           <span class="admin-dash-alert-text">${a.text}</span>
-         </div>`).join('')
-    : `<p class="admin-dash-empty">Aucune alerte</p>`;
-
-  el.innerHTML = `
-    <div class="admin-dash-grid">
-      <div class="admin-dash-block">
-        <div class="admin-dash-block-title">
-          <span class="icon-watch">⚠</span> À surveiller
+      .order('session_date', { ascending: true })
+      .limit(1);
+    
+    if (sesError) {
+      console.error('[loadNextSessionCard] Erreur:', sesError);
+      el.innerHTML = '<p class="text-muted">Erreur de chargement</p>';
+      return;
+    }
+    
+    const session = sessions?.[0];
+    
+    // Si aucune séance future
+    if (!session) {
+      el.innerHTML = `
+        <div class="nsc-empty">
+          <div class="nsc-empty-icon">🎬</div>
+          <div class="nsc-empty-title">Aucune séance à venir</div>
+          <button class="btn btn-gold" onclick="aTab('sessions')">
+            ➕ Créer une séance
+          </button>
         </div>
-        ${watchHtml}
+      `;
+      return;
+    }
+    
+    // Compter inscrits et liste d'attente
+    const [
+      { count: registeredCount },
+      { count: waitlistCount }
+    ] = await Promise.all([
+      db.from('registrations')
+        .select('id', { count: 'exact', head: true })
+        .eq('session_id', session.id)
+        .eq('status', 'registered'),
+      db.from('registrations')
+        .select('id', { count: 'exact', head: true })
+        .eq('session_id', session.id)
+        .eq('status', 'waitlist')
+    ]);
+    
+    const film = session.films || {};
+    const posterUrl = film.poster_url || '';
+    const filmTitle = film.title || 'Film à annoncer';
+    const sessionDate = fmtDateShort(session.session_date);
+    const capacity = session.max_capacity || 20;
+    const regOpen = session.registrations_open;
+    const regStatus = regOpen ? 'Ouvertes' : 'Fermées';
+    
+    // Vérifier si on peut faire l'appel
+    const canAttend = checkAttendanceAllowed(session);
+    
+    el.innerHTML = `
+      <div class="nsc-poster">
+        ${posterUrl ? `<img src="${posterUrl}" alt="${filmTitle}">` : ''}
       </div>
-      <div class="admin-dash-block">
-        <div class="admin-dash-block-title"><span>🎟️</span> Prochaine séance</div>
-        ${nextSesHtml}
+      <div class="nsc-content">
+        <div class="nsc-badge">${sessionDate}</div>
+        <h2 class="nsc-title">${filmTitle}</h2>
+        ${session.session_time ? `<div class="nsc-time">🕐 ${session.session_time}</div>` : ''}
+        <div class="nsc-stats">
+          <div class="nsc-stat">
+            <span class="nsc-stat-label">Inscrits</span>
+            <span class="nsc-stat-value">${registeredCount} / ${capacity}</span>
+          </div>
+          <div class="nsc-stat">
+            <span class="nsc-stat-label">Liste d'attente</span>
+            <span class="nsc-stat-value">${waitlistCount || 0}</span>
+          </div>
+          <div class="nsc-stat">
+            <span class="nsc-stat-label">Inscriptions</span>
+            <span class="nsc-stat-value">${regStatus}</span>
+          </div>
+        </div>
+        <div class="nsc-actions">
+          <button class="btn btn-gold" onclick="openSessionSheet('${session.id}')">
+            📋 Ouvrir la fiche
+          </button>
+          ${canAttend ? `
+            <button class="btn btn-primary" onclick="openSessionSheet('${session.id}', 'attendance')">
+              ✓ Faire l'appel
+            </button>
+          ` : ''}
+        </div>
       </div>
-      <div class="admin-dash-block">
-        <div class="admin-dash-block-title"><span>📊</span> Résumé rapide</div>
-        ${summaryHtml}
-      </div>
-      <div class="admin-dash-block">
-        <div class="admin-dash-block-title"><span>🔔</span> Alertes utiles</div>
-        ${alertsHtml}
-      </div>
-    </div>`;
+    `;
+    
+    console.log('[loadNextSessionCard] Prochaine séance chargée:', session.id);
+    
+  } catch (e) {
+    console.error('[loadNextSessionCard] Exception:', e);
+    el.innerHTML = '<p class="text-muted">Erreur de chargement</p>';
+  }
+}
+
+async function loadDashRequestsSummary() {
+  const el = document.getElementById('dash-requests-summary');
+  if (!el) return;
+  
+  try {
+    const { count: pendingCount } = await db
+      .from('student_requests')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'pending');
+    
+    if (pendingCount > 0) {
+      el.innerHTML = `
+        <div style="padding: 12px; background: var(--surface-3); border-radius: var(--radius-sm); text-align: center;">
+          <div style="font-size: 24px; font-weight: 700; color: var(--gold); margin-bottom: 4px;">
+            ${pendingCount}
+          </div>
+          <div style="font-size: 12px; color: var(--text-2);">
+            demande${pendingCount > 1 ? 's' : ''} en attente
+          </div>
+          <button class="btn btn-sm btn-ghost" onclick="aTab('requests')" style="margin-top: 10px;">
+            Voir →
+          </button>
+        </div>
+      `;
+    } else {
+      el.innerHTML = `
+        <div style="padding: 20px; text-align: center; color: var(--text-3);">
+          ✅ Aucune demande en attente
+        </div>
+      `;
+    }
+  } catch (e) {
+    console.error('[loadDashRequestsSummary] Exception:', e);
+    el.innerHTML = '';
+  }
+}
+
+/* ================================================================
+   LOGIQUE D'APPEL — VÉRIFICATION HEURE FRANCE
+   ================================================================ */
+
+function checkAttendanceAllowed(session) {
+  if (!session || !session.session_date) return false;
+  
+  // Date de la séance (YYYY-MM-DD)
+  const sessionDate = new Date(session.session_date);
+  
+  // Date actuelle en France (Europe/Paris)
+  const nowInParis = new Date().toLocaleString('en-US', { timeZone: 'Europe/Paris' });
+  const now = new Date(nowInParis);
+  
+  // Vérifier si on est le jour de la séance
+  const isSameDay = 
+    sessionDate.getFullYear() === now.getFullYear() &&
+    sessionDate.getMonth() === now.getMonth() &&
+    sessionDate.getDate() === now.getDate();
+  
+  if (!isSameDay) return false;
+  
+  // Vérifier si il est 20h ou plus en France
+  const hour = now.getHours();
+  return hour >= 20;
+}
+
+/* ================================================================
+   FICHE SÉANCE ADMIN
+   ================================================================ */
+
+async function openSessionSheet(sessionId, initialTab = 'overview') {
+  console.log('[openSessionSheet] Ouverture fiche séance:', sessionId, initialTab);
+  
+  // Charger les données de la séance
+  await loadSessionSheetData(sessionId);
+  
+  // Ouvrir la modale
+  openModal('modal-session-sheet');
+  
+  // Basculer sur l'onglet demandé
+  if (initialTab !== 'overview') {
+    switchSessionTab(initialTab);
+  }
+}
+
+async function loadSessionSheetData(sessionId) {
+  console.log('[loadSessionSheetData] Chargement séance:', sessionId);
+  
+  try {
+    // Récupérer la séance
+    const { data: session, error: sesError } = await db
+      .from('cinema_sessions')
+      .select('*, films(id, title, poster_url, tmdb_id, duration)')
+      .eq('id', sessionId)
+      .single();
+    
+    if (sesError || !session) {
+      console.error('[loadSessionSheetData] Erreur:', sesError);
+      toast('Séance introuvable', 'error');
+      return;
+    }
+    
+    // Stocker en global pour les onglets
+    window._currentSessionData = session;
+    
+    // Compter inscrits et liste d'attente
+    const [
+      { count: registeredCount },
+      { count: waitlistCount }
+    ] = await Promise.all([
+      db.from('registrations')
+        .select('id', { count: 'exact', head: true })
+        .eq('session_id', sessionId)
+        .eq('status', 'registered'),
+      db.from('registrations')
+        .select('id', { count: 'exact', head: true })
+        .eq('session_id', sessionId)
+        .eq('status', 'waitlist')
+    ]);
+    
+    const film = session.films || {};
+    const posterUrl = film.poster_url || '';
+    
+    // Remplir l'en-tête
+    document.getElementById('ssh-poster-img').src = posterUrl;
+    document.getElementById('ssh-title').textContent = film.title || 'Film à annoncer';
+    document.getElementById('ssh-date').textContent = fmtDateShort(session.session_date);
+    document.getElementById('ssh-time').textContent = session.session_time ? `🕐 ${session.session_time}` : '';
+    document.getElementById('ssh-capacity').textContent = session.max_capacity || 20;
+    document.getElementById('ssh-registered').textContent = registeredCount || 0;
+    document.getElementById('ssh-waitlist').textContent = waitlistCount || 0;
+    document.getElementById('ssh-reg-status').textContent = session.registrations_open ? 'Ouvertes' : 'Fermées';
+    
+    // Charger l'onglet Vue d'ensemble
+    const overviewEl = document.getElementById('sst-overview-content');
+    if (overviewEl) {
+      overviewEl.innerHTML = `
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <div style="padding: 12px; background: var(--surface-3); border-radius: var(--radius-sm);">
+            <div style="font-size: 13px; color: var(--text-2); margin-bottom: 4px;">Taux de remplissage</div>
+            <div style="font-size: 20px; font-weight: 700;">
+              ${registeredCount} / ${session.max_capacity || 20}
+              <span style="font-size: 14px; color: var(--text-3);">
+                (${Math.round((registeredCount / (session.max_capacity || 20)) * 100)}%)
+              </span>
+            </div>
+          </div>
+          ${film.duration ? `
+            <div style="padding: 12px; background: var(--surface-3); border-radius: var(--radius-sm);">
+              <div style="font-size: 13px; color: var(--text-2); margin-bottom: 4px;">Durée du film</div>
+              <div style="font-size: 16px; font-weight: 600;">${formatRuntime(film.duration)}</div>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }
+    
+    // Charger les listes
+    await loadSessionRegistered(sessionId);
+    await loadSessionWaitlist(sessionId);
+    await loadSessionAttendance(sessionId);
+    
+  } catch (e) {
+    console.error('[loadSessionSheetData] Exception:', e);
+    toast('Erreur de chargement', 'error');
+  }
+}
+
+function switchSessionTab(tabName) {
+  console.log('[switchSessionTab] Basculer vers:', tabName);
+  
+  // Retirer active de tous les onglets et panes
+  document.querySelectorAll('.sst-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.sst-pane').forEach(p => {
+    p.classList.remove('active');
+    p.classList.add('hidden');
+  });
+  
+  // Activer l'onglet et le pane
+  const tab = document.querySelector(`.sst-tab[onclick*="'${tabName}'"]`);
+  const pane = document.getElementById(`sst-pane-${tabName}`);
+  
+  if (tab) tab.classList.add('active');
+  if (pane) {
+    pane.classList.remove('hidden');
+    pane.classList.add('active');
+  }
+}
+
+async function loadSessionRegistered(sessionId) {
+  const el = document.getElementById('sst-registered-list');
+  if (!el) return;
+  
+  try {
+    const { data: registrations } = await db
+      .from('registrations')
+      .select('id, registered_at, students(first_name, last_name, class_name)')
+      .eq('session_id', sessionId)
+      .eq('status', 'registered')
+      .order('registered_at');
+    
+    if (!registrations?.length) {
+      el.innerHTML = '<div class="text-muted">Aucun inscrit pour cette séance.</div>';
+      return;
+    }
+    
+    const html = registrations.map(r => {
+      const student = r.students;
+      const fullName = `${student.first_name} ${student.last_name}`;
+      return `
+        <div class="ai">
+          <div class="ai-info">
+            <div class="ai-title">${fullName}</div>
+            <div class="ai-sub">${student.class_name || '—'}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+    
+    el.innerHTML = html;
+    
+  } catch (e) {
+    console.error('[loadSessionRegistered] Exception:', e);
+    el.innerHTML = '<div class="text-muted">Erreur de chargement</div>';
+  }
+}
+
+async function loadSessionWaitlist(sessionId) {
+  const el = document.getElementById('sst-waitlist-list');
+  if (!el) return;
+  
+  try {
+    const { data: waitlist } = await db
+      .from('registrations')
+      .select('id, waitlist_rank, registered_at, students(first_name, last_name, class_name)')
+      .eq('session_id', sessionId)
+      .eq('status', 'waitlist')
+      .order('waitlist_rank');
+    
+    if (!waitlist?.length) {
+      el.innerHTML = '<div class="text-muted">Aucun élève en liste d\'attente.</div>';
+      return;
+    }
+    
+    const html = waitlist.map(r => {
+      const student = r.students;
+      const fullName = `${student.first_name} ${student.last_name}`;
+      return `
+        <div class="ai">
+          <div class="ai-info">
+            <div class="ai-title">#${r.waitlist_rank || '?'} — ${fullName}</div>
+            <div class="ai-sub">${student.class_name || '—'}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+    
+    el.innerHTML = html;
+    
+  } catch (e) {
+    console.error('[loadSessionWaitlist] Exception:', e);
+    el.innerHTML = '<div class="text-muted">Erreur de chargement</div>';
+  }
+}
+
+async function loadSessionAttendance(sessionId) {
+  const session = window._currentSessionData;
+  
+  // Vérifier si l'appel est autorisé
+  if (!checkAttendanceAllowed(session)) {
+    document.getElementById('sst-attendance-locked').classList.remove('hidden');
+    document.getElementById('sst-attendance-active').classList.add('hidden');
+    return;
+  }
+  
+  document.getElementById('sst-attendance-locked').classList.add('hidden');
+  document.getElementById('sst-attendance-active').classList.remove('hidden');
+  
+  try {
+    // Récupérer les inscrits
+    const { data: registrations } = await db
+      .from('registrations')
+      .select('id, student_id, attendance_status, students(first_name, last_name, class_name)')
+      .eq('session_id', sessionId)
+      .eq('status', 'registered')
+      .order('students(last_name)');
+    
+    if (!registrations?.length) {
+      document.getElementById('sst-attendance-list').innerHTML = 
+        '<div class="text-muted">Aucun inscrit pour cette séance.</div>';
+      return;
+    }
+    
+    // Initialiser le state d'appel
+    window._attendanceState = {};
+    
+    const html = registrations.map(r => {
+      const student = r.students;
+      const fullName = `${student.first_name} ${student.last_name}`;
+      
+      // Par défaut : présent (sauf si déjà marqué absent dans la DB)
+      const initialStatus = r.attendance_status === 'absent' ? 'absent' : 'present';
+      window._attendanceState[r.id] = initialStatus;
+      
+      return `
+        <div class="sst-attendance-item ${initialStatus}" 
+             data-reg-id="${r.id}" 
+             onclick="toggleAttendance('${r.id}')">
+          <div class="sst-attendance-icon"></div>
+          <div class="sst-attendance-student">
+            <div class="sst-attendance-name">${fullName}</div>
+            <div class="sst-attendance-class">${student.class_name || '—'}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+    
+    document.getElementById('sst-attendance-list').innerHTML = html;
+    
+  } catch (e) {
+    console.error('[loadSessionAttendance] Exception:', e);
+    document.getElementById('sst-attendance-list').innerHTML = 
+      '<div class="text-muted">Erreur de chargement</div>';
+  }
+}
+
+function toggleAttendance(regId) {
+  const current = window._attendanceState[regId];
+  const newStatus = current === 'present' ? 'absent' : 'present';
+  window._attendanceState[regId] = newStatus;
+  
+  // Mettre à jour visuellement
+  const item = document.querySelector(`[data-reg-id="${regId}"]`);
+  if (item) {
+    item.classList.remove('present', 'absent');
+    item.classList.add(newStatus);
+  }
+}
+
+async function saveAttendance() {
+  if (!window._attendanceState) {
+    toast('Aucune donnée d\'appel', 'error');
+    return;
+  }
+  
+  if (!confirm('Valider l\'appel pour cette séance ?\n\nCette action est définitive.')) {
+    return;
+  }
+  
+  const session = window._currentSessionData;
+  const adminId = S.user?.id; // ID de l'admin connecté
+  
+  try {
+    // Préparer les updates
+    const updates = Object.entries(window._attendanceState).map(([regId, status]) => ({
+      id: regId,
+      attendance_status: status,
+      attendance_marked_at: new Date().toISOString(),
+      attendance_marked_by: adminId
+    }));
+    
+    console.log('[saveAttendance] Enregistrement de', updates.length, 'présences');
+    
+    // Upsert en masse
+    const { error } = await db
+      .from('registrations')
+      .upsert(updates, { onConflict: 'id' });
+    
+    if (error) {
+      console.error('[saveAttendance] Erreur:', error);
+      toast('Erreur lors de l\'enregistrement', 'error');
+      return;
+    }
+    
+    toast('Appel enregistré avec succès', 'success');
+    
+    // Recharger l'onglet
+    await loadSessionAttendance(session.id);
+    
+  } catch (e) {
+    console.error('[saveAttendance] Exception:', e);
+    toast('Erreur technique', 'error');
+  }
 }
 
 /* ----------------------------------------------------------------
