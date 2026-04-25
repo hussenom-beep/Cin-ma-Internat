@@ -3096,6 +3096,57 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
   opacity: 1;
 }
 
+/* Édition inline capacité et heure */
+.ssh-inline-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ssh-inline-input {
+  background: var(--surface-2);
+  border: 1px solid var(--gold);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  width: 70px;
+  font-family: inherit;
+}
+
+.ssh-inline-input:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: 0 0 0 2px rgba(240, 165, 0, 0.15);
+}
+
+.ssh-inline-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.ssh-inline-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 2px 4px;
+  transition: transform 0.15s ease;
+}
+
+.ssh-inline-btn:hover {
+  transform: scale(1.15);
+}
+
+.ssh-inline-btn.save {
+  color: var(--green);
+}
+
+.ssh-inline-btn.cancel {
+  color: var(--red);
+}
+
 .ssh-actions {
   display: flex;
   gap: 10px;
@@ -8609,7 +8660,7 @@ async function loadSessionSheetData(sessionId) {
 }
 
 // Modifier la capacité de la séance
-async function editSessionCapacity() {
+function editSessionCapacity() {
   const session = window._currentSessionData;
   if (!session) {
     toast('Données de session introuvables', 'error');
@@ -8617,39 +8668,86 @@ async function editSessionCapacity() {
   }
   
   const currentCapacity = session.max_capacity || 20;
-  const newCapacity = prompt(`Nouvelle capacité maximale ?\n\nCapacité actuelle : ${currentCapacity}`, currentCapacity);
+  const valueEl = document.getElementById('ssh-capacity');
+  if (!valueEl) return;
   
-  if (!newCapacity || newCapacity === String(currentCapacity)) return;
+  // Sauvegarder le HTML original
+  const originalHTML = valueEl.innerHTML;
   
-  const capacity = parseInt(newCapacity, 10);
-  if (isNaN(capacity) || capacity < 1) {
+  // Créer l'interface d'édition inline
+  valueEl.innerHTML = `
+    <div class="ssh-inline-edit">
+      <input type="number" 
+             class="ssh-inline-input" 
+             id="ssh-capacity-input" 
+             value="${currentCapacity}" 
+             min="1" 
+             max="999">
+      <div class="ssh-inline-actions">
+        <button class="ssh-inline-btn save" onclick="saveCapacity()" title="Enregistrer">✅</button>
+        <button class="ssh-inline-btn cancel" onclick="cancelCapacityEdit()" title="Annuler">✕</button>
+      </div>
+    </div>
+  `;
+  
+  // Focus sur l'input
+  setTimeout(() => {
+    const input = document.getElementById('ssh-capacity-input');
+    if (input) {
+      input.focus();
+      input.select();
+    }
+  }, 50);
+  
+  // Stocker l'HTML original pour annulation
+  window._editingCapacity = { originalHTML, sessionId: session.id };
+}
+
+function cancelCapacityEdit() {
+  const valueEl = document.getElementById('ssh-capacity');
+  if (valueEl && window._editingCapacity) {
+    valueEl.innerHTML = window._editingCapacity.originalHTML;
+    delete window._editingCapacity;
+  }
+}
+
+async function saveCapacity() {
+  const input = document.getElementById('ssh-capacity-input');
+  if (!input || !window._editingCapacity) return;
+  
+  const newCapacity = parseInt(input.value, 10);
+  if (isNaN(newCapacity) || newCapacity < 1) {
     toast('Capacité invalide', 'error');
     return;
   }
   
+  const sessionId = window._editingCapacity.sessionId;
+  
   try {
     const { error } = await db
       .from('cinema_sessions')
-      .update({ max_capacity: capacity })
-      .eq('id', session.id);
+      .update({ max_capacity: newCapacity })
+      .eq('id', sessionId);
     
     if (error) {
-      console.error('[editSessionCapacity] Erreur:', error);
+      console.error('[saveCapacity] Erreur:', error);
       toast('Erreur de mise à jour', 'error');
       return;
     }
     
     toast('Capacité mise à jour', 'success');
+    delete window._editingCapacity;
+    
     // Recharger les données de la fiche
-    await loadSessionSheetData(session.id);
+    await loadSessionSheetData(sessionId);
   } catch (e) {
-    console.error('[editSessionCapacity] Exception:', e);
+    console.error('[saveCapacity] Exception:', e);
     toast('Erreur de mise à jour', 'error');
   }
 }
 
 // Modifier l'heure de la séance
-async function editSessionTime() {
+function editSessionTime() {
   const session = window._currentSessionData;
   if (!session) {
     toast('Données de session introuvables', 'error');
@@ -8657,33 +8755,78 @@ async function editSessionTime() {
   }
   
   const currentTime = session.session_time || '20:00';
-  const newTime = prompt(`Nouvelle heure de séance ?\n\nFormat : HH:MM (ex: 20:00)\nHeure actuelle : ${currentTime}`, currentTime);
+  const timeEl = document.getElementById('ssh-time');
+  if (!timeEl) return;
   
-  if (!newTime || newTime === currentTime) return;
+  // Sauvegarder le HTML original
+  const originalHTML = timeEl.innerHTML;
   
-  // Validation simple du format HH:MM
-  if (!/^\d{1,2}:\d{2}$/.test(newTime)) {
-    toast('Format invalide (utilisez HH:MM)', 'error');
+  // Créer l'interface d'édition inline
+  timeEl.innerHTML = `
+    <div class="ssh-inline-edit">
+      <input type="time" 
+             class="ssh-inline-input" 
+             id="ssh-time-input" 
+             value="${currentTime}" 
+             style="width: 90px;">
+      <div class="ssh-inline-actions">
+        <button class="ssh-inline-btn save" onclick="saveTime()" title="Enregistrer">✅</button>
+        <button class="ssh-inline-btn cancel" onclick="cancelTimeEdit()" title="Annuler">✕</button>
+      </div>
+    </div>
+  `;
+  
+  // Focus sur l'input
+  setTimeout(() => {
+    const input = document.getElementById('ssh-time-input');
+    if (input) {
+      input.focus();
+    }
+  }, 50);
+  
+  // Stocker l'HTML original pour annulation
+  window._editingTime = { originalHTML, sessionId: session.id };
+}
+
+function cancelTimeEdit() {
+  const timeEl = document.getElementById('ssh-time');
+  if (timeEl && window._editingTime) {
+    timeEl.innerHTML = window._editingTime.originalHTML;
+    delete window._editingTime;
+  }
+}
+
+async function saveTime() {
+  const input = document.getElementById('ssh-time-input');
+  if (!input || !window._editingTime) return;
+  
+  const newTime = input.value;
+  if (!newTime) {
+    toast('Heure invalide', 'error');
     return;
   }
+  
+  const sessionId = window._editingTime.sessionId;
   
   try {
     const { error } = await db
       .from('cinema_sessions')
       .update({ session_time: newTime })
-      .eq('id', session.id);
+      .eq('id', sessionId);
     
     if (error) {
-      console.error('[editSessionTime] Erreur:', error);
+      console.error('[saveTime] Erreur:', error);
       toast('Erreur de mise à jour', 'error');
       return;
     }
     
     toast('Heure mise à jour', 'success');
+    delete window._editingTime;
+    
     // Recharger les données de la fiche
-    await loadSessionSheetData(session.id);
+    await loadSessionSheetData(sessionId);
   } catch (e) {
-    console.error('[editSessionTime] Exception:', e);
+    console.error('[saveTime] Exception:', e);
     toast('Erreur de mise à jour', 'error');
   }
 }
@@ -8861,30 +9004,94 @@ async function loadSessionAttendance(sessionId) {
   document.getElementById('sst-attendance-active').classList.remove('hidden');
   
   try {
-    // Récupérer les inscrits
-    const { data: registrations } = await db
+    console.log('[loadSessionAttendance] Chargement appel pour session:', sessionId);
+    
+    // Récupérer les inscrits avec jointure
+    const { data: registrations, error: regError } = await db
       .from('registrations')
       .select('id, student_id, attendance_status, students(first_name, last_name, class_name)')
       .eq('session_id', sessionId)
       .eq('status', 'registered')
       .order('students(last_name)');
     
+    if (regError) {
+      console.error('[loadSessionAttendance] Erreur registrations:', regError);
+      document.getElementById('sst-attendance-list').innerHTML = 
+        '<div class="text-muted">Erreur de chargement des inscriptions</div>';
+      return;
+    }
+    
     if (!registrations?.length) {
+      console.log('[loadSessionAttendance] Aucune inscription trouvée');
       document.getElementById('sst-attendance-list').innerHTML = 
         '<div class="text-muted">Aucun inscrit pour cette séance.</div>';
       return;
     }
     
+    console.log(`[loadSessionAttendance] ${registrations.length} inscriptions trouvées`);
+    
+    // Vérifier si certains students sont manquants
+    const missingStudents = registrations.filter(r => !r.students || !r.students.first_name);
+    
+    let studentsMap = {};
+    
+    if (missingStudents.length > 0) {
+      console.log(`[loadSessionAttendance] ⚠️ FALLBACK activé - ${missingStudents.length} students manquants dans la jointure`);
+      
+      // Récupérer tous les student_id
+      const studentIds = registrations.map(r => r.student_id).filter(Boolean);
+      
+      if (studentIds.length > 0) {
+        console.log(`[loadSessionAttendance] Chargement séparé de ${studentIds.length} students...`);
+        
+        const { data: students, error: studentsError } = await db
+          .from('students')
+          .select('id, first_name, last_name, class_name')
+          .in('id', studentIds);
+        
+        if (studentsError) {
+          console.error('[loadSessionAttendance] Erreur fallback students:', studentsError);
+        } else if (students) {
+          console.log(`[loadSessionAttendance] ✓ ${students.length} students chargés via fallback`);
+          // Créer une map id → student
+          students.forEach(s => {
+            studentsMap[s.id] = s;
+          });
+        }
+      }
+    }
+    
     // Initialiser le state d'appel
     window._attendanceState = {};
     
+    let renderedCount = 0;
+    
     const html = registrations.map(r => {
-      const student = r.students;
+      // Déterminer le student : jointure ou fallback ou inconnu
+      let student = r.students;
+      
+      // Si la jointure a échoué, utiliser le fallback
+      if (!student || !student.first_name) {
+        student = studentsMap[r.student_id];
+      }
+      
+      // Si toujours pas de student, créer un placeholder
+      if (!student || !student.first_name) {
+        console.warn(`[loadSessionAttendance] Student introuvable pour registration ${r.id}, student_id=${r.student_id}`);
+        student = {
+          first_name: 'Élève',
+          last_name: 'introuvable',
+          class_name: `ID: ${r.student_id || '?'}`
+        };
+      }
+      
       const fullName = `${student.first_name} ${student.last_name}`;
       
       // Par défaut : présent (sauf si déjà marqué absent dans la DB)
       const initialStatus = r.attendance_status === 'absent' ? 'absent' : 'present';
       window._attendanceState[r.id] = initialStatus;
+      
+      renderedCount++;
       
       return `
         <div class="sst-attendance-item ${initialStatus}" 
@@ -8898,6 +9105,8 @@ async function loadSessionAttendance(sessionId) {
         </div>
       `;
     }).join('');
+    
+    console.log(`[loadSessionAttendance] ✓ ${renderedCount} lignes d'appel rendues`);
     
     document.getElementById('sst-attendance-list').innerHTML = html;
     
