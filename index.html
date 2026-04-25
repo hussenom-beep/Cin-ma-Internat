@@ -8540,10 +8540,10 @@ async function openSessionSheet(sessionId, initialTab = 'overview') {
   
   // Si demandé, ouvrir directement le mode appel
   if (initialTab === 'attendance') {
-    openAttendanceMode();
-  } else if (initialTab !== 'overview') {
-    switchSessionTab(initialTab);
-  }
+  await openAttendanceMode();
+} else if (initialTab !== 'overview') {
+  switchSessionTab(initialTab);
+}
 }
 
 async function loadSessionSheetData(sessionId) {
@@ -9228,7 +9228,7 @@ async function toggleSessionRegistrations() {
   }
 }
 
-function openAttendanceMode() {
+async function openAttendanceMode() {
   const session = window._currentSessionData;
   if (!session) return;
   
@@ -9249,6 +9249,9 @@ function openAttendanceMode() {
   if (zone) {
     zone.classList.remove('hidden');
   }
+
+  // Charger réellement la liste des présents
+  await loadSessionAttendance(session.id);
 }
 
 function closeAttendanceMode() {
