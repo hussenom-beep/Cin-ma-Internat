@@ -2987,6 +2987,18 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
   overflow-y: auto;
 }
 
+/* Centrage modale session sheet sur desktop */
+@media (min-width: 768px) {
+  #modal-session-sheet {
+    align-items: center;
+    justify-content: center;
+  }
+  #modal-session-sheet .sheet-large {
+    border-radius: var(--radius-lg);
+    max-height: 85vh;
+  }
+}
+
 .session-sheet-header {
   display: flex;
   gap: 20px;
@@ -3067,6 +3079,21 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 .ssh-stat-value {
   font-size: 15px;
   font-weight: 600;
+}
+
+.ssh-edit-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  opacity: 0.5;
+  padding: 2px 4px;
+  transition: opacity 0.2s ease;
+  margin-left: 4px;
+}
+
+.ssh-edit-btn:hover {
+  opacity: 1;
 }
 
 .ssh-actions {
@@ -3164,6 +3191,63 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 .overview-card-sub {
   font-size: 12px;
   color: var(--text-2);
+}
+
+/* Barre de progression taux de remplissage */
+.fill-rate-card {
+  background: var(--surface-3);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  border: 1px solid var(--border);
+}
+
+.fill-rate-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 12px;
+}
+
+.fill-rate-count {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.fill-rate-percent {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--gold);
+}
+
+.fill-rate-track {
+  height: 8px;
+  background: var(--surface-2);
+  border-radius: 20px;
+  overflow: hidden;
+  position: relative;
+}
+
+.fill-rate-bar {
+  height: 100%;
+  border-radius: 20px;
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.fill-rate-bar.level-low {
+  background: linear-gradient(90deg, var(--green), #3dd675);
+  box-shadow: 0 0 8px rgba(74, 222, 128, 0.4);
+}
+
+.fill-rate-bar.level-medium {
+  background: linear-gradient(90deg, var(--gold), #ffb820);
+  box-shadow: 0 0 8px rgba(240, 165, 0, 0.5);
+}
+
+.fill-rate-bar.level-high {
+  background: linear-gradient(90deg, var(--red), #ff5555);
+  box-shadow: 0 0 8px rgba(232, 64, 64, 0.5);
 }
 
 .overview-card.full-width {
@@ -4567,6 +4651,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
         <div class="ssh-meta">
           <span class="ssh-date" id="ssh-date">—</span>
           <span class="ssh-time" id="ssh-time"></span>
+          <button class="ssh-edit-btn" id="ssh-edit-time-btn" onclick="editSessionTime()" title="Modifier l'heure">✏️</button>
         </div>
         <div class="ssh-actions">
           <button class="ssh-action-badge" id="ssh-reg-badge" onclick="toggleSessionRegistrations()">
@@ -4581,6 +4666,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
           <div class="ssh-stat">
             <span class="ssh-stat-label">Capacité</span>
             <span class="ssh-stat-value" id="ssh-capacity">—</span>
+            <button class="ssh-edit-btn" onclick="editSessionCapacity()" title="Modifier la capacité">✏️</button>
           </div>
           <div class="ssh-stat">
             <span class="ssh-stat-label">Inscrits</span>
@@ -4645,7 +4731,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       <div id="sst-attendance-locked" class="sst-locked hidden">
         <div class="sst-locked-icon">🕐</div>
         <div class="sst-locked-title">L'appel n'est pas encore disponible</div>
-        <div class="sst-locked-text">
+        <div class="sst-locked-text" id="sst-locked-text">
           L'appel sera disponible le jour de la séance à partir de 20h00.
         </div>
       </div>
@@ -8366,9 +8452,18 @@ function checkAttendanceAllowed(session) {
   
   if (!isSameDay) return false;
   
-  // Vérifier si il est 20h ou plus en France
-  const hour = now.getHours();
-  return hour >= 20;
+  // Récupérer l'heure de la séance (fallback 20:00)
+  const sessionTime = session.session_time || '20:00';
+  const [sessionHour, sessionMinute] = sessionTime.split(':').map(n => parseInt(n, 10));
+  
+  // Vérifier si l'heure actuelle >= heure de la séance
+  const currentHour = now.getHours();
+  const currentMinute = now.getMinutes();
+  
+  if (currentHour > sessionHour) return true;
+  if (currentHour === sessionHour && currentMinute >= sessionMinute) return true;
+  
+  return false;
 }
 
 /* ================================================================
@@ -8478,15 +8573,25 @@ async function loadSessionSheetData(sessionId) {
       attendBtn.style.opacity = '1';
     }
     
-    // Charger la vue d'ensemble SIMPLIFIÉE
+    // Charger la vue d'ensemble avec BARRE DE PROGRESSION
     const overviewEl = document.getElementById('sst-overview-content');
     if (overviewEl) {
+      // Déterminer le niveau de remplissage pour la couleur
+      let levelClass = 'level-low';
+      if (fillRate >= 80) {
+        levelClass = 'level-high';
+      } else if (fillRate >= 40) {
+        levelClass = 'level-medium';
+      }
+      
       overviewEl.innerHTML = `
-        <div class="overview-grid">
-          <div class="overview-card">
-            <div class="overview-card-title">Taux de remplissage</div>
-            <div class="overview-card-value">${fillRate}%</div>
-            <div class="overview-card-sub">${registeredCount} / ${capacity}</div>
+        <div class="fill-rate-card">
+          <div class="fill-rate-meta">
+            <div class="fill-rate-count">${registeredCount} / ${capacity}</div>
+            <div class="fill-rate-percent">${fillRate}%</div>
+          </div>
+          <div class="fill-rate-track">
+            <div class="fill-rate-bar ${levelClass}" style="width: ${fillRate}%;"></div>
           </div>
         </div>
       `;
@@ -8500,6 +8605,86 @@ async function loadSessionSheetData(sessionId) {
   } catch (e) {
     console.error('[loadSessionSheetData] Exception:', e);
     toast('Erreur de chargement', 'error');
+  }
+}
+
+// Modifier la capacité de la séance
+async function editSessionCapacity() {
+  const session = window._currentSessionData;
+  if (!session) {
+    toast('Données de session introuvables', 'error');
+    return;
+  }
+  
+  const currentCapacity = session.max_capacity || 20;
+  const newCapacity = prompt(`Nouvelle capacité maximale ?\n\nCapacité actuelle : ${currentCapacity}`, currentCapacity);
+  
+  if (!newCapacity || newCapacity === String(currentCapacity)) return;
+  
+  const capacity = parseInt(newCapacity, 10);
+  if (isNaN(capacity) || capacity < 1) {
+    toast('Capacité invalide', 'error');
+    return;
+  }
+  
+  try {
+    const { error } = await db
+      .from('cinema_sessions')
+      .update({ max_capacity: capacity })
+      .eq('id', session.id);
+    
+    if (error) {
+      console.error('[editSessionCapacity] Erreur:', error);
+      toast('Erreur de mise à jour', 'error');
+      return;
+    }
+    
+    toast('Capacité mise à jour', 'success');
+    // Recharger les données de la fiche
+    await loadSessionSheetData(session.id);
+  } catch (e) {
+    console.error('[editSessionCapacity] Exception:', e);
+    toast('Erreur de mise à jour', 'error');
+  }
+}
+
+// Modifier l'heure de la séance
+async function editSessionTime() {
+  const session = window._currentSessionData;
+  if (!session) {
+    toast('Données de session introuvables', 'error');
+    return;
+  }
+  
+  const currentTime = session.session_time || '20:00';
+  const newTime = prompt(`Nouvelle heure de séance ?\n\nFormat : HH:MM (ex: 20:00)\nHeure actuelle : ${currentTime}`, currentTime);
+  
+  if (!newTime || newTime === currentTime) return;
+  
+  // Validation simple du format HH:MM
+  if (!/^\d{1,2}:\d{2}$/.test(newTime)) {
+    toast('Format invalide (utilisez HH:MM)', 'error');
+    return;
+  }
+  
+  try {
+    const { error } = await db
+      .from('cinema_sessions')
+      .update({ session_time: newTime })
+      .eq('id', session.id);
+    
+    if (error) {
+      console.error('[editSessionTime] Erreur:', error);
+      toast('Erreur de mise à jour', 'error');
+      return;
+    }
+    
+    toast('Heure mise à jour', 'success');
+    // Recharger les données de la fiche
+    await loadSessionSheetData(session.id);
+  } catch (e) {
+    console.error('[editSessionTime] Exception:', e);
+    toast('Erreur de mise à jour', 'error');
   }
 }
 
@@ -8660,6 +8845,13 @@ async function loadSessionAttendance(sessionId) {
   
   // Vérifier si l'appel est autorisé
   if (!checkAttendanceAllowed(session)) {
+    // Mettre à jour le texte avec l'heure de la séance
+    const sessionTime = session?.session_time || '20h00';
+    const lockedText = document.getElementById('sst-locked-text');
+    if (lockedText) {
+      lockedText.textContent = `L'appel sera disponible le jour de la séance à partir de ${sessionTime}.`;
+    }
+    
     document.getElementById('sst-attendance-locked').classList.remove('hidden');
     document.getElementById('sst-attendance-active').classList.add('hidden');
     return;
@@ -8832,9 +9024,10 @@ function openAttendanceMode() {
   if (!session) return;
   
   const canAttend = checkAttendanceAllowed(session);
+  const sessionTime = session.session_time || '20:00';
   
   if (!canAttend) {
-    toast('L\'appel sera disponible à partir de 20h le jour de la séance', 'info');
+    toast(`L'appel sera disponible à partir de ${sessionTime} le jour de la séance`, 'info');
     return;
   }
   
@@ -10041,7 +10234,10 @@ async function loadAdminSessions() {
       <button class="ses-pdf-btn" onclick="event.stopPropagation(); console.log('PDF séance id =', '${s.id}'); genSeancePDF('${s.id}')" title="Télécharger PDF">📄</button>
       <div class="admin-ses-inner">
         <div class="admin-ses-top">
-          <div class="admin-ses-date">📅 ${fmtDateShort(s.session_date)}</div>
+          <div class="admin-ses-date">
+            📅 ${fmtDateShort(s.session_date)}
+            ${s.session_time ? ` · 🕐 ${s.session_time}` : ''}
+          </div>
           <div class="admin-ses-film">${title}</div>
         </div>
         <div class="admin-ses-bottom">
