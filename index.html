@@ -8946,56 +8946,56 @@ function switchSessionTab(tabName) {
   }
 }
 
-async function loadSessionRegistered(sessionId) {
-  const el = document.getElementById('sst-registered-list');
-  if (!el) return;
+// ============================================================
+// FONCTION COMMUNE ROBUSTE : Charger les inscrits d'une séance
+// Utilisée partout pour garantir cohérence
+// ============================================================
+async function fetchSessionRegistrants(sessionId) {
+  console.log('[fetchSessionRegistrants] Chargement inscrits session:', sessionId);
   
   try {
-    // Étape 1 : Charger les registrations avec status='registered'
-	const { data: registrations, error: regError } = await db
-	.from('registrations')
-	.select('id, student_id, attendance_status, registered_at, students(first_name, last_name, class_name)')
-	.eq('session_id', sessionId)
-	.eq('status', 'registered')
-	  .order('registered_at', { ascending: true });
-		
-    console.log('[loadSessionRegistered] Registrations trouvées:', registrations?.length || 0);
+    // 1. Charger les registrations avec status='registered'
+    const { data: registrations, error: regError } = await db
+      .from('registrations')
+      .select('id, student_id, attendance_status, registered_at')
+      .eq('session_id', sessionId)
+      .eq('status', 'registered')
+      .order('registered_at', { ascending: true });
     
     if (regError) {
-      console.error('[loadSessionRegistered] Erreur registrations:', regError);
-      el.innerHTML = '<div class="text-muted">Erreur de chargement</div>';
-      return;
+      console.error('[fetchSessionRegistrants] Erreur registrations:', regError);
+      return { ok: false, error: regError, registrants: [] };
     }
     
     if (!registrations || registrations.length === 0) {
-      el.innerHTML = '<div class="text-muted">Aucun inscrit pour cette séance.</div>';
-      return;
+      console.log('[fetchSessionRegistrants] Aucune registration trouvée');
+      return { ok: true, registrants: [] };
     }
     
-    // Étape 2 : Récupérer les student_id
+    console.log('[fetchSessionRegistrants] Registrations trouvées:', registrations.length);
+    
+    // 2. Récupérer les student_id
     const studentIds = registrations.map(r => r.student_id).filter(Boolean);
     
     if (studentIds.length === 0) {
-      console.warn('[loadSessionRegistered] Aucun student_id valide dans les registrations');
-      el.innerHTML = '<div class="text-muted">Erreur : inscriptions sans élève associé</div>';
-      return;
+      console.warn('[fetchSessionRegistrants] Aucun student_id valide');
+      return { ok: true, registrants: [] };
     }
     
-    // Étape 3 : Récupérer les students correspondants
+    // 3. Charger les students séparément
     const { data: students, error: studError } = await db
       .from('students')
       .select('id, first_name, last_name, class_name')
       .in('id', studentIds);
     
-    console.log('[loadSessionRegistered] Students récupérés:', students?.length || 0);
-    
     if (studError) {
-      console.error('[loadSessionRegistered] Erreur students:', studError);
-      el.innerHTML = '<div class="text-muted">Erreur de chargement des élèves</div>';
-      return;
+      console.error('[fetchSessionRegistrants] Erreur students:', studError);
+      return { ok: false, error: studError, registrants: [] };
     }
     
-    // Étape 4 : Créer une map student_id -> student
+    console.log('[fetchSessionRegistrants] Students chargés:', students?.length || 0);
+    
+    // 4. Créer map student_id -> student
     const studentMap = {};
     if (students) {
       students.forEach(s => {
@@ -9003,40 +9003,80 @@ async function loadSessionRegistered(sessionId) {
       });
     }
     
-    // Étape 5 : Construire l'affichage
-    const html = registrations.map(r => {
+    // 5. Reconstruire les inscrits
+    const registrants = registrations.map(r => {
       const student = studentMap[r.student_id];
       
       if (!student) {
-        console.warn('[loadSessionRegistered] Student introuvable pour registration:', r.id, 'student_id:', r.student_id);
-        return `
-          <div class="ai">
-            <div class="ai-info">
-              <div class="ai-title">Élève introuvable</div>
-              <div class="ai-sub">ID: ${r.student_id || '?'}</div>
-            </div>
-          </div>
-        `;
+        console.warn('[fetchSessionRegistrants] Student introuvable:', r.student_id);
+        return {
+          registrationId: r.id,
+          studentId: r.student_id,
+          firstName: 'Élève',
+          lastName: 'introuvable',
+          className: `ID: ${r.student_id || '?'}`,
+          attendanceStatus: r.attendance_status,
+          registeredAt: r.registered_at,
+          missing: true
+        };
       }
       
-      const fullName = `${student.first_name} ${student.last_name}`;
-      return `
-        <div class="ai">
-          <div class="ai-info">
-            <div class="ai-title">${fullName}</div>
-            <div class="ai-sub">${student.class_name || '—'}</div>
-          </div>
-        </div>
-      `;
-    }).join('');
+      return {
+        registrationId: r.id,
+        studentId: student.id,
+        firstName: student.first_name,
+        lastName: student.last_name,
+        className: student.class_name,
+        attendanceStatus: r.attendance_status,
+        registeredAt: r.registered_at,
+        missing: false
+      };
+    });
     
-    console.log('[loadSessionRegistered] Lignes affichées:', registrations.length);
-    el.innerHTML = html;
+    console.log('[fetchSessionRegistrants] ✓ Inscrits construits:', registrants.length);
+    
+    return { ok: true, registrants };
     
   } catch (e) {
-    console.error('[loadSessionRegistered] Exception:', e);
-    el.innerHTML = '<div class="text-muted">Erreur technique</div>';
+    console.error('[fetchSessionRegistrants] Exception:', e);
+    return { ok: false, error: e, registrants: [] };
   }
+}
+
+async function loadSessionRegistered(sessionId) {
+  const el = document.getElementById('sst-registered-list');
+  if (!el) return;
+  
+  const { ok, registrants, error } = await fetchSessionRegistrants(sessionId);
+  
+  if (!ok) {
+    console.error('[loadSessionRegistered] Erreur fetchSessionRegistrants:', error);
+    el.innerHTML = '<div class="text-muted">Erreur de chargement</div>';
+    return;
+  }
+  
+  if (registrants.length === 0) {
+    el.innerHTML = '<div class="text-muted">Aucun inscrit pour cette séance.</div>';
+    return;
+  }
+  
+  const html = registrants.map(r => {
+    const fullName = `${r.firstName} ${r.lastName}`;
+    const className = r.className || '—';
+    const isMissing = r.missing;
+    
+    return `
+      <div class="ai" ${isMissing ? 'style="opacity:0.5;"' : ''}>
+        <div class="ai-info">
+          <div class="ai-title">${fullName}</div>
+          <div class="ai-sub">${className}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+  
+  console.log('[loadSessionRegistered] ✓ Affichage de', registrants.length, 'inscrit(s)');
+  el.innerHTML = html;
 }
 
 async function loadSessionWaitlist(sessionId) {
@@ -9101,95 +9141,48 @@ async function loadSessionAttendance(sessionId) {
     listEl.innerHTML = '<div class="loader" style="padding:24px;"><div class="spinner"></div></div>';
   }
 
-  try {
-    console.log('[loadSessionAttendance] Chargement appel pour session:', sessionId);
+  // Utiliser la fonction commune robuste
+  const { ok, registrants, error } = await fetchSessionRegistrants(sessionId);
 
-    // 1) Charger uniquement les inscriptions
-    const { data: registrations, error: regError } = await db
-      .from('registrations')
-      .select('id, student_id, attendance_status, registered_at')
-      .eq('session_id', sessionId)
-      .eq('status', 'registered')
-      .order('registered_at', { ascending: true });
-
-    if (regError) {
-      console.error('[loadSessionAttendance] Erreur registrations:', regError);
-      if (listEl) listEl.innerHTML = '<div class="text-muted">Erreur de chargement des inscriptions</div>';
-      return;
-    }
-
-    if (!registrations?.length) {
-      console.log('[loadSessionAttendance] Aucune inscription trouvée');
-      if (listEl) listEl.innerHTML = '<div class="text-muted">Aucun inscrit pour cette séance.</div>';
-      return;
-    }
-
-    console.log(`[loadSessionAttendance] ${registrations.length} inscriptions trouvées`);
-
-    // 2) Charger séparément les élèves
-    const studentIds = [...new Set(registrations.map(r => r.student_id).filter(Boolean))];
-
-    const { data: students, error: studError } = await db
-      .from('students')
-      .select('id, first_name, last_name, class_name')
-      .in('id', studentIds);
-
-    if (studError) {
-      console.error('[loadSessionAttendance] Erreur students:', studError);
-      if (listEl) listEl.innerHTML = '<div class="text-muted">Erreur de chargement des élèves</div>';
-      return;
-    }
-
-    const studentMap = {};
-    (students || []).forEach(s => {
-      studentMap[s.id] = s;
-    });
-
-    window._attendanceState = {};
-
-    let renderedCount = 0;
-
-    const html = registrations.map(r => {
-      let student = studentMap[r.student_id];
-
-      if (!student || !student.first_name) {
-        console.warn(`[loadSessionAttendance] Student introuvable pour registration ${r.id}, student_id=${r.student_id}`);
-        student = {
-          first_name: 'Élève',
-          last_name: 'introuvable',
-          class_name: `ID: ${r.student_id || '?'}`
-        };
-      }
-
-      const fullName = `${student.first_name} ${student.last_name}`;
-      const initialStatus = r.attendance_status === 'absent' ? 'absent' : 'present';
-      window._attendanceState[r.id] = initialStatus;
-      renderedCount++;
-
-      return `
-        <div class="sst-attendance-item ${initialStatus}" 
-             data-reg-id="${r.id}" 
-             onclick="toggleAttendance('${r.id}')">
-          <div class="sst-attendance-icon"></div>
-          <div class="sst-attendance-student">
-            <div class="sst-attendance-name">${fullName}</div>
-            <div class="sst-attendance-class">${student.class_name || '—'}</div>
-          </div>
-        </div>
-      `;
-    }).join('');
-
-    console.log(`[loadSessionAttendance] ✓ ${renderedCount} lignes d'appel rendues`);
-
-    if (listEl) listEl.innerHTML = html;
-
-  } catch (e) {
-    console.error('[loadSessionAttendance] Exception:', e);
-    const listEl = document.getElementById('sst-attendance-list');
-    if (listEl) {
-      listEl.innerHTML = '<div class="text-muted">Erreur de chargement</div>';
-    }
+  if (!ok) {
+    console.error('[loadSessionAttendance] Erreur fetchSessionRegistrants:', error);
+    if (listEl) listEl.innerHTML = '<div class="text-muted">Erreur de chargement</div>';
+    return;
   }
+
+  if (registrants.length === 0) {
+    console.log('[loadSessionAttendance] Aucun inscrit');
+    if (listEl) listEl.innerHTML = '<div class="text-muted">Aucun inscrit pour cette séance.</div>';
+    return;
+  }
+
+  // Initialiser l'état d'appel
+  window._attendanceState = {};
+
+  const html = registrants.map(r => {
+    const fullName = `${r.firstName} ${r.lastName}`;
+    const className = r.className || '—';
+    
+    // Par défaut présent, sauf si déjà marqué absent
+    const initialStatus = r.attendanceStatus === 'absent' ? 'absent' : 'present';
+    window._attendanceState[r.registrationId] = initialStatus;
+
+    return `
+      <div class="sst-attendance-item ${initialStatus}" 
+           data-reg-id="${r.registrationId}" 
+           onclick="toggleAttendance('${r.registrationId}')">
+        <div class="sst-attendance-icon"></div>
+        <div class="sst-attendance-student">
+          <div class="sst-attendance-name">${fullName}</div>
+          <div class="sst-attendance-class">${className}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  console.log(`[loadSessionAttendance] ✓ ${registrants.length} lignes d'appel rendues`);
+
+  if (listEl) listEl.innerHTML = html;
 }
 
 function toggleAttendance(regId) {
