@@ -8611,20 +8611,34 @@ async function loadSessionSheetData(sessionId) {
       regText.textContent = 'Fermées';
     }
     
-    // Bouton appel - toujours en style doré premium
+    // Bouton appel - afficher l'état
     const attendBtn = document.getElementById('ssh-attendance-btn');
     const canAttend = checkAttendanceAllowed(session);
-    // Garder le bouton doré dans tous les cas (premium)
-    attendBtn.classList.add('btn-gold');
-    attendBtn.classList.remove('btn-ghost');
-    if (!canAttend) {
-      // Optionnel : légère réduction d'opacité si pas autorisé
-      attendBtn.style.opacity = '0.85';
-    } else {
+    
+    if (session.attendance_done) {
+      // Appel déjà fait - permettre modification
+      attendBtn.innerHTML = '✅ Appel effectué';
+      attendBtn.classList.remove('btn-gold');
+      attendBtn.classList.add('btn-ghost');
       attendBtn.style.opacity = '1';
+      attendBtn.title = 'Cliquer pour modifier l\'appel';
+    } else if (!canAttend) {
+      // Appel pas encore disponible
+      attendBtn.innerHTML = '📋 Faire l\'appel';
+      attendBtn.classList.add('btn-gold');
+      attendBtn.classList.remove('btn-ghost');
+      attendBtn.style.opacity = '0.85';
+      attendBtn.title = 'L\'appel sera disponible le jour de la séance';
+    } else {
+      // Appel disponible mais pas encore fait
+      attendBtn.innerHTML = '📋 Faire l\'appel';
+      attendBtn.classList.add('btn-gold');
+      attendBtn.classList.remove('btn-ghost');
+      attendBtn.style.opacity = '1';
+      attendBtn.title = 'Faire l\'appel de cette séance';
     }
     
-    // Charger la vue d'ensemble avec BARRE DE PROGRESSION
+    // Charger la vue d'ensemble avec BARRE DE PROGRESSION + STATS APPEL
     const overviewEl = document.getElementById('sst-overview-content');
     if (overviewEl) {
       // Déterminer le niveau de remplissage pour la couleur
@@ -8633,6 +8647,42 @@ async function loadSessionSheetData(sessionId) {
         levelClass = 'level-high';
       } else if (fillRate >= 40) {
         levelClass = 'level-medium';
+      }
+      
+      // Stats d'appel si disponibles
+      let attendanceStatsHTML = '';
+      if (session.attendance_done) {
+        // Compter présents/absents
+        const { data: attendanceStats } = await db
+          .from('registrations')
+          .select('attendance_status')
+          .eq('session_id', sessionId)
+          .eq('status', 'registered');
+        
+        const presentCount = attendanceStats?.filter(r => r.attendance_status === 'present').length || 0;
+        const absentCount = attendanceStats?.filter(r => r.attendance_status === 'absent').length || 0;
+        
+        const doneTime = session.attendance_done_at 
+          ? new Date(session.attendance_done_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+          : '';
+        
+        attendanceStatsHTML = `
+          <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border);">
+            <div style="font-size: 12px; color: var(--text-2); margin-bottom: 8px;">
+              📋 Appel effectué${doneTime ? ` à ${doneTime}` : ''}
+            </div>
+            <div style="display: flex; gap: 16px;">
+              <div style="flex: 1;">
+                <div style="font-size: 11px; color: var(--text-2);">Présents</div>
+                <div style="font-size: 18px; font-weight: 700; color: var(--green);">${presentCount}</div>
+              </div>
+              <div style="flex: 1;">
+                <div style="font-size: 11px; color: var(--text-2);">Absents</div>
+                <div style="font-size: 18px; font-weight: 700; color: var(--red);">${absentCount}</div>
+              </div>
+            </div>
+          </div>
+        `;
       }
       
       overviewEl.innerHTML = `
@@ -8644,6 +8694,7 @@ async function loadSessionSheetData(sessionId) {
           <div class="fill-rate-track">
             <div class="fill-rate-bar ${levelClass}" style="width: ${fillRate}%;"></div>
           </div>
+          ${attendanceStatsHTML}
         </div>
       `;
     }
@@ -9117,43 +9168,156 @@ async function saveAttendance() {
     return;
   }
   
-  if (!confirm('Valider l\'appel pour cette séance ?\n\nCette action est définitive.')) {
+  const session = window._currentSessionData;
+  const isModifying = session?.attendance_done;
+  
+  const confirmMsg = isModifying 
+    ? 'Modifier cet appel ?\n\nL\'historique des films vus/loupés sera mis à jour.'
+    : 'Valider cet appel ?\n\nTu pourras le modifier plus tard si besoin.';
+  
+  if (!confirm(confirmMsg)) {
     return;
   }
   
-  const session = window._currentSessionData;
-  const adminId = S.user?.id; // ID de l'admin connecté
+  const adminId = S.user?.id;
+  const now = new Date().toISOString();
   
   try {
-    // Préparer les updates
+    console.log('[saveAttendance] Enregistrement appel session:', session.id);
+    
+    // 1. Mettre à jour chaque registration
     const updates = Object.entries(window._attendanceState).map(([regId, status]) => ({
       id: regId,
       attendance_status: status,
-      attendance_marked_at: new Date().toISOString(),
+      attendance_marked_at: now,
       attendance_marked_by: adminId
     }));
     
-    console.log('[saveAttendance] Enregistrement de', updates.length, 'présences');
+    console.log('[saveAttendance]', updates.length, 'présences à enregistrer');
     
-    // Upsert en masse
-    const { error } = await db
-      .from('registrations')
-      .upsert(updates, { onConflict: 'id' });
+    for (const update of updates) {
+      const { error } = await db
+        .from('registrations')
+        .update({
+          attendance_status: update.attendance_status,
+          attendance_marked_at: update.attendance_marked_at,
+          attendance_marked_by: update.attendance_marked_by
+        })
+        .eq('id', update.id);
+      
+      if (error) {
+        console.error('[saveAttendance] Erreur update registration:', error);
+      }
+    }
     
-    if (error) {
-      console.error('[saveAttendance] Erreur:', error);
-      toast('Erreur lors de l\'enregistrement', 'error');
+    // 2. Marquer la séance comme "appel fait"
+    const { error: sesError } = await db
+      .from('cinema_sessions')
+      .update({
+        attendance_done: true,
+        attendance_done_at: now,
+        attendance_done_by: adminId
+      })
+      .eq('id', session.id);
+    
+    if (sesError) {
+      console.error('[saveAttendance] Erreur update session:', sesError);
+      toast('Erreur lors de la mise à jour de la séance', 'error');
       return;
     }
     
-    toast('Appel enregistré avec succès', 'success');
+    // 3. Synchroniser l'historique films vus/loupés
+    await syncSessionAttendanceHistory(session.id);
     
-    // Recharger l'onglet
-    await loadSessionAttendance(session.id);
+    toast('Appel enregistré', 'success');
+    
+    // Recharger la fiche séance complète
+    await loadSessionSheetData(session.id);
+    closeAttendanceMode();
     
   } catch (e) {
     console.error('[saveAttendance] Exception:', e);
     toast('Erreur technique', 'error');
+  }
+}
+
+// Synchroniser l'historique films vus/loupés basé sur l'appel
+async function syncSessionAttendanceHistory(sessionId) {
+  try {
+    console.log('[syncSessionAttendanceHistory] Début sync session:', sessionId);
+    
+    const session = window._currentSessionData;
+    if (!session?.film_id) {
+      console.warn('[syncSessionAttendanceHistory] Pas de film_id pour cette séance');
+      return;
+    }
+    
+    // 1. Nettoyer l'ancien historique de cette séance
+    const { error: clearError } = await db.rpc('clear_session_attendance_history', {
+      p_session_id: sessionId
+    });
+    
+    if (clearError) {
+      console.error('[syncSessionAttendanceHistory] Erreur clear:', clearError);
+    } else {
+      console.log('[syncSessionAttendanceHistory] Historique nettoyé');
+    }
+    
+    // 2. Récupérer toutes les registrations avec leur attendance_status
+    const { data: regs, error: regError } = await db
+      .from('registrations')
+      .select('id, student_id, attendance_status, registered_at')
+      .eq('session_id', sessionId)
+      .eq('status', 'registered');
+    
+    if (regError || !regs?.length) {
+      console.log('[syncSessionAttendanceHistory] Pas de registrations');
+      return;
+    }
+    
+    const watchedAt = new Date(session.session_date + 'T12:00:00').toISOString();
+    const missedAt = watchedAt;
+    
+    let presentCount = 0;
+    let absentCount = 0;
+    
+    // 3. Enregistrer films vus pour les présents et films loupés pour les absents
+    for (const reg of regs) {
+      if (reg.attendance_status === 'present') {
+        const { error } = await db.rpc('record_watched_film', {
+          p_student_id: reg.student_id,
+          p_film_id: session.film_id,
+          p_session_id: sessionId,
+          p_watched_at: watchedAt,
+          p_registered_at: reg.registered_at || null
+        });
+        
+        if (error) {
+          console.error('[syncSessionAttendanceHistory] Erreur record_watched_film:', error);
+        } else {
+          presentCount++;
+        }
+      } else if (reg.attendance_status === 'absent') {
+        const { error } = await db.rpc('record_missed_film', {
+          p_student_id: reg.student_id,
+          p_film_id: session.film_id,
+          p_session_id: sessionId,
+          p_missed_at: missedAt,
+          p_registered_at: reg.registered_at || null
+        });
+        
+        if (error) {
+          console.error('[syncSessionAttendanceHistory] Erreur record_missed_film:', error);
+        } else {
+          absentCount++;
+        }
+      }
+    }
+    
+    console.log(`[syncSessionAttendanceHistory] Sync terminée: ${presentCount} présents, ${absentCount} absents`);
+    
+  } catch (e) {
+    console.error('[syncSessionAttendanceHistory] Exception:', e);
   }
 }
 
@@ -9257,6 +9421,12 @@ async function recordWatchedForSession(session) {
     console.warn('[recordWatchedForSession] Session invalide', session);
     return { count: 0, ok: false };
   }
+  
+  // Si l'appel a déjà été fait, ne rien faire (l'historique est géré par l'appel)
+  if (session.attendance_done) {
+    console.log('[recordWatchedForSession] Appel déjà fait pour session', session.id, '- skip');
+    return { count: 0, ok: true };
+  }
 
   const watchedAt = new Date(session.session_date + 'T12:00:00').toISOString();
 
@@ -9312,7 +9482,7 @@ async function checkScheduledFilms() {
 
     const { data: pastSessions, error: sesError } = await db
       .from('cinema_sessions')
-      .select('id, film_id, session_date')
+      .select('id, film_id, session_date, attendance_done')
       .not('film_id', 'is', null)
       .lt('session_date', today);
 
@@ -9385,7 +9555,7 @@ async function cleanupPastSessions() {
 
     const { data: oldSessions, error } = await db
       .from('cinema_sessions')
-      .select('id, film_id, session_date')
+      .select('id, film_id, session_date, attendance_done')
       .lt('session_date', today);
 
     if (error) {
@@ -11017,13 +11187,17 @@ function sdSwitchTab(tab) {
 async function _sdLoadOverview(studentId) {
   const [
     { count: voteCount }, { count: propCount },
-    { count: regCount },  { count: waitCount }, { count: banCount }
+    { count: regCount },  { count: waitCount }, { count: banCount },
+    { count: watchedCount }, { count: missedCount }, { count: absenceCount }
   ] = await Promise.all([
     db.from('votes').select('id',{count:'exact',head:true}).eq('student_id',studentId),
     db.from('proposals').select('id',{count:'exact',head:true}).eq('student_id',studentId),
     db.from('registrations').select('id',{count:'exact',head:true}).eq('student_id',studentId).eq('status','registered'),
     db.from('registrations').select('id',{count:'exact',head:true}).eq('student_id',studentId).eq('status','waitlist'),
-    db.from('session_bans').select('id',{count:'exact',head:true}).eq('student_id',studentId)
+    db.from('session_bans').select('id',{count:'exact',head:true}).eq('student_id',studentId),
+    db.from('student_watched_films').select('id',{count:'exact',head:true}).eq('student_id',studentId),
+    db.from('student_missed_films').select('id',{count:'exact',head:true}).eq('student_id',studentId),
+    db.from('registrations').select('id',{count:'exact',head:true}).eq('student_id',studentId).eq('attendance_status','absent')
   ]);
 
   const stat = (val, label) =>
@@ -11031,7 +11205,9 @@ async function _sdLoadOverview(studentId) {
   const statsEl = document.getElementById('sd-stats');
   statsEl.innerHTML = [
     stat(voteCount,'🗳️ Votes'), stat(propCount,'💡 Propositions'),
-    stat(regCount,'✅ Inscriptions'), stat(waitCount,'⏳ En attente')
+    stat(regCount,'✅ Inscriptions'), stat(waitCount,'⏳ En attente'),
+    stat(watchedCount,'🎬 Films vus'), stat(missedCount,'😞 Films loupés'),
+    stat(absenceCount,'🚫 Absences')
   ].join('');
   if (banCount > 0) statsEl.insertAdjacentHTML('beforeend', stat(banCount,'🚫 Blocages'));
 
