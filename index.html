@@ -2997,6 +2997,16 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     border-radius: var(--radius-lg);
     max-height: 85vh;
   }
+  
+  /* Centrage modale création séance sur desktop */
+  #modal-create-session {
+    align-items: center;
+    justify-content: center;
+  }
+  #modal-create-session .sheet {
+    border-radius: var(--radius-lg);
+    max-width: 500px;
+  }
 }
 
 .session-sheet-header {
@@ -4246,7 +4256,12 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 
     <!-- Sessions panel -->
     <div class="admin-panel hidden" id="ap-sessions">
-      <div class="admin-panel-title">Séances cinéma</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:0 20px 16px;">
+        <div class="admin-panel-title" style="margin:0;">Séances cinéma</div>
+        <button class="btn btn-gold btn-sm" onclick="openCreateSessionModal()">
+          ➕ Créer une séance
+        </button>
+      </div>
       <div class="admin-list" id="admin-sessions-list"><div class="loader"><div class="spinner"></div></div></div>
     </div>
 
@@ -4446,6 +4461,10 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     <div class="fgroup">
       <label class="flabel">Date *</label>
       <input type="date" class="finput" id="ses-date">
+    </div>
+    <div class="fgroup">
+      <label class="flabel">Heure</label>
+      <input type="time" class="finput" id="ses-time" value="20:00">
     </div>
     <div class="fgroup">
       <label class="flabel">Film diffusé</label>
@@ -8380,7 +8399,7 @@ async function loadNextSessionCard() {
         <div class="nsc-empty">
           <div class="nsc-empty-icon">🎬</div>
           <div class="nsc-empty-title">Aucune séance à venir</div>
-          <button class="btn btn-gold" onclick="aTab('sessions')">
+          <button class="btn btn-gold" onclick="openCreateSessionModal()">
             ➕ Créer une séance
           </button>
         </div>
@@ -8728,6 +8747,76 @@ async function loadSessionSheetData(sessionId) {
         `;
       }
       
+      // Charger les inscrits et l'attente pour affichage direct
+      const { ok: regOk, registrants } = await fetchSessionRegistrants(sessionId);
+      
+      let registrantsHTML = '';
+      if (regOk && registrants.length > 0) {
+        registrantsHTML = `
+          <div style="margin-top: 20px;">
+            <div style="font-size: 13px; font-weight: 700; color: var(--text-1); margin-bottom: 10px;">
+              👥 Inscrits (${registrants.length})
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 6px; max-height: 300px; overflow-y: auto;">
+              ${registrants.map(r => `
+                <div style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: var(--surface-2); border-radius: var(--radius-sm);">
+                  <div style="flex: 1; min-width: 0;">
+                    <div style="font-weight: 600; font-size: 13px;">${r.firstName} ${r.lastName}</div>
+                    <div style="font-size: 11px; color: var(--text-2);">${r.className || '—'}</div>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+      
+      // Charger liste d'attente
+      const { data: waitlistData } = await db
+        .from('registrations')
+        .select('id, student_id, registered_at')
+        .eq('session_id', sessionId)
+        .eq('status', 'waitlist')
+        .order('registered_at', { ascending: true });
+      
+      let waitlistHTML = '';
+      if (waitlistData && waitlistData.length > 0) {
+        const waitStudentIds = waitlistData.map(w => w.student_id).filter(Boolean);
+        const { data: waitStudents } = await db
+          .from('students')
+          .select('id, first_name, last_name, class_name')
+          .in('id', waitStudentIds);
+        
+        const waitStudentMap = {};
+        (waitStudents || []).forEach(s => { waitStudentMap[s.id] = s; });
+        
+        waitlistHTML = `
+          <div style="margin-top: 20px;">
+            <div style="font-size: 13px; font-weight: 700; color: var(--text-1); margin-bottom: 10px;">
+              ⏳ Liste d'attente (${waitlistData.length})
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 6px; max-height: 200px; overflow-y: auto;">
+              ${waitlistData.map((w, idx) => {
+                const student = waitStudentMap[w.student_id];
+                const name = student ? `${student.first_name} ${student.last_name}` : 'Élève introuvable';
+                const className = student?.class_name || '—';
+                return `
+                  <div style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: var(--surface-2); border-radius: var(--radius-sm);">
+                    <div style="min-width: 24px; height: 24px; border-radius: 50%; background: var(--purple); color: white; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;">
+                      ${idx + 1}
+                    </div>
+                    <div style="flex: 1; min-width: 0;">
+                      <div style="font-weight: 600; font-size: 13px;">${name}</div>
+                      <div style="font-size: 11px; color: var(--text-2);">${className}</div>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        `;
+      }
+      
       overviewEl.innerHTML = `
         <div class="fill-rate-card">
           <div class="fill-rate-meta">
@@ -8739,6 +8828,8 @@ async function loadSessionSheetData(sessionId) {
           </div>
           ${attendanceStatsHTML}
         </div>
+        ${registrantsHTML}
+        ${waitlistHTML}
       `;
     }
     
@@ -11011,6 +11102,7 @@ async function deleteSessionFromEditModal() {
 
 function openCreateSessionModal() {
   document.getElementById('ses-date').value = nextWednesday();
+  document.getElementById('ses-time').value = '20:00';
   document.getElementById('ses-open').checked = false;
   document.getElementById('ses-notes').value = '';
   document.getElementById('ses-capacity').value = '20';
@@ -11023,6 +11115,7 @@ function openCreateSessionModal() {
 
 async function saveSession() {
   const date   = document.getElementById('ses-date').value;
+  const time   = document.getElementById('ses-time').value || '20:00';
   const filmId = document.getElementById('ses-film').value || null;
 
   if (!date) {
@@ -11035,10 +11128,13 @@ async function saveSession() {
     return;
   }
 
+  console.log('[saveSession] Création séance - date:', date, 'time:', time, 'film:', filmId);
+
   const { data: insertedSession, error } = await db
     .from('cinema_sessions')
     .insert({
       session_date:       date,
+      session_time:       time,
       film_id:            filmId,
       registrations_open: document.getElementById('ses-open').checked,
       max_capacity:       parseInt(document.getElementById('ses-capacity').value) || 20,
@@ -11052,6 +11148,8 @@ async function saveSession() {
     console.error(error);
     return;
   }
+
+  console.log('[saveSession] ✓ Séance créée:', insertedSession.id);
 
   // Si un film est associé, le passer en 'scheduled'
   if (filmId) {
