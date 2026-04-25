@@ -3081,19 +3081,26 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
   font-weight: 600;
 }
 
-.ssh-edit-btn {
-  background: none;
-  border: none;
+.ssh-editable {
   cursor: pointer;
-  font-size: 12px;
-  opacity: 0.5;
-  padding: 2px 4px;
-  transition: opacity 0.2s ease;
-  margin-left: 4px;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+  position: relative;
 }
 
-.ssh-edit-btn:hover {
-  opacity: 1;
+.ssh-editable:hover {
+  background: var(--surface-3);
+  box-shadow: 0 0 0 1px var(--gold);
+}
+
+.ssh-editable:hover::after {
+  content: '✏️';
+  font-size: 10px;
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  opacity: 0.7;
 }
 
 /* Édition inline capacité et heure */
@@ -4701,8 +4708,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
         <h2 class="ssh-title" id="ssh-title">—</h2>
         <div class="ssh-meta">
           <span class="ssh-date" id="ssh-date">—</span>
-          <span class="ssh-time" id="ssh-time"></span>
-          <button class="ssh-edit-btn" id="ssh-edit-time-btn" onclick="editSessionTime()" title="Modifier l'heure">✏️</button>
+          <span class="ssh-time ssh-editable" id="ssh-time" onclick="editSessionTime()" title="Cliquer pour modifier l'heure"></span>
         </div>
         <div class="ssh-actions">
           <button class="ssh-action-badge" id="ssh-reg-badge" onclick="toggleSessionRegistrations()">
@@ -4716,8 +4722,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
         <div class="ssh-stats">
           <div class="ssh-stat">
             <span class="ssh-stat-label">Capacité</span>
-            <span class="ssh-stat-value" id="ssh-capacity">—</span>
-            <button class="ssh-edit-btn" onclick="editSessionCapacity()" title="Modifier la capacité">✏️</button>
+            <span class="ssh-stat-value ssh-editable" id="ssh-capacity" onclick="editSessionCapacity()" title="Cliquer pour modifier la capacité">—</span>
           </div>
           <div class="ssh-stat">
             <span class="ssh-stat-label">Inscrits</span>
@@ -5353,6 +5358,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
         <button class="sd-tab"        id="sd-tab-votes"      onclick="sdSwitchTab('votes')">Votes</button>
         <button class="sd-tab"        id="sd-tab-sessions"   onclick="sdSwitchTab('sessions')">Inscriptions</button>
         <button class="sd-tab"        id="sd-tab-watched"    onclick="sdSwitchTab('watched')">Films vus</button>
+        <button class="sd-tab"        id="sd-tab-missed"     onclick="sdSwitchTab('missed')">Films loupés</button>
       </div>
 
       <!-- Identité (toujours visible en haut) -->
@@ -5426,6 +5432,13 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       <!-- ---- ONGLET : Films vus ---- -->
       <div id="sd-pane-watched" class="hidden">
         <div id="sd-watched-content">
+          <div class="loader" style="padding:28px;"><div class="spinner"></div></div>
+        </div>
+      </div>
+
+      <!-- ---- ONGLET : Films loupés ---- -->
+      <div id="sd-pane-missed" class="hidden">
+        <div id="sd-missed-content">
           <div class="loader" style="padding:28px;"><div class="spinner"></div></div>
         </div>
       </div>
@@ -8517,6 +8530,28 @@ function checkAttendanceAllowed(session) {
   return false;
 }
 
+// Détermine si une séance est terminée (heure séance + 4h)
+function isSessionEnded(session) {
+  if (!session || !session.session_date) return false;
+  
+  // Date actuelle en France (Europe/Paris)
+  const nowInParis = new Date().toLocaleString('en-US', { timeZone: 'Europe/Paris' });
+  const now = new Date(nowInParis);
+  
+  // Construire la date/heure de fin de séance
+  const sessionTime = session.session_time || '20:00';
+  const [sessionHour, sessionMinute] = sessionTime.split(':').map(n => parseInt(n, 10));
+  
+  // Créer une date en fuseau Europe/Paris pour la séance
+  const sessionDateTime = new Date(session.session_date + 'T' + sessionTime + ':00');
+  
+  // Ajouter 4 heures
+  const sessionEndTime = new Date(sessionDateTime.getTime() + 4 * 60 * 60 * 1000);
+  
+  // Comparer
+  return now >= sessionEndTime;
+}
+
 /* ================================================================
    FICHE SÉANCE ADMIN
    ================================================================ */
@@ -8653,14 +8688,22 @@ async function loadSessionSheetData(sessionId) {
       let attendanceStatsHTML = '';
       if (session.attendance_done) {
         // Compter présents/absents
-        const { data: attendanceStats } = await db
+        const { data: attendanceStats, error: attError } = await db
           .from('registrations')
           .select('attendance_status')
           .eq('session_id', sessionId)
           .eq('status', 'registered');
         
+        console.log('[loadSessionSheetData] Stats appel - registrations chargées:', attendanceStats?.length || 0);
+        if (attError) {
+          console.error('[loadSessionSheetData] Erreur chargement stats appel:', attError);
+        }
+        
         const presentCount = attendanceStats?.filter(r => r.attendance_status === 'present').length || 0;
         const absentCount = attendanceStats?.filter(r => r.attendance_status === 'absent').length || 0;
+        const nullCount = attendanceStats?.filter(r => !r.attendance_status).length || 0;
+        
+        console.log('[loadSessionSheetData] Stats appel - présents:', presentCount, '/ absents:', absentCount, '/ null:', nullCount);
         
         const doneTime = session.attendance_done_at 
           ? new Date(session.attendance_done_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
@@ -9184,6 +9227,7 @@ async function saveAttendance() {
   
   try {
     console.log('[saveAttendance] Enregistrement appel session:', session.id);
+    console.log('[saveAttendance] État attendance:', window._attendanceState);
     
     // 1. Mettre à jour chaque registration
     const updates = Object.entries(window._attendanceState).map(([regId, status]) => ({
@@ -9194,7 +9238,9 @@ async function saveAttendance() {
     }));
     
     console.log('[saveAttendance]', updates.length, 'présences à enregistrer');
+    console.log('[saveAttendance] Détail des updates:', updates);
     
+    let successCount = 0;
     for (const update of updates) {
       const { error } = await db
         .from('registrations')
@@ -9206,9 +9252,13 @@ async function saveAttendance() {
         .eq('id', update.id);
       
       if (error) {
-        console.error('[saveAttendance] Erreur update registration:', error);
+        console.error('[saveAttendance] Erreur update registration:', update.id, error);
+      } else {
+        successCount++;
       }
     }
+    
+    console.log(`[saveAttendance] ${successCount}/${updates.length} registrations mises à jour`);
     
     // 2. Marquer la séance comme "appel fait"
     const { error: sesError } = await db
@@ -9478,22 +9528,24 @@ async function recordWatchedForSession(session) {
 
 async function checkScheduledFilms() {
   try {
-    const today = new Date().toISOString().split('T')[0];
-
-    const { data: pastSessions, error: sesError } = await db
+    const { data: allSessions, error: sesError } = await db
       .from('cinema_sessions')
-      .select('id, film_id, session_date, attendance_done')
-      .not('film_id', 'is', null)
-      .lt('session_date', today);
+      .select('id, film_id, session_date, session_time, attendance_done')
+      .not('film_id', 'is', null);
 
     if (sesError) {
-      console.error('[checkScheduledFilms] Erreur lecture séances passées:', sesError);
+      console.error('[checkScheduledFilms] Erreur lecture séances:', sesError);
       return;
     }
 
-    if (!pastSessions?.length) return;
+    if (!allSessions?.length) return;
+    
+    // Filtrer les séances terminées (H+4)
+    const endedSessions = allSessions.filter(s => isSessionEnded(s));
+    
+    console.log('[checkScheduledFilms] Séances terminées (H+4):', endedSessions.length);
 
-    for (const s of pastSessions) {
+    for (const s of endedSessions) {
       const { data: film, error: filmError } = await db
         .from('films')
         .select('id, status')
@@ -9513,21 +9565,14 @@ async function checkScheduledFilms() {
       // mais où les élèves n'ont pas été enregistrés.
       await recordWatchedForSession(s);
 
-      const { data: futureSessions, error: futureError } = await db
-        .from('cinema_sessions')
-        .select('id')
-        .eq('film_id', film.id)
-        .gte('session_date', today)
-        .limit(1);
-
-      if (futureError) {
-        console.error('[checkScheduledFilms] Erreur vérification séances futures:', futureError);
-        continue;
-      }
+      // Vérifier si ce film a des séances futures non terminées
+      const futureSessions = allSessions.filter(ses => 
+        ses.film_id === film.id && !isSessionEnded(ses)
+      );
 
       // S'il reste une séance future pour ce même film,
       // on garde le film programmé/actif mais l'historique de la séance passée est quand même enregistré.
-      if (futureSessions?.length) continue;
+      if (futureSessions.length > 0) continue;
 
       // On ne modifie le statut que si le film n'est pas déjà visionné.
       if (film.status !== 'screened') {
@@ -9551,33 +9596,39 @@ async function checkScheduledFilms() {
 
 async function cleanupPastSessions() {
   try {
-    const today = new Date().toISOString().split('T')[0];
-
-    const { data: oldSessions, error } = await db
+    const { data: allSessions, error } = await db
       .from('cinema_sessions')
-      .select('id, film_id, session_date, attendance_done')
-      .lt('session_date', today);
+      .select('id, film_id, session_date, session_time, attendance_done');
 
     if (error) {
       console.error('cleanupPastSessions lecture error', error);
       return;
     }
 
-    if (!oldSessions?.length) return;
+    if (!allSessions?.length) return;
+    
+    // Filtrer les séances terminées (H+4)
+    const endedSessions = allSessions.filter(s => isSessionEnded(s));
+    
+    if (!endedSessions.length) return;
+    
+    console.log('[cleanupPastSessions] Séances à nettoyer:', endedSessions.length);
 
     // Sécurité absolue :
     // avant de supprimer les anciennes inscriptions/séances,
     // on tente d'abord d'enregistrer les films vus.
-    for (const s of oldSessions) {
+    for (const s of endedSessions) {
       if (s.film_id) {
         await recordWatchedForSession(s);
       }
     }
 
-    const ids = oldSessions.map(s => s.id);
+    const ids = endedSessions.map(s => s.id);
 
     await db.from('registrations').delete().in('session_id', ids);
     await db.from('cinema_sessions').delete().in('id', ids);
+    
+    console.log('[cleanupPastSessions] Nettoyage terminé:', ids.length, 'séances supprimées');
   } catch (e) {
     console.error('cleanupPastSessions error', e);
   }
@@ -11172,7 +11223,7 @@ async function openStudentDetailByUid(eleveUid) {
 
 /* Gestion des onglets */
 function sdSwitchTab(tab) {
-  ['overview','proposals','votes','sessions','watched'].forEach(t => {
+  ['overview','proposals','votes','sessions','watched','missed'].forEach(t => {
     document.getElementById(`sd-tab-${t}`)?.classList.toggle('active', t === tab);
     document.getElementById(`sd-pane-${t}`)?.classList.toggle('hidden', t !== tab);
   });
@@ -11181,6 +11232,7 @@ function sdSwitchTab(tab) {
   if (tab === 'votes')     _sdLoadVotes(_sdCurrentStudentId);
   if (tab === 'sessions')  _sdLoadSessions(_sdCurrentStudentId);
   if (tab === 'watched')   _sdLoadWatched(_sdCurrentStudentId);
+  if (tab === 'missed')    _sdLoadMissed(_sdCurrentStudentId);
 }
 
 /* ---- Vue d'ensemble ---- */
@@ -11554,6 +11606,76 @@ async function _sdLoadWatched(studentId) {
     el.innerHTML = html;
   } catch(err) {
     console.error('[_sdLoadWatched] Exception non gérée:', err);
+    el.innerHTML = `<p class="text-sm text-muted" style="padding:10px 0;color:var(--red);">Erreur : ${err.message}</p>`;
+  }
+}
+
+/* ---- Onglet Films loupés ---- */
+async function _sdLoadMissed(studentId) {
+  const el = document.getElementById('sd-missed-content');
+  
+  console.log(`[_sdLoadMissed] Chargement films loupés pour élève ${studentId}`);
+  
+  try {
+    const { data: missedFilms, error } = await db
+      .from('student_missed_films')
+      .select(`
+        missed_at,
+        registered_at,
+        session_id,
+        film_id,
+        films!student_missed_films_film_id_fkey (
+          id,
+          title,
+          poster_url
+        )
+      `)
+      .eq('student_id', studentId)
+      .order('missed_at', { ascending: false });
+    
+    if (error) {
+      console.error('[_sdLoadMissed] Erreur lecture student_missed_films:', error);
+      el.innerHTML = `<p class="text-sm text-muted" style="padding:10px 0;color:var(--red);">Erreur de chargement : ${error.message}</p>`;
+      return;
+    }
+    
+    console.log(`[_sdLoadMissed] ${missedFilms?.length || 0} film(s) loupé(s) trouvé(s)`);
+    
+    if (!missedFilms?.length) {
+      el.innerHTML = '<p class="text-sm text-muted" style="padding:10px 0;">Aucun film loupé. 🎉</p>';
+      return;
+    }
+    
+    const html = `
+      <p class="text-sm text-muted" style="margin-bottom:8px;">
+        ${missedFilms.length} film${missedFilms.length > 1 ? 's' : ''} loupé${missedFilms.length > 1 ? 's' : ''}
+      </p>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        ${missedFilms.map(item => {
+          const film = item.films;
+          const poster = film?.poster_url || '';
+          const title = film?.title || 'Film supprimé';
+          const missedDate = item.missed_at ? fmtDateShort(item.missed_at.split('T')[0]) : '—';
+          return `
+            <div style="display:flex;gap:11px;align-items:flex-start;background:var(--surface-2);border-radius:var(--radius-sm);padding:10px 12px;">
+              ${poster
+                ? `<img src="${poster}" style="width:34px;height:51px;object-fit:cover;border-radius:4px;flex-shrink:0;" alt="">`
+                : `<div style="width:34px;height:51px;background:var(--surface-3);border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;">🎬</div>`}
+              <div style="flex:1;min-width:0;">
+                <div style="font-weight:700;font-size:13.5px;margin-bottom:3px;">${title}</div>
+                <div style="font-size:12px;color:var(--red);font-weight:700;margin-bottom:4px;">📅 ${missedDate}</div>
+                <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                  <span class="badge badge-red">😞 Absent</span>
+                </div>
+              </div>
+            </div>`;
+        }).join('')}
+      </div>
+    `;
+    
+    el.innerHTML = html;
+  } catch(err) {
+    console.error('[_sdLoadMissed] Exception non gérée:', err);
     el.innerHTML = `<p class="text-sm text-muted" style="padding:10px 0;color:var(--red);">Erreur : ${err.message}</p>`;
   }
 }
