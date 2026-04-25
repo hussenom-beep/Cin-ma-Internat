@@ -8858,13 +8858,13 @@ async function loadSessionRegistered(sessionId) {
   
   try {
     // Étape 1 : Charger les registrations avec status='registered'
-    const { data: registrations, error: regError } = await db
-      .from('registrations')
-      .select('id, student_id, registered_at')
-      .eq('session_id', sessionId)
-      .eq('status', 'registered')
-      .order('registered_at');
-    
+	const { data: registrations, error: regError } = await db
+	.from('registrations')
+	.select('id, student_id, attendance_status, registered_at, students(first_name, last_name, class_name)')
+	.eq('session_id', sessionId)
+	.eq('status', 'registered')
+	  .order('registered_at', { ascending: true });
+		
     console.log('[loadSessionRegistered] Registrations trouvées:', registrations?.length || 0);
     
     if (regError) {
