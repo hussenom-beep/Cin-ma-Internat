@@ -8985,97 +8985,79 @@ async function loadSessionWaitlist(sessionId) {
 
 async function loadSessionAttendance(sessionId) {
   const session = window._currentSessionData;
-  
+
   // Vérifier si l'appel est autorisé
   if (!checkAttendanceAllowed(session)) {
-    // Mettre à jour le texte avec l'heure de la séance
-    const sessionTime = session?.session_time || '20h00';
+    const sessionTime = session?.session_time || '20:00';
     const lockedText = document.getElementById('sst-locked-text');
     if (lockedText) {
       lockedText.textContent = `L'appel sera disponible le jour de la séance à partir de ${sessionTime}.`;
     }
-    
-    document.getElementById('sst-attendance-locked').classList.remove('hidden');
-    document.getElementById('sst-attendance-active').classList.add('hidden');
+
+    document.getElementById('sst-attendance-locked')?.classList.remove('hidden');
+    document.getElementById('sst-attendance-active')?.classList.add('hidden');
     return;
   }
-  
-  document.getElementById('sst-attendance-locked').classList.add('hidden');
-  document.getElementById('sst-attendance-active').classList.remove('hidden');
-  
+
+  document.getElementById('sst-attendance-locked')?.classList.add('hidden');
+  document.getElementById('sst-attendance-active')?.classList.remove('hidden');
+
+  const listEl = document.getElementById('sst-attendance-list');
+  if (listEl) {
+    listEl.innerHTML = '<div class="loader" style="padding:24px;"><div class="spinner"></div></div>';
+  }
+
   try {
     console.log('[loadSessionAttendance] Chargement appel pour session:', sessionId);
-    
-    // Récupérer les inscrits avec jointure
+
+    // 1) Charger uniquement les inscriptions
     const { data: registrations, error: regError } = await db
       .from('registrations')
-      .select('id, student_id, attendance_status, students(first_name, last_name, class_name)')
+      .select('id, student_id, attendance_status, registered_at')
       .eq('session_id', sessionId)
       .eq('status', 'registered')
-      .order('students(last_name)');
-    
+      .order('registered_at', { ascending: true });
+
     if (regError) {
       console.error('[loadSessionAttendance] Erreur registrations:', regError);
-      document.getElementById('sst-attendance-list').innerHTML = 
-        '<div class="text-muted">Erreur de chargement des inscriptions</div>';
+      if (listEl) listEl.innerHTML = '<div class="text-muted">Erreur de chargement des inscriptions</div>';
       return;
     }
-    
+
     if (!registrations?.length) {
       console.log('[loadSessionAttendance] Aucune inscription trouvée');
-      document.getElementById('sst-attendance-list').innerHTML = 
-        '<div class="text-muted">Aucun inscrit pour cette séance.</div>';
+      if (listEl) listEl.innerHTML = '<div class="text-muted">Aucun inscrit pour cette séance.</div>';
       return;
     }
-    
+
     console.log(`[loadSessionAttendance] ${registrations.length} inscriptions trouvées`);
-    
-    // Vérifier si certains students sont manquants
-    const missingStudents = registrations.filter(r => !r.students || !r.students.first_name);
-    
-    let studentsMap = {};
-    
-    if (missingStudents.length > 0) {
-      console.log(`[loadSessionAttendance] ⚠️ FALLBACK activé - ${missingStudents.length} students manquants dans la jointure`);
-      
-      // Récupérer tous les student_id
-      const studentIds = registrations.map(r => r.student_id).filter(Boolean);
-      
-      if (studentIds.length > 0) {
-        console.log(`[loadSessionAttendance] Chargement séparé de ${studentIds.length} students...`);
-        
-        const { data: students, error: studentsError } = await db
-          .from('students')
-          .select('id, first_name, last_name, class_name')
-          .in('id', studentIds);
-        
-        if (studentsError) {
-          console.error('[loadSessionAttendance] Erreur fallback students:', studentsError);
-        } else if (students) {
-          console.log(`[loadSessionAttendance] ✓ ${students.length} students chargés via fallback`);
-          // Créer une map id → student
-          students.forEach(s => {
-            studentsMap[s.id] = s;
-          });
-        }
-      }
+
+    // 2) Charger séparément les élèves
+    const studentIds = [...new Set(registrations.map(r => r.student_id).filter(Boolean))];
+
+    const { data: students, error: studError } = await db
+      .from('students')
+      .select('id, first_name, last_name, class_name')
+      .in('id', studentIds);
+
+    if (studError) {
+      console.error('[loadSessionAttendance] Erreur students:', studError);
+      if (listEl) listEl.innerHTML = '<div class="text-muted">Erreur de chargement des élèves</div>';
+      return;
     }
-    
-    // Initialiser le state d'appel
+
+    const studentMap = {};
+    (students || []).forEach(s => {
+      studentMap[s.id] = s;
+    });
+
     window._attendanceState = {};
-    
+
     let renderedCount = 0;
-    
+
     const html = registrations.map(r => {
-      // Déterminer le student : jointure ou fallback ou inconnu
-      let student = r.students;
-      
-      // Si la jointure a échoué, utiliser le fallback
-      if (!student || !student.first_name) {
-        student = studentsMap[r.student_id];
-      }
-      
-      // Si toujours pas de student, créer un placeholder
+      let student = studentMap[r.student_id];
+
       if (!student || !student.first_name) {
         console.warn(`[loadSessionAttendance] Student introuvable pour registration ${r.id}, student_id=${r.student_id}`);
         student = {
@@ -9084,15 +9066,12 @@ async function loadSessionAttendance(sessionId) {
           class_name: `ID: ${r.student_id || '?'}`
         };
       }
-      
+
       const fullName = `${student.first_name} ${student.last_name}`;
-      
-      // Par défaut : présent (sauf si déjà marqué absent dans la DB)
       const initialStatus = r.attendance_status === 'absent' ? 'absent' : 'present';
       window._attendanceState[r.id] = initialStatus;
-      
       renderedCount++;
-      
+
       return `
         <div class="sst-attendance-item ${initialStatus}" 
              data-reg-id="${r.id}" 
@@ -9105,15 +9084,17 @@ async function loadSessionAttendance(sessionId) {
         </div>
       `;
     }).join('');
-    
+
     console.log(`[loadSessionAttendance] ✓ ${renderedCount} lignes d'appel rendues`);
-    
-    document.getElementById('sst-attendance-list').innerHTML = html;
-    
+
+    if (listEl) listEl.innerHTML = html;
+
   } catch (e) {
     console.error('[loadSessionAttendance] Exception:', e);
-    document.getElementById('sst-attendance-list').innerHTML = 
-      '<div class="text-muted">Erreur de chargement</div>';
+    const listEl = document.getElementById('sst-attendance-list');
+    if (listEl) {
+      listEl.innerHTML = '<div class="text-muted">Erreur de chargement</div>';
+    }
   }
 }
 
