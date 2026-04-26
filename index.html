@@ -4740,21 +4740,17 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 <!-- ================================================================
      MODAL: Fiche Séance Admin
      ================================================================ -->
-<div class="overlay hidden" id="modal-session-sheet">
-  <div class="sheet sheet-large">
-    <div class="sheet-handle"></div>
-    
-    <!-- En-tête séance -->
-    <div class="session-sheet-header">
+<div class="session-sheet-header">
       <div class="ssh-poster">
         <img id="ssh-poster-img" src="" alt="">
       </div>
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
-  <h2 class="ssh-title" id="ssh-title" style="margin:0;flex:1;">—</h2>
-  <button class="btn btn-sm btn-ghost" onclick="openSessionEditModal()" title="Modifier le film, la date et l'heure" style="flex-shrink:0;">
-    ✏️ Modifier
-  </button>
-</div>
+      <div class="ssh-info">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+          <h2 class="ssh-title" id="ssh-title" style="margin:0;flex:1;">—</h2>
+          <button class="btn btn-sm btn-ghost" onclick="openSessionEditModal()" title="Modifier le film, la date et l'heure" style="flex-shrink:0;">
+            ✏️ Modifier
+          </button>
+        </div>
         <div class="ssh-meta">
           <span class="ssh-date" id="ssh-date">—</span>
           <span class="ssh-time" id="ssh-time"></span>
