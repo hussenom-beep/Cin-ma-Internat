@@ -403,6 +403,24 @@ button { cursor: pointer; }
     0 0 0 3px rgba(240,165,0,.08);
 }
 
+/* Champ capacité - flèches plus grosses */
+#ses-capacity {
+  min-height: 50px;
+  font-size: 16px;
+}
+
+#ses-capacity::-webkit-outer-spin-button,
+#ses-capacity::-webkit-inner-spin-button {
+  opacity: 1;
+  width: 24px;
+  min-height: 34px;
+  cursor: pointer;
+}
+
+#ses-capacity::-webkit-inner-spin-button {
+  transform: scale(1.25);
+}
+
 .finput::placeholder { color: rgba(85,85,112,.8); }
 .ftextarea { resize: vertical; min-height: 80px; }
 .fselect { appearance: none; cursor: pointer; }
@@ -4451,11 +4469,11 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 
     <div class="fgroup">
       <label class="flabel">Date *</label>
-      <input type="date" class="finput" id="ses-date">
+      <input type="date" class="finput" id="ses-date" onmousedown="handleSmartPickerClick(event, 'ses-date', 145)">
     </div>
     <div class="fgroup">
       <label class="flabel">Heure</label>
-      <input type="time" class="finput" id="ses-time" value="20:00">
+      <input type="time" class="finput" id="ses-time" value="20:00" onmousedown="handleSmartPickerClick(event, 'ses-time', 78)">
     </div>
     <div class="fgroup">
       <label class="flabel">Film *</label>
@@ -4465,10 +4483,15 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       <label class="flabel">Capacité max</label>
       <input type="number" class="finput" id="ses-capacity" value="20">
     </div>
-    <div class="fgroup" style="display:flex;align-items:center;gap:10px;">
-      <input type="checkbox" id="ses-open" style="width:18px;height:18px;accent-color:var(--gold);cursor:pointer;">
-      <label for="ses-open" style="font-size:14px;cursor:pointer;">Ouvrir les inscriptions maintenant</label>
-    </div>
+    <div class="fgroup" style="margin-bottom:10px;">
+		<div style="display:flex;align-items:center;gap:10px;">
+		<input type="checkbox" id="ses-open" style="width:18px;height:18px;accent-color:var(--gold);cursor:pointer;">
+		<label for="ses-open" style="font-size:14px;cursor:pointer;">Ouvrir les inscriptions maintenant</label>
+	</div>
+  <div style="text-align:right;margin-top:6px;font-size:11.5px;color:var(--text-3);">
+    * Champs obligatoires
+  </div>
+</div>
 
     <div style="display:flex;gap:10px;margin-top:6px;">
       <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('modal-create-session')">Annuler</button>
@@ -11068,6 +11091,23 @@ async function deleteSessionFromEditModal() {
   toast('Séance supprimée — film remis en actif si nécessaire', 'success');
   loadAdminSessions();
   loadAdminFilms();   // badge date disparaît dans l'onglet Films
+}
+
+function handleSmartPickerClick(event, inputId, textZoneWidth = 120) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+
+  const rect = input.getBoundingClientRect();
+  const x = event.clientX - rect.left;
+
+  // Si on clique dans la zone "texte", on laisse la saisie manuelle
+  if (x <= textZoneWidth) return;
+
+  // Sinon on ouvre le picker natif
+  if (typeof input.showPicker === 'function') {
+    event.preventDefault();
+    input.showPicker();
+  }
 }
 
 function openCreateSessionModal() {
