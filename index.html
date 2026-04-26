@@ -4445,7 +4445,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
      MODAL: Créer une séance
      ================================================================ -->
 <div class="overlay hidden" id="modal-create-session">
-  <div class="sheet">
+  <div class="sheet" onclick="event.stopPropagation()">
     <div class="sheet-handle"></div>
     <div class="sheet-title">Créer une séance</div>
 
@@ -4458,16 +4458,12 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       <input type="time" class="finput" id="ses-time" value="20:00">
     </div>
     <div class="fgroup">
-      <label class="flabel">Film diffusé</label>
+      <label class="flabel">Film *</label>
       <select class="finput fselect" id="ses-film"><option value="">— À définir —</option></select>
     </div>
     <div class="fgroup">
       <label class="flabel">Capacité max</label>
       <input type="number" class="finput" id="ses-capacity" value="20">
-    </div>
-    <div class="fgroup">
-      <label class="flabel">Notes internes</label>
-      <textarea class="ftextarea" id="ses-notes" placeholder="Ex : Salle B, Popcorn prévu…"></textarea>
     </div>
     <div class="fgroup" style="display:flex;align-items:center;gap:10px;">
       <input type="checkbox" id="ses-open" style="width:18px;height:18px;accent-color:var(--gold);cursor:pointer;">
@@ -11077,7 +11073,7 @@ async function deleteSessionFromEditModal() {
 function openCreateSessionModal() {
   document.getElementById('ses-date').value = nextWednesday();
   document.getElementById('ses-time').value = '20:00';
-  document.getElementById('ses-open').checked = false;
+  document.getElementById('ses-open').checked = true;
   document.getElementById('ses-notes').value = '';
   document.getElementById('ses-capacity').value = '20';
   db.from('films').select('id,title').in('status',['active','scheduled']).then(({ data }) => {
@@ -11093,9 +11089,14 @@ async function saveSession() {
   const filmId = document.getElementById('ses-film').value || null;
 
   if (!date) {
-    toast('Sélectionne une date', 'error');
-    return;
-  }
+  toast('Sélectionne une date', 'error');
+  return;
+}
+
+if (!filmId) {
+  toast('Choisis un film avant de créer la séance', 'error');
+  return;
+}
 
   if (await hasSessionOnDate(date)) {
     toast('Impossible : une séance existe déjà à cette date', 'error');
@@ -11112,7 +11113,7 @@ async function saveSession() {
       film_id:            filmId,
       registrations_open: document.getElementById('ses-open').checked,
       max_capacity:       parseInt(document.getElementById('ses-capacity').value) || 20,
-      notes:              document.getElementById('ses-notes').value.trim() || null
+      notes: null
     })
     .select('id')
     .single();
@@ -12743,9 +12744,13 @@ function closeModal(id) {
   }
 }
 
-document.querySelectorAll('.overlay').forEach(o =>
-  o.addEventListener('click', e => { if (e.target === o) o.classList.add('hidden'); })
-);
+document.querySelectorAll('.overlay').forEach(o => {
+  o.addEventListener('click', (e) => {
+    if (e.target !== o) return;
+    if (o.id === 'modal-create-session') return;
+    closeModal(o.id);
+  });
+});
 
 /* ================================================================
    PROFIL ÉLÈVE — CHANGEMENT DE PIN
