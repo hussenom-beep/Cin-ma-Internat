@@ -3104,15 +3104,6 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
   box-shadow: 0 0 0 1px var(--gold);
 }
 
-.ssh-editable:hover::after {
-  content: '✏️';
-  font-size: 10px;
-  position: absolute;
-  top: -2px;
-  right: -2px;
-  opacity: 0.7;
-}
-
 /* Édition inline capacité et heure */
 .ssh-inline-edit {
   display: inline-flex;
@@ -4758,8 +4749,6 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     <!-- Onglets -->
     <div class="session-sheet-tabs">
       <button class="sst-tab active" onclick="switchSessionTab('overview')">📊 Vue d'ensemble</button>
-      <button class="sst-tab" onclick="switchSessionTab('registered')">✓ Inscrits</button>
-      <button class="sst-tab" onclick="switchSessionTab('waitlist')">⏳ Liste d'attente</button>
     </div>
 
     <!-- Contenu onglets -->
@@ -4773,20 +4762,6 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
           </div>
         </div>
       </div>
-
-      <!-- Onglet Inscrits -->
-      <div class="sst-pane hidden" id="sst-pane-registered">
-        <div class="sst-section">
-          <h3 class="sst-section-title">Liste des inscrits</h3>
-          <div class="sst-list" id="sst-registered-list">
-            <!-- Liste des inscrits -->
-          </div>
-        </div>
-      </div>
-
-      <!-- Onglet Liste d'attente -->
-      <div class="sst-pane hidden" id="sst-pane-waitlist">
-        <div class="sst-section">
           <h3 class="sst-section-title">Liste d'attente</h3>
           <div class="sst-list" id="sst-waitlist-list">
             <!-- Liste d'attente -->
@@ -8438,9 +8413,8 @@ async function loadNextSessionCard() {
         ${posterUrl ? `<img src="${posterUrl}" alt="${filmTitle}">` : ''}
       </div>
       <div class="nsc-content">
-        <div class="nsc-badge">${sessionDate}</div>
+        <div class="nsc-badge">${sessionDate} • ${session.session_time || '20:00'}</div>
         <h2 class="nsc-title">${filmTitle}</h2>
-        ${session.session_time ? `<div class="nsc-time">🕐 ${session.session_time}</div>` : ''}
         <div class="nsc-stats">
           <div class="nsc-stat">
             <span class="nsc-stat-label">Inscrits</span>
@@ -11164,6 +11138,11 @@ async function saveSession() {
   closeModal('modal-create-session');
   toast('Séance créée 🎟️', 'success');
   loadAdminSessions();
+  
+  // Rafraîchir l'accueil admin si on est sur cet onglet
+  if (S.isAdmin && document.getElementById('ap-home')?.classList.contains('active')) {
+    loadNextSessionCard();
+  }
 }
 
 /* ================================================================
