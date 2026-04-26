@@ -3923,7 +3923,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
   flex-direction: column;
   gap: 10px;
 }
-}
+
   </style>
 <body>
 <div id="app">
@@ -8806,7 +8806,20 @@ async function loadSessionSheetData(sessionId) {
         `;
       }
       
-      
+      overviewEl.innerHTML = `
+  <div class="fill-rate-card">
+    <div class="fill-rate-meta">
+      <div class="fill-rate-count">${registeredCount} / ${capacity}</div>
+      <div class="fill-rate-percent">${fillRate}%</div>
+    </div>
+    <div class="fill-rate-track">
+      <div class="fill-rate-bar ${levelClass}" style="width: ${fillRate}%;"></div>
+    </div>
+    ${attendanceStatsHTML}
+  </div>
+  ${registrantsHTML}
+  ${waitlistHTML}
+`;
     }
     
     // Charger les listes
