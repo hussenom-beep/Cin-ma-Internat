@@ -796,6 +796,22 @@ button { cursor: pointer; }
 .sheet-handle { width: 38px; height: 4px; background: var(--border-2); border-radius: 2px; margin: 0 auto 20px; }
 .sheet-title { font-size: 18px; font-weight: 700; margin-bottom: 18px; font-family: 'Playfair Display', serif; }
 
+/* Modale centrée (pour édition de séance) */
+.modal-centered {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  width: 90%;
+  max-width: 480px;
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 24px;
+  -webkit-overflow-scrolling: touch;
+}
+.modal-centered .sheet-title {
+  margin-bottom: 20px;
+}
+
 /* ================================================================
    LOGIN SCREEN
    ================================================================ */
@@ -4560,19 +4576,18 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 <!-- ================================================================
      MODAL: Éditer une séance (admin)
      ================================================================ -->
-<div class="overlay hidden" id="modal-edit-session">
-  <div class="sheet">
-    <div class="sheet-handle"></div>
+<div class="overlay hidden" id="modal-edit-session" style="align-items: center; justify-content: center; z-index: 600;">
+  <div class="modal-centered">
     <div class="sheet-title">Modifier la séance</div>
     <input type="hidden" id="edit-ses-id">
     <input type="hidden" id="edit-ses-prev-film">
     <div class="fgroup">
       <label class="flabel">Date de la séance</label>
-      <input type="date" class="finput" id="edit-ses-date">
+      <input type="date" class="finput" id="edit-ses-date" onclick="handleSmartPickerClick(event, 'edit-ses-date', 120)">
     </div>
     <div class="fgroup">
       <label class="flabel">Heure de la séance</label>
-      <input type="time" class="finput" id="edit-ses-time">
+      <input type="time" class="finput" id="edit-ses-time" onclick="handleSmartPickerClick(event, 'edit-ses-time', 80)">
     </div>
     <div class="fgroup">
       <label class="flabel">Film diffusé</label>
@@ -4740,18 +4755,22 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
         <img id="ssh-poster-img" src="" alt="">
       </div>
       <div class="ssh-info">
-        <h2 class="ssh-title" id="ssh-title">—</h2>
-        <div class="ssh-meta">
-          <span class="ssh-date" id="ssh-date">—</span>
-          <span class="ssh-time" id="ssh-time"></span>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+          <h2 class="ssh-title" id="ssh-title" style="margin: 0;">—</h2>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+          <div class="ssh-meta" style="flex: 1;">
+            <span class="ssh-date" id="ssh-date">—</span>
+            <span class="ssh-time" id="ssh-time"></span>
+          </div>
+          <button class="btn btn-sm btn-ghost" onclick="openSessionEditModal()" title="Modifier le film, la date et l'heure" style="flex-shrink: 0;">
+            ✏️ Modifier
+          </button>
         </div>
         <div class="ssh-actions">
           <button class="ssh-action-badge" id="ssh-reg-badge" onclick="toggleSessionRegistrations()">
             <span id="ssh-reg-icon">✅</span>
             <span id="ssh-reg-text">Ouvertes</span>
-          </button>
-          <button class="btn btn-sm btn-ghost" onclick="openSessionEditModal()" title="Modifier le film, la date et l'heure">
-            ✏️ Modifier
           </button>
           <button class="btn btn-sm btn-gold" id="ssh-attendance-btn" onclick="openAttendanceMode()">
             📋 Faire l'appel
