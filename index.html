@@ -11074,7 +11074,6 @@ function openCreateSessionModal() {
   document.getElementById('ses-date').value = nextWednesday();
   document.getElementById('ses-time').value = '20:00';
   document.getElementById('ses-open').checked = true;
-  document.getElementById('ses-notes').value = '';
   document.getElementById('ses-capacity').value = '20';
   db.from('films').select('id,title').in('status',['active','scheduled']).then(({ data }) => {
     document.getElementById('ses-film').innerHTML = '<option value="">— À définir —</option>' +
