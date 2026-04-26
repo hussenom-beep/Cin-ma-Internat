@@ -9536,14 +9536,6 @@ async function openAttendanceMode() {
   await loadSessionAttendance(session.id);
 }
 
-  // Charger réellement la liste des présents
-await loadSessionAttendance(session.id);
-
-const listEl = document.getElementById('sst-attendance-list');
-if (listEl && !listEl.innerHTML.trim()) {
-  listEl.innerHTML = '<div class="text-muted">Aucun inscrit pour cette séance.</div>';
-}
-}
 
 function closeAttendanceMode() {
   // Afficher les onglets
