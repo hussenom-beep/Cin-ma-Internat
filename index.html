@@ -9789,11 +9789,17 @@ async function checkScheduledFilms() {
 
       // On ne modifie le statut que si le film n'est pas déjà visionné.
       if (film.status !== 'screened') {
+        // Calculer le vrai timestamp H+4 pour screened_at
+        const sessionTime = s.session_time || '20:00';
+        const finalDate = new Date(`${s.session_date}T${sessionTime}:00`);
+        finalDate.setHours(finalDate.getHours() + 4);
+        const screenedAt = finalDate.toISOString();
+        
         const { error: updateError } = await db
           .from('films')
           .update({
             status: 'screened',
-            screened_at: new Date(s.session_date + 'T12:00:00').toISOString()
+            screened_at: screenedAt
           })
           .eq('id', film.id);
 
