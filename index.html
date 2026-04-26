@@ -3027,6 +3027,16 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     border-radius: var(--radius-lg);
     max-width: 500px;
   }
+
+  /* Centrage modale édition séance sur desktop */
+  #modal-edit-session {
+    align-items: center;
+    justify-content: center;
+  }
+  #modal-edit-session .sheet {
+    border-radius: var(--radius-lg);
+    max-width: 500px;
+  }
 }
 
 .session-sheet-header {
@@ -4568,11 +4578,11 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     <input type="hidden" id="edit-ses-prev-film">
     <div class="fgroup">
       <label class="flabel">Date de la séance</label>
-      <input type="date" class="finput" id="edit-ses-date">
+      <input type="date" class="finput" id="edit-ses-date" onmousedown="handleSmartPickerClick(event, 'edit-ses-date', 145)">
     </div>
     <div class="fgroup">
       <label class="flabel">Heure de la séance</label>
-      <input type="time" class="finput" id="edit-ses-time">
+      <input type="time" class="finput" id="edit-ses-time" onmousedown="handleSmartPickerClick(event, 'edit-ses-time', 78)">
     </div>
     <div class="fgroup">
       <label class="flabel">Film diffusé</label>
@@ -4739,8 +4749,12 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       <div class="ssh-poster">
         <img id="ssh-poster-img" src="" alt="">
       </div>
-      <div class="ssh-info">
-        <h2 class="ssh-title" id="ssh-title">—</h2>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+  <h2 class="ssh-title" id="ssh-title" style="margin:0;flex:1;">—</h2>
+  <button class="btn btn-sm btn-ghost" onclick="openSessionEditModal()" title="Modifier le film, la date et l'heure" style="flex-shrink:0;">
+    ✏️ Modifier
+  </button>
+</div>
         <div class="ssh-meta">
           <span class="ssh-date" id="ssh-date">—</span>
           <span class="ssh-time" id="ssh-time"></span>
@@ -4749,9 +4763,6 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
           <button class="ssh-action-badge" id="ssh-reg-badge" onclick="toggleSessionRegistrations()">
             <span id="ssh-reg-icon">✅</span>
             <span id="ssh-reg-text">Ouvertes</span>
-          </button>
-          <button class="btn btn-sm btn-ghost" onclick="openSessionEditModal()" title="Modifier le film, la date et l'heure">
-            ✏️ Modifier
           </button>
           <button class="btn btn-sm btn-gold" id="ssh-attendance-btn" onclick="openAttendanceMode()">
             📋 Faire l'appel
