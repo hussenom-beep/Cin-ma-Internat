@@ -4571,6 +4571,10 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       <input type="date" class="finput" id="edit-ses-date">
     </div>
     <div class="fgroup">
+      <label class="flabel">Heure de la séance</label>
+      <input type="time" class="finput" id="edit-ses-time">
+    </div>
+    <div class="fgroup">
       <label class="flabel">Film diffusé</label>
       <select class="finput fselect" id="edit-ses-film"><option value="">— À définir —</option></select>
     </div>
@@ -4738,13 +4742,16 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       <div class="ssh-info">
         <h2 class="ssh-title" id="ssh-title">—</h2>
         <div class="ssh-meta">
-          <span class="ssh-date ssh-editable" id="ssh-date" onclick="editSessionDate()" title="Cliquer pour modifier la date">—</span>
-          <span class="ssh-time ssh-editable" id="ssh-time" onclick="editSessionTime()" title="Cliquer pour modifier l'heure"></span>
+          <span class="ssh-date" id="ssh-date">—</span>
+          <span class="ssh-time" id="ssh-time"></span>
         </div>
         <div class="ssh-actions">
           <button class="ssh-action-badge" id="ssh-reg-badge" onclick="toggleSessionRegistrations()">
             <span id="ssh-reg-icon">✅</span>
             <span id="ssh-reg-text">Ouvertes</span>
+          </button>
+          <button class="btn btn-sm btn-ghost" onclick="openSessionEditModal()" title="Modifier le film, la date et l'heure">
+            ✏️ Modifier
           </button>
           <button class="btn btn-sm btn-gold" id="ssh-attendance-btn" onclick="openAttendanceMode()">
             📋 Faire l'appel
@@ -11101,13 +11108,14 @@ async function openEditSession(id, currentTitle, currentFilmId) {
   document.getElementById('edit-ses-id').value = id;
   document.getElementById('edit-ses-prev-film').value = currentFilmId || '';
 
-  // Charger la date et le film actuels de la séance
+  // Charger la date, l'heure et le film actuels de la séance
   const { data: ses } = await db.from('cinema_sessions')
-    .select('session_date, film_id')
+    .select('session_date, session_time, film_id')
     .eq('id', id)
     .single();
 
   document.getElementById('edit-ses-date').value = ses?.session_date || '';
+  document.getElementById('edit-ses-time').value = ses?.session_time || '20:00';
 
   const effectiveFilmId = currentFilmId || ses?.film_id || '';
   document.getElementById('edit-ses-prev-film').value = effectiveFilmId;
@@ -11141,6 +11149,7 @@ async function saveEditSession() {
   const newFilmId  = document.getElementById('edit-ses-film').value || null;
   const prevFilmId = document.getElementById('edit-ses-prev-film').value || null;
   const newDate    = document.getElementById('edit-ses-date').value;
+  const newTime    = document.getElementById('edit-ses-time').value || '20:00';
 
   if (!newDate) { toast('Sélectionne une date', 'error'); return; }
 
@@ -11166,6 +11175,7 @@ async function saveEditSession() {
 
   await db.from('cinema_sessions').update({
     session_date: newDate,
+    session_time: newTime,
     film_id:      newFilmId
   }).eq('id', id);
 
@@ -11179,8 +11189,24 @@ async function saveEditSession() {
 
   closeModal('modal-edit-session');
   toast('Séance mise à jour ✅', 'success');
+  
+  // Recharger la fiche séance si elle est ouverte
+  if (window._currentSessionData?.id === id) {
+    await loadSessionSheetData(id);
+  }
+  
   loadAdminSessions();
   loadAdminFilms();
+}
+
+function openSessionEditModal() {
+  const session = window._currentSessionData;
+  if (!session?.id) {
+    toast('Erreur : session introuvable', 'error');
+    return;
+  }
+  
+  openEditSession(session.id, session.films?.title, session.film_id);
 }
 
 async function deleteSessionFromEditModal() {
