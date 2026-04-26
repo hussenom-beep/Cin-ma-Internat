@@ -4777,18 +4777,12 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       
       <!-- Onglet Vue d'ensemble -->
       <div class="sst-pane active" id="sst-pane-overview">
-			<div class="sst-section">
-			<div id="sst-overview-content">
-		<!-- Stats, notes, actions globales -->
-		</div>
-	    </div>
-	  </div>
-          <h3 class="sst-section-title">Liste d'attente</h3>
-          <div class="sst-list" id="sst-waitlist-list">
-            <!-- Liste d'attente -->
-          </div>
-        </div>
-      </div>
+  <div class="sst-section">
+    <div id="sst-overview-content">
+      <!-- Stats, notes, actions globales -->
+    </div>
+  </div>
+</div>
 
     </div>
 
@@ -9522,24 +9516,25 @@ async function toggleSessionRegistrations() {
 async function openAttendanceMode() {
   const session = window._currentSessionData;
   if (!session) return;
-  
+
   const canAttend = checkAttendanceAllowed(session);
   const sessionTime = session.session_time || '20:00';
-  
+
   if (!canAttend) {
     toast(`L'appel sera disponible à partir de ${sessionTime} le jour de la séance`, 'info');
     return;
   }
-  
-  // Cacher les onglets
+
   document.querySelector('.session-sheet-tabs')?.classList.add('hidden');
   document.querySelector('.session-sheet-content')?.classList.add('hidden');
-  
-  // Afficher la zone d'appel
+
   const zone = document.getElementById('session-attendance-zone');
   if (zone) {
     zone.classList.remove('hidden');
   }
+
+  await loadSessionAttendance(session.id);
+}
 
   // Charger réellement la liste des présents
 await loadSessionAttendance(session.id);
