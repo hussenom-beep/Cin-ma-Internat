@@ -8806,20 +8806,49 @@ async function loadSessionSheetData(sessionId) {
         `;
       }
       
-      overviewEl.innerHTML = `
-        <div class="fill-rate-card">
-          <div class="fill-rate-meta">
-            <div class="fill-rate-count">${registeredCount} / ${capacity}</div>
-            <div class="fill-rate-percent">${fillRate}%</div>
-          </div>
-          <div class="fill-rate-track">
-            <div class="fill-rate-bar ${levelClass}" style="width: ${fillRate}%;"></div>
-          </div>
-          ${attendanceStatsHTML}
-        </div>
-        ${registrantsHTML}
-        ${waitlistHTML}
-      `;
+      const { data: attendanceRegs, error: attendanceError } = await db
+  .from('registrations')
+  .select('attendance_status')
+  .eq('session_id', sessionId)
+  .eq('status', 'registered');
+
+if (attendanceError) {
+  console.error('[loadSessionSheetData] Erreur attendance regs:', attendanceError);
+}
+
+const presentCount = (attendanceRegs || []).filter(r => r.attendance_status === 'present').length;
+const absentCount  = (attendanceRegs || []).filter(r => r.attendance_status === 'absent').length;
+
+const attendanceStatsHTML = session.attendance_done ? `
+  <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border);">
+    <div style="font-size:13px;color:var(--text-2);margin-bottom:12px;">📋 Appel effectué à ${session.attendance_done_at ? new Date(session.attendance_done_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '—'}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;">
+      <div>
+        <div style="font-size:13px;color:var(--text-2);margin-bottom:4px;">Présents</div>
+        <div style="font-size:22px;font-weight:800;color:var(--green);">${presentCount}</div>
+      </div>
+      <div>
+        <div style="font-size:13px;color:var(--text-2);margin-bottom:4px;">Absents</div>
+        <div style="font-size:22px;font-weight:800;color:var(--red);">${absentCount}</div>
+      </div>
+    </div>
+  </div>
+` : '';
+
+overviewEl.innerHTML = `
+  <div class="fill-rate-card">
+    <div class="fill-rate-meta">
+      <div class="fill-rate-count">${registeredCount} / ${capacity}</div>
+      <div class="fill-rate-percent">${fillRate}%</div>
+    </div>
+    <div class="fill-rate-track">
+      <div class="fill-rate-bar ${levelClass}" style="width: ${fillRate}%;"></div>
+    </div>
+    ${attendanceStatsHTML}
+  </div>
+  ${registrantsHTML}
+  ${waitlistHTML}
+`;
     }
     
     // Charger les listes
@@ -9395,6 +9424,7 @@ async function saveAttendance() {
 
     await loadSessionAttendance(session.id);
     await loadSessionSheetData(session.id);
+    closeAttendanceMode();
 
   } catch (e) {
     console.error('[saveAttendance] Exception:', e);
