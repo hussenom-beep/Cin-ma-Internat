@@ -8942,7 +8942,7 @@ async function saveCapacity() {
   }
 }
 
-function editSessionDate() {
+async function editSessionDate() {
   const session = window._currentSessionData;
   if (!session) return;
 
@@ -8951,22 +8951,33 @@ function editSessionDate() {
 
   if (!newDate || newDate === currentDate) return;
 
-  db.from('cinema_sessions')
-    .update({ session_date: newDate })
-    .eq('id', session.id)
-    .then(({ error }) => {
-      if (error) {
-        console.error('[editSessionDate] Erreur:', error);
-        toast('Impossible de modifier la date', 'error');
-        return;
-      }
+  try {
+    const { error } = await db
+      .from('cinema_sessions')
+      .update({ session_date: newDate })
+      .eq('id', session.id);
 
-      session.session_date = newDate;
-      toast('Date modifiée', 'success');
-      loadSessionSheetData(session.id);
-      renderAdminDashboard?.();
-      renderSessions?.();
-    });
+    if (error) {
+      console.error('[editSessionDate] Erreur:', error);
+      toast('Impossible de modifier la date', 'error');
+      return;
+    }
+
+    session.session_date = newDate;
+
+    await checkScheduledFilms();
+    await cleanupPastSessions();
+
+    toast('Date modifiée', 'success');
+    await loadSessionSheetData(session.id);
+    await loadAdminSessions();
+    await loadAdminFilms();
+    renderHome?.();
+    renderSessions?.();
+  } catch (e) {
+    console.error('[editSessionDate] Exception:', e);
+    toast('Impossible de modifier la date', 'error');
+  }
 }
 
 // Modifier l'heure de la séance
@@ -9043,11 +9054,17 @@ async function saveTime() {
       return;
     }
     
-    toast('Heure mise à jour', 'success');
     delete window._editingTime;
-    
-    // Recharger les données de la fiche
+
+    await checkScheduledFilms();
+    await cleanupPastSessions();
+
+    toast('Heure mise à jour', 'success');
     await loadSessionSheetData(sessionId);
+    await loadAdminSessions();
+    await loadAdminFilms();
+    renderHome?.();
+    renderSessions?.();
   } catch (e) {
     console.error('[saveTime] Exception:', e);
     toast('Erreur de mise à jour', 'error');
@@ -9622,9 +9639,9 @@ async function recordWatchedForSession(session) {
   }
 
   const sessionTime = session.session_time || '20:00';
-  const watchedAt = new Date(`${session.session_date}T${sessionTime}:00`);
-  watchedAt.setHours(watchedAt.getHours() + 4);
-  const finalAt = watchedAt.toISOString();
+  const finalDate = new Date(`${session.session_date}T${sessionTime}:00`);
+  finalDate.setHours(finalDate.getHours() + 4);
+  const finalAt = finalDate.toISOString();
 
   console.log('[recordWatchedForSession] Traitement final H+4 pour séance:', {
     session_id: session.id,
@@ -9633,7 +9650,6 @@ async function recordWatchedForSession(session) {
     finalAt
   });
 
-  // Nettoyer l'historique existant de cette séance pour recalcul propre
   const { error: clearError } = await db.rpc('clear_session_attendance_history', {
     p_session_id: session.id
   });
@@ -9662,7 +9678,6 @@ async function recordWatchedForSession(session) {
   let missedCount = 0;
 
   for (const reg of regs) {
-    // CAS 1 : appel fait
     if (session.attendance_done) {
       if (reg.attendance_status === 'present') {
         const { error } = await db.rpc('record_watched_film', {
@@ -9693,9 +9708,7 @@ async function recordWatchedForSession(session) {
           missedCount++;
         }
       }
-    } 
-    // CAS 2 : pas d'appel
-    else {
+    } else {
       const { error } = await db.rpc('record_watched_film', {
         p_student_id: reg.student_id,
         p_film_id: session.film_id,
