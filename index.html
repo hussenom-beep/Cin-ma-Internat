@@ -9401,37 +9401,6 @@ async function saveAttendance() {
     toast('Erreur technique', 'error');
   }
 }
-    
-    Marquer la séance comme "appel fait"
-    const { error: sesError } = await db
-      .from('cinema_sessions')
-      .update({
-        attendance_done: true,
-        attendance_done_at: now,
-        attendance_done_by: adminId
-      })
-      .eq('id', session.id);
-    
-    if (sesError) {
-      console.error('[saveAttendance] Erreur update session:', sesError);
-      toast('Erreur lors de la mise à jour de la séance', 'error');
-      return;
-    }
-    
-    // 3. Synchroniser l'historique films vus/loupés
-    await syncSessionAttendanceHistory(session.id);
-    
-    toast('Appel enregistré', 'success');
-    
-    // Recharger la fiche séance complète
-    await loadSessionSheetData(session.id);
-    closeAttendanceMode();
-    
-  } catch (e) {
-    console.error('[saveAttendance] Exception:', e);
-    toast('Erreur technique', 'error');
-  }
-}
 
 // Synchroniser l'historique films vus/loupés basé sur l'appel
 async function syncSessionAttendanceHistory(sessionId) {
