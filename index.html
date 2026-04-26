@@ -8606,7 +8606,11 @@ async function loadSessionSheetData(sessionId) {
       return;
     }
     
-    // Stocker en global pour les onglets
+   // Stocker en global pour les onglets
+    const previousSessionData = window._currentSessionData;
+    if (previousSessionData?.id === session.id && previousSessionData?._attendanceSummary) {
+      session._attendanceSummary = previousSessionData._attendanceSummary;
+    }
     window._currentSessionData = session;
     
     // Compter inscrits et liste d'attente
