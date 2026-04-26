@@ -8706,12 +8706,30 @@ async function loadSessionSheetData(sessionId) {
         if (attError) {
           console.error('[loadSessionSheetData] Erreur chargement stats appel:', attError);
         }
-        
-        const presentCount = attendanceStats?.filter(r => r.attendance_status === 'present').length || 0;
-        const absentCount = attendanceStats?.filter(r => r.attendance_status === 'absent').length || 0;
+
+        const dbPresentCount = attendanceStats?.filter(r => r.attendance_status === 'present').length || 0;
+        const dbAbsentCount = attendanceStats?.filter(r => r.attendance_status === 'absent').length || 0;
         const nullCount = attendanceStats?.filter(r => !r.attendance_status).length || 0;
+
+        const localPresentCount = session._attendanceSummary?.presentCount ?? 0;
+        const localAbsentCount = session._attendanceSummary?.absentCount ?? 0;
+
+        const hasDbStats = dbPresentCount > 0 || dbAbsentCount > 0;
+        const presentCount = hasDbStats ? dbPresentCount : localPresentCount;
+        const absentCount = hasDbStats ? dbAbsentCount : localAbsentCount;
         
-        console.log('[loadSessionSheetData] Stats appel - présents:', presentCount, '/ absents:', absentCount, '/ null:', nullCount);
+        console.log(
+          '[loadSessionSheetData] Stats appel - db:',
+          dbPresentCount,
+          '/',
+          dbAbsentCount,
+          '| local:',
+          localPresentCount,
+          '/',
+          localAbsentCount,
+          '| null:',
+          nullCount
+        );
         
         const doneTime = session.attendance_done_at 
           ? new Date(session.attendance_done_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
@@ -9390,6 +9408,14 @@ async function saveAttendance() {
     session.attendance_done = true;
     session.attendance_done_at = now;
     session.attendance_done_by = adminId;
+
+    const attendanceValues = Object.values(window._attendanceState || {});
+    session._attendanceSummary = {
+      presentCount: attendanceValues.filter(v => v === 'present').length,
+      absentCount: attendanceValues.filter(v => v === 'absent').length
+    };
+
+    console.log('[saveAttendance] Résumé local appel =', session._attendanceSummary);
 
     toast('Appel enregistré', 'success');
 
