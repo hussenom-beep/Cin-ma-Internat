@@ -4777,12 +4777,12 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       
       <!-- Onglet Vue d'ensemble -->
       <div class="sst-pane active" id="sst-pane-overview">
-        <div class="sst-section">
-          <div id="sst-overview-content">
-            <!-- Stats, notes, actions globales -->
-          </div>
-        </div>
-      </div>
+			<div class="sst-section">
+			<div id="sst-overview-content">
+		<!-- Stats, notes, actions globales -->
+		</div>
+	    </div>
+	  </div>
           <h3 class="sst-section-title">Liste d'attente</h3>
           <div class="sst-list" id="sst-waitlist-list">
             <!-- Liste d'attente -->
@@ -9134,7 +9134,12 @@ async function loadSessionRegistered(sessionId) {
   if (!el) return;
   
   const { ok, registrants, error } = await fetchSessionRegistrants(sessionId);
-  
+  console.log('[loadSessionAttendance] fetchSessionRegistrants result =', {
+  ok,
+  count: registrants?.length || 0,
+  registrants,
+  error
+});
   if (!ok) {
     console.error('[loadSessionRegistered] Erreur fetchSessionRegistrants:', error);
     el.innerHTML = '<div class="text-muted">Erreur de chargement</div>';
@@ -9412,36 +9417,48 @@ async function syncSessionAttendanceHistory(sessionId) {
     
     // 3. Enregistrer films vus pour les présents et films loupés pour les absents
     for (const reg of regs) {
-      if (reg.attendance_status === 'present') {
-        const { error } = await db.rpc('record_watched_film', {
-          p_student_id: reg.student_id,
-          p_film_id: session.film_id,
-          p_session_id: sessionId,
-          p_watched_at: watchedAt,
-          p_registered_at: reg.registered_at || null
-        });
-        
-        if (error) {
-          console.error('[syncSessionAttendanceHistory] Erreur record_watched_film:', error);
-        } else {
-          presentCount++;
-        }
-      } else if (reg.attendance_status === 'absent') {
-        const { error } = await db.rpc('record_missed_film', {
-          p_student_id: reg.student_id,
-          p_film_id: session.film_id,
-          p_session_id: sessionId,
-          p_missed_at: missedAt,
-          p_registered_at: reg.registered_at || null
-        });
-        
-        if (error) {
-          console.error('[syncSessionAttendanceHistory] Erreur record_missed_film:', error);
-        } else {
-          absentCount++;
-        }
-      }
+  const status = reg.attendance_status;
+
+  // Seuls les présents explicites passent en "vu"
+  if (status === 'present') {
+    const { error } = await db.rpc('record_watched_film', {
+      p_student_id: reg.student_id,
+      p_film_id: session.film_id,
+      p_session_id: sessionId,
+      p_watched_at: watchedAt,
+      p_registered_at: reg.registered_at || null
+    });
+
+    if (error) {
+      console.error('[syncSessionAttendanceHistory] Erreur record_watched_film:', error);
+    } else {
+      presentCount++;
     }
+    continue;
+  }
+
+  // Seuls les absents explicites passent en "loupé"
+  if (status === 'absent') {
+    const { error } = await db.rpc('record_missed_film', {
+      p_student_id: reg.student_id,
+      p_film_id: session.film_id,
+      p_session_id: sessionId,
+      p_missed_at: missedAt,
+      p_registered_at: reg.registered_at || null
+    });
+
+    if (error) {
+      console.error('[syncSessionAttendanceHistory] Erreur record_missed_film:', error);
+    } else {
+      absentCount++;
+    }
+    continue;
+  }
+
+  // Si pas de statut explicite, on ne crée rien ici.
+  // Le mode "pas d'appel" est géré ailleurs par recordWatchedForSession().
+  console.log('[syncSessionAttendanceHistory] Registration ignorée car sans statut explicite :', reg.id);
+}
     
     console.log(`[syncSessionAttendanceHistory] Sync terminée: ${presentCount} présents, ${absentCount} absents`);
     
@@ -9525,7 +9542,12 @@ async function openAttendanceMode() {
   }
 
   // Charger réellement la liste des présents
-  await loadSessionAttendance(session.id);
+await loadSessionAttendance(session.id);
+
+const listEl = document.getElementById('sst-attendance-list');
+if (listEl && !listEl.innerHTML.trim()) {
+  listEl.innerHTML = '<div class="text-muted">Aucun inscrit pour cette séance.</div>';
+}
 }
 
 function closeAttendanceMode() {
