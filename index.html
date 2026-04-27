@@ -9403,19 +9403,28 @@ async function saveAttendance() {
 
   if (!confirm(confirmMsg)) return;
 
-  const adminId = S.user?.id || 'admin';
+  const adminId = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(S.user?.id || '')
+  ? S.user.id
+  : null;
   const now = new Date().toISOString();
 
   try {
     console.log('[saveAttendance] Enregistrement appel session:', session.id);
     console.log('[saveAttendance] État attendance:', window._attendanceState);
 
-    const updates = Object.entries(window._attendanceState).map(([regId, status]) => ({
-      id: regId,
-      attendance_status: status,
-      attendance_marked_at: now,
-      attendance_marked_by: adminId
-    }));
+    const updates = Object.entries(window._attendanceState).map(([regId, status]) => {
+  const payload = {
+    id: regId,
+    attendance_status: status,
+    attendance_marked_at: now
+  };
+
+  if (adminId) {
+    payload.attendance_marked_by = adminId;
+  }
+
+  return payload;
+});
 
     if (!updates.length) {
       toast('Aucune présence à enregistrer', 'error');
@@ -9430,15 +9439,23 @@ async function saveAttendance() {
     for (const update of updates) {
       const { error } = await db
         .from('registrations')
-        .update({
-          attendance_status: update.attendance_status,
-          attendance_marked_at: update.attendance_marked_at,
-          attendance_marked_by: update.attendance_marked_by
-        })
+        .update(
+  update.attendance_marked_by
+    ? {
+        attendance_status: update.attendance_status,
+        attendance_marked_at: update.attendance_marked_at,
+        attendance_marked_by: update.attendance_marked_by
+      }
+    : {
+        attendance_status: update.attendance_status,
+        attendance_marked_at: update.attendance_marked_at
+      }
+)
         .eq('id', update.id);
 
       if (error) {
         console.error('[saveAttendance] Erreur update registration:', update.id, error);
+		toast(`Erreur enregistrement présence : ${error.message || 'erreur inconnue'}`, 'error');
       } else {
         successCount++;
       }
@@ -9495,11 +9512,18 @@ async function saveAttendance() {
 
     const { error: sessionError } = await db
       .from('cinema_sessions')
-      .update({
+      .update(
+  adminId
+    ? {
         attendance_done: true,
         attendance_done_at: now,
         attendance_done_by: adminId
-      })
+      }
+    : {
+        attendance_done: true,
+        attendance_done_at: now
+      }
+)
       .eq('id', session.id);
 
     if (sessionError) {
