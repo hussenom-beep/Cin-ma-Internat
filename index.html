@@ -9771,13 +9771,11 @@ async function recordWatchedForSession(session) {
     finalAt
   });
 
-  const { error: clearError } = await db.rpc('clear_session_attendance_history', {
-    p_session_id: session.id
-  });
-
-  if (clearError) {
-    console.error('[recordWatchedForSession] Erreur clear_session_attendance_history:', clearError);
-  }
+  // ⚠️ PAS DE CLEAR ici : à H+4, on confirme l'historique sans risquer de l'effacer.
+  // Les RPC record_watched_film / record_missed_film sont idempotentes (ON CONFLICT),
+  // donc on peut les appeler sans créer de doublons. Si une INSERT échoue (RLS, race...),
+  // l'historique existant est préservé. Le clear reste actif dans syncSessionAttendanceHistory
+  // (appel manuel) où il est nécessaire pour gérer les changements présent↔absent.
 
   const { data: regs, error: regError } = await db
     .from('registrations')
