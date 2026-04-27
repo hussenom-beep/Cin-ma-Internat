@@ -9339,6 +9339,8 @@ async function loadSessionAttendance(sessionId) {
 
   // Initialiser l'état d'appel
   window._attendanceState = {};
+  
+  console.log('[loadSessionAttendance] Initialisation _attendanceState pour', registrants.length, 'inscrits');
 
   const html = registrants.map(r => {
     const fullName = `${r.firstName} ${r.lastName}`;
@@ -9347,6 +9349,8 @@ async function loadSessionAttendance(sessionId) {
     // Par défaut présent, sauf si déjà marqué absent
     const initialStatus = r.attendanceStatus === 'absent' ? 'absent' : 'present';
     window._attendanceState[r.registrationId] = initialStatus;
+    
+    console.log(`[loadSessionAttendance] - Élève ${r.studentId} (reg ${r.registrationId}): status DB = ${r.attendanceStatus || 'NULL'}, initial = ${initialStatus}`);
 
     return `
       <div class="sst-attendance-item ${initialStatus}" 
@@ -9362,6 +9366,7 @@ async function loadSessionAttendance(sessionId) {
   }).join('');
 
   console.log(`[loadSessionAttendance] ✓ ${registrants.length} lignes d'appel rendues`);
+  console.log('[loadSessionAttendance] État final _attendanceState:', window._attendanceState);
 
   if (listEl) listEl.innerHTML = html;
 }
@@ -9403,7 +9408,10 @@ async function saveAttendance() {
 
   try {
     console.log('[saveAttendance] Enregistrement appel session:', session.id);
-    console.log('[saveAttendance] État attendance:', window._attendanceState);
+    console.log('[saveAttendance] État attendance (window._attendanceState):', window._attendanceState);
+    console.log('[saveAttendance] Nombre d\'entrées dans _attendanceState:', 
+      Object.keys(window._attendanceState || {}).length
+    );
 
     const updates = Object.entries(window._attendanceState).map(([regId, status]) => ({
       id: regId,
@@ -9436,6 +9444,35 @@ async function saveAttendance() {
 
     console.log(`[saveAttendance] ${successCount}/${updates.length} registrations mises à jour`);
 
+    // Vérification immédiate : relire ce qui a été écrit
+    console.log('[saveAttendance] Vérification post-sauvegarde...');
+    const { data: verif, error: verifError } = await db
+      .from('registrations')
+      .select('id, student_id, attendance_status, attendance_marked_at')
+      .eq('session_id', session.id)
+      .eq('status', 'registered');
+    
+    if (verifError) {
+      console.error('[saveAttendance] ERREUR vérification:', verifError);
+    } else {
+      const presentCount = verif?.filter(r => r.attendance_status === 'present').length || 0;
+      const absentCount = verif?.filter(r => r.attendance_status === 'absent').length || 0;
+      const nullCount = verif?.filter(r => !r.attendance_status).length || 0;
+      
+      console.log('[saveAttendance] ✓ Vérification DB après sauvegarde:');
+      console.log(`  - Total lignes: ${verif?.length || 0}`);
+      console.log(`  - Présents: ${presentCount}`);
+      console.log(`  - Absents: ${absentCount}`);
+      console.log(`  - NULL (PROBLÈME): ${nullCount}`);
+      
+      if (nullCount > 0) {
+        console.error('[saveAttendance] ⚠️ ALERTE: Des attendance_status sont encore NULL après sauvegarde!');
+        console.error('[saveAttendance] Détail des lignes NULL:', 
+          verif?.filter(r => !r.attendance_status).map(r => ({ id: r.id, student_id: r.student_id }))
+        );
+      }
+    }
+
     const { error: sessionError } = await db
       .from('cinema_sessions')
       .update({
@@ -9451,7 +9488,7 @@ async function saveAttendance() {
       return;
     }
 
-   
+    console.log('[saveAttendance] ✓ Session marquée attendance_done=true');
 
     session.attendance_done = true;
     session.attendance_done_at = now;
@@ -9704,12 +9741,23 @@ async function recordWatchedForSession(session) {
     return { watched: 0, missed: 0, ok: true };
   }
 
+  console.log(`[recordWatchedForSession] ${regs.length} inscrits trouvés pour traitement final`);
+  console.log('[recordWatchedForSession] Détail des registrations:', 
+    regs.map(r => ({
+      student_id: r.student_id,
+      attendance_status: r.attendance_status,
+      status: r.status
+    }))
+  );
+
   let watchedCount = 0;
   let missedCount = 0;
 
   for (const reg of regs) {
     if (session.attendance_done) {
+      // CAS 1: Appel fait
       if (reg.attendance_status === 'present') {
+        console.log(`[recordWatchedForSession] Élève ${reg.student_id}: PRÉSENT → film vu`);
         const { error } = await db.rpc('record_watched_film', {
           p_student_id: reg.student_id,
           p_film_id: session.film_id,
@@ -9724,6 +9772,7 @@ async function recordWatchedForSession(session) {
           watchedCount++;
         }
       } else if (reg.attendance_status === 'absent') {
+        console.log(`[recordWatchedForSession] Élève ${reg.student_id}: ABSENT → film loupé`);
         const { error } = await db.rpc('record_missed_film', {
           p_student_id: reg.student_id,
           p_film_id: session.film_id,
@@ -9737,8 +9786,16 @@ async function recordWatchedForSession(session) {
         } else {
           missedCount++;
         }
+      } else {
+        // PROBLÈME: attendance_done = true mais attendance_status = NULL
+        console.error(`[recordWatchedForSession] ⚠️ ERREUR CRITIQUE: Élève ${reg.student_id}`);
+        console.error('  → attendance_done = true mais attendance_status = NULL');
+        console.error('  → L\'appel n\'a pas été correctement sauvegardé');
+        console.error('  → Cet élève ne sera PAS traité (ni film vu, ni film loupé)');
       }
     } else {
+      // CAS 2: Pas d'appel → tous les inscrits = film vu
+      console.log(`[recordWatchedForSession] Élève ${reg.student_id}: inscrit sans appel → film vu`);
       const { error } = await db.rpc('record_watched_film', {
         p_student_id: reg.student_id,
         p_film_id: session.film_id,
