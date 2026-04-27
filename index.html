@@ -9587,7 +9587,7 @@ async function syncSessionAttendanceHistory(sessionId) {
 
     for (const reg of regs) {
       if (reg.attendance_status === 'present') {
-        const { error } = await db.rpc('record_watched_film', {
+        const { data, error } = await db.rpc('record_watched_film', {
           p_student_id: reg.student_id,
           p_film_id: session.film_id,
           p_session_id: sessionId,
@@ -9596,10 +9596,16 @@ async function syncSessionAttendanceHistory(sessionId) {
         });
 
         if (error) {
-          console.error('[syncSessionAttendanceHistory] Erreur record_watched_film:', {
+          console.error('[syncSessionAttendanceHistory] Erreur RPC record_watched_film:', {
             reg,
             session,
             error
+          });
+        } else if (data && !data.success) {
+          console.error('[syncSessionAttendanceHistory] Erreur SQL record_watched_film:', {
+            reg,
+            session,
+            sqlError: data.error
           });
         } else {
           presentCount++;
@@ -9609,7 +9615,7 @@ async function syncSessionAttendanceHistory(sessionId) {
       }
 
       if (reg.attendance_status === 'absent') {
-        const { error } = await db.rpc('record_missed_film', {
+        const { data, error } = await db.rpc('record_missed_film', {
           p_student_id: reg.student_id,
           p_film_id: session.film_id,
           p_session_id: sessionId,
@@ -9618,10 +9624,16 @@ async function syncSessionAttendanceHistory(sessionId) {
         });
 
         if (error) {
-          console.error('[syncSessionAttendanceHistory] Erreur record_missed_film:', {
+          console.error('[syncSessionAttendanceHistory] Erreur RPC record_missed_film:', {
             reg,
             session,
             error
+          });
+        } else if (data && !data.success) {
+          console.error('[syncSessionAttendanceHistory] Erreur SQL record_missed_film:', {
+            reg,
+            session,
+            sqlError: data.error
           });
         } else {
           absentCount++;
