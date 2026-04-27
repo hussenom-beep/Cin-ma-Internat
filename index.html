@@ -5394,7 +5394,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
         <button class="sd-tab"        id="sd-tab-votes"      onclick="sdSwitchTab('votes')">Votes</button>
         <button class="sd-tab"        id="sd-tab-sessions"   onclick="sdSwitchTab('sessions')">Inscriptions</button>
         <button class="sd-tab"        id="sd-tab-watched"    onclick="sdSwitchTab('watched')">Films vus</button>
-        <button class="sd-tab"        id="sd-tab-missed"     onclick="sdSwitchTab('missed')">Films loupés</button>
+        <button class="sd-tab"        id="sd-tab-missed"     onclick="sdSwitchTab('missed')">Absences</button>
       </div>
 
       <!-- Identité (toujours visible en haut) -->
@@ -11735,7 +11735,7 @@ async function _sdLoadOverview(studentId) {
   const [
     { count: voteCount }, { count: propCount },
     { count: regCount },  { count: waitCount }, { count: banCount },
-    { count: watchedCount }, { count: missedCount }, { count: absenceCount }
+    { count: watchedCount }, { count: missedCount }
   ] = await Promise.all([
     db.from('votes').select('id',{count:'exact',head:true}).eq('student_id',studentId),
     db.from('proposals').select('id',{count:'exact',head:true}).eq('student_id',studentId),
@@ -11743,8 +11743,7 @@ async function _sdLoadOverview(studentId) {
     db.from('registrations').select('id',{count:'exact',head:true}).eq('student_id',studentId).eq('status','waitlist'),
     db.from('session_bans').select('id',{count:'exact',head:true}).eq('student_id',studentId),
     db.from('student_watched_films').select('id',{count:'exact',head:true}).eq('student_id',studentId),
-    db.from('student_missed_films').select('id',{count:'exact',head:true}).eq('student_id',studentId),
-    db.from('registrations').select('id',{count:'exact',head:true}).eq('student_id',studentId).eq('attendance_status','absent')
+    db.from('student_missed_films').select('id',{count:'exact',head:true}).eq('student_id',studentId)
   ]);
 
   const stat = (val, label) =>
@@ -11753,8 +11752,7 @@ async function _sdLoadOverview(studentId) {
   statsEl.innerHTML = [
     stat(voteCount,'🗳️ Votes'), stat(propCount,'💡 Propositions'),
     stat(regCount,'✅ Inscriptions'), stat(waitCount,'⏳ En attente'),
-    stat(watchedCount,'🎬 Films vus'), stat(missedCount,'😞 Films loupés'),
-    stat(absenceCount,'🚫 Absences')
+    stat(watchedCount,'🎬 Films vus'), stat(missedCount,'🚫 Absences')
   ].join('');
   if (banCount > 0) statsEl.insertAdjacentHTML('beforeend', stat(banCount,'🚫 Blocages'));
 
@@ -12137,13 +12135,13 @@ async function _sdLoadMissed(studentId) {
     console.log(`[_sdLoadMissed] ${missedFilms?.length || 0} film(s) loupé(s) trouvé(s)`);
     
     if (!missedFilms?.length) {
-      el.innerHTML = '<p class="text-sm text-muted" style="padding:10px 0;">Aucun film loupé. 🎉</p>';
+      el.innerHTML = '<p class="text-sm text-muted" style="padding:10px 0;">Aucune absence. 🎉</p>';
       return;
     }
     
     const html = `
       <p class="text-sm text-muted" style="margin-bottom:8px;">
-        ${missedFilms.length} film${missedFilms.length > 1 ? 's' : ''} loupé${missedFilms.length > 1 ? 's' : ''}
+        ${missedFilms.length} absence${missedFilms.length > 1 ? 's' : ''}
       </p>
       <div style="display:flex;flex-direction:column;gap:8px;">
         ${missedFilms.map(item => {
