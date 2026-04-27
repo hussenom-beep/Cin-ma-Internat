@@ -9527,14 +9527,19 @@ async function saveAttendance() {
       .eq('id', session.id);
 
     if (sessionError) {
-      console.error('[saveAttendance] Erreur update session:', sessionError);
-      toast('Erreur lors de la validation de l\'appel', 'error');
-      return;
-    }
+		console.error('[saveAttendance] Erreur update session:', sessionError);
+		toast('Erreur lors de la validation de l\'appel', 'error');
+		return;
+	}
 
-    session.attendance_done = true;
-    session.attendance_done_at = now;
-    session.attendance_done_by = adminId;
+	if (typeof syncSessionAttendanceHistory === 'function') {
+		const syncResult = await syncSessionAttendanceHistory(session.id);
+		console.log('[saveAttendance] syncSessionAttendanceHistory result =', syncResult);
+	}
+
+session.attendance_done = true;
+session.attendance_done_at = now;
+session.attendance_done_by = adminId;
 
     if (typeof syncSessionAttendanceHistory === 'function') {
       const syncResult = await syncSessionAttendanceHistory(session.id);
@@ -9641,6 +9646,7 @@ async function syncSessionAttendanceHistory(sessionId) {
 }
     
     console.log(`[syncSessionAttendanceHistory] Sync terminée: ${presentCount} présents, ${absentCount} absents`);
+return { presentCount, absentCount };
     
   } catch (e) {
     console.error('[syncSessionAttendanceHistory] Exception:', e);
