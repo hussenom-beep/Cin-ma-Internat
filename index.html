@@ -9403,33 +9403,22 @@ async function saveAttendance() {
 
   if (!confirm(confirmMsg)) return;
 
-  const adminId = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(S.user?.id || '')
-  ? S.user.id
-  : null;
+  const adminId = S.user?.id || 'admin';
   const now = new Date().toISOString();
 
   try {
     console.log('[saveAttendance] Enregistrement appel session:', session.id);
-    console.log('[saveAttendance] État attendance:', window._attendanceState);
+    console.log('[saveAttendance] État attendance (window._attendanceState):', window._attendanceState);
+    console.log('[saveAttendance] Nombre d\'entrées dans _attendanceState:', 
+      Object.keys(window._attendanceState || {}).length
+    );
 
-    const updates = Object.entries(window._attendanceState).map(([regId, status]) => {
-  const payload = {
-    id: regId,
-    attendance_status: status,
-    attendance_marked_at: now
-  };
-
-  if (adminId) {
-    payload.attendance_marked_by = adminId;
-  }
-
-  return payload;
-});
-
-    if (!updates.length) {
-      toast('Aucune présence à enregistrer', 'error');
-      return;
-    }
+    const updates = Object.entries(window._attendanceState).map(([regId, status]) => ({
+      id: regId,
+      attendance_status: status,
+      attendance_marked_at: now,
+      attendance_marked_by: adminId
+    }));
 
     console.log('[saveAttendance]', updates.length, 'présences à enregistrer');
     console.log('[saveAttendance] Détail des updates:', updates);
@@ -9439,23 +9428,15 @@ async function saveAttendance() {
     for (const update of updates) {
       const { error } = await db
         .from('registrations')
-        .update(
-  update.attendance_marked_by
-    ? {
-        attendance_status: update.attendance_status,
-        attendance_marked_at: update.attendance_marked_at,
-        attendance_marked_by: update.attendance_marked_by
-      }
-    : {
-        attendance_status: update.attendance_status,
-        attendance_marked_at: update.attendance_marked_at
-      }
-)
+        .update({
+          attendance_status: update.attendance_status,
+          attendance_marked_at: update.attendance_marked_at,
+          attendance_marked_by: update.attendance_marked_by
+        })
         .eq('id', update.id);
 
       if (error) {
         console.error('[saveAttendance] Erreur update registration:', update.id, error);
-		toast(`Erreur enregistrement présence : ${error.message || 'erreur inconnue'}`, 'error');
       } else {
         successCount++;
       }
@@ -9463,91 +9444,69 @@ async function saveAttendance() {
 
     console.log(`[saveAttendance] ${successCount}/${updates.length} registrations mises à jour`);
 
-    if (successCount !== updates.length) {
-      console.error('[saveAttendance] Toutes les lignes n\'ont pas été mises à jour');
-      toast('Erreur : toutes les présences n\'ont pas pu être enregistrées', 'error');
-      return;
-    }
-
-    const regIds = updates.map(u => u.id);
-
-    const { data: persistedRows, error: persistedError } = await db
+    // Vérification immédiate : relire ce qui a été écrit
+    console.log('[saveAttendance] Vérification post-sauvegarde...');
+    const { data: verif, error: verifError } = await db
       .from('registrations')
-      .select('id, attendance_status')
-      .in('id', regIds);
-
-    if (persistedError) {
-      console.error('[saveAttendance] Erreur relecture registrations:', persistedError);
-      toast('Erreur lors de la vérification de l\'appel', 'error');
-      return;
+      .select('id, student_id, attendance_status, attendance_marked_at')
+      .eq('session_id', session.id)
+      .eq('status', 'registered');
+    
+    if (verifError) {
+      console.error('[saveAttendance] ERREUR vérification:', verifError);
+    } else {
+      const presentCount = verif?.filter(r => r.attendance_status === 'present').length || 0;
+      const absentCount = verif?.filter(r => r.attendance_status === 'absent').length || 0;
+      const nullCount = verif?.filter(r => !r.attendance_status).length || 0;
+      
+      console.log('[saveAttendance] ✓ Vérification DB après sauvegarde:');
+      console.log(`  - Total lignes: ${verif?.length || 0}`);
+      console.log(`  - Présents: ${presentCount}`);
+      console.log(`  - Absents: ${absentCount}`);
+      console.log(`  - NULL (PROBLÈME): ${nullCount}`);
+      
+      if (nullCount > 0) {
+        console.error('[saveAttendance] ⚠️ ALERTE: Des attendance_status sont encore NULL après sauvegarde!');
+        console.error('[saveAttendance] Détail des lignes NULL:', 
+          verif?.filter(r => !r.attendance_status).map(r => ({ id: r.id, student_id: r.student_id }))
+        );
+      }
     }
-
-    console.log('[saveAttendance] Relecture après sauvegarde:', persistedRows);
-
-    if (!persistedRows || persistedRows.length !== regIds.length) {
-      console.error('[saveAttendance] Relecture incomplète des présences');
-      toast('Erreur : relecture incomplète après sauvegarde', 'error');
-      return;
-    }
-
-    const invalidRows = persistedRows.filter(
-      r => r.attendance_status !== 'present' && r.attendance_status !== 'absent'
-    );
-
-    if (invalidRows.length > 0) {
-      console.error('[saveAttendance] attendance_status invalides ou NULL après sauvegarde:', invalidRows);
-      toast('Erreur : certaines présences ne sont pas correctement enregistrées', 'error');
-      return;
-    }
-
-    const presentCount = persistedRows.filter(r => r.attendance_status === 'present').length;
-    const absentCount = persistedRows.filter(r => r.attendance_status === 'absent').length;
-
-    console.log('[saveAttendance] Vérification OK:', {
-      session_id: session.id,
-      presentCount,
-      absentCount,
-      total: persistedRows.length
-    });
 
     const { error: sessionError } = await db
-  .from('cinema_sessions')
-  .update(
-    adminId
-      ? {
-          attendance_done: true,
-          attendance_done_at: now,
-          attendance_done_by: adminId
-        }
-      : {
-          attendance_done: true,
-          attendance_done_at: now
-        }
-  )
-  .eq('id', session.id);
+      .from('cinema_sessions')
+      .update({
+        attendance_done: true,
+        attendance_done_at: now,
+        attendance_done_by: adminId
+      })
+      .eq('id', session.id);
 
-if (sessionError) {
-  console.error('[saveAttendance] Erreur update session:', sessionError);
-  toast('Erreur lors de la validation de l\'appel', 'error');
-  return;
-}
+    if (sessionError) {
+      console.error('[saveAttendance] Erreur update session:', sessionError);
+      toast('Erreur lors de la validation de l\'appel', 'error');
+      return;
+    }
 
-session.attendance_done = true;
-session.attendance_done_at = now;
-session.attendance_done_by = adminId || null;
+    console.log('[saveAttendance] ✓ Session marquée attendance_done=true');
 
-if (typeof syncSessionAttendanceHistory === 'function') {
-  const syncResult = await syncSessionAttendanceHistory(session.id);
-  console.log('[saveAttendance] syncSessionAttendanceHistory result =', syncResult);
-} else {
-  console.warn('[saveAttendance] syncSessionAttendanceHistory est introuvable');
-}
+    session.attendance_done = true;
+    session.attendance_done_at = now;
+    session.attendance_done_by = adminId;
 
-toast(`Appel enregistré (${presentCount} présent${presentCount > 1 ? 's' : ''}, ${absentCount} absent${absentCount > 1 ? 's' : ''})`, 'success');
+    const attendanceValues = Object.values(window._attendanceState || {});
+    session._attendanceSummary = {
+      presentCount: attendanceValues.filter(v => v === 'present').length,
+      absentCount: attendanceValues.filter(v => v === 'absent').length
+    };
 
-await loadSessionAttendance(session.id);
-await loadSessionSheetData(session.id);
-closeAttendanceMode();
+    console.log('[saveAttendance] Résumé local appel =', session._attendanceSummary);
+
+    toast('Appel enregistré', 'success');
+
+    await loadSessionAttendance(session.id);
+    await loadSessionSheetData(session.id);
+    closeAttendanceMode();
 
   } catch (e) {
     console.error('[saveAttendance] Exception:', e);
@@ -9559,123 +9518,91 @@ closeAttendanceMode();
 async function syncSessionAttendanceHistory(sessionId) {
   try {
     console.log('[syncSessionAttendanceHistory] Début sync session:', sessionId);
-
-    if (!sessionId) {
-      console.warn('[syncSessionAttendanceHistory] sessionId manquant');
-      return { ok: false, presentCount: 0, absentCount: 0 };
-    }
-
-    // Recharger la séance depuis la base
-    const { data: session, error: sessionError } = await db
-      .from('cinema_sessions')
-      .select('id, film_id, session_date, session_time, attendance_done')
-      .eq('id', sessionId)
-      .single();
-
-    if (sessionError || !session) {
-      console.error('[syncSessionAttendanceHistory] Erreur lecture séance:', sessionError);
-      return { ok: false, presentCount: 0, absentCount: 0 };
-    }
-
-    if (!session.film_id) {
+    
+    const session = window._currentSessionData;
+    if (!session?.film_id) {
       console.warn('[syncSessionAttendanceHistory] Pas de film_id pour cette séance');
-      return { ok: false, presentCount: 0, absentCount: 0 };
+      return;
     }
-
-    // Nettoyer l'ancien historique de cette séance
+    
+    // 1. Nettoyer l'ancien historique de cette séance
     const { error: clearError } = await db.rpc('clear_session_attendance_history', {
       p_session_id: sessionId
     });
-
+    
     if (clearError) {
       console.error('[syncSessionAttendanceHistory] Erreur clear:', clearError);
     } else {
       console.log('[syncSessionAttendanceHistory] Historique nettoyé');
     }
-
-    // Récupérer les inscriptions confirmées
+    
+    // 2. Récupérer toutes les registrations avec leur attendance_status
     const { data: regs, error: regError } = await db
       .from('registrations')
-      .select('id, student_id, attendance_status, registered_at, status')
+      .select('id, student_id, attendance_status, registered_at')
       .eq('session_id', sessionId)
       .eq('status', 'registered');
-
-    if (regError) {
-      console.error('[syncSessionAttendanceHistory] Erreur lecture registrations:', regError);
-      return { ok: false, presentCount: 0, absentCount: 0 };
-    }
-
-    if (!regs?.length) {
+    
+    if (regError || !regs?.length) {
       console.log('[syncSessionAttendanceHistory] Pas de registrations');
-      return { ok: true, presentCount: 0, absentCount: 0 };
+      return;
     }
-
-    const sessionTime = session.session_time || '20:00';
-    const eventDate = new Date(`${session.session_date}T${sessionTime}:00`);
-    const eventAt = eventDate.toISOString();
-
+    
+    const watchedAt = new Date(session.session_date + 'T12:00:00').toISOString();
+    const missedAt = watchedAt;
+    
     let presentCount = 0;
     let absentCount = 0;
-
+    
+    // 3. Enregistrer films vus pour les présents et films loupés pour les absents
     for (const reg of regs) {
-      if (reg.attendance_status === 'present') {
-        const { error } = await db.rpc('record_watched_film', {
-          p_student_id: reg.student_id,
-          p_film_id: session.film_id,
-          p_session_id: sessionId,
-          p_watched_at: eventAt,
-          p_registered_at: reg.registered_at || null
-        });
+  const status = reg.attendance_status;
 
-        if (error) {
-          console.error('[syncSessionAttendanceHistory] Erreur record_watched_film:', {
-            reg,
-            session,
-            error
-          });
-        } else {
-          presentCount++;
-        }
+  // Seuls les présents explicites passent en "vu"
+  if (status === 'present') {
+    const { error } = await db.rpc('record_watched_film', {
+      p_student_id: reg.student_id,
+      p_film_id: session.film_id,
+      p_session_id: sessionId,
+      p_watched_at: watchedAt,
+      p_registered_at: reg.registered_at || null
+    });
 
-        continue;
-      }
-
-      if (reg.attendance_status === 'absent') {
-        const { error } = await db.rpc('record_missed_film', {
-          p_student_id: reg.student_id,
-          p_film_id: session.film_id,
-          p_session_id: sessionId,
-          p_missed_at: eventAt,
-          p_registered_at: reg.registered_at || null
-        });
-
-        if (error) {
-          console.error('[syncSessionAttendanceHistory] Erreur record_missed_film:', {
-            reg,
-            session,
-            error
-          });
-        } else {
-          absentCount++;
-        }
-
-        continue;
-      }
-
-      console.warn('[syncSessionAttendanceHistory] attendance_status ignoré:', reg);
+    if (error) {
+      console.error('[syncSessionAttendanceHistory] Erreur record_watched_film:', error);
+    } else {
+      presentCount++;
     }
+    continue;
+  }
 
+  // Seuls les absents explicites passent en "loupé"
+  if (status === 'absent') {
+    const { error } = await db.rpc('record_missed_film', {
+      p_student_id: reg.student_id,
+      p_film_id: session.film_id,
+      p_session_id: sessionId,
+      p_missed_at: missedAt,
+      p_registered_at: reg.registered_at || null
+    });
+
+    if (error) {
+      console.error('[syncSessionAttendanceHistory] Erreur record_missed_film:', error);
+    } else {
+      absentCount++;
+    }
+    continue;
+  }
+
+  // Si pas de statut explicite, on ne crée rien ici.
+  // Le mode "pas d'appel" est géré ailleurs par recordWatchedForSession().
+  console.log('[syncSessionAttendanceHistory] Registration ignorée car sans statut explicite :', reg.id);
+}
+    
     console.log(`[syncSessionAttendanceHistory] Sync terminée: ${presentCount} présents, ${absentCount} absents`);
-
-    return {
-      ok: true,
-      presentCount,
-      absentCount
-    };
-
+    
   } catch (e) {
     console.error('[syncSessionAttendanceHistory] Exception:', e);
-    return { ok: false, presentCount: 0, absentCount: 0 };
   }
 }
 
