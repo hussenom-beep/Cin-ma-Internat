@@ -9587,6 +9587,7 @@ async function syncSessionAttendanceHistory(sessionId) {
 
     for (const reg of regs) {
       if (reg.attendance_status === 'present') {
+        console.log('[syncSessionAttendanceHistory] Appel record_watched_film avec film_id:', session.film_id);
         const { data, error } = await db.rpc('record_watched_film', {
           p_student_id: reg.student_id,
           p_film_id: session.film_id,
