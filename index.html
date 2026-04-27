@@ -9408,10 +9408,7 @@ async function saveAttendance() {
 
   try {
     console.log('[saveAttendance] Enregistrement appel session:', session.id);
-    console.log('[saveAttendance] État attendance (window._attendanceState):', window._attendanceState);
-    console.log('[saveAttendance] Nombre d\'entrées dans _attendanceState:', 
-      Object.keys(window._attendanceState || {}).length
-    );
+    console.log('[saveAttendance] État attendance:', window._attendanceState);
 
     const updates = Object.entries(window._attendanceState).map(([regId, status]) => ({
       id: regId,
@@ -9419,6 +9416,11 @@ async function saveAttendance() {
       attendance_marked_at: now,
       attendance_marked_by: adminId
     }));
+
+    if (!updates.length) {
+      toast('Aucune présence à enregistrer', 'error');
+      return;
+    }
 
     console.log('[saveAttendance]', updates.length, 'présences à enregistrer');
     console.log('[saveAttendance] Détail des updates:', updates);
@@ -9444,34 +9446,52 @@ async function saveAttendance() {
 
     console.log(`[saveAttendance] ${successCount}/${updates.length} registrations mises à jour`);
 
-    // Vérification immédiate : relire ce qui a été écrit
-    console.log('[saveAttendance] Vérification post-sauvegarde...');
-    const { data: verif, error: verifError } = await db
-      .from('registrations')
-      .select('id, student_id, attendance_status, attendance_marked_at')
-      .eq('session_id', session.id)
-      .eq('status', 'registered');
-    
-    if (verifError) {
-      console.error('[saveAttendance] ERREUR vérification:', verifError);
-    } else {
-      const presentCount = verif?.filter(r => r.attendance_status === 'present').length || 0;
-      const absentCount = verif?.filter(r => r.attendance_status === 'absent').length || 0;
-      const nullCount = verif?.filter(r => !r.attendance_status).length || 0;
-      
-      console.log('[saveAttendance] ✓ Vérification DB après sauvegarde:');
-      console.log(`  - Total lignes: ${verif?.length || 0}`);
-      console.log(`  - Présents: ${presentCount}`);
-      console.log(`  - Absents: ${absentCount}`);
-      console.log(`  - NULL (PROBLÈME): ${nullCount}`);
-      
-      if (nullCount > 0) {
-        console.error('[saveAttendance] ⚠️ ALERTE: Des attendance_status sont encore NULL après sauvegarde!');
-        console.error('[saveAttendance] Détail des lignes NULL:', 
-          verif?.filter(r => !r.attendance_status).map(r => ({ id: r.id, student_id: r.student_id }))
-        );
-      }
+    if (successCount !== updates.length) {
+      console.error('[saveAttendance] Toutes les lignes n\'ont pas été mises à jour');
+      toast('Erreur : toutes les présences n\'ont pas pu être enregistrées', 'error');
+      return;
     }
+
+    const regIds = updates.map(u => u.id);
+
+    const { data: persistedRows, error: persistedError } = await db
+      .from('registrations')
+      .select('id, attendance_status')
+      .in('id', regIds);
+
+    if (persistedError) {
+      console.error('[saveAttendance] Erreur relecture registrations:', persistedError);
+      toast('Erreur lors de la vérification de l\'appel', 'error');
+      return;
+    }
+
+    console.log('[saveAttendance] Relecture après sauvegarde:', persistedRows);
+
+    if (!persistedRows || persistedRows.length !== regIds.length) {
+      console.error('[saveAttendance] Relecture incomplète des présences');
+      toast('Erreur : relecture incomplète après sauvegarde', 'error');
+      return;
+    }
+
+    const invalidRows = persistedRows.filter(
+      r => r.attendance_status !== 'present' && r.attendance_status !== 'absent'
+    );
+
+    if (invalidRows.length > 0) {
+      console.error('[saveAttendance] attendance_status invalides ou NULL après sauvegarde:', invalidRows);
+      toast('Erreur : certaines présences ne sont pas correctement enregistrées', 'error');
+      return;
+    }
+
+    const presentCount = persistedRows.filter(r => r.attendance_status === 'present').length;
+    const absentCount = persistedRows.filter(r => r.attendance_status === 'absent').length;
+
+    console.log('[saveAttendance] Vérification OK:', {
+      session_id: session.id,
+      presentCount,
+      absentCount,
+      total: persistedRows.length
+    });
 
     const { error: sessionError } = await db
       .from('cinema_sessions')
@@ -9488,21 +9508,18 @@ async function saveAttendance() {
       return;
     }
 
-    console.log('[saveAttendance] ✓ Session marquée attendance_done=true');
-
     session.attendance_done = true;
     session.attendance_done_at = now;
     session.attendance_done_by = adminId;
 
-    const attendanceValues = Object.values(window._attendanceState || {});
-    session._attendanceSummary = {
-      presentCount: attendanceValues.filter(v => v === 'present').length,
-      absentCount: attendanceValues.filter(v => v === 'absent').length
-    };
+    if (typeof syncSessionAttendanceHistory === 'function') {
+      const syncResult = await syncSessionAttendanceHistory(session.id);
+      console.log('[saveAttendance] syncSessionAttendanceHistory result =', syncResult);
+    } else {
+      console.warn('[saveAttendance] syncSessionAttendanceHistory est introuvable');
+    }
 
-    console.log('[saveAttendance] Résumé local appel =', session._attendanceSummary);
-
-    toast('Appel enregistré', 'success');
+    toast(`Appel enregistré (${presentCount} présent${presentCount > 1 ? 's' : ''}, ${absentCount} absent${absentCount > 1 ? 's' : ''})`, 'success');
 
     await loadSessionAttendance(session.id);
     await loadSessionSheetData(session.id);
