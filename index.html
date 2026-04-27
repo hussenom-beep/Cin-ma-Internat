@@ -9564,92 +9564,133 @@ session.attendance_done_by = adminId;
 async function syncSessionAttendanceHistory(sessionId) {
   try {
     console.log('[syncSessionAttendanceHistory] Début sync session:', sessionId);
-    
-    const session = window._currentSessionData;
-    if (!session?.film_id) {
-      console.warn('[syncSessionAttendanceHistory] Pas de film_id pour cette séance');
-      return;
+
+    if (!sessionId) {
+      console.warn('[syncSessionAttendanceHistory] sessionId manquant');
+      return { ok: false, presentCount: 0, absentCount: 0 };
     }
-    
-    // 1. Nettoyer l'ancien historique de cette séance
+
+    // 1. Recharger la séance depuis la base au lieu de dépendre de window._currentSessionData
+    const { data: session, error: sessionError } = await db
+      .from('cinema_sessions')
+      .select('id, film_id, session_date, session_time, attendance_done')
+      .eq('id', sessionId)
+      .single();
+
+    if (sessionError || !session) {
+      console.error('[syncSessionAttendanceHistory] Erreur lecture séance:', sessionError);
+      return { ok: false, presentCount: 0, absentCount: 0 };
+    }
+
+    if (!session.film_id) {
+      console.warn('[syncSessionAttendanceHistory] Pas de film_id pour cette séance:', sessionId);
+      return { ok: false, presentCount: 0, absentCount: 0 };
+    }
+
+    // 2. Nettoyer l'ancien historique de cette séance
     const { error: clearError } = await db.rpc('clear_session_attendance_history', {
       p_session_id: sessionId
     });
-    
+
     if (clearError) {
       console.error('[syncSessionAttendanceHistory] Erreur clear:', clearError);
     } else {
       console.log('[syncSessionAttendanceHistory] Historique nettoyé');
     }
-    
-    // 2. Récupérer toutes les registrations avec leur attendance_status
+
+    // 3. Récupérer les inscriptions confirmées avec leur statut d'appel
     const { data: regs, error: regError } = await db
       .from('registrations')
-      .select('id, student_id, attendance_status, registered_at')
+      .select('id, student_id, attendance_status, registered_at, status')
       .eq('session_id', sessionId)
       .eq('status', 'registered');
-    
-    if (regError || !regs?.length) {
-      console.log('[syncSessionAttendanceHistory] Pas de registrations');
-      return;
+
+    if (regError) {
+      console.error('[syncSessionAttendanceHistory] Erreur lecture registrations:', regError);
+      return { ok: false, presentCount: 0, absentCount: 0 };
     }
-    
-    const watchedAt = new Date(session.session_date + 'T12:00:00').toISOString();
-    const missedAt = watchedAt;
-    
+
+    if (!regs?.length) {
+      console.log('[syncSessionAttendanceHistory] Aucune registration');
+      return { ok: true, presentCount: 0, absentCount: 0 };
+    }
+
+    console.log('[syncSessionAttendanceHistory] Registrations trouvées:',
+      regs.map(r => ({
+        id: r.id,
+        student_id: r.student_id,
+        attendance_status: r.attendance_status
+      }))
+    );
+
+    // 4. Date d'enregistrement cohérente
+    const sessionTime = session.session_time || '20:00';
+    const baseDate = new Date(`${session.session_date}T${sessionTime}:00`);
+    const eventAt = baseDate.toISOString();
+
     let presentCount = 0;
     let absentCount = 0;
-    
-    // 3. Enregistrer films vus pour les présents et films loupés pour les absents
+
+    // 5. Présents => vus / Absents => loupés
     for (const reg of regs) {
-  const status = reg.attendance_status;
+      if (reg.attendance_status === 'present') {
+        const { error } = await db.rpc('record_watched_film', {
+          p_student_id: reg.student_id,
+          p_film_id: session.film_id,
+          p_session_id: sessionId,
+          p_watched_at: eventAt,
+          p_registered_at: reg.registered_at || null
+        });
 
-  // Seuls les présents explicites passent en "vu"
-  if (status === 'present') {
-    const { error } = await db.rpc('record_watched_film', {
-      p_student_id: reg.student_id,
-      p_film_id: session.film_id,
-      p_session_id: sessionId,
-      p_watched_at: watchedAt,
-      p_registered_at: reg.registered_at || null
-    });
+        if (error) {
+          console.error('[syncSessionAttendanceHistory] Erreur record_watched_film:', {
+            reg,
+            session,
+            error
+          });
+        } else {
+          presentCount++;
+        }
 
-    if (error) {
-      console.error('[syncSessionAttendanceHistory] Erreur record_watched_film:', error);
-    } else {
-      presentCount++;
+        continue;
+      }
+
+      if (reg.attendance_status === 'absent') {
+        const { error } = await db.rpc('record_missed_film', {
+          p_student_id: reg.student_id,
+          p_film_id: session.film_id,
+          p_session_id: sessionId,
+          p_missed_at: eventAt,
+          p_registered_at: reg.registered_at || null
+        });
+
+        if (error) {
+          console.error('[syncSessionAttendanceHistory] Erreur record_missed_film:', {
+            reg,
+            session,
+            error
+          });
+        } else {
+          absentCount++;
+        }
+
+        continue;
+      }
+
+      console.log('[syncSessionAttendanceHistory] Registration ignorée sans statut explicite:', reg.id);
     }
-    continue;
-  }
 
-  // Seuls les absents explicites passent en "loupé"
-  if (status === 'absent') {
-    const { error } = await db.rpc('record_missed_film', {
-      p_student_id: reg.student_id,
-      p_film_id: session.film_id,
-      p_session_id: sessionId,
-      p_missed_at: missedAt,
-      p_registered_at: reg.registered_at || null
-    });
-
-    if (error) {
-      console.error('[syncSessionAttendanceHistory] Erreur record_missed_film:', error);
-    } else {
-      absentCount++;
-    }
-    continue;
-  }
-
-  // Si pas de statut explicite, on ne crée rien ici.
-  // Le mode "pas d'appel" est géré ailleurs par recordWatchedForSession().
-  console.log('[syncSessionAttendanceHistory] Registration ignorée car sans statut explicite :', reg.id);
-}
-    
     console.log(`[syncSessionAttendanceHistory] Sync terminée: ${presentCount} présents, ${absentCount} absents`);
-return { presentCount, absentCount };
-    
+
+    return {
+      ok: true,
+      presentCount,
+      absentCount
+    };
+
   } catch (e) {
     console.error('[syncSessionAttendanceHistory] Exception:', e);
+    return { ok: false, presentCount: 0, absentCount: 0 };
   }
 }
 
