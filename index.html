@@ -9796,6 +9796,31 @@ function _onAdminRTEvent(table) {
       case 'requests':  loadAdminRequests();  break;
       case 'votes':     loadAdminVotes();     break;
     }
+
+    // === (C) Refresh CONVERSATION OUVERTE si modale active ===
+    // Si un message arrive et qu'on a une conversation ouverte, recharger le thread
+    if (table === 'conversation_messages' && _adminCurrentConv) {
+      const modal = document.getElementById('modal-admin-conversation');
+      if (modal && !modal.classList.contains('hidden')) {
+        _adminRTDebounce('refresh-open-conv', async () => {
+          const { data: messages } = await db.from('conversation_messages')
+            .select('*')
+            .eq('conversation_id', _adminCurrentConv.id)
+            .order('created_at', { ascending: true });
+          
+          if (messages) {
+            _adminCurrentMessages = messages;
+            _adminConvRenderThread();
+            
+            // Scroll auto vers le bas
+            setTimeout(() => {
+              const t = document.getElementById('adminconv-thread');
+              if (t) t.scrollTop = t.scrollHeight;
+            }, 50);
+          }
+        }, 200);
+      }
+    }
   }, 350);
 }
 
