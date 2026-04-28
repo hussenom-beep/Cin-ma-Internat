@@ -2562,6 +2562,39 @@ button { cursor: pointer; }
 .admin-student-link:hover { color: var(--gold); }
 
 /* ================================================================
+   ADMIN — RISK BADGES (désistements tardifs / absences sur 30 jours)
+   ================================================================ */
+.risk-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 12px;
+  letter-spacing: .02em;
+  white-space: nowrap;
+  vertical-align: middle;
+  line-height: 1.5;
+}
+.risk-late {
+  background: rgba(245, 158, 11, .15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, .35);
+}
+.risk-absence {
+  background: rgba(239, 68, 68, .12);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, .35);
+}
+.risk-absence-strong {
+  background: rgba(239, 68, 68, .28);
+  color: #ffffff;
+  border: 1px solid rgba(239, 68, 68, .8);
+  box-shadow: 0 0 0 1px rgba(239, 68, 68, .25);
+}
+
+/* ================================================================
    ADMIN STUDENTS — barre de recherche + filtres
    ================================================================ */
 .students-toolbar {
@@ -5627,6 +5660,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
             <span id="sd-class-badge"></span>
             <span id="sd-sexe-badge" style="display:none;"></span>
             <span id="sd-status-badge"></span>
+            <span id="sd-risk-badges"></span>
           </div>
           <div>
             <span class="sd-uid" id="sd-uid" title="Identifiant connexion"></span>
@@ -5922,6 +5956,28 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     </div>
     <div style="margin-top:14px;">
       <button class="btn btn-ghost btn-full" onclick="closeModal('modal-connections-day')">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     MODAL: Confirmation de désistement tardif (élève)
+     ================================================================ -->
+<div class="overlay hidden" id="modal-late-cancel-confirm">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">⏰ Désistement tardif</div>
+    <p class="text-sm" style="margin-bottom:10px;">
+      Tu es à moins de 4 heures du début de la séance prévue
+      <strong id="late-cancel-session-info" style="color:var(--gold);">—</strong>.
+    </p>
+    <p class="text-sm text-muted" style="margin-bottom:14px;">
+      Si tu confirmes, ta désinscription sera enregistrée comme un <strong>désistement tardif</strong>.
+      Plusieurs désistements tardifs peuvent rendre ton suivi plus strict.
+    </p>
+    <div style="display:flex;gap:10px;margin-top:6px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="cancelLateCancelClicked()">Annuler</button>
+      <button class="btn btn-red"   style="flex:1;" onclick="confirmLateCancelClicked()">Confirmer ✓</button>
     </div>
   </div>
 </div>
@@ -8262,20 +8318,202 @@ async function openSessionFilmDetail(filmId) {
   openDetail(filmId);
 }
 
+/* ================================================================
+   ADMIN — RISK BADGES (désistements tardifs / absences sur 30 jours)
+   ----------------------------------------------------------------
+   Centralise le calcul et le rendu des indicateurs d'élèves "à
+   surveiller" pour les vues admin. Réutilisable partout.
+   ================================================================ */
+const _RISK_DAYS = 30;
+
+/**
+ * Récupère les compteurs (lateCount, absenceCount) pour une LISTE de student_ids.
+ * Retourne une Map<studentId, {lateCount, absenceCount}>.
+ * Optimisé : 2 requêtes batch quel que soit le nombre d'élèves.
+ */
+async function _fetchRiskCounts(studentIds) {
+  const map = new Map();
+  if (!Array.isArray(studentIds) || studentIds.length === 0) return map;
+
+  // Init avec zéros pour tous
+  studentIds.forEach(id => map.set(id, { lateCount: 0, absenceCount: 0 }));
+
+  const since = new Date(Date.now() - _RISK_DAYS * 24 * 60 * 60 * 1000).toISOString();
+
+  try {
+    const [lateRes, missedRes] = await Promise.all([
+      db.from('late_cancellations')
+        .select('student_id')
+        .in('student_id', studentIds)
+        .gte('cancelled_at', since),
+      db.from('student_missed_films')
+        .select('student_id')
+        .in('student_id', studentIds)
+        .gte('missed_at', since),
+    ]);
+
+    if (lateRes.error)   console.warn('[_fetchRiskCounts] late_cancellations:', lateRes.error);
+    if (missedRes.error) console.warn('[_fetchRiskCounts] student_missed_films:', missedRes.error);
+
+    (lateRes.data   || []).forEach(r => { const c = map.get(r.student_id); if (c) c.lateCount++; });
+    (missedRes.data || []).forEach(r => { const c = map.get(r.student_id); if (c) c.absenceCount++; });
+  } catch (e) {
+    console.error('[_fetchRiskCounts] exception:', e);
+  }
+
+  return map;
+}
+
+/** Variante mono-élève (utilise la version batch). */
+async function _fetchRiskCountsForOne(studentId) {
+  const map = await _fetchRiskCounts([studentId]);
+  return map.get(studentId) || { lateCount: 0, absenceCount: 0 };
+}
+
+/**
+ * Génère le HTML des badges à afficher.
+ * Règles V1 :
+ *  - lateCount    >= 2 → badge orange "désistements tardifs récurrents"
+ *  - absenceCount == 1 → badge rouge simple
+ *  - absenceCount >= 2 → badge rouge renforcé
+ * Retourne une string vide si aucun seuil atteint.
+ */
+function _renderRiskBadges({ lateCount = 0, absenceCount = 0 } = {}, opts = {}) {
+  const compact = !!opts.compact; // version courte (icônes seulement)
+  const parts = [];
+
+  if (lateCount >= 2) {
+    parts.push(compact
+      ? `<span class="risk-badge risk-late" title="${lateCount} désistement${lateCount > 1 ? 's' : ''} tardif${lateCount > 1 ? 's' : ''} sur ${_RISK_DAYS} j">⏰ ${lateCount}</span>`
+      : `<span class="risk-badge risk-late" title="Désistements tardifs récurrents (${_RISK_DAYS} derniers jours)">⏰ ${lateCount} déso. tardifs</span>`
+    );
+  }
+
+  if (absenceCount >= 2) {
+    parts.push(compact
+      ? `<span class="risk-badge risk-absence-strong" title="${absenceCount} absences sur ${_RISK_DAYS} j">⛔ ${absenceCount}</span>`
+      : `<span class="risk-badge risk-absence-strong" title="Absences répétées (${_RISK_DAYS} derniers jours)">⛔ ${absenceCount} absences</span>`
+    );
+  } else if (absenceCount === 1) {
+    parts.push(compact
+      ? `<span class="risk-badge risk-absence" title="1 absence récente (${_RISK_DAYS} j)">⚠️ 1</span>`
+      : `<span class="risk-badge risk-absence" title="1 absence récente (${_RISK_DAYS} derniers jours)">⚠️ 1 absence</span>`
+    );
+  }
+
+  return parts.join(' ');
+}
+
+/* ================================================================
+   ÉLÈVE — Désistement tardif (cancellation à H-4h)
+   ----------------------------------------------------------------
+   Règle : si maintenant >= sessionDateTime - 4h, on considère
+   le désistement comme tardif. On confirme via modale dédiée et
+   on log dans late_cancellations.
+   ================================================================ */
+const _LATE_CANCEL_HOURS = 4; // h avant la séance = seuil tardif
+
+function _isLateCancellation(sessionDate, sessionTime) {
+  if (!sessionDate) return false;
+  const time = sessionTime || '20:00';
+  const sessionDT = new Date(`${sessionDate}T${time}:00`);
+  if (isNaN(sessionDT.getTime())) return false;
+  const deadline = new Date(sessionDT.getTime() - _LATE_CANCEL_HOURS * 60 * 60 * 1000);
+  return Date.now() >= deadline.getTime();
+}
+
+/** Effectue la désinscription (RPC) + insère un log si tardive */
+async function _doUnregister(sessionId, isLate, sessionMeta) {
+  const studentId = S.user.id;
+
+  const { error } = await db.rpc('unregister_student_from_session', {
+    p_student_id: studentId,
+    p_session_id: sessionId
+  });
+
+  if (error) {
+    console.error('[_doUnregister] RPC error:', error);
+    toast('Erreur lors de la désinscription', 'error');
+    return false;
+  }
+
+  if (isLate) {
+    // Log dans late_cancellations (fire-and-forget : ne bloque pas l'UX)
+    db.from('late_cancellations').insert({
+      student_id:   studentId,
+      session_id:   sessionId,
+      session_date: sessionMeta?.session_date || null,
+      session_time: sessionMeta?.session_time || null,
+      film_id:      sessionMeta?.film_id || null,
+    }).then(({ error }) => {
+      if (error) console.warn('[_doUnregister] late_cancellations insert:', error);
+    });
+    toast('Désistement tardif enregistré.', 'info');
+  } else {
+    toast('Ta place est libérée. Elle sera proposée automatiquement au premier élève en attente.', 'success');
+  }
+  return true;
+}
+
+/** État de la modale de confirmation tardive */
+let _lateCancelPending = null; // { sessionId, sessionMeta }
+
+function confirmLateCancelClicked() {
+  const pending = _lateCancelPending;
+  closeModal('modal-late-cancel-confirm');
+  if (!pending) return;
+  _doUnregister(pending.sessionId, true, pending.sessionMeta).then(ok => {
+    _lateCancelPending = null;
+    if (ok) {
+      // Rafraîchir la home si on y est (pattern existant ailleurs dans le code)
+      if (typeof loadHome === 'function') setTimeout(() => loadHome(), 400);
+    }
+  });
+}
+
+function cancelLateCancelClicked() {
+  _lateCancelPending = null;
+  closeModal('modal-late-cancel-confirm');
+}
+
 async function toggleReg(sessionId, action) {
   if (action === 'unregister') {
-    const { data: result, error } = await db.rpc('unregister_student_from_session', {
-      p_student_id: S.user.id,
-      p_session_id: sessionId
-    });
+    // Récupérer la session pour calculer le seuil de désistement tardif
+    const { data: ses } = await db.from('cinema_sessions')
+      .select('session_date, session_time, film_id')
+      .eq('id', sessionId)
+      .maybeSingle();
 
-    if (error) {
-      console.error('unregister RPC error:', error);
-      toast('Erreur lors de la désinscription', 'error');
+    const isLate = ses && _isLateCancellation(ses.session_date, ses.session_time);
+
+    if (isLate) {
+      // Ouvrir la modale d'avertissement et stopper ici.
+      // La désinscription effective se fera via confirmLateCancelClicked().
+      _lateCancelPending = {
+        sessionId,
+        sessionMeta: {
+          session_date: ses.session_date,
+          session_time: ses.session_time,
+          film_id:      ses.film_id,
+        },
+      };
+      // Affiche la date/heure dans la modale
+      const sesDtEl = document.getElementById('late-cancel-session-info');
+      if (sesDtEl && ses) {
+        try {
+          const dt = new Date(`${ses.session_date}T${ses.session_time || '20:00'}:00`);
+          sesDtEl.textContent = dt.toLocaleString('fr-FR', { weekday: 'long', day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit' });
+        } catch (_) {
+          sesDtEl.textContent = `${ses.session_date} ${ses.session_time || '20:00'}`;
+        }
+      }
+      openModal('modal-late-cancel-confirm');
       return;
     }
 
-    toast('Ta place est libérée. Elle sera proposée automatiquement au premier élève en attente.', 'success');
+    // Désinscription normale
+    await _doUnregister(sessionId, false, null);
+    return;
   } else {
     // Vérification ban côté client
     const { data: bans } = await db.from('session_bans')
@@ -9474,7 +9712,14 @@ async function loadSessionSheetData(sessionId) {
       
       // Charger les inscrits et l'attente pour affichage direct
       const { ok: regOk, registrants } = await fetchSessionRegistrants(sessionId);
-      
+
+      // Pré-calcul des compteurs de risque pour tous les inscrits (1 batch)
+      let _regRiskMap = new Map();
+      if (regOk && registrants.length > 0) {
+        const ids = registrants.map(r => r.studentId).filter(Boolean);
+        _regRiskMap = await _fetchRiskCounts(ids);
+      }
+
       let registrantsHTML = '';
       if (regOk && registrants.length > 0) {
         registrantsHTML = `
@@ -9483,16 +9728,20 @@ async function loadSessionSheetData(sessionId) {
               👥 Inscrits (${registrants.length})
             </div>
             <div style="display: flex; flex-direction: column; gap: 6px; max-height: 300px; overflow-y: auto;">
-              ${registrants.map(r => `
+              ${registrants.map(r => {
+                const risk = _regRiskMap.get(r.studentId) || { lateCount: 0, absenceCount: 0 };
+                const riskHtml = _renderRiskBadges(risk, { compact: true });
+                return `
                 <div style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: var(--surface-2); border-radius: var(--radius-sm);">
                   <div style="flex: 1; min-width: 0;">
-                    <div style="font-weight: 600; font-size: 13px;">
+                    <div style="font-weight: 600; font-size: 13px; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
                       <button class="admin-student-link" onclick="event.stopPropagation(); openStudentDetail('${r.studentId}')" title="Voir la fiche élève">${r.firstName} ${r.lastName}</button>
+                      ${riskHtml}
                     </div>
                     <div style="font-size: 11px; color: var(--text-2);">${r.className || '—'}</div>
                   </div>
                 </div>
-              `).join('')}
+              `;}).join('')}
             </div>
           </div>
         `;
@@ -9933,16 +10182,25 @@ async function loadSessionRegistered(sessionId) {
     el.innerHTML = '<div class="text-muted">Aucun inscrit pour cette séance.</div>';
     return;
   }
-  
+
+  // Pré-calcul batch des risk badges
+  const ids = registrants.map(r => r.studentId).filter(Boolean);
+  const riskMap = await _fetchRiskCounts(ids);
+
   const html = registrants.map(r => {
     const fullName = `${r.firstName} ${r.lastName}`;
     const className = r.className || '—';
     const isMissing = r.missing;
-    
+    const risk = riskMap.get(r.studentId) || { lateCount: 0, absenceCount: 0 };
+    const riskHtml = _renderRiskBadges(risk, { compact: true });
+
     return `
       <div class="ai" ${isMissing ? 'style="opacity:0.5;"' : ''}>
         <div class="ai-info">
-          <div class="ai-title">${fullName}</div>
+          <div class="ai-title" style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+            <button class="admin-student-link" onclick="event.stopPropagation(); openStudentDetail('${r.studentId}')" title="Voir la fiche élève">${fullName}</button>
+            ${riskHtml}
+          </div>
           <div class="ai-sub">${className}</div>
         </div>
       </div>
@@ -11812,6 +12070,14 @@ async function viewRegistrants(sesId, date) {
   // Construction du HTML
   let html = '';
 
+  // Pré-calcul batch des risk badges (inscrits + waitlist + bannis si on en a)
+  const _allIds = [
+    ...((regOk && registrants) ? registrants.map(r => r.studentId) : []),
+    ...waitlistStudents.map(w => w.studentId),
+    ...bannedStudents.map(b => b.studentId),
+  ].filter(Boolean);
+  const _viewRiskMap = await _fetchRiskCounts(_allIds);
+
   // === SECTION 1: INSCRITS CONFIRMÉS ===
   html += '<div style="margin-bottom: 24px;">';
   html += '<h3 style="font-size: 15px; font-weight: 700; color: var(--text-1); margin-bottom: 12px;">✅ Inscrits confirmés</h3>';
@@ -11821,16 +12087,21 @@ async function viewRegistrants(sesId, date) {
   } else if (!registrants?.length) {
     html += '<p class="text-muted text-center" style="padding:14px 0 6px;">Aucun inscrit confirmé</p>';
   } else {
-    const regRow = r => `
+    const regRow = r => {
+      const risk = _viewRiskMap.get(r.studentId) || { lateCount: 0, absenceCount: 0 };
+      const riskHtml = _renderRiskBadges(risk, { compact: true });
+      return `
       <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--surface-2);border-radius:8px;gap:8px;">
-        <div style="flex:1;min-width:0;">
+        <div style="flex:1;min-width:0;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
           <button class="admin-student-link" onclick="openStudentDetail('${r.studentId}')">
             ${r.firstName || ''} ${r.lastName || ''}
           </button>
-          <span class="badge badge-muted" style="margin-left:6px;">${r.className || '—'}</span>
+          <span class="badge badge-muted">${r.className || '—'}</span>
+          ${riskHtml}
         </div>
         <button class="btn btn-sm btn-red" onclick="openBanStudent('${sesId}','${r.studentId}')">Retirer</button>
       </div>`;
+    };
 
     html += `<p class="text-sm text-muted mb-1">${registrants.length} inscrit${registrants.length > 1 ? 's' : ''}</p>
       <div style="display:flex;flex-direction:column;gap:7px;">${registrants.map(regRow).join('')}</div>`;
@@ -12293,6 +12564,16 @@ async function openStudentDetail(studentId) {
   const eleveUidEl = document.getElementById('sd-eleve-uid');
   eleveUidEl.textContent = s.eleve_uid ? `🪪 ${s.eleve_uid}` : "— pas d'eleveUid";
   eleveUidEl.style.color = s.eleve_uid ? '' : 'var(--text-3)';
+
+  // Risk badges (désistements tardifs / absences sur 30 jours)
+  const riskEl = document.getElementById('sd-risk-badges');
+  if (riskEl) {
+    riskEl.innerHTML = ''; // reset pendant le fetch
+    _fetchRiskCountsForOne(studentId).then(risk => {
+      // version non-compacte (texte explicite) sur la fiche élève
+      riskEl.innerHTML = _renderRiskBadges(risk, { compact: false });
+    });
+  }
 
   // Actions principales + zone danger (injectées dynamiquement)
   let actionsEl = document.getElementById('sd-actions');
