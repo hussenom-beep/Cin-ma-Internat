@@ -2962,6 +2962,16 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
   -webkit-backdrop-filter: blur(6px);
 }
 
+.nsc-badge-clickable {
+  cursor: pointer;
+  transition: background .2s, border-color .2s, transform .15s;
+}
+.nsc-badge-clickable:hover {
+  background: rgba(240,165,0,0.30);
+  border-color: rgba(240,165,0,.6);
+  transform: translateY(-1px);
+}
+
 .nsc-title {
   font-family: 'Playfair Display', serif;
   font-size: 30px;
@@ -3205,6 +3215,28 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 .ssh-editable:hover {
   background: var(--surface-3);
   box-shadow: 0 0 0 1px var(--gold);
+}
+
+/* Zone date/heure cliquable de la fiche séance — pattern cohérent avec .ssh-editable */
+.ssh-meta-editable {
+  cursor: pointer;
+  padding: 4px 8px;
+  margin: -4px -8px;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+}
+.ssh-meta-editable:hover {
+  background: var(--surface-3);
+  box-shadow: 0 0 0 1px var(--gold);
+}
+.ssh-meta-edit-icon {
+  font-size: 12px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  margin-left: 4px;
+}
+.ssh-meta-editable:hover .ssh-meta-edit-icon {
+  opacity: 0.8;
 }
 
 /* Édition inline capacité et heure */
@@ -4841,13 +4873,11 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
           <h2 class="ssh-title" id="ssh-title" style="margin: 0;">—</h2>
         </div>
         <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-          <div class="ssh-meta" style="flex: 1;">
+          <div class="ssh-meta ssh-meta-editable" onclick="openSessionEditModal()" title="Modifier le film, la date et l'heure" style="flex: 1;">
             <span class="ssh-date" id="ssh-date">—</span>
             <span class="ssh-time" id="ssh-time"></span>
+            <span class="ssh-meta-edit-icon" aria-hidden="true">✏️</span>
           </div>
-          <button class="btn btn-sm btn-ghost" onclick="openSessionEditModal()" title="Modifier le film, la date et l'heure" style="flex-shrink: 0;">
-            ✏️ Modifier
-          </button>
         </div>
         <div class="ssh-actions">
           <button class="ssh-action-badge" id="ssh-reg-badge" onclick="toggleSessionRegistrations()">
@@ -8679,7 +8709,7 @@ async function loadNextSessionCard() {
       <div class="nsc-overlay"></div>
       <div class="nsc-inner">
         <div class="nsc-top">
-          <div class="nsc-badge">📅 ${sessionDate} • ${session.session_time || '20:00'}</div>
+          <div class="nsc-badge nsc-badge-clickable" onclick="event.stopPropagation(); openEditSession('${session.id}', '${(filmTitle || '').replace(/'/g, "\\'")}', '${session.films?.id || ''}')" title="Cliquer pour modifier la séance">📅 ${sessionDate} • ${session.session_time || '20:00'} <span style="opacity:.6;font-size:10px;margin-left:4px;">✏️</span></div>
           <h2 class="nsc-title">${filmTitle}</h2>
         </div>
         <div class="nsc-bottom">
