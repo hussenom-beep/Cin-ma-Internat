@@ -13132,6 +13132,10 @@ async function sendAdminReply() {
 
     if (upErr) console.warn('[admin-messagerie] update conv:', upErr);
 
+    // Push notification élève
+    const excerpt = content.length > 50 ? content.slice(0, 47) + '…' : content;
+    _invokeSendPush(_adminCurrentConv.student_id, '💬 Réponse du surveillant', excerpt, '/');
+
     if (input) input.value = '';
     toast('Réponse envoyée', 'success');
 
@@ -13165,6 +13169,10 @@ async function closeAdminConversation() {
     toast('Erreur lors de la clôture', 'error');
     return;
   }
+
+  // Push notification élève
+  const subject = _adminCurrentConv.subject || 'Conversation';
+  _invokeSendPush(_adminCurrentConv.student_id, '🔒 Conversation clôturée', `"${subject}" a été clôturée par un surveillant`, '/');
 
   toast('Conversation clôturée 🔒', 'success');
   closeModal('modal-admin-conversation');
@@ -13395,6 +13403,11 @@ async function createStudentConversation() {
     return;
   }
 
+  // Push notification admins
+  const studentName = `${S.user?.firstName || ''} ${S.user?.lastName || ''}`.trim() || 'Un élève';
+  const excerpt = content.length > 50 ? content.slice(0, 47) + '…' : content;
+  _invokeSendPush('all_admins', '💬 Nouveau message', `${studentName} : ${excerpt}`, '/');
+
   toast('Message envoyé ✓', 'success');
   closeModal('modal-student-messaging');
 
@@ -13448,6 +13461,11 @@ async function sendStudentMessage() {
       last_message_at: new Date().toISOString(),
     })
     .eq('id', _studentCurrentConv.id);
+
+  // Push notification admins
+  const studentName = `${S.user?.firstName || ''} ${S.user?.lastName || ''}`.trim() || 'Un élève';
+  const excerpt = content.length > 50 ? content.slice(0, 47) + '…' : content;
+  _invokeSendPush('all_admins', '💬 Nouveau message', `${studentName} : ${excerpt}`, '/');
 
   // Recharger les messages
   const { data: messages } = await db.from('conversation_messages')
