@@ -8373,45 +8373,61 @@ async function _fetchRiskCountsForOne(studentId) {
 
 /**
  * Neutralise les désistements tardifs encore actifs pour un couple
- * (élève, séance) — appelé après une réinscription réussie quand la
- * séance n'a pas encore commencé.
- * Idempotent : le filtre `.is('cleared_at', null)` évite de toucher
- * les rows déjà neutralisés.
+ * (élève, séance). Appelé après une réinscription réussie.
+ *
+ * NOTE — pas de check côté client de "séance déjà commencée" :
+ * la RPC `register_student_to_session` est censée déjà refuser une
+ * inscription post-début. Si on arrive ici, c'est que la réinscription
+ * est valide → on neutralise systématiquement.
+ *
+ * Idempotent : `.is('cleared_at', null)` empêche de re-neutraliser.
  */
 async function _clearLateCancellationsIfReregistered(studentId, sessionId, sessionDate, sessionTime) {
+  console.log('[clearLateCancel] ▶ entrée', { studentId, sessionId, sessionDate, sessionTime });
+
   if (!studentId || !sessionId) {
-    console.warn('[clearLateCancel] paramètres manquants', { studentId, sessionId });
-    return;
+    console.warn('[clearLateCancel] paramètres manquants — abandon');
+    return { ok: false, reason: 'missing_params' };
   }
 
-  // Sécurité : ne neutraliser que si la séance n'a pas encore commencé
-  if (sessionDate) {
-    const time = sessionTime || '20:00';
-    const sessionDT = new Date(`${sessionDate}T${time}:00`);
-    if (!isNaN(sessionDT.getTime()) && Date.now() >= sessionDT.getTime()) {
-      console.log('[clearLateCancel] séance déjà commencée → pas de neutralisation', {
-        sessionDate, sessionTime, sessionDT
-      });
-      return;
-    }
+  // 1) Lire les lignes actives concernées (diagnostic + visibilité)
+  const { data: candidates, error: fetchErr } = await db
+    .from('late_cancellations')
+    .select('id, cancelled_at, cleared_at')
+    .eq('student_id', studentId)
+    .eq('session_id', sessionId)
+    .is('cleared_at', null);
+
+  if (fetchErr) {
+    console.error('[clearLateCancel] ✗ erreur fetch candidats:', fetchErr);
+    return { ok: false, reason: 'fetch_error', error: fetchErr };
   }
 
-  const { data, error } = await db.from('late_cancellations')
+  console.log(`[clearLateCancel] ${candidates?.length || 0} ligne(s) active(s) trouvée(s) pour ce couple (élève, séance)`, candidates);
+
+  if (!candidates || candidates.length === 0) {
+    console.log('[clearLateCancel] rien à neutraliser');
+    return { ok: true, updated: 0 };
+  }
+
+  // 2) UPDATE par IDs (plus déterministe que filtrer à nouveau)
+  const ids = candidates.map(c => c.id);
+  const { data: updated, error: updErr } = await db
+    .from('late_cancellations')
     .update({
       cleared_at:     new Date().toISOString(),
       cleared_reason: 'reregistered_before_session',
     })
-    .eq('student_id', studentId)
-    .eq('session_id', sessionId)
-    .is('cleared_at', null)
-    .select('id');
+    .in('id', ids)
+    .select('id, cleared_at, cleared_reason');
 
-  if (error) {
-    // Visible : si la colonne cleared_at n'existe pas, ce sera ici.
-    console.error('[clearLateCancel] échec update late_cancellations:', error);
-    return;
+  if (updErr) {
+    console.error('[clearLateCancel] ✗ échec UPDATE:', updErr);
+    return { ok: false, reason: 'update_error', error: updErr };
   }
-  console.log(`[clearLateCancel] ${data?.length || 0} désistement(s) tardif(s) neutralisé(s) pour student=${studentId}, session=${sessionId}`);
+
+  console.log(`[clearLateCancel] ✓ ${updated?.length || 0} ligne(s) neutralisée(s)`, updated);
+  return { ok: true, updated: updated?.length || 0 };
 }
 
 /**
@@ -8611,8 +8627,9 @@ async function toggleReg(sessionId, action) {
     }
 
     // Réinscription réussie → neutraliser un éventuel désistement tardif
-    // antérieur sur cette MÊME séance, tant qu'elle n'a pas commencé.
-    _clearLateCancellationsIfReregistered(
+    // antérieur sur cette MÊME séance. AWAIT explicite pour être sûr que
+    // l'UPDATE est exécuté avant le rafraîchissement de l'UI.
+    await _clearLateCancellationsIfReregistered(
       S.user.id,
       sessionId,
       ses?.session_date,
