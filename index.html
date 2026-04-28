@@ -3981,14 +3981,10 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 }
 
 
-/* Modales inscrits en pop centrée sur desktop */
-#modal-registrants,
-#modal-student-registrants {
-  align-items: center !important;
-  justify-content: center !important;
-  z-index: 600 !important;
-}
-
+/* Modales inscrits en pop centrée sur desktop
+   NB: le centrage est géré par la règle globale .overlay (desktop)
+   et le z-index par la pile JS (_modalStack). On garde uniquement
+   le styling visuel custom de la sheet ci-dessous. */
 #modal-registrants .sheet,
 #modal-student-registrants .sheet {
   width: 90%;
@@ -13325,10 +13321,15 @@ document.addEventListener('DOMContentLoaded', () => {
    Quand plusieurs modales sont ouvertes en même temps (ex: la liste
    des inscrits ouvre la modale de retrait), la pile garantit que la
    dernière ouverte est TOUJOURS au-dessus des précédentes.
-   - z-index de base : 500
-   - +10 par modale ouverte (max ~10 niveaux empilés réalistes)
+
+   - Base haute (1000) : insensible à d'éventuels z-index CSS
+     intermédiaires (ex: navbar=300, poster-zoom=900). Reste sous le
+     toast (z-index 2000).
+   - Step de 10 par modale empilée. Max ~50 niveaux possibles.
    ================================================================ */
 const _modalStack = [];
+const _MODAL_Z_BASE = 1000;
+const _MODAL_Z_STEP = 10;
 
 function openModal(id) {
   // === Logiques métier existantes (préservées tel quel) ===
@@ -13365,8 +13366,11 @@ function openModal(id) {
   if (existing !== -1) _modalStack.splice(existing, 1);
   _modalStack.push(id);
 
-  // z-index dynamique : 500 pour la 1re, 510 pour la 2e, etc.
-  el.style.zIndex = String(500 + (_modalStack.length - 1) * 10);
+  // z-index dynamique : 1000 pour la 1re, 1010 pour la 2e, etc.
+  // setProperty avec 'important' pour gagner contre toute règle CSS
+  // statique qui pourrait avoir été ajoutée par mégarde.
+  const z = _MODAL_Z_BASE + (_modalStack.length - 1) * _MODAL_Z_STEP;
+  el.style.setProperty('z-index', String(z), 'important');
   el.classList.remove('hidden');
 }
 
@@ -13375,7 +13379,7 @@ function closeModal(id) {
   if (!el) return;
 
   el.classList.add('hidden');
-  el.style.zIndex = '';
+  el.style.removeProperty('z-index');
 
   // Retirer de la pile
   const idx = _modalStack.indexOf(id);
