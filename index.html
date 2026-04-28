@@ -17229,8 +17229,10 @@ async function genSeancePDF(sesId) {
       .select('*, films(title, poster_url, year, genre, duration, synopsis)')
       .eq('id', sesId).single(),
     db.from('registrations')
-      .select('status, waitlist_rank, students(first_name, last_name, class_name)')
-      .eq('session_id', sesId).order('registered_at', { ascending: true })
+      .select('*, students!inner(id, first_name, last_name, class_name)')
+      .eq('session_id', sesId)
+      .eq('status', 'registered')
+      .order('registered_at', { ascending: true })
   ]);
   if (sesError)  console.error('genSeancePDF session error:', sesError, 'sesId=', sesId);
   if (regsError) console.error('genSeancePDF regs error:', regsError, 'sesId=', sesId);
@@ -17243,8 +17245,11 @@ async function genSeancePDF(sesId) {
   const cap      = ses.max_capacity || 20;
   const referent = 'Matthias';
 
-  const confirmed = (regs || []).filter(r => r.status === 'registered')
+  const confirmed = (regs || [])
     .sort((a,b) => (a.students?.last_name||'').localeCompare(b.students?.last_name||'','fr'));
+  
+  console.log('[PDF] Nombre d\'inscrits confirmés:', confirmed.length);
+  console.log('[PDF] Inscrits:', confirmed.map(r => `${r.students?.first_name} ${r.students?.last_name}`));
 
   /* Chargement affiche via wsrv.nl (proxy CORS — contourne le blocage TMDB) */
   async function loadPosterCORS(url) {
