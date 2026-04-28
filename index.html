@@ -6186,14 +6186,11 @@ function _detectPlatform() {
  *   'available'        → tout est OK, on peut activer
  */
 function _getPushSupportStatus() {
-  // 1) iOS Safari sans PWA installée → l'API push n'est pas exposée tant qu'on
-  //    n'est pas en mode standalone. On guide d'abord vers l'install.
-  if (_detectPlatform() === 'ios' && !_isStandalone()) {
-    return 'ios_needs_pwa';
-  }
-  // 2) Vérifier le support des API (après le cas iOS pré-install)
   if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
     return 'unsupported';
+  }
+  if (_detectPlatform() === 'ios' && !_isStandalone()) {
+    return 'ios_needs_pwa';
   }
   if (Notification.permission === 'denied')  return 'denied';
   if (Notification.permission === 'granted') return 'granted';
@@ -6236,7 +6233,7 @@ async function enablePushNotifications() {
 
   if (status === 'ios_needs_pwa') {
     toast("Pour activer les notifications, ajoute d'abord l'app à ton écran d'accueil.", 'error');
-    if (typeof openAddToHome === 'function') openAddToHome();
+    if (!S.isAdmin) openAddToHome();
     return { ok: false, reason: 'ios_needs_pwa' };
   }
 
@@ -6333,14 +6330,6 @@ async function disablePushNotifications() {
 
 /** Toggle utilisé par les boutons UI */
 async function togglePushNotifications() {
-  // Court-circuit iOS pré-installation : on ne tente même pas getSubscription
-  // (qui fait `await serviceWorker.ready` et bloque indéfiniment sur Safari).
-  const status = _getPushSupportStatus();
-  if (status === 'ios_needs_pwa' || status === 'unsupported' || status === 'denied') {
-    await enablePushNotifications();
-    return;
-  }
-
   const sub = await _getCurrentPushSubscription();
   if (sub) {
     await disablePushNotifications();
@@ -6396,6 +6385,30 @@ async function _refreshPushButtons() {
 
 // Expose en global pour debug console
 window._refreshPushButtons = _refreshPushButtons;
+
+/* ================================================================
+   PUSH NOTIFICATIONS — branchements événements métier
+   ----------------------------------------------------------------
+   _invokeSendPush() : helper centralisé, fire-and-forget.
+   Tous les appels passent par là pour rester cohérents et faciles
+   à modifier (ton, format, debug…).
+   Échoue silencieusement (warn console) — ne casse jamais le flux
+   métier en cas de souci de Edge Function ou réseau.
+   ================================================================ */
+function _invokeSendPush(target, title, body, url) {
+  if (!target || !title) return;
+  const payload = { target, title, body: body || '', url: url || '/' };
+  // Fire-and-forget : ne pas await
+  db.functions.invoke('send-push', { body: payload })
+    .then(({ data, error }) => {
+      if (error) {
+        console.warn('[push] send-push error:', error, payload);
+      } else {
+        console.log('[push] send-push ok:', data, '| payload:', payload);
+      }
+    })
+    .catch(err => console.warn('[push] send-push exception:', err));
+}
 
 /* ================================================================
    STATE
@@ -7277,6 +7290,15 @@ async function submitForgotPinRequest() {
   }
 
   console.log('[submitForgotPinRequest] Demande insérée avec succès:', insertedData);
+
+  // Push admins
+  _invokeSendPush(
+    { type: 'admins' },
+    '🔑 Code oublié',
+    `${student.first_name} ${student.last_name} a oublié son code.`,
+    '/'
+  );
+
   closeModal('modal-forgot-pin');
   toast('Ta demande a été envoyée. Va voir un surveillant pour récupérer ton nouveau code.', 'success');
   document.getElementById('inp-forgot-identifier').value = '';
@@ -7351,6 +7373,18 @@ async function submitSupervisorMessage() {
   }
 
   console.log('[submitSupervisorMessage] Message inséré avec succès:', insertedData);
+
+  // Push admins (avec extrait du message)
+  const fn = S.user.firstName || '';
+  const ln = S.user.lastName  || '';
+  const messageExtract = message.length > 80 ? message.slice(0, 77) + '...' : message;
+  _invokeSendPush(
+    { type: 'admins' },
+    '📩 Nouvelle demande',
+    `${fn} ${ln} : ${messageExtract}`,
+    '/'
+  );
+
   closeModal('modal-contact-supervisor');
   toast('Message envoyé au surveillant', 'success');
   
@@ -8295,6 +8329,16 @@ async function sendProposalConfirmed() {
   _proposalDraft = null;
   resetQuickReasons('quick-reasons-container');
 
+  // Push admins
+  const fn = S.user?.firstName || '';
+  const ln = S.user?.lastName  || '';
+  _invokeSendPush(
+    { type: 'admins' },
+    '💡 Nouvelle proposition',
+    `${fn} ${ln} propose : "${m.title}".`,
+    '/'
+  );
+
   toast('Proposition envoyée ! L’admin la validera 📨', 'success');
 
   await loadStudentProposals();
@@ -8560,6 +8604,17 @@ async function submitManualProposal() {
     student_id: S.user.id, title, status: 'pending'
   });
   if (error) { toast('Erreur', 'error'); return; }
+
+  // Push admins
+  const fn = S.user?.firstName || '';
+  const ln = S.user?.lastName  || '';
+  _invokeSendPush(
+    { type: 'admins' },
+    '💡 Nouvelle proposition',
+    `${fn} ${ln} propose : "${title}".`,
+    '/'
+  );
+
   toast('Proposition envoyée 📨', 'success');
   document.getElementById('prop-manual-title').value = '';
 }
@@ -8953,6 +9008,21 @@ async function _doUnregister(sessionId, isLate, sessionMeta) {
     }).then(({ error }) => {
       if (error) console.warn('[_doUnregister] late_cancellations insert:', error);
     });
+
+    // Push admins
+    const fn = S.user?.firstName || '';
+    const ln = S.user?.lastName  || '';
+    const dateStr = sessionMeta?.session_date
+      ? new Date(`${sessionMeta.session_date}T${sessionMeta.session_time || '20:00'}:00`)
+          .toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+      : 'la séance';
+    _invokeSendPush(
+      { type: 'admins' },
+      '⏰ Désistement tardif',
+      `${fn} ${ln} s'est désinscrit (${dateStr}).`,
+      '/'
+    );
+
     toast('Désistement tardif enregistré.', 'info');
   } else {
     toast('Ta place est libérée. Elle sera proposée automatiquement au premier élève en attente.', 'success');
@@ -12452,6 +12522,25 @@ async function toggleSesOpen(id, cur) {
     // Ouverture → notifier tous les élèves
     toast('Inscriptions ouvertes ✅', 'success');
     _notifyAllStudents(id, 'session_opened'); // fire-and-forget
+
+    // Push notif aux élèves (récupère le titre du film + la date)
+    db.from('cinema_sessions')
+      .select('session_date, session_time, films(title)')
+      .eq('id', id).single()
+      .then(({ data }) => {
+        if (!data) return;
+        const filmTitle = data.films?.title || 'Séance';
+        const dateFmt = data.session_date
+          ? new Date(`${data.session_date}T${data.session_time || '20:00'}:00`)
+              .toLocaleDateString('fr-FR', { weekday: 'long', day: '2-digit', month: 'long' })
+          : '';
+        _invokeSendPush(
+          { type: 'students_all' },
+          '🟢 Inscriptions ouvertes',
+          `${filmTitle}${dateFmt ? ' — ' + dateFmt : ''}. Réserve ta place dès maintenant.`,
+          '/'
+        );
+      });
   } else {
     toast('Inscriptions fermées', 'success');
   }
@@ -12650,6 +12739,20 @@ async function unbanStudent(sessionId, studentId, date) {
     message:    'Tu peux de nouveau t\'inscrire à une séance'
   });
 
+  // Push à l'élève débloqué (récupère le titre du film pour personnaliser)
+  db.from('cinema_sessions')
+    .select('films(title)')
+    .eq('id', sessionId).single()
+    .then(({ data }) => {
+      const filmTitle = data?.films?.title || 'la séance';
+      _invokeSendPush(
+        { type: 'student', id: studentId },
+        '✅ Tu peux te réinscrire',
+        `Tu as de nouveau accès à la séance ${filmTitle}.`,
+        '/'
+      );
+    });
+
   toast('Élève débloqué — il peut se réinscrire', 'success');
   await viewRegistrants(sessionId, date);
 }
@@ -12699,6 +12802,23 @@ async function confirmBanStudent() {
     toast("Élève retiré mais erreur lors du blocage", 'error');
     return;
   }
+
+  // Push à l'élève retiré (récupère le titre du film + raison)
+  db.from('cinema_sessions')
+    .select('films(title)')
+    .eq('id', sessionId).single()
+    .then(({ data }) => {
+      const filmTitle = data?.films?.title || 'la séance';
+      const bodyTxt = reason
+        ? `Tu as été retiré de la séance ${filmTitle}. Raison : ${reason}`
+        : `Tu as été retiré de la séance ${filmTitle}.`;
+      _invokeSendPush(
+        { type: 'student', id: studentId },
+        '⚠️ Inscription annulée',
+        bodyTxt,
+        '/'
+      );
+    });
 
   closeModal('modal-ban-student');
   closeModal('modal-registrants');
@@ -12958,6 +13078,23 @@ if (!filmId) {
   if (insertedSession?.id) {
     await _notifyAllStudents(insertedSession.id, 'new_session');
   }
+
+  // Push notif vers tous les élèves
+  try {
+    const filmTitle = filmId
+      ? (document.getElementById('ses-film')?.selectedOptions[0]?.text || 'Séance')
+      : 'Séance à définir';
+    const dateFmt = new Date(`${date}T${time}:00`)
+      .toLocaleDateString('fr-FR', { weekday: 'long', day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit' });
+    const isOpen = document.getElementById('ses-open')?.checked;
+    const bodyTxt = `${filmTitle} — ${dateFmt}.${isOpen ? ' Inscriptions ouvertes !' : ''}`;
+    _invokeSendPush(
+      { type: 'students_all' },
+      '🎬 Nouvelle séance',
+      bodyTxt,
+      '/'
+    );
+  } catch (e) { console.warn('[push] new_session payload build:', e); }
 
   closeModal('modal-create-session');
   toast('Séance créée 🎟️', 'success');
