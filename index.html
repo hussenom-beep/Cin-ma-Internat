@@ -6725,6 +6725,7 @@ function updateProfileBtn() {
 }
 
 function logout(reason) {
+  stopAdminRealtime();
   stopInactivityTimer();
   S.user = null; S.isAdmin = false; S.films = []; S.votes = new Set();
   clearSession();
@@ -8394,6 +8395,169 @@ function filterRequests(type) {
   loadAdminRequests();
 }
 
+/* ================================================================
+   ADMIN REALTIME — module unique d'abonnements Supabase
+   ----------------------------------------------------------------
+   Architecture :
+   - Un seul channel pour toutes les tables admin
+   - Idempotent : startAdminRealtime() peut être appelé plusieurs fois
+   - Debounce par clé pour coalescer les events en rafale
+   - 2 niveaux de refresh :
+       (A) badges globaux (toujours, peu importe l'onglet)
+       (B) loader de l'onglet actif uniquement (ciblé)
+   - Fallback visibilitychange pour rattraper après reconnexion
+   ================================================================ */
+
+const _adminRT = {
+  channel: null,
+  active: false,
+  debounceTimers: {},
+  visibilityHandler: null,
+};
+
+function _adminRTDebounce(key, fn, delay = 300) {
+  if (_adminRT.debounceTimers[key]) clearTimeout(_adminRT.debounceTimers[key]);
+  _adminRT.debounceTimers[key] = setTimeout(() => {
+    delete _adminRT.debounceTimers[key];
+    try { fn(); } catch (e) { console.error('[adminRT] handler error:', e); }
+  }, delay);
+}
+
+function _getActiveAdminTab() {
+  for (const p of PANELS) {
+    const el = document.getElementById('ap-' + p);
+    if (el && !el.classList.contains('hidden')) return p;
+  }
+  return null;
+}
+
+function startAdminRealtime() {
+  // Garde-fous : doit être admin, et un seul abonnement à la fois
+  if (!S.isAdmin) return;
+  if (_adminRT.active && _adminRT.channel) {
+    console.log('[adminRT] déjà actif, pas de doublon');
+    return;
+  }
+
+  // Si un channel résiduel existe (cas rare), on le ferme avant
+  if (_adminRT.channel) {
+    try { db.removeChannel(_adminRT.channel); } catch(_) {}
+    _adminRT.channel = null;
+  }
+
+  console.log('[adminRT] démarrage des subscriptions');
+
+  const ch = db.channel('admin-realtime-' + Date.now())
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'registrations' },
+        () => _onAdminRTEvent('registrations'))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'student_requests' },
+        () => _onAdminRTEvent('student_requests'))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'proposals' },
+        () => _onAdminRTEvent('proposals'))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'cinema_sessions' },
+        () => _onAdminRTEvent('cinema_sessions'))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'votes' },
+        () => _onAdminRTEvent('votes'))
+    .subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        console.log('[adminRT] ✓ abonné aux 5 tables');
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        console.warn('[adminRT] statut canal:', status);
+      }
+    });
+
+  _adminRT.channel = ch;
+  _adminRT.active  = true;
+
+  // Fallback : quand l'onglet redevient visible, rafraîchir badges + onglet actif
+  // (rattrape les events qui auraient pu être manqués en cas de mise en veille)
+  if (!_adminRT.visibilityHandler) {
+    _adminRT.visibilityHandler = () => {
+      if (document.visibilityState === 'visible' && S.isAdmin) {
+        _adminRTDebounce('visibility-recover', () => {
+          refreshPendingProposalsBadge();
+          refreshPendingRequestsBadge();
+          _refreshActiveAdminTab();
+        }, 200);
+      }
+    };
+    document.addEventListener('visibilitychange', _adminRT.visibilityHandler);
+  }
+}
+
+function stopAdminRealtime() {
+  console.log('[adminRT] arrêt des subscriptions');
+
+  if (_adminRT.channel) {
+    try { db.removeChannel(_adminRT.channel); } catch(e) { console.warn('[adminRT] removeChannel:', e); }
+    _adminRT.channel = null;
+  }
+  _adminRT.active = false;
+
+  // Annuler tous les debounces en attente
+  Object.values(_adminRT.debounceTimers).forEach(clearTimeout);
+  _adminRT.debounceTimers = {};
+
+  // Détacher le listener de visibilité
+  if (_adminRT.visibilityHandler) {
+    document.removeEventListener('visibilitychange', _adminRT.visibilityHandler);
+    _adminRT.visibilityHandler = null;
+  }
+}
+
+function _refreshActiveAdminTab() {
+  const tab = _getActiveAdminTab();
+  switch (tab) {
+    case 'dashboard': loadAdminDashboard(); break;
+    case 'sessions':  loadAdminSessions();  break;
+    case 'proposals': loadAdminProposals(); break;
+    case 'requests':  loadAdminRequests();  break;
+    case 'votes':     loadAdminVotes();     break;
+    // 'students' : on ne refresh pas auto (préserve la recherche/filtres en cours)
+    // 'films'    : pas concerné par les tables temps réel écoutées
+  }
+}
+
+function _onAdminRTEvent(table) {
+  if (!S.isAdmin) return;
+
+  // === (A) Refresh GLOBAL léger : badges, peu importe l'onglet ===
+  // Coalescé sur 250ms pour éviter les bursts
+  _adminRTDebounce('global-badges', () => {
+    if (table === 'proposals') {
+      refreshPendingProposalsBadge();
+    } else if (table === 'student_requests') {
+      refreshPendingRequestsBadge();
+    }
+  }, 250);
+
+  // === (B) Refresh DÉTAILLÉ : seulement l'onglet actif et seulement si pertinent ===
+  // Coalescé sur 350ms pour éviter de re-render plusieurs fois si plusieurs events
+  _adminRTDebounce(`tab-${table}`, () => {
+    const tab = _getActiveAdminTab();
+    if (!tab) return;
+
+    // Mapping table → onglets concernés
+    const concerns = {
+      registrations:    ['dashboard', 'sessions'],
+      cinema_sessions:  ['dashboard', 'sessions'],
+      student_requests: ['dashboard', 'requests'],
+      proposals:        ['proposals'],
+      votes:            ['votes'],
+    };
+
+    if (!concerns[table]?.includes(tab)) return;
+
+    switch (tab) {
+      case 'dashboard': loadAdminDashboard(); break;
+      case 'sessions':  loadAdminSessions();  break;
+      case 'proposals': loadAdminProposals(); break;
+      case 'requests':  loadAdminRequests();  break;
+      case 'votes':     loadAdminVotes();     break;
+    }
+  }, 350);
+}
+
 function aTab(tab) {
   PANELS.forEach((p, i) => {
     document.querySelectorAll('.admin-tab')[i].classList.toggle('active', p === tab);
@@ -8415,6 +8579,7 @@ async function loadAdmin() {
   await cleanupPastSessions();
   refreshPendingProposalsBadge();
   refreshPendingRequestsBadge();
+  startAdminRealtime();
   aTab('dashboard');
 }
 
