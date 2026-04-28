@@ -6661,7 +6661,22 @@ window._refreshPushButtons = _refreshPushButtons;
    ================================================================ */
 function _invokeSendPush(target, title, body, url) {
   if (!target || !title) return;
-  const payload = { target, title, body: body || '', url: url || '/' };
+  
+  // Convertir le format pour l'Edge Function
+  let targetObj;
+  if (target === 'all_admins') {
+    targetObj = { type: 'admins' };
+  } else {
+    targetObj = { type: 'student', id: target };
+  }
+  
+  const payload = { 
+    target: targetObj, 
+    title, 
+    body: body || '', 
+    url: url || '/' 
+  };
+  
   // Fire-and-forget : ne pas await
   db.functions.invoke('send-push', { body: payload })
     .then(({ data, error }) => {
