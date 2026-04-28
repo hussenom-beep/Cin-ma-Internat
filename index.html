@@ -3134,7 +3134,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
   fill: var(--gold);
   opacity: .55;
   transition: opacity .15s;
-  cursor: default;
+  cursor: pointer;
 }
 .cc-bar:hover { opacity: 1; }
 .cc-axis-label {
@@ -5905,6 +5905,23 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     <div style="display:flex;gap:10px;margin-top:6px;">
       <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('modal-archive-student')">Annuler</button>
       <button class="btn btn-gold"  style="flex:1;" id="archive-confirm-btn" onclick="confirmArchiveStudent()">Confirmer ✓</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     MODAL: Détail des connexions d'une journée (dashboard admin)
+     ================================================================ -->
+<div class="overlay hidden" id="modal-connections-day">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="ccd-title">Connexions du —</div>
+    <div id="ccd-summary" style="font-size:13px;color:var(--text-2);margin-bottom:14px;"></div>
+    <div id="ccd-content">
+      <div class="loader"><div class="spinner"></div></div>
+    </div>
+    <div style="margin-top:14px;">
+      <button class="btn btn-ghost btn-full" onclick="closeModal('modal-connections-day')">Fermer</button>
     </div>
   </div>
 </div>
@@ -8894,7 +8911,7 @@ function _ccRenderChart(chartEl, series, days) {
     const dateStr = s.date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
     const tooltip = `${dateStr} — ${s.value} ${_ccMetric === 'unique' ? (s.value > 1 ? 'élèves uniques' : 'élève unique') : (s.value > 1 ? 'connexions' : 'connexion')}`;
 
-    svg += `<rect class="cc-bar" x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${Math.max(2, h).toFixed(1)}" rx="2"><title>${tooltip}</title></rect>`;
+    svg += `<rect class="cc-bar" x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${Math.max(2, h).toFixed(1)}" rx="2" onclick="openConnectionsDayDetail('${_ccDayKey(s.date)}')"><title>${tooltip} — Cliquer pour le détail</title></rect>`;
 
     // Valeur au-dessus de la barre seulement si non nulle et mode semaine
     if (days === 7 && s.value > 0) {
@@ -8944,6 +8961,108 @@ function _ccRenderStats(statsEl, series) {
       <span class="cc-stat-value" title="${peakLabel}">${peakValue}${peak.date && peak.value > 0 ? ` <span style="font-size:11px;color:var(--text-3);font-weight:600;">(${peakLabel})</span>` : ''}</span>
     </div>
   `;
+}
+
+/* Détail journalier (clic sur une barre du graphique connexions) */
+async function openConnectionsDayDetail(dayKey) {
+  // dayKey au format YYYY-MM-DD
+  const [yyyy, mm, dd] = dayKey.split('-').map(Number);
+  const dayStart = new Date(yyyy, mm - 1, dd, 0, 0, 0, 0);
+  const dayEnd   = new Date(yyyy, mm - 1, dd, 23, 59, 59, 999);
+
+  const titleEl   = document.getElementById('ccd-title');
+  const summaryEl = document.getElementById('ccd-summary');
+  const contentEl = document.getElementById('ccd-content');
+  if (!contentEl) return;
+
+  const dateLabel = dayStart.toLocaleDateString('fr-FR', {
+    weekday: 'long', day: '2-digit', month: 'long', year: 'numeric'
+  });
+  if (titleEl)   titleEl.textContent = `Connexions du ${dateLabel}`;
+  if (summaryEl) summaryEl.textContent = '';
+  contentEl.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
+  openModal('modal-connections-day');
+
+  try {
+    const { data, error } = await db.from('student_logins')
+      .select('student_id, logged_at, students(id, first_name, last_name, class_name)')
+      .gte('logged_at', dayStart.toISOString())
+      .lte('logged_at', dayEnd.toISOString())
+      .order('logged_at', { ascending: false });
+
+    if (error) {
+      console.error('[openConnectionsDayDetail] erreur:', error);
+      contentEl.innerHTML = '<div class="text-muted text-center" style="padding:14px 0;">Erreur de chargement</div>';
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      contentEl.innerHTML = '<div class="text-muted text-center" style="padding:14px 0;">Aucune connexion ce jour-là.</div>';
+      if (summaryEl) summaryEl.textContent = '';
+      return;
+    }
+
+    // Agrégation par student_id : count + dernière heure (max logged_at)
+    // Les rows sont déjà triés desc, donc le 1er row par student a la dernière connexion
+    const byStudent = new Map();
+    data.forEach(row => {
+      const sid = row.student_id;
+      if (!byStudent.has(sid)) {
+        byStudent.set(sid, {
+          studentId:  sid,
+          firstName:  row.students?.first_name || '',
+          lastName:   row.students?.last_name  || '',
+          className:  row.students?.class_name || '',
+          count:      0,
+          lastAt:     row.logged_at, // 1er = le plus récent (desc)
+        });
+      }
+      byStudent.get(sid).count += 1;
+    });
+
+    // Tri : par nb connexions desc, puis nom asc
+    const list = Array.from(byStudent.values()).sort((a, b) => {
+      if (b.count !== a.count) return b.count - a.count;
+      return (a.lastName || '').localeCompare(b.lastName || '', 'fr');
+    });
+
+    const totalCnx    = data.length;
+    const uniqueCount = list.length;
+
+    if (summaryEl) {
+      summaryEl.textContent = `${uniqueCount} élève${uniqueCount > 1 ? 's' : ''} • ${totalCnx} connexion${totalCnx > 1 ? 's' : ''} au total`;
+    }
+
+    const fmtTime = (iso) => {
+      const d = new Date(iso);
+      const h = String(d.getHours()).padStart(2, '0');
+      const m = String(d.getMinutes()).padStart(2, '0');
+      return `${h}:${m}`;
+    };
+
+    const rowsHtml = list.map(s => {
+      const fullName = `${s.firstName} ${s.lastName}`.trim() || '— inconnu —';
+      const clsBadge = s.className ? `<span class="badge badge-muted" style="margin-left:6px;">${s.className}</span>` : '';
+      const cntLabel = `${s.count} connexion${s.count > 1 ? 's' : ''}`;
+      return `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface-2);border-radius:8px;gap:10px;">
+          <div style="flex:1;min-width:0;">
+            <button class="admin-student-link" onclick="event.stopPropagation(); openStudentDetail('${s.studentId}')" title="Voir la fiche élève">${fullName}</button>${clsBadge}
+          </div>
+          <div style="text-align:right;font-size:12px;color:var(--text-2);white-space:nowrap;">
+            <div style="font-weight:700;color:var(--gold);">${cntLabel}</div>
+            <div style="font-size:11px;">dernière à ${fmtTime(s.lastAt)}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    contentEl.innerHTML = `<div style="display:flex;flex-direction:column;gap:7px;max-height:60vh;overflow-y:auto;">${rowsHtml}</div>`;
+
+  } catch (e) {
+    console.error('[openConnectionsDayDetail] exception:', e);
+    contentEl.innerHTML = '<div class="text-muted text-center" style="padding:14px 0;">Erreur de chargement</div>';
+  }
 }
 
 /* ================================================================
