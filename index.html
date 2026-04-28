@@ -5828,7 +5828,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 
       <div style="display:flex;gap:10px;margin-top:14px;">
         <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('modal-student-messaging')">Fermer</button>
-        <button class="btn btn-gold" style="flex:1;" onclick="openStudentMessaging()">Nouveau message</button>
+        <button class="btn btn-gold" style="flex:1;" onclick="openStudentMessaging(true)">Nouveau message</button>
       </div>
     </div>
   </div>
@@ -13204,8 +13204,15 @@ let _studentCurrentConv = null;
 let _studentCurrentMessages = [];
 
 /** Ouvre la messagerie élève (point d'entrée unique) */
-async function openStudentMessaging() {
+async function openStudentMessaging(forceNew = false) {
   if (!S.currentStudent?.id) return;
+
+  if (forceNew) {
+    // Forcer le mode 'new' (bouton "Nouveau message" du mode closed)
+    _showStudentMsgMode('new');
+    openModal('modal-student-messaging');
+    return;
+  }
 
   // Chercher une conversation existante (active ou closed)
   const { data: convs } = await db.from('conversations')
