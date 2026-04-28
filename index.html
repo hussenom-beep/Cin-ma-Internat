@@ -7969,24 +7969,47 @@ async function loadHome() {
       .eq('status', 'registered')
       .maybeSingle();
     
+    // ✅ NOUVEAU : Vérifier si l'élève est bloqué sur cette séance
+    const { data: ban } = await db.from('session_bans')
+      .select('reason, banned_at')
+      .eq('session_id', s.id)
+      .eq('student_id', S.user.id)
+      .maybeSingle();
+    
+    const isBlocked = !!ban;
     const isRegistered = !!userReg;
     const cap   = s.max_capacity || 20;
     const full  = regCount >= cap;
     const open  = s.registrations_open;
 
     let badgeHtml;
-    if (full)       badgeHtml = `<span class="badge badge-red">🚫 Complet</span>`;
-    else if (open)  badgeHtml = `<span class="badge badge-green">✅ Inscriptions ouvertes</span>`;
-    else            badgeHtml = `<span class="badge badge-muted">⏸ Inscriptions fermées</span>`;
+    if (isBlocked) {
+      // ✅ Priorité au blocage
+      badgeHtml = `<span class="badge badge-red">🚫 Non autorisé</span>`;
+    } else if (full) {
+      badgeHtml = `<span class="badge badge-red">🚫 Complet</span>`;
+    } else if (open) {
+      badgeHtml = `<span class="badge badge-green">✅ Inscriptions ouvertes</span>`;
+    } else {
+      badgeHtml = `<span class="badge badge-muted">⏸ Inscriptions fermées</span>`;
+    }
 
     // Pastille "Inscrit" si l'élève est inscrit
     const registeredBadge = isRegistered 
       ? `<span class="badge badge-green" style="margin-top:4px;">✅ Inscrit(e)</span>`
       : '';
 
+    // ✅ NOUVEAU : Raison du blocage si elle existe
+    const banReasonHtml = isBlocked && ban.reason
+      ? `<div style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:6px;padding:8px;margin-top:8px;font-size:12px;color:var(--text-2);line-height:1.4;">🚫 Motif : ${ban.reason}</div>`
+      : '';
+
     // Bouton S'inscrire / Se désinscrire
     let actionBtn = '';
-    if (isRegistered) {
+    if (isBlocked) {
+      // ✅ Bloqué : pas d'action possible
+      actionBtn = `<button class="session-banner-action is-disabled">🚫 Accès refusé</button>`;
+    } else if (isRegistered) {
       actionBtn = `<button class="session-banner-action" style="background: linear-gradient(135deg, rgba(239,68,68,.12) 0%, rgba(239,68,68,.06) 100%); border-color: rgba(239,68,68,.3); color: var(--red);" onclick="event.stopPropagation(); toggleReg('${s.id}','unregister'); setTimeout(() => loadHome(), 500)">❌ Se désinscrire</button>`;
     } else if (open && !full) {
       actionBtn = `<button class="session-banner-action" onclick="event.stopPropagation(); toggleReg('${s.id}','register'); setTimeout(() => loadHome(), 500)">➕ S'inscrire</button>`;
@@ -7998,13 +8021,16 @@ async function loadHome() {
 
     // Durée formatée
     const runtimeStr = runtime ? formatRuntime(runtime) : '';
+    
+    // ✅ NOUVEAU : Heure de la séance (fallback 20:00 si absente)
+    const sessionTime = s.session_time || '20:00';
 
     el.innerHTML = `<div class="session-banner" onclick="openStudentSessionDetail('${s.id}')">
       ${poster ? `<img src="${poster}" class="session-banner-poster" alt="">` : ''}
       <div class="session-banner-overlay"></div>
       <div class="session-banner-inner">
         <div class="session-banner-top">
-          <div class="session-banner-date">📅 ${fmtDateShort(s.session_date)}</div>
+          <div class="session-banner-date">📅 ${fmtDateShort(s.session_date)} • ${sessionTime}</div>
           <div class="session-banner-film">${title}</div>
           ${runtimeStr ? `<div style="font-size:12px;color:var(--text-3);margin-top:6px;">⏱ ${runtimeStr}</div>` : ''}
         </div>
@@ -8019,6 +8045,7 @@ async function loadHome() {
               ${badgeHtml}
               <span class="badge badge-purple" style="margin-top:4px; cursor: pointer;" onclick="event.stopPropagation(); viewStudentRegistrants('${s.id}','${s.session_date}')">👥 ${regCount} / ${cap}</span>
               ${registeredBadge}
+              ${banReasonHtml}
               ${actionBtn}
             </div>
           </div>
@@ -9295,13 +9322,16 @@ async function loadSessions() {
       ? `onclick="openTMDBDetail(${s.films.tmdb_id},'student')"`
       : (s.films?.id ? `onclick="openSessionFilmDetail('${s.films.id}')"` : '');
     const cardCursor = (s.films?.tmdb_id || s.films?.id) ? 'cursor:pointer;' : '';
+    
+    // ✅ NOUVEAU : Heure de la séance (fallback 20:00)
+    const sessionTime = s.session_time || '20:00';
 
     return `<div class="session-card-student" style="${cardCursor}" ${filmClickAttr}>
       ${poster ? `<img src="${poster}" class="sc-poster" alt="">` : ''}
       <div class="sc-overlay"></div>
       <div class="sc-inner">
         <div class="sc-top">
-          <div class="sc-date">📅 ${fmtDateShort(s.session_date)}</div>
+          <div class="sc-date">📅 ${fmtDateShort(s.session_date)} • ${sessionTime}</div>
           <div class="sc-film">${title}</div>
           ${runtimeStr ? `<div style="font-size:12px;color:var(--text-3);margin-top:6px;">⏱ ${runtimeStr}</div>` : ''}
         </div>
