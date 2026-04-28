@@ -6410,6 +6410,70 @@ function _invokeSendPush(target, title, body, url) {
     .catch(err => console.warn('[push] send-push exception:', err));
 }
 
+/* ----------------------------------------------------------------
+   Détection promotion waitlist (côté front)
+   ----------------------------------------------------------------
+   La RPC unregister_student_from_session peut promouvoir le 1er
+   en liste d'attente si une place se libère. La RPC ne renvoie pas
+   l'info du promu, donc on la détecte côté front :
+     1. Avant unregister : lire le 1er en waitlist
+     2. Après unregister : vérifier que son statut a changé
+        (waitlist → confirmed)
+     3. Si oui → push à cet élève
+   ---------------------------------------------------------------- */
+
+/** Retourne le student_id du 1er en waitlist (rank le plus bas) ou null */
+async function _getFirstWaitlisted(sessionId) {
+  if (!sessionId) return null;
+  try {
+    const { data } = await db.from('registrations')
+      .select('student_id, waitlist_rank')
+      .eq('session_id', sessionId)
+      .eq('status', 'waitlist')
+      .order('waitlist_rank', { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    return data?.student_id || null;
+  } catch (e) {
+    console.warn('[push] _getFirstWaitlisted:', e);
+    return null;
+  }
+}
+
+/**
+ * Vérifie si l'élève précédemment 1er en waitlist a été promu, et envoie une notif.
+ * À appeler APRÈS un unregister réussi.
+ */
+async function _checkAndNotifyWaitlistPromotion(sessionId, previousFirstId) {
+  if (!previousFirstId || !sessionId) return;
+  try {
+    // L'élève est-il maintenant inscrit (plus en waitlist) ?
+    const { data: reg } = await db.from('registrations')
+      .select('status')
+      .eq('session_id', sessionId)
+      .eq('student_id', previousFirstId)
+      .maybeSingle();
+
+    if (!reg || reg.status === 'waitlist') return; // Pas promu
+
+    // Récupérer le titre pour personnaliser
+    const { data: ses } = await db.from('cinema_sessions')
+      .select('films(title)')
+      .eq('id', sessionId)
+      .maybeSingle();
+    const filmTitle = ses?.films?.title || 'la séance';
+
+    _invokeSendPush(
+      { type: 'student', id: previousFirstId },
+      '🎉 Tu es inscrit !',
+      `Une place s'est libérée pour ${filmTitle}.`,
+      '/'
+    );
+  } catch (e) {
+    console.warn('[push] waitlist promotion check failed:', e);
+  }
+}
+
 /* ================================================================
    STATE
    ================================================================ */
@@ -8986,6 +9050,9 @@ function _isLateCancellation(sessionDate, sessionTime) {
 async function _doUnregister(sessionId, isLate, sessionMeta) {
   const studentId = S.user.id;
 
+  // Lecture du 1er en waitlist AVANT l'unregister (pour détecter la promotion)
+  const previousFirstWaitlistId = await _getFirstWaitlisted(sessionId);
+
   const { error } = await db.rpc('unregister_student_from_session', {
     p_student_id: studentId,
     p_session_id: sessionId
@@ -8996,6 +9063,10 @@ async function _doUnregister(sessionId, isLate, sessionMeta) {
     toast('Erreur lors de la désinscription', 'error');
     return false;
   }
+
+  // Si quelqu'un était en waitlist, vérifier s'il a été promu et le notifier
+  // (fire-and-forget : ne bloque pas l'UX)
+  _checkAndNotifyWaitlistPromotion(sessionId, previousFirstWaitlistId);
 
   if (isLate) {
     // Log dans late_cancellations (fire-and-forget : ne bloque pas l'UX)
@@ -12328,6 +12399,17 @@ async function acceptProposal(id) {
   }
 
   await db.from('proposals').update({ status: 'accepted', reviewed_at: new Date().toISOString() }).eq('id', id);
+
+  // Push à l'élève proposeur
+  if (p.student_id) {
+    _invokeSendPush(
+      { type: 'student', id: p.student_id },
+      '✅ Proposition acceptée !',
+      `Ta proposition "${p.title}" a été ajoutée au catalogue.`,
+      '/'
+    );
+  }
+
   toast('Proposition acceptée — film ajouté ✅', 'success');
   refreshPendingProposalsBadge();
   loadAdminProposals();
@@ -12347,6 +12429,21 @@ async function confirmRejectProposal() {
     status: 'rejected', admin_refusal_reason: reason || null,
     reviewed_at: new Date().toISOString()
   }).eq('id', id);
+
+  // Push à l'élève proposeur
+  const p = _proposalCache[id];
+  if (p?.student_id) {
+    const bodyTxt = reason
+      ? `Ta proposition "${p.title}" a été refusée. Raison : ${reason}`
+      : `Ta proposition "${p.title}" a été refusée.`;
+    _invokeSendPush(
+      { type: 'student', id: p.student_id },
+      '❌ Proposition refusée',
+      bodyTxt,
+      '/'
+    );
+  }
+
   closeModal('modal-reject-reason');
   toast('Proposition refusée', '');
   refreshPendingProposalsBadge();
@@ -12769,6 +12866,9 @@ async function confirmBanStudent() {
   const studentId = document.getElementById('ban-student-id').value;
   const reason    = document.getElementById('ban-reason').value.trim() || null;
 
+  // Lecture du 1er en waitlist AVANT le retrait (pour détecter la promotion)
+  const previousFirstWaitlistId = await _getFirstWaitlisted(sessionId);
+
   // Passer par la RPC pour conserver la logique :
   // - suppression de l'inscription
   // - remontée automatique depuis la liste d'attente si besoin
@@ -12819,6 +12919,9 @@ async function confirmBanStudent() {
         '/'
       );
     });
+
+  // Notifier le promu de la waitlist (fire-and-forget)
+  _checkAndNotifyWaitlistPromotion(sessionId, previousFirstWaitlistId);
 
   closeModal('modal-ban-student');
   closeModal('modal-registrants');
