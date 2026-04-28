@@ -4586,13 +4586,6 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
         <!-- Blocs secondaires -->
         <div class="admin-home-secondary">
           <div class="ahs-grid">
-            <div class="ahs-block">
-              <h3 style="font-size: 14px; font-weight: 700; margin-bottom: 12px;">Demandes élèves</h3>
-              <div id="dash-requests-summary">
-                <div class="loader"><div class="spinner"></div></div>
-              </div>
-            </div>
-
             <!-- Bloc Connexions élèves (graphique) -->
             <div class="ahs-block ahs-block-wide" id="connections-chart-block">
               <div class="cc-header">
@@ -9263,9 +9256,6 @@ async function loadAdminDashboard() {
   
   // Charger la grosse carte prochaine séance
   await loadNextSessionCard();
-  
-  // Charger le résumé des demandes dans le bloc secondaire
-  await loadDashRequestsSummary();
 
   // Charger le graphique des connexions élèves
   loadConnectionsChart();
@@ -9655,43 +9645,6 @@ async function loadNextSessionCard() {
   } catch (e) {
     console.error('[loadNextSessionCard] Exception:', e);
     el.innerHTML = '<p class="text-muted">Erreur de chargement</p>';
-  }
-}
-
-async function loadDashRequestsSummary() {
-  const el = document.getElementById('dash-requests-summary');
-  if (!el) return;
-  
-  try {
-    const { count: pendingCount } = await db
-      .from('student_requests')
-      .select('id', { count: 'exact', head: true })
-      .eq('status', 'pending');
-    
-    if (pendingCount > 0) {
-      el.innerHTML = `
-        <div style="padding: 12px; background: var(--surface-3); border-radius: var(--radius-sm); text-align: center;">
-          <div style="font-size: 24px; font-weight: 700; color: var(--gold); margin-bottom: 4px;">
-            ${pendingCount}
-          </div>
-          <div style="font-size: 12px; color: var(--text-2);">
-            demande${pendingCount > 1 ? 's' : ''} en attente
-          </div>
-          <button class="btn btn-sm btn-ghost" onclick="aTab('requests')" style="margin-top: 10px;">
-            Voir →
-          </button>
-        </div>
-      `;
-    } else {
-      el.innerHTML = `
-        <div style="padding: 20px; text-align: center; color: var(--text-3);">
-          ✅ Aucune demande en attente
-        </div>
-      `;
-    }
-  } catch (e) {
-    console.error('[loadDashRequestsSummary] Exception:', e);
-    el.innerHTML = '';
   }
 }
 
