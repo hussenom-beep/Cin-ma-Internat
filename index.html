@@ -4313,241 +4313,6 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
   gap: 10px;
 }
 
-/* ================================================================
-   MESSAGERIE V1 — Style chat
-   ================================================================ */
-
-/* Conteneur principal de la modale messagerie */
-#modal-messagerie .sheet {
-  display: flex;
-  flex-direction: column;
-  max-height: 88vh;
-  padding-bottom: 0; /* Le composer prend le bas */
-}
-
-/* Header conversation active */
-.msg-conv-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  margin-bottom: 12px;
-  flex-shrink: 0;
-}
-.msg-conv-header-subject {
-  flex: 1;
-  font-weight: 600;
-  font-size: 14.5px;
-  color: var(--text-1);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.msg-conv-header-status {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  padding: 3px 8px;
-  border-radius: 999px;
-  background: rgba(74, 222, 128, 0.15);
-  color: #4ade80;
-}
-.msg-conv-header-status.closed {
-  background: rgba(148, 163, 184, 0.15);
-  color: #94a3b8;
-}
-
-/* Zone scrollable des messages */
-.msg-thread {
-  flex: 1;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 4px 2px 14px 2px;
-  min-height: 200px;
-}
-
-/* Bulle de message (commune) */
-.msg-bubble {
-  max-width: 78%;
-  padding: 9px 13px;
-  border-radius: 14px;
-  font-size: 14px;
-  line-height: 1.45;
-  word-wrap: break-word;
-  white-space: pre-wrap;
-  position: relative;
-}
-.msg-bubble-time {
-  display: block;
-  font-size: 10.5px;
-  font-weight: 500;
-  opacity: 0.6;
-  margin-top: 4px;
-}
-
-/* Bulle élève (à droite, doré) */
-.msg-bubble.from-student {
-  align-self: flex-end;
-  background: linear-gradient(135deg, #d4a04020 0%, #d4a04015 100%);
-  border: 1px solid rgba(212, 160, 64, 0.35);
-  color: var(--text-1);
-  border-bottom-right-radius: 4px;
-}
-
-/* Bulle admin (à gauche, gris) */
-.msg-bubble.from-admin {
-  align-self: flex-start;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--border);
-  color: var(--text-1);
-  border-bottom-left-radius: 4px;
-}
-.msg-bubble.from-admin::before {
-  content: "Surveillant";
-  display: block;
-  font-size: 10.5px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #94a3b8;
-  margin-bottom: 4px;
-}
-
-/* Séparateur de jour */
-.msg-day-separator {
-  align-self: center;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-3);
-  padding: 4px 12px;
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 999px;
-  margin: 8px 0 4px 0;
-  text-transform: capitalize;
-}
-
-/* Composer (champ de saisie) en bas */
-.msg-composer {
-  flex-shrink: 0;
-  border-top: 1px solid var(--border);
-  padding-top: 12px;
-  background: var(--surface);
-}
-.msg-composer-textarea {
-  width: 100%;
-  min-height: 60px;
-  max-height: 140px;
-  padding: 10px 12px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  color: var(--text-1);
-  font-family: inherit;
-  font-size: 14px;
-  resize: vertical;
-  box-sizing: border-box;
-}
-.msg-composer-textarea:focus {
-  outline: none;
-  border-color: var(--gold);
-}
-.msg-composer-textarea:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.msg-composer-bottom {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-top: 8px;
-  padding-bottom: 14px;
-}
-.msg-char-counter {
-  font-size: 11.5px;
-  color: var(--text-3);
-  font-variant-numeric: tabular-nums;
-}
-.msg-char-counter.warn  { color: #fbbf24; }
-.msg-char-counter.over  { color: var(--red); font-weight: 700; }
-
-/* Bandeau spam-limit */
-.msg-spam-banner {
-  background: rgba(251, 146, 60, 0.12);
-  border: 1px solid rgba(251, 146, 60, 0.4);
-  color: #fdba74;
-  padding: 10px 12px;
-  border-radius: 10px;
-  font-size: 13px;
-  line-height: 1.4;
-  margin-top: 10px;
-}
-
-/* Bandeau conversation clôturée */
-.msg-closed-banner {
-  background: rgba(148, 163, 184, 0.08);
-  border: 1px solid var(--border);
-  color: var(--text-2);
-  padding: 12px;
-  border-radius: 10px;
-  font-size: 13.5px;
-  text-align: center;
-  margin-top: 10px;
-}
-
-/* Liste archives élève */
-.msg-archives-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 8px;
-}
-.msg-archive-item {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 11px 14px;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-.msg-archive-item:hover { background: rgba(255, 255, 255, 0.06); }
-.msg-archive-subject {
-  font-weight: 600;
-  font-size: 14px;
-  color: var(--text-1);
-  margin-bottom: 4px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.msg-archive-meta {
-  font-size: 11.5px;
-  color: var(--text-3);
-}
-
-/* Toggle archives / nouvelle */
-.msg-secondary-action {
-  display: flex;
-  justify-content: center;
-  margin-top: 12px;
-}
-.msg-secondary-link {
-  background: none;
-  border: none;
-  color: var(--text-3);
-  font-size: 12.5px;
-  cursor: pointer;
-  text-decoration: underline;
-  padding: 4px 8px;
-}
-.msg-secondary-link:hover { color: var(--gold); }
-
   </style>
 <body>
 <div id="app">
@@ -4898,6 +4663,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       <div class="sub-tabs" id="req-subtabs">
         <button class="sub-tab active" onclick="filterRequests('forgot_pin')">🔑 Codes oubliés <span class="pending-badge hidden" id="req-forgot-badge">0</span></button>
         <button class="sub-tab" onclick="filterRequests('message')">💬 Messages <span class="pending-badge hidden" id="req-message-badge">0</span></button>
+        <button class="sub-tab" onclick="filterRequests('archived_messages')">📁 Archivées</button>
         <button class="sub-tab" onclick="filterRequests('handled')">✅ Traitées</button>
       </div>
       <div class="admin-list" id="admin-requests-list"><div class="loader"><div class="spinner"></div></div></div>
@@ -5349,9 +5115,9 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       <!-- Section Besoin d'aide -->
       <div class="profile-section">
         <div class="profile-section-title">BESOIN D'AIDE ?</div>
-        <button class="profile-action-btn" onclick="openMessagerie()">
-          <span class="pa-icon">💬</span>
-          <span class="pa-text">Messagerie</span>
+        <button class="profile-action-btn" onclick="openContactSupervisor()">
+          <span class="pa-icon">📨</span>
+          <span class="pa-text">Contacter un surveillant</span>
           <span class="pa-arrow">›</span>
         </button>
         <button class="profile-action-btn" onclick="openStudentFAQ()">
@@ -5533,106 +5299,6 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('modal-contact-supervisor')">Annuler</button>
       <button class="btn btn-gold" style="flex:1;" onclick="submitSupervisorMessage()">Envoyer</button>
     </div>
-  </div>
-</div>
-
-<!-- ================================================================
-     MODAL: Messagerie élève (V1) — discussion encadrée avec admin
-     ----------------------------------------------------------------
-     3 modes (gérés par JS) :
-       'new'     → formulaire création (pas de conv active)
-       'active'  → conversation en cours (chat + composer)
-       'archive' → liste des conversations clôturées
-     ================================================================ -->
-<div class="overlay hidden" id="modal-messagerie">
-  <div class="sheet">
-    <div class="sheet-handle"></div>
-    <div class="sheet-title" id="msg-title">💬 Messagerie</div>
-
-    <!-- ---- MODE 'new' : aucune conversation active ---- -->
-    <div id="msg-mode-new" class="hidden">
-      <p class="text-sm text-muted" style="margin-bottom:16px;">
-        Pose ta question ou signale un problème. Un surveillant te répondra.
-      </p>
-
-      <div class="fgroup">
-        <label class="flabel">Sujet <span style="color:var(--red);">*</span></label>
-        <input class="finput" id="msg-new-subject" type="text" maxlength="80" placeholder="En quelques mots, ton sujet">
-      </div>
-
-      <div class="fgroup">
-        <label class="flabel">Message <span style="color:var(--red);">*</span></label>
-        <textarea class="ftextarea" id="msg-new-content" rows="5" maxlength="1000"
-          placeholder="Décris ta demande..."
-          oninput="_msgUpdateNewCounter()"></textarea>
-        <div class="msg-char-counter" id="msg-new-counter" style="text-align:right;margin-top:4px;">0 / 1000</div>
-      </div>
-
-      <div style="display:flex;gap:8px;margin-top:16px;">
-        <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('modal-messagerie')">Annuler</button>
-        <button class="btn btn-gold" style="flex:1;" id="msg-new-submit" onclick="submitNewConversation()">Envoyer</button>
-      </div>
-
-      <div class="msg-secondary-action">
-        <button class="msg-secondary-link" onclick="_msgOpenArchives()">📁 Voir mes conversations archivées</button>
-      </div>
-    </div>
-
-    <!-- ---- MODE 'active' : conversation en cours ---- -->
-    <div id="msg-mode-active" class="hidden" style="display:flex;flex-direction:column;flex:1;min-height:0;">
-
-      <div class="msg-conv-header">
-        <div class="msg-conv-header-subject" id="msg-active-subject">—</div>
-        <span class="msg-conv-header-status" id="msg-active-status">Active</span>
-      </div>
-
-      <div class="msg-thread" id="msg-thread"></div>
-
-      <div class="msg-composer" id="msg-composer-wrap">
-        <textarea class="msg-composer-textarea" id="msg-composer-input" rows="2" maxlength="1000"
-          placeholder="Écris ton message…"
-          oninput="_msgUpdateComposerCounter()"></textarea>
-        <div class="msg-composer-bottom">
-          <span class="msg-char-counter" id="msg-composer-counter">0 / 1000</span>
-          <button class="btn btn-gold btn-sm" id="msg-composer-send" onclick="sendMessageInConversation()">Envoyer ➤</button>
-        </div>
-        <div id="msg-spam-banner" class="msg-spam-banner hidden" style="margin-bottom:14px;">
-          ⚠️ Tu as envoyé 3 messages. Attends la réponse d'un surveillant pour pouvoir réécrire.
-        </div>
-        <div id="msg-closed-banner" class="msg-closed-banner hidden" style="margin-bottom:14px;">
-          🔒 Cette conversation a été clôturée par un surveillant.
-        </div>
-      </div>
-
-      <div class="msg-secondary-action" style="padding-bottom:12px;">
-        <button class="msg-secondary-link" onclick="_msgOpenArchives()">📁 Mes conversations archivées</button>
-      </div>
-    </div>
-
-    <!-- ---- MODE 'archive' : liste des conversations clôturées ---- -->
-    <div id="msg-mode-archive" class="hidden">
-      <p class="text-sm text-muted" style="margin-bottom:8px;">
-        Tes conversations passées (lecture seule).
-      </p>
-      <div class="msg-archives-list" id="msg-archives-list"></div>
-
-      <div class="msg-secondary-action" style="margin-top:16px;">
-        <button class="msg-secondary-link" onclick="_msgBackFromArchives()">← Retour</button>
-      </div>
-    </div>
-
-    <!-- ---- MODE 'archive-detail' : conversation archivée en lecture seule ---- -->
-    <div id="msg-mode-archive-detail" class="hidden" style="display:flex;flex-direction:column;flex:1;min-height:0;">
-      <div class="msg-conv-header">
-        <div class="msg-conv-header-subject" id="msg-archive-subject">—</div>
-        <span class="msg-conv-header-status closed">Clôturée</span>
-      </div>
-      <div class="msg-thread" id="msg-archive-thread"></div>
-      <div class="msg-secondary-action" style="padding-bottom:12px;">
-        <button class="msg-secondary-link" onclick="_msgOpenArchives()">← Retour aux archives</button>
-      </div>
-    </div>
-
   </div>
 </div>
 
@@ -5901,6 +5567,48 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     <div style="display:flex;gap:10px;margin-top:6px;">
       <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('modal-reject-reason')">Annuler</button>
       <button class="btn btn-red" style="flex:1;" onclick="confirmRejectProposal()">Refuser ❌</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     MODAL: Conversation admin (Messagerie V1)
+     ================================================================ -->
+<div class="overlay hidden" id="modal-admin-conversation">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="adminconv-title">💬 Conversation</div>
+
+    <input type="hidden" id="adminconv-id">
+
+    <div class="msg-conv-header">
+      <div class="msg-conv-header-subject" id="adminconv-subject">—</div>
+      <span class="msg-conv-header-status" id="adminconv-status">Active</span>
+    </div>
+
+    <div class="text-sm text-muted" id="adminconv-meta" style="margin-bottom:8px;">—</div>
+
+    <div class="msg-thread" id="adminconv-thread" style="max-height:50vh;"></div>
+
+    <!-- Composer admin -->
+    <div class="msg-composer" id="adminconv-composer">
+      <textarea class="msg-composer-textarea" id="adminconv-input" rows="2" maxlength="1000"
+        placeholder="Écris ta réponse…"
+        oninput="_adminConvUpdateCounter()"></textarea>
+      <div class="msg-composer-bottom">
+        <span class="msg-char-counter" id="adminconv-counter">0 / 1000</span>
+        <button class="btn btn-gold btn-sm" id="adminconv-send" onclick="sendAdminReply()">Envoyer ➤</button>
+      </div>
+    </div>
+
+    <div class="msg-closed-banner hidden" id="adminconv-closed-banner" style="margin-top:10px;">
+      🔒 Cette conversation est clôturée — lecture seule.
+    </div>
+
+    <!-- Actions admin -->
+    <div style="display:flex;gap:10px;margin-top:14px;padding-bottom:12px;" id="adminconv-actions">
+      <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('modal-admin-conversation')">Fermer</button>
+      <button class="btn btn-red" style="flex:1;" id="adminconv-close-btn" onclick="closeAdminConversation()">🔒 Clôturer</button>
     </div>
   </div>
 </div>
@@ -7714,419 +7422,6 @@ function openContactSupervisor() {
   setTimeout(() => document.getElementById('txt-contact-message')?.focus(), 80);
 }
 
-/* ================================================================
-   MESSAGERIE V1 — module élève
-   ----------------------------------------------------------------
-   Discussion encadrée élève ↔ admin.
-   - Une seule conversation active par élève (contrainte BDD aussi)
-   - Anti-spam : 3 messages élève d'affilée max sans réponse admin
-     (vérification côté front + RPC `send_student_message` côté BDD)
-   - Clôture par l'admin → archivage en lecture seule
-   - Codes oubliés restent gérés à part (student_requests/forgot_pin)
-   ================================================================ */
-
-let _msgCurrentConv = null;        // { id, subject, status, ... } ou null
-let _msgCurrentMessages = [];      // tableau des messages chargés
-const _MSG_MAX_LEN = 1000;
-const _MSG_SPAM_LIMIT = 3;
-
-/** Entry point : ouvre la modale en sélectionnant le bon mode */
-async function openMessagerie() {
-  closeModal('modal-profile');
-  if (!S.user) return;
-
-  // Affiche la modale + un loader pendant le fetch
-  _msgShowMode('loading');
-  openModal('modal-messagerie');
-
-  // Chercher la conversation active de l'élève
-  const { data: conv, error } = await db.from('conversations')
-    .select('*')
-    .eq('student_id', S.user.id)
-    .eq('status', 'active')
-    .maybeSingle();
-
-  if (error) {
-    console.error('[messagerie] fetch active conv error:', error);
-    toast('Erreur de chargement', 'error');
-    closeModal('modal-messagerie');
-    return;
-  }
-
-  if (conv) {
-    _msgCurrentConv = conv;
-    await _msgLoadActiveConversation();
-  } else {
-    _msgCurrentConv = null;
-    _msgShowMode('new');
-    document.getElementById('msg-new-subject').value = '';
-    document.getElementById('msg-new-content').value = '';
-    _msgUpdateNewCounter();
-  }
-}
-
-/** Bascule entre les 4 modes (new / active / archive / archive-detail / loading) */
-function _msgShowMode(mode) {
-  ['new', 'active', 'archive', 'archive-detail'].forEach(m => {
-    const el = document.getElementById('msg-mode-' + m);
-    if (!el) return;
-    if (m === mode) el.classList.remove('hidden');
-    else            el.classList.add('hidden');
-  });
-
-  // Titre dynamique
-  const titleEl = document.getElementById('msg-title');
-  if (titleEl) {
-    titleEl.textContent =
-      mode === 'new'             ? '💬 Nouvelle conversation'  :
-      mode === 'archive'         ? '📁 Mes conversations archivées' :
-      mode === 'archive-detail'  ? '📁 Conversation archivée'   :
-                                   '💬 Messagerie';
-  }
-}
-
-/** Charge les messages de la conversation active et affiche le mode 'active' */
-async function _msgLoadActiveConversation() {
-  if (!_msgCurrentConv) return;
-
-  const { data: messages, error } = await db.from('conversation_messages')
-    .select('*')
-    .eq('conversation_id', _msgCurrentConv.id)
-    .order('created_at', { ascending: true });
-
-  if (error) {
-    console.error('[messagerie] fetch messages error:', error);
-    toast('Erreur de chargement des messages', 'error');
-    return;
-  }
-
-  _msgCurrentMessages = messages || [];
-
-  // Marquer comme lu côté élève (fire-and-forget)
-  if (_msgCurrentConv.unread_student) {
-    db.from('conversations')
-      .update({ unread_student: false })
-      .eq('id', _msgCurrentConv.id)
-      .then(({ error }) => { if (error) console.warn('[messagerie] unread_student update:', error); });
-  }
-
-  // Mise à jour de l'UI
-  document.getElementById('msg-active-subject').textContent = _msgCurrentConv.subject || '(sans sujet)';
-  const statusEl = document.getElementById('msg-active-status');
-  statusEl.textContent = _msgCurrentConv.status === 'closed' ? 'Clôturée' : 'Active';
-  statusEl.classList.toggle('closed', _msgCurrentConv.status === 'closed');
-
-  _msgRenderThread('msg-thread', _msgCurrentMessages);
-
-  // Composer : actif uniquement si conv active
-  const isActive = _msgCurrentConv.status === 'active';
-  const consec = _msgCountConsecutiveStudent(_msgCurrentMessages);
-  _msgRefreshComposer(isActive, consec);
-
-  _msgShowMode('active');
-
-  // Scroll auto vers le bas (chat classique : message le plus récent en bas)
-  setTimeout(() => {
-    const thread = document.getElementById('msg-thread');
-    if (thread) thread.scrollTop = thread.scrollHeight;
-  }, 50);
-}
-
-/** Compte les messages élève consécutifs depuis le dernier message admin */
-function _msgCountConsecutiveStudent(messages) {
-  if (!messages?.length) return 0;
-  let count = 0;
-  for (let i = messages.length - 1; i >= 0; i--) {
-    if (messages[i].sender_type === 'admin') break;
-    if (messages[i].sender_type === 'student') count++;
-  }
-  return count;
-}
-
-/** Met à jour l'état du composer (textarea + bouton + bandeaux) */
-function _msgRefreshComposer(isActive, consecutiveStudent) {
-  const input    = document.getElementById('msg-composer-input');
-  const sendBtn  = document.getElementById('msg-composer-send');
-  const spamBan  = document.getElementById('msg-spam-banner');
-  const closedBn = document.getElementById('msg-closed-banner');
-  const counter  = document.getElementById('msg-composer-counter');
-
-  if (!isActive) {
-    input.disabled = true;
-    sendBtn.disabled = true;
-    input.placeholder = 'Conversation clôturée';
-    spamBan.classList.add('hidden');
-    closedBn.classList.remove('hidden');
-    counter.textContent = '';
-    return;
-  }
-  closedBn.classList.add('hidden');
-
-  if (consecutiveStudent >= _MSG_SPAM_LIMIT) {
-    input.disabled = true;
-    sendBtn.disabled = true;
-    input.placeholder = 'Limite atteinte — attends une réponse';
-    spamBan.classList.remove('hidden');
-  } else {
-    input.disabled = false;
-    sendBtn.disabled = false;
-    input.placeholder = 'Écris ton message…';
-    spamBan.classList.add('hidden');
-  }
-  input.value = '';
-  _msgUpdateComposerCounter();
-}
-
-/** Rend le thread de messages dans un container donné */
-function _msgRenderThread(containerId, messages) {
-  const el = document.getElementById(containerId);
-  if (!el) return;
-  if (!messages.length) {
-    el.innerHTML = '<div class="text-sm text-muted" style="text-align:center;padding:18px;">Aucun message.</div>';
-    return;
-  }
-
-  let html = '';
-  let lastDay = '';
-  messages.forEach(m => {
-    const d = new Date(m.created_at);
-    const dayKey = d.toISOString().slice(0, 10);
-    if (dayKey !== lastDay) {
-      lastDay = dayKey;
-      const dayLabel = d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
-      html += `<div class="msg-day-separator">${dayLabel}</div>`;
-    }
-    const time = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-    const cls  = m.sender_type === 'student' ? 'from-student' : 'from-admin';
-    const safe = _msgEscapeHTML(m.content || '');
-    html += `<div class="msg-bubble ${cls}">${safe}<span class="msg-bubble-time">${time}</span></div>`;
-  });
-
-  el.innerHTML = html;
-}
-
-/** Échappe le HTML des messages utilisateur */
-function _msgEscapeHTML(s) {
-  return String(s)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
-
-/** Compteur caractères pour la modale 'new' */
-function _msgUpdateNewCounter() {
-  const txt = document.getElementById('msg-new-content')?.value || '';
-  const counter = document.getElementById('msg-new-counter');
-  if (counter) {
-    counter.textContent = txt.length + ' / ' + _MSG_MAX_LEN;
-    counter.classList.toggle('warn', txt.length > _MSG_MAX_LEN * 0.85);
-    counter.classList.toggle('over', txt.length > _MSG_MAX_LEN);
-  }
-}
-
-/** Compteur caractères pour le composer */
-function _msgUpdateComposerCounter() {
-  const txt = document.getElementById('msg-composer-input')?.value || '';
-  const counter = document.getElementById('msg-composer-counter');
-  if (counter) {
-    counter.textContent = txt.length + ' / ' + _MSG_MAX_LEN;
-    counter.classList.toggle('warn', txt.length > _MSG_MAX_LEN * 0.85);
-    counter.classList.toggle('over', txt.length > _MSG_MAX_LEN);
-  }
-}
-
-/** Crée une nouvelle conversation + 1er message */
-async function submitNewConversation() {
-  if (!S.user) return;
-
-  const subject = (document.getElementById('msg-new-subject')?.value || '').trim();
-  const content = (document.getElementById('msg-new-content')?.value || '').trim();
-
-  if (!subject) { toast('Choisis un sujet', 'error'); return; }
-  if (!content) { toast('Entre un message', 'error'); return; }
-  if (content.length > _MSG_MAX_LEN) { toast(`Message trop long (max ${_MSG_MAX_LEN})`, 'error'); return; }
-
-  const btn = document.getElementById('msg-new-submit');
-  if (btn) { btn.disabled = true; btn.textContent = 'Envoi…'; }
-
-  try {
-    // 1. Créer la conversation (la contrainte UNIQUE PARTIAL refusera si une est déjà active)
-    const { data: conv, error: convErr } = await db.from('conversations')
-      .insert({
-        student_id: S.user.id,
-        subject:    subject,
-        status:     'active',
-        unread_admin:   true,
-        unread_student: false,
-      })
-      .select()
-      .single();
-
-    if (convErr) {
-      // Code 23505 = unique violation (déjà une conv active)
-      if (convErr.code === '23505') {
-        toast('Tu as déjà une conversation en cours.', 'info');
-        await openMessagerie(); // bascule vers la conv active existante
-        return;
-      }
-      console.error('[messagerie] create conv error:', convErr);
-      toast('Erreur lors de la création', 'error');
-      return;
-    }
-
-    // 2. Insérer le 1er message
-    const { error: msgErr } = await db.from('conversation_messages').insert({
-      conversation_id: conv.id,
-      sender_type:     'student',
-      sender_id:       S.user.id,
-      content:         content,
-    });
-
-    if (msgErr) {
-      console.error('[messagerie] insert first message error:', msgErr);
-      toast('Erreur lors de l\'envoi', 'error');
-      return;
-    }
-
-    // 3. last_message_at à jour
-    await db.from('conversations')
-      .update({ last_message_at: new Date().toISOString() })
-      .eq('id', conv.id);
-
-    toast('Conversation envoyée 📨', 'success');
-    _msgCurrentConv = conv;
-    await _msgLoadActiveConversation();
-
-  } finally {
-    if (btn) { btn.disabled = false; btn.textContent = 'Envoyer'; }
-  }
-}
-
-/** Envoie un message dans la conversation active (via RPC anti-spam) */
-async function sendMessageInConversation() {
-  if (!_msgCurrentConv) return;
-  const input = document.getElementById('msg-composer-input');
-  const content = (input?.value || '').trim();
-  if (!content) { toast('Entre un message', 'error'); return; }
-  if (content.length > _MSG_MAX_LEN) { toast(`Message trop long (max ${_MSG_MAX_LEN})`, 'error'); return; }
-
-  const sendBtn = document.getElementById('msg-composer-send');
-  if (sendBtn) sendBtn.disabled = true;
-
-  try {
-    const { data, error } = await db.rpc('send_student_message', {
-      p_conversation_id: _msgCurrentConv.id,
-      p_content: content,
-    });
-
-    if (error) {
-      console.error('[messagerie] RPC error:', error);
-      toast('Erreur d\'envoi', 'error');
-      return;
-    }
-
-    if (!data?.ok) {
-      if (data?.code === 'SPAM_LIMIT') {
-        toast('Tu as atteint la limite de messages d\'affilée.', 'info');
-      } else if (data?.code === 'CLOSED') {
-        toast('Cette conversation a été clôturée.', 'info');
-      } else {
-        toast('Envoi impossible', 'error');
-      }
-      // Recharger l'état pour être sûr
-      await _msgLoadActiveConversation();
-      return;
-    }
-
-    // OK : recharger les messages
-    if (input) input.value = '';
-    await _msgLoadActiveConversation();
-
-  } finally {
-    if (sendBtn) sendBtn.disabled = false;
-  }
-}
-
-/** Ouvre la liste des conversations archivées (élève) */
-async function _msgOpenArchives() {
-  if (!S.user) return;
-  _msgShowMode('archive');
-
-  const list = document.getElementById('msg-archives-list');
-  list.innerHTML = '<div class="text-sm text-muted" style="text-align:center;padding:18px;">Chargement…</div>';
-
-  const { data, error } = await db.from('conversations')
-    .select('id, subject, closed_at, last_message_at')
-    .eq('student_id', S.user.id)
-    .eq('status', 'closed')
-    .order('closed_at', { ascending: false });
-
-  if (error) {
-    console.error('[messagerie] archives error:', error);
-    list.innerHTML = '<div class="text-sm text-muted" style="text-align:center;padding:18px;">Erreur de chargement.</div>';
-    return;
-  }
-
-  if (!data?.length) {
-    list.innerHTML = '<div class="text-sm text-muted" style="text-align:center;padding:18px;">Aucune conversation archivée.</div>';
-    return;
-  }
-
-  list.innerHTML = data.map(c => {
-    const d = c.closed_at ? new Date(c.closed_at) : new Date(c.last_message_at);
-    const dStr = d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
-    const subj = _msgEscapeHTML(c.subject || '(sans sujet)');
-    return `<div class="msg-archive-item" onclick="_msgOpenArchivedConv('${c.id}')">
-      <div class="msg-archive-subject">${subj}</div>
-      <div class="msg-archive-meta">Clôturée le ${dStr}</div>
-    </div>`;
-  }).join('');
-}
-
-/** Affiche une conversation archivée en lecture seule */
-async function _msgOpenArchivedConv(convId) {
-  // Récupérer la conv
-  const { data: conv } = await db.from('conversations')
-    .select('id, subject, status, closed_at')
-    .eq('id', convId)
-    .maybeSingle();
-  if (!conv) { toast('Conversation introuvable', 'error'); return; }
-
-  document.getElementById('msg-archive-subject').textContent = conv.subject || '(sans sujet)';
-
-  const { data: msgs } = await db.from('conversation_messages')
-    .select('*')
-    .eq('conversation_id', convId)
-    .order('created_at', { ascending: true });
-
-  _msgRenderThread('msg-archive-thread', msgs || []);
-  _msgShowMode('archive-detail');
-
-  setTimeout(() => {
-    const t = document.getElementById('msg-archive-thread');
-    if (t) t.scrollTop = t.scrollHeight;
-  }, 50);
-}
-
-/** Retour depuis le détail archive vers la liste / mode adéquat */
-function _msgBackFromArchives() {
-  // Si une conv active existe → retourne dessus, sinon mode 'new'
-  if (_msgCurrentConv && _msgCurrentConv.status === 'active') {
-    _msgShowMode('active');
-  } else {
-    _msgShowMode('new');
-  }
-}
-
-/* ================================================================
-   FIN MESSAGERIE V1 — module élève
-   ================================================================ */
-
-
-/* Legacy — conservée pour la modale modal-contact-supervisor au cas où.
-   Désormais l'app utilise la messagerie ci-dessus. */
 async function submitSupervisorMessage() {
   console.log('[submitSupervisorMessage] Début');
   
@@ -10223,7 +9518,7 @@ let _requestFilter = 'forgot_pin';
 
 function filterRequests(type) {
   _requestFilter = type;
-  const filters = ['forgot_pin', 'message', 'handled'];
+  const filters = ['forgot_pin', 'message', 'archived_messages', 'handled'];
   document.querySelectorAll('#req-subtabs .sub-tab').forEach((btn, i) => {
     btn.classList.toggle('active', filters[i] === type);
   });
@@ -10293,9 +9588,13 @@ function startAdminRealtime() {
         () => _onAdminRTEvent('cinema_sessions'))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'votes' },
         () => _onAdminRTEvent('votes'))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'conversations' },
+        () => _onAdminRTEvent('conversations'))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'conversation_messages' },
+        () => _onAdminRTEvent('conversation_messages'))
     .subscribe((status) => {
       if (status === 'SUBSCRIBED') {
-        console.log('[adminRT] ✓ abonné aux 5 tables');
+        console.log('[adminRT] ✓ abonné aux 7 tables');
       } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
         console.warn('[adminRT] statut canal:', status);
       }
@@ -10361,7 +9660,7 @@ function _onAdminRTEvent(table) {
   _adminRTDebounce('global-badges', () => {
     if (table === 'proposals') {
       refreshPendingProposalsBadge();
-    } else if (table === 'student_requests') {
+    } else if (table === 'student_requests' || table === 'conversations' || table === 'conversation_messages') {
       refreshPendingRequestsBadge();
     }
   }, 250);
@@ -10374,11 +9673,13 @@ function _onAdminRTEvent(table) {
 
     // Mapping table → onglets concernés
     const concerns = {
-      registrations:    ['dashboard', 'sessions'],
-      cinema_sessions:  ['dashboard', 'sessions'],
-      student_requests: ['dashboard', 'requests'],
-      proposals:        ['proposals'],
-      votes:            ['votes'],
+      registrations:         ['dashboard', 'sessions'],
+      cinema_sessions:       ['dashboard', 'sessions'],
+      student_requests:      ['dashboard', 'requests'],
+      proposals:             ['proposals'],
+      votes:                 ['votes'],
+      conversations:         ['requests'],
+      conversation_messages: ['requests'],
     };
 
     if (!concerns[table]?.includes(tab)) return;
@@ -12840,6 +12141,25 @@ async function refreshPendingRequestsBadge() {
     if (messageError) {
       console.error('[refreshPendingRequestsBadge] Erreur comptage message:', messageError);
     }
+
+    // V1 messagerie : compter aussi les conversations avec unread_admin=true
+    let conversationsUnread = 0;
+    try {
+      const { count: convCount, error: convError } = await db.from('conversations')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'active')
+        .eq('unread_admin', true);
+      if (convError) {
+        console.warn('[refreshPendingRequestsBadge] Erreur comptage conversations:', convError);
+      } else {
+        conversationsUnread = convCount || 0;
+      }
+    } catch (e) {
+      console.warn('[refreshPendingRequestsBadge] Exception comptage conversations:', e);
+    }
+
+    // Le badge "Messages" affiche désormais (legacy student_requests + conversations unread)
+    const totalMessageBadge = (messageCount || 0) + conversationsUnread;
     
     console.log('[refreshPendingRequestsBadge] Comptages:', {
       total: totalCount,
@@ -12849,9 +12169,10 @@ async function refreshPendingRequestsBadge() {
     
     // Badge principal (onglet Demandes)
     const mainBadge = document.getElementById('pending-requests-badge');
+    const grandTotal = (totalCount || 0) + conversationsUnread;
     if (mainBadge) {
-      if (totalCount > 0) {
-        mainBadge.textContent = totalCount;
+      if (grandTotal > 0) {
+        mainBadge.textContent = grandTotal;
         mainBadge.classList.remove('hidden');
       } else {
         mainBadge.classList.add('hidden');
@@ -12872,8 +12193,8 @@ async function refreshPendingRequestsBadge() {
     // Badge Messages
     const messageBadge = document.getElementById('req-message-badge');
     if (messageBadge) {
-      if (messageCount > 0) {
-        messageBadge.textContent = messageCount;
+      if (totalMessageBadge > 0) {
+        messageBadge.textContent = totalMessageBadge;
         messageBadge.classList.remove('hidden');
       } else {
         messageBadge.classList.add('hidden');
@@ -12891,6 +12212,15 @@ async function loadAdminRequests() {
 
   console.log('[loadAdminRequests] Chargement demandes, filtre:', filter);
 
+  // ----- NOUVEAU : si filtre = messages → table conversations -----
+  if (filter === 'message') {
+    return _loadAdminConversations(false); // false = actives
+  }
+  if (filter === 'archived_messages') {
+    return _loadAdminConversations(true);  // true = archivées
+  }
+
+  // ----- Existant : student_requests pour codes oubliés et traitées -----
   // Essayer d'abord avec jointure
   let query = db.from('student_requests')
     .select('*, students(id, first_name, last_name, class_name, login_identifier)')
@@ -13059,6 +12389,291 @@ async function loadAdminRequests() {
 
   refreshPendingRequestsBadge();
 }
+
+/* ================================================================
+   MESSAGERIE V1 — module admin
+   ----------------------------------------------------------------
+   Lecture des `conversations` + `conversation_messages`.
+   Réponse, clôture, archives.
+   Codes oubliés (student_requests) restent gérés à part.
+   ================================================================ */
+
+let _adminCurrentConv = null;
+let _adminCurrentMessages = [];
+
+/** Charge les conversations admin (actives ou archivées) */
+async function _loadAdminConversations(archived) {
+  const list = document.getElementById('admin-requests-list');
+  list.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
+
+  const status = archived ? 'closed' : 'active';
+  const orderCol = archived ? 'closed_at' : 'last_message_at';
+
+  const { data, error } = await db.from('conversations')
+    .select('id, subject, status, created_at, last_message_at, closed_at, unread_admin, student_id, students(id, first_name, last_name, class_name)')
+    .eq('status', status)
+    .order(orderCol, { ascending: false });
+
+  if (error) {
+    console.error('[admin-messagerie] load conversations error:', error);
+    list.innerHTML = `<div class="empty"><div class="icon">❌</div><h3>Erreur de chargement</h3><p>${error.message || 'Inconnu'}</p></div>`;
+    refreshPendingRequestsBadge();
+    return;
+  }
+
+  if (!data?.length) {
+    const empty = archived ? 'Aucune conversation archivée' : 'Aucune conversation active';
+    list.innerHTML = `<div class="empty"><div class="icon">💬</div><h3>${empty}</h3></div>`;
+    refreshPendingRequestsBadge();
+    return;
+  }
+
+  // Pour chaque conv, on lit aussi le dernier message pour l'extrait + sender
+  const ids = data.map(c => c.id);
+  const { data: lastMsgs } = await db.from('conversation_messages')
+    .select('conversation_id, sender_type, content, created_at')
+    .in('conversation_id', ids)
+    .order('created_at', { ascending: false });
+
+  // Mapping id → dernier message
+  const lastByConv = {};
+  (lastMsgs || []).forEach(m => {
+    if (!lastByConv[m.conversation_id]) lastByConv[m.conversation_id] = m;
+  });
+
+  list.innerHTML = data.map(c => {
+    const s = c.students || {};
+    const studentName = `${s.first_name || '?'} ${s.last_name || '?'}`;
+    const studentLink = s.id
+      ? `<button class="admin-student-link" onclick="event.stopPropagation();openStudentDetail('${s.id}')" title="Voir la fiche élève">${studentName}</button>`
+      : `<span>${studentName}</span>`;
+
+    const lm = lastByConv[c.id];
+    let extract = '—';
+    let extractWho = '';
+    if (lm) {
+      const txt = (lm.content || '').replace(/\s+/g, ' ').trim();
+      extract = txt.length > 90 ? txt.slice(0, 87) + '…' : txt;
+      extractWho = lm.sender_type === 'admin' ? 'Toi : ' : '';
+    }
+
+    const dateStr = c.last_message_at
+      ? fmtDateTime(c.last_message_at)
+      : (c.created_at ? fmtDateTime(c.created_at) : '—');
+
+    const closedStr = c.closed_at ? fmtDateTime(c.closed_at) : null;
+
+    const unreadDot = (!archived && c.unread_admin)
+      ? `<span style="display:inline-block;width:8px;height:8px;background:var(--gold);border-radius:50%;margin-right:6px;vertical-align:middle;"></span>`
+      : '';
+
+    const subject = (c.subject || '(sans sujet)').replace(/'/g, "\\'");
+
+    return `
+      <div class="ai" style="cursor:pointer;" onclick="openAdminConversation('${c.id}')">
+        <div class="ai-info">
+          <div class="ai-title">${unreadDot}💬 ${subject}</div>
+          <div class="ai-sub">Par ${studentLink} · ${s.class_name || '?'}</div>
+          <div class="text-sm text-muted mt-1" style="background:var(--surface-3);border-radius:6px;padding:8px 10px;margin-top:6px;">
+            <em style="opacity:.7;">${extractWho}</em>${_msgEscapeHTML(extract)}
+          </div>
+          <div class="text-sm text-muted mt-1">
+            <strong>${archived ? 'Clôturée le' : 'Dernière activité'} :</strong>
+            ${archived ? (closedStr || dateStr) : dateStr}
+          </div>
+        </div>
+        <div class="ai-actions">
+          <button class="btn btn-sm btn-gold" onclick="event.stopPropagation();openAdminConversation('${c.id}')">Ouvrir ›</button>
+        </div>
+      </div>`;
+  }).join('');
+
+  refreshPendingRequestsBadge();
+}
+
+/** Ouvre la modale conversation admin */
+async function openAdminConversation(convId) {
+  // Fetch conv + messages en parallèle
+  const [{ data: conv, error: e1 }, { data: messages, error: e2 }] = await Promise.all([
+    db.from('conversations')
+      .select('*, students(id, first_name, last_name, class_name)')
+      .eq('id', convId)
+      .single(),
+    db.from('conversation_messages')
+      .select('*')
+      .eq('conversation_id', convId)
+      .order('created_at', { ascending: true }),
+  ]);
+
+  if (e1 || !conv) {
+    console.error('[admin-messagerie] load conv error:', e1);
+    toast('Erreur de chargement', 'error');
+    return;
+  }
+  if (e2) {
+    console.warn('[admin-messagerie] load messages error:', e2);
+  }
+
+  _adminCurrentConv = conv;
+  _adminCurrentMessages = messages || [];
+
+  // Marquer comme lu côté admin (fire-and-forget)
+  if (conv.unread_admin) {
+    db.from('conversations')
+      .update({ unread_admin: false })
+      .eq('id', conv.id)
+      .then(({ error }) => { if (error) console.warn('[admin-messagerie] mark read:', error); });
+  }
+
+  const s = conv.students || {};
+  const studentName = `${s.first_name || '?'} ${s.last_name || '?'}`;
+  document.getElementById('adminconv-id').value = conv.id;
+  document.getElementById('adminconv-title').textContent = '💬 ' + studentName;
+  document.getElementById('adminconv-subject').textContent = conv.subject || '(sans sujet)';
+  document.getElementById('adminconv-meta').textContent =
+    `${s.class_name || '?'} · Ouverte le ${fmtDateTime(conv.created_at)}`;
+
+  const statusEl = document.getElementById('adminconv-status');
+  const isClosed = conv.status === 'closed';
+  statusEl.textContent = isClosed ? 'Clôturée' : 'Active';
+  statusEl.classList.toggle('closed', isClosed);
+
+  _adminConvRenderThread();
+
+  // Composer + bouton clôture : dépend du statut
+  const composer  = document.getElementById('adminconv-composer');
+  const banner    = document.getElementById('adminconv-closed-banner');
+  const closeBtn  = document.getElementById('adminconv-close-btn');
+  const input     = document.getElementById('adminconv-input');
+  const sendBtn   = document.getElementById('adminconv-send');
+
+  if (isClosed) {
+    composer.classList.add('hidden');
+    banner.classList.remove('hidden');
+    closeBtn.style.display = 'none';
+  } else {
+    composer.classList.remove('hidden');
+    banner.classList.add('hidden');
+    closeBtn.style.display = '';
+    input.value = '';
+    input.disabled = false;
+    sendBtn.disabled = false;
+    _adminConvUpdateCounter();
+  }
+
+  openModal('modal-admin-conversation');
+
+  setTimeout(() => {
+    const t = document.getElementById('adminconv-thread');
+    if (t) t.scrollTop = t.scrollHeight;
+  }, 50);
+}
+
+/** Rend le thread admin (réutilise les bulles définies pour l'élève) */
+function _adminConvRenderThread() {
+  _msgRenderThread('adminconv-thread', _adminCurrentMessages);
+}
+
+/** Compteur caractères composer admin */
+function _adminConvUpdateCounter() {
+  const txt = document.getElementById('adminconv-input')?.value || '';
+  const counter = document.getElementById('adminconv-counter');
+  if (counter) {
+    counter.textContent = txt.length + ' / 1000';
+    counter.classList.toggle('warn', txt.length > 850);
+    counter.classList.toggle('over', txt.length > 1000);
+  }
+}
+
+/** Envoie une réponse admin */
+async function sendAdminReply() {
+  if (!_adminCurrentConv) return;
+  const input = document.getElementById('adminconv-input');
+  const content = (input?.value || '').trim();
+  if (!content) { toast('Entre une réponse', 'error'); return; }
+  if (content.length > 1000) { toast('Message trop long (max 1000)', 'error'); return; }
+  if (_adminCurrentConv.status !== 'active') {
+    toast('Conversation clôturée', 'info');
+    return;
+  }
+
+  const sendBtn = document.getElementById('adminconv-send');
+  if (sendBtn) sendBtn.disabled = true;
+
+  try {
+    // 1. Insert le message
+    const { error: msgErr } = await db.from('conversation_messages').insert({
+      conversation_id: _adminCurrentConv.id,
+      sender_type:     'admin',
+      sender_id:       null,
+      content:         content,
+    });
+
+    if (msgErr) {
+      console.error('[admin-messagerie] insert error:', msgErr);
+      toast('Erreur d\'envoi', 'error');
+      return;
+    }
+
+    // 2. Update la conversation
+    const { error: upErr } = await db.from('conversations')
+      .update({
+        last_message_at: new Date().toISOString(),
+        unread_admin:    false,
+        unread_student:  true,
+      })
+      .eq('id', _adminCurrentConv.id);
+
+    if (upErr) console.warn('[admin-messagerie] update conv:', upErr);
+
+    if (input) input.value = '';
+    toast('Réponse envoyée', 'success');
+
+    // 3. Recharger la conv (re-render thread)
+    await openAdminConversation(_adminCurrentConv.id);
+
+  } finally {
+    if (sendBtn) sendBtn.disabled = false;
+  }
+}
+
+/** Clôture la conversation (admin) */
+async function closeAdminConversation() {
+  if (!_adminCurrentConv) return;
+  if (_adminCurrentConv.status !== 'active') return;
+
+  if (!confirm('Clôturer définitivement cette conversation ?\nL\'élève ne pourra plus y répondre.')) return;
+
+  const { error } = await db.from('conversations')
+    .update({
+      status:          'closed',
+      closed_at:       new Date().toISOString(),
+      closed_by_admin: true,
+      unread_admin:    false,
+      unread_student:  true,
+    })
+    .eq('id', _adminCurrentConv.id);
+
+  if (error) {
+    console.error('[admin-messagerie] close error:', error);
+    toast('Erreur lors de la clôture', 'error');
+    return;
+  }
+
+  toast('Conversation clôturée 🔒', 'success');
+  closeModal('modal-admin-conversation');
+  _adminCurrentConv = null;
+
+  // Rafraîchir la liste si on est sur l'onglet messages
+  if (_requestFilter === 'message' || _requestFilter === 'archived_messages') {
+    loadAdminRequests();
+  }
+  refreshPendingRequestsBadge();
+}
+
+/* ================================================================
+   FIN MESSAGERIE V1 — module admin
+   ================================================================ */
 
 async function markRequestHandled(requestId) {
   console.log('[markRequestHandled] Marquage demande:', requestId);
