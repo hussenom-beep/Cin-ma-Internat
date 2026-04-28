@@ -8345,7 +8345,8 @@ async function _fetchRiskCounts(studentIds) {
       db.from('late_cancellations')
         .select('student_id')
         .in('student_id', studentIds)
-        .gte('cancelled_at', since),
+        .gte('cancelled_at', since)
+        .is('cleared_at', null),
       db.from('student_missed_films')
         .select('student_id')
         .in('student_id', studentIds)
@@ -8368,6 +8369,41 @@ async function _fetchRiskCounts(studentIds) {
 async function _fetchRiskCountsForOne(studentId) {
   const map = await _fetchRiskCounts([studentId]);
   return map.get(studentId) || { lateCount: 0, absenceCount: 0 };
+}
+
+/**
+ * Neutralise les désistements tardifs encore actifs pour un couple
+ * (élève, séance) — appelé après une réinscription réussie quand la
+ * séance n'a pas encore commencé.
+ * Idempotent : le filtre `.is('cleared_at', null)` évite de toucher
+ * les rows déjà neutralisés.
+ */
+async function _clearLateCancellationsIfReregistered(studentId, sessionId, sessionDate, sessionTime) {
+  if (!studentId || !sessionId) return;
+
+  // Sécurité : ne neutraliser que si la séance n'a pas encore commencé
+  if (sessionDate) {
+    const time = sessionTime || '20:00';
+    const sessionDT = new Date(`${sessionDate}T${time}:00`);
+    if (!isNaN(sessionDT.getTime()) && Date.now() >= sessionDT.getTime()) {
+      // Séance déjà commencée → on ne neutralise pas
+      return;
+    }
+  }
+
+  const { error } = await db.from('late_cancellations')
+    .update({
+      cleared_at:     new Date().toISOString(),
+      cleared_reason: 'reregistered_before_session',
+    })
+    .eq('student_id', studentId)
+    .eq('session_id', sessionId)
+    .is('cleared_at', null);
+
+  if (error) {
+    // Pas bloquant : on log juste. La réinscription a réussi de toute façon.
+    console.warn('[_clearLateCancellationsIfReregistered] update error:', error);
+  }
 }
 
 /**
@@ -8528,7 +8564,7 @@ async function toggleReg(sessionId, action) {
     }
 
     const { data: ses } = await db.from('cinema_sessions')
-      .select('registrations_open')
+      .select('registrations_open, session_date, session_time')
       .eq('id', sessionId)
       .single();
 
@@ -8565,6 +8601,16 @@ async function toggleReg(sessionId, action) {
       await loadSessions();
       return;
     }
+
+    // Réinscription réussie (confirmé ou waitlist) → neutraliser un éventuel
+    // désistement tardif antérieur sur cette MÊME séance, tant qu'elle n'a
+    // pas commencé. Fire-and-forget : ne bloque pas le toast.
+    _clearLateCancellationsIfReregistered(
+      S.user.id,
+      sessionId,
+      ses?.session_date,
+      ses?.session_time
+    );
 
     if (result?.status === 'waitlist') {
       toast("Tu es en liste d'attente ⏳");
