@@ -2887,23 +2887,21 @@ button { cursor: pointer; }
 code { font-family: 'Courier New', monospace; background: var(--surface-3); padding: 2px 7px; border-radius: 5px; font-size: 12px; color: var(--gold); letter-spacing: .05em; }
 
 /* ================================================================
-   ACCUEIL ADMIN — PROCHAINE SÉANCE (style premium avec fond affiche)
+   ACCUEIL ADMIN — PROCHAINE SÉANCE (rendu premium façon banner élève)
    ================================================================ */
 .next-session-card {
   position: relative;
   background: linear-gradient(135deg, #1a1428 0%, #0f0f1e 100%);
   border-radius: var(--radius-lg);
-  padding: 20px;
   margin-bottom: 24px;
-  display: flex;
-  gap: 20px;
   border: 1px solid rgba(240,165,0,.3);
   overflow: hidden;
+  min-height: 280px;
   transition: border-color .2s, transform .18s;
 }
 .next-session-card:hover { border-color: var(--gold-glow); }
 
-/* Image de fond — affiche du film en grand, floutée et atténuée */
+/* Image de fond : l'affiche est LE visuel principal de la carte */
 .nsc-bg {
   position: absolute;
   inset: 0;
@@ -2911,76 +2909,68 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
   height: 100%;
   object-fit: cover;
   object-position: center 30%;
-  opacity: .22;
-  filter: blur(4px) saturate(1.1);
-  transform: scale(1.08); /* compense le flou pour pas voir les bords */
+  opacity: .35;
   pointer-events: none;
   z-index: 0;
 }
 
-/* Overlay dégradée pour assurer la lisibilité du texte */
+/* Overlay dégradé vertical : transparent en haut (laisse voir l'affiche), sombre en bas (lisibilité du contenu) */
 .nsc-overlay {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(to right, rgba(8,8,15,.85) 0%, rgba(8,8,15,.55) 50%, rgba(8,8,15,.75) 100%),
-    linear-gradient(to top,   rgba(8,8,15,.6)  0%, rgba(8,8,15,.2)  100%);
+    linear-gradient(to top, rgba(8,8,15,.95) 0%, rgba(8,8,15,.6) 55%, rgba(8,8,15,.2) 100%),
+    linear-gradient(to right, rgba(8,8,15,.4) 0%, rgba(8,8,15,0) 60%);
   pointer-events: none;
   z-index: 0;
 }
 
-/* Affiche thumb à gauche : on lui ajoute une légère ombre pour la sortir du fond */
-.nsc-poster {
+/* Zone interne : layout vertical pour le rendu premium cinéma */
+.nsc-inner {
   position: relative;
   z-index: 1;
-  flex-shrink: 0;
-  width: 140px;
-  height: 210px;
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  background: var(--surface-3);
-  box-shadow: 0 8px 24px rgba(0,0,0,.6);
-  border: 1px solid rgba(255,255,255,.12);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 280px;
+  padding: 22px 24px;
+  gap: 20px;
 }
 
-.nsc-poster img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.nsc-content {
-  position: relative;
-  z-index: 1;
-  flex: 1;
+/* Haut : badge date + titre */
+.nsc-top {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
 .nsc-badge {
-  display: inline-block;
-  background: rgba(240,165,0,0.22);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(240,165,0,0.18);
   color: var(--gold);
-  padding: 4px 12px;
+  padding: 5px 13px;
   border-radius: 20px;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: .04em;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
   width: fit-content;
-  border: 1px solid rgba(240,165,0,.25);
+  border: 1px solid rgba(240,165,0,.3);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
 }
 
 .nsc-title {
   font-family: 'Playfair Display', serif;
-  font-size: 24px;
+  font-size: 30px;
   font-weight: 700;
-  line-height: 1.25;
+  line-height: 1.15;
   margin: 0;
   color: #fff;
-  text-shadow: 0 2px 12px rgba(0,0,0,.55);
+  text-shadow: 0 3px 16px rgba(0,0,0,.7);
+  max-width: 75%; /* Sur desktop, laisse l'affiche en fond visible à droite */
 }
 
 .nsc-time {
@@ -2988,35 +2978,41 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
   color: var(--text-2);
 }
 
+/* Bas : stats + actions */
+.nsc-bottom {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
 .nsc-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 12px;
-  margin-top: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
 }
 
 .nsc-stat {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  background: rgba(255,255,255,.04);
-  border: 1px solid rgba(255,255,255,.08);
-  padding: 10px 12px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.1);
+  padding: 10px 14px;
   border-radius: 10px;
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .nsc-stat-label {
-  font-size: 11px;
-  color: var(--text-3);
+  font-size: 10px;
+  color: rgba(255,255,255,.7);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
   font-weight: 700;
 }
 
 .nsc-stat-value {
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 700;
   color: #fff;
   text-shadow: 0 1px 6px rgba(0,0,0,.5);
@@ -3025,14 +3021,14 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 .nsc-actions {
   display: flex;
   gap: 10px;
-  margin-top: auto;
   flex-wrap: wrap;
 }
 
-/* État vide — on neutralise les effets premium */
+/* État vide — on neutralise les effets premium pour rester sobre */
 .next-session-card:has(.nsc-empty) {
   background: var(--surface-2);
   border: 1px solid var(--border);
+  min-height: auto;
 }
 .nsc-empty {
   position: relative;
@@ -3596,18 +3592,36 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 
 @media (max-width: 640px) {
   .next-session-card {
-    flex-direction: column;
+    min-height: 320px;
   }
-  
-  .nsc-poster {
-    width: 100%;
-    height: 280px;
+
+  .nsc-inner {
+    min-height: 320px;
+    padding: 18px 18px;
   }
-  
+
+  .nsc-title {
+    font-size: 24px;
+    max-width: 100%;
+  }
+
+  .nsc-stats {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .nsc-stat {
+    padding: 8px 10px;
+  }
+
+  .nsc-stat-value {
+    font-size: 15px;
+  }
+
   .session-sheet-header {
     flex-direction: column;
   }
-  
+
   .ssh-poster {
     width: 100%;
     height: 200px;
@@ -8489,35 +8503,36 @@ async function loadNextSessionCard() {
     el.innerHTML = `
       ${posterUrl ? `<img class="nsc-bg" src="${posterUrl}" alt="" aria-hidden="true">` : ''}
       <div class="nsc-overlay"></div>
-      <div class="nsc-poster">
-        ${posterUrl ? `<img src="${posterUrl}" alt="${filmTitle}">` : ''}
-      </div>
-      <div class="nsc-content">
-        <div class="nsc-badge">${sessionDate} • ${session.session_time || '20:00'}</div>
-        <h2 class="nsc-title">${filmTitle}</h2>
-        <div class="nsc-stats">
-          <div class="nsc-stat">
-            <span class="nsc-stat-label">Inscrits</span>
-            <span class="nsc-stat-value" style="cursor: pointer;" onclick="viewRegistrants('${session.id}', '${session.session_date}')" title="Voir tous les participants">${registeredCount} / ${capacity}</span>
-          </div>
-          <div class="nsc-stat">
-            <span class="nsc-stat-label">Liste d'attente</span>
-            <span class="nsc-stat-value">${waitlistCount || 0}</span>
-          </div>
-          <div class="nsc-stat">
-            <span class="nsc-stat-label">Inscriptions</span>
-            <span class="nsc-stat-value">${regStatus}</span>
-          </div>
+      <div class="nsc-inner">
+        <div class="nsc-top">
+          <div class="nsc-badge">📅 ${sessionDate} • ${session.session_time || '20:00'}</div>
+          <h2 class="nsc-title">${filmTitle}</h2>
         </div>
-        <div class="nsc-actions">
-          <button class="btn btn-gold" onclick="openSessionSheet('${session.id}')">
-            📋 Ouvrir la fiche
-          </button>
-          ${canAttend ? `
-            <button class="btn btn-primary" onclick="openSessionSheet('${session.id}', 'attendance')">
-              ✓ Faire l'appel
+        <div class="nsc-bottom">
+          <div class="nsc-stats">
+            <div class="nsc-stat">
+              <span class="nsc-stat-label">Inscrits</span>
+              <span class="nsc-stat-value" style="cursor: pointer;" onclick="viewRegistrants('${session.id}', '${session.session_date}')" title="Voir tous les participants">${registeredCount} / ${capacity}</span>
+            </div>
+            <div class="nsc-stat">
+              <span class="nsc-stat-label">Liste d'attente</span>
+              <span class="nsc-stat-value">${waitlistCount || 0}</span>
+            </div>
+            <div class="nsc-stat">
+              <span class="nsc-stat-label">Inscriptions</span>
+              <span class="nsc-stat-value">${regStatus}</span>
+            </div>
+          </div>
+          <div class="nsc-actions">
+            <button class="btn btn-gold" onclick="openSessionSheet('${session.id}')">
+              📋 Ouvrir la fiche
             </button>
-          ` : ''}
+            ${canAttend ? `
+              <button class="btn btn-primary" onclick="openSessionSheet('${session.id}', 'attendance')">
+                ✓ Faire l'appel
+              </button>
+            ` : ''}
+          </div>
         </div>
       </div>
     `;
