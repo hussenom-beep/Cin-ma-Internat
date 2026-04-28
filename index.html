@@ -17221,22 +17221,45 @@ async function genSeancePDF(sesId) {
   toast('Génération du PDF…', 'info');
 
   /* Récupération (synopsis, pas overview) */
-  const [
-    { data: ses, error: sesError },
-    { data: regs, error: regsError }
-  ] = await Promise.all([
-    db.from('cinema_sessions')
-      .select('*, films(title, poster_url, year, genre, duration, synopsis)')
-      .eq('id', sesId).single(),
-    db.from('registrations')
-      .select('*, students!inner(id, first_name, last_name, class_name)')
-      .eq('session_id', sesId)
-      .eq('status', 'registered')
-      .order('registered_at', { ascending: true })
-  ]);
-  if (sesError)  console.error('genSeancePDF session error:', sesError, 'sesId=', sesId);
-  if (regsError) console.error('genSeancePDF regs error:', regsError, 'sesId=', sesId);
+  const { data: ses, error: sesError } = await db
+    .from('cinema_sessions')
+    .select('*, films(title, poster_url, year, genre, duration, synopsis)')
+    .eq('id', sesId)
+    .single();
+  
+  if (sesError) console.error('genSeancePDF session error:', sesError, 'sesId=', sesId);
   if (!ses) { toast('Séance introuvable', 'error'); return; }
+
+  // Récupérer les inscriptions confirmées
+  const { data: regs, error: regsError } = await db
+    .from('registrations')
+    .select('student_id, registered_at')
+    .eq('session_id', sesId)
+    .eq('status', 'registered')
+    .order('registered_at', { ascending: true });
+  
+  if (regsError) console.error('genSeancePDF regs error:', regsError, 'sesId=', sesId);
+  
+  // Récupérer les infos des élèves inscrits
+  let confirmed = [];
+  if (regs && regs.length > 0) {
+    const studentIds = regs.map(r => r.student_id);
+    const { data: students, error: studentsError } = await db
+      .from('students')
+      .select('id, first_name, last_name, class_name')
+      .in('id', studentIds);
+    
+    if (studentsError) console.error('genSeancePDF students error:', studentsError);
+    
+    // Combiner les données
+    confirmed = regs.map(r => {
+      const student = students?.find(s => s.id === r.student_id);
+      return {
+        registered_at: r.registered_at,
+        students: student || { first_name: '', last_name: '', class_name: '' }
+      };
+    }).sort((a,b) => (a.students?.last_name||'').localeCompare(b.students?.last_name||'','fr'));
+  }
 
   const film     = ses.films || {};
   const title    = film.title     || 'Film à annoncer';
@@ -17244,9 +17267,6 @@ async function genSeancePDF(sesId) {
   const poster   = film.poster_url || null;
   const cap      = ses.max_capacity || 20;
   const referent = 'Matthias';
-
-  const confirmed = (regs || [])
-    .sort((a,b) => (a.students?.last_name||'').localeCompare(b.students?.last_name||'','fr'));
   
   console.log('[PDF] Nombre d\'inscrits confirmés:', confirmed.length);
   console.log('[PDF] Inscrits:', confirmed.map(r => `${r.students?.first_name} ${r.students?.last_name}`));
