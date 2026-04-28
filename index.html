@@ -12531,17 +12531,45 @@ async function confirmMarkScreened() {
 async function deleteFilm(id) {
   if (!confirm('Supprimer ce film définitivement ? Cette action est irréversible.')) return;
   
+  // ✅ NOUVEAU : Vérifier si le film est dans l'historique des élèves
+  const { data: watchedEntries, error: watchedError } = await db
+    .from('student_watched_films')
+    .select('id')
+    .eq('film_id', id)
+    .limit(1);
+  
+  if (watchedError) {
+    console.error('[deleteFilm] Erreur vérification historique:', watchedError);
+  }
+  
+  // ✅ Si le film est dans l'historique, empêcher la suppression
+  if (watchedEntries && watchedEntries.length > 0) {
+    toast('Impossible de supprimer : ce film fait partie de l\'historique des élèves. Utilisez "Archiver" à la place.', 'error');
+    return;
+  }
+  
+  // ✅ Vérifier si le film est dans des séances
+  const { data: sessions, error: sessionsError } = await db
+    .from('cinema_sessions')
+    .select('id')
+    .eq('film_id', id)
+    .limit(1);
+  
+  if (sessionsError) {
+    console.error('[deleteFilm] Erreur vérification séances:', sessionsError);
+  }
+  
+  if (sessions && sessions.length > 0) {
+    toast('Impossible de supprimer : ce film est utilisé dans des séances. Utilisez "Archiver" à la place.', 'error');
+    return;
+  }
+  
+  // ✅ Si aucune référence, on peut supprimer
   const { data, error } = await db.from('films').delete().eq('id', id);
   
   if (error) {
     console.error('[deleteFilm] Erreur Supabase:', error);
-    
-    // Message d'erreur adapté selon le type d'erreur
-    if (error.code === '23503' || error.message?.includes('foreign key')) {
-      toast('Impossible de supprimer : ce film est utilisé dans des séances ou l\'historique', 'error');
-    } else {
-      toast(`Erreur lors de la suppression : ${error.message}`, 'error');
-    }
+    toast(`Erreur lors de la suppression : ${error.message}`, 'error');
     return;
   }
   
