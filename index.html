@@ -12338,8 +12338,7 @@ async function loadAdminFilms() {
     } else if (status === 'screened') {
       actions = `
         <button class="btn btn-sm btn-ghost" onclick="setFilmStatus('${f.id}','active')">↩ Remettre actif</button>
-        <button class="btn btn-sm btn-ghost" onclick="openArchiveFilm('${f.id}')">⊘ Archiver</button>
-        <button class="btn btn-sm btn-red" onclick="deleteFilm('${f.id}')">Suppr.</button>`;
+        <button class="btn btn-sm btn-ghost" onclick="openArchiveFilm('${f.id}')">⊘ Archiver</button>`;
     } else {
       actions = `
         <button class="btn btn-sm btn-ghost" onclick="setFilmStatus('${f.id}','active')">↩ Restaurer</button>
@@ -12378,7 +12377,14 @@ async function loadAdminFilms() {
 }
 
 async function setFilmStatus(id, status) {
-  await db.from('films').update({ status }).eq('id', id);
+  const { data, error } = await db.from('films').update({ status }).eq('id', id);
+  
+  if (error) {
+    console.error('[setFilmStatus] Erreur Supabase:', error);
+    toast(`Erreur lors du changement de statut : ${error.message}`, 'error');
+    return;
+  }
+  
   const lbl = { active:'Actif', scheduled:'Programmé', screened:'Diffusé', archived:'Archivé' };
   toast(`Film → ${lbl[status] || status}`, 'success');
   loadAdminFilms();
@@ -12523,9 +12529,23 @@ async function confirmMarkScreened() {
 }
 
 async function deleteFilm(id) {
-  if (!confirm('Supprimer ce film définitivement ?')) return;
-  await db.from('films').delete().eq('id', id);
-  toast('Film supprimé');
+  if (!confirm('Supprimer ce film définitivement ? Cette action est irréversible.')) return;
+  
+  const { data, error } = await db.from('films').delete().eq('id', id);
+  
+  if (error) {
+    console.error('[deleteFilm] Erreur Supabase:', error);
+    
+    // Message d'erreur adapté selon le type d'erreur
+    if (error.code === '23503' || error.message?.includes('foreign key')) {
+      toast('Impossible de supprimer : ce film est utilisé dans des séances ou l\'historique', 'error');
+    } else {
+      toast(`Erreur lors de la suppression : ${error.message}`, 'error');
+    }
+    return;
+  }
+  
+  toast('Film supprimé définitivement', 'success');
   loadAdminFilms();
 }
 
