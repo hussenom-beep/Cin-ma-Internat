@@ -6138,6 +6138,8 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
             <span class="sd-uid" id="sd-uid" title="Identifiant connexion"></span>
             <span class="sd-uid" id="sd-eleve-uid" style="margin-left:5px;" title="EleveUID permanent"></span>
           </div>
+          <!-- Bouton Contacter l'élève -->
+          <div id="sd-contact-btn" style="margin-top:10px;"></div>
         </div>
       </div>
 
@@ -15169,10 +15171,6 @@ async function openStudentDetail(studentId) {
       : `openArchiveStudent('${s.id}','${(s.first_name||'')} ${(s.last_name||'')}','unarchive')`;
 
     actionsEl.innerHTML = `
-      <button class="btn btn-gold btn-full" style="justify-content:flex-start;gap:10px;text-align:left;"
-        onclick="openAdminToStudentMessaging('${s.id}')">
-        💬 Contacter l'élève
-      </button>
       <button class="btn btn-ghost btn-full" style="justify-content:flex-start;gap:10px;text-align:left;"
         onclick="openResetPin('${s.id}','${(s.first_name||'')} ${(s.last_name||'')}')">
         🔐 Réinitialiser le code secret
@@ -15202,6 +15200,16 @@ async function openStudentDetail(studentId) {
       sexeBadgeEl.innerHTML = '';
       sexeBadgeEl.style.display = 'none';
     }
+  }
+
+  // ✅ NOUVEAU : Bouton Contacter l'élève dans le bloc identité (sous l'UID)
+  const contactBtnEl = document.getElementById('sd-contact-btn');
+  if (contactBtnEl) {
+    contactBtnEl.innerHTML = `
+      <button class="btn btn-gold" style="width:100%;justify-content:flex-start;gap:8px;padding:8px 12px;font-size:13px;"
+        onclick="openAdminToStudentMessaging('${s.id}')">
+        💬 Contacter l'élève
+      </button>`;
   }
 
   const repere = (label, val, dim = false) =>
