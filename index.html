@@ -6668,9 +6668,17 @@ function _invokeSendPush(target, title, body, url) {
   
   // Convertir le format pour l'Edge Function
   let targetObj;
-  if (target === 'all_admins') {
+  
+  // Si target est déjà un objet {type: ...}, le passer tel quel
+  if (typeof target === 'object') {
+    targetObj = target;
+  }
+  // Si c'est 'all_admins' string, convertir
+  else if (target === 'all_admins') {
     targetObj = { type: 'admins' };
-  } else {
+  }
+  // Sinon c'est un UUID → élève spécifique
+  else {
     targetObj = { type: 'student', id: target };
   }
   
