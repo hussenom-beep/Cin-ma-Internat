@@ -3078,6 +3078,117 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
   padding: 16px;
 }
 
+/* Bloc graphique connexions : toute la largeur de la grille */
+.ahs-block-wide { grid-column: 1 / -1; }
+
+.cc-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.cc-title {
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0;
+}
+.cc-toggles {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.cc-toggle-group {
+  display: inline-flex;
+  background: var(--surface-3);
+  border-radius: 20px;
+  padding: 3px;
+  gap: 2px;
+}
+.cc-toggle {
+  background: transparent;
+  border: none;
+  color: var(--text-2);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 18px;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+  letter-spacing: .03em;
+}
+.cc-toggle:hover { color: var(--text-1); }
+.cc-toggle.active {
+  background: rgba(240,165,0,0.20);
+  color: var(--gold);
+}
+
+.cc-chart {
+  width: 100%;
+  height: 180px;
+  position: relative;
+}
+.cc-chart svg { display: block; width: 100%; height: 100%; }
+.cc-bar {
+  fill: var(--gold);
+  opacity: .55;
+  transition: opacity .15s;
+  cursor: default;
+}
+.cc-bar:hover { opacity: 1; }
+.cc-axis-label {
+  fill: var(--text-3);
+  font-size: 10px;
+  font-family: inherit;
+}
+.cc-bar-value {
+  fill: var(--text-2);
+  font-size: 9px;
+  font-weight: 700;
+  text-anchor: middle;
+  pointer-events: none;
+}
+.cc-empty {
+  text-align: center;
+  color: var(--text-3);
+  padding: 40px 0;
+  font-size: 13px;
+}
+
+.cc-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.cc-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.cc-stat-label {
+  font-size: 10px;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  font-weight: 700;
+}
+.cc-stat-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-1);
+}
+
+@media (max-width: 640px) {
+  .cc-header { flex-direction: column; align-items: stretch; }
+  .cc-toggles { justify-content: flex-start; }
+  .cc-chart { height: 160px; }
+  .cc-bar-value { display: none; } /* en mode mois sur mobile, trop dense */
+}
+
 /* ================================================================
    FICHE SÉANCE ADMIN — MODALE LARGE
    ================================================================ */
@@ -4332,6 +4443,27 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
               <div id="dash-requests-summary">
                 <div class="loader"><div class="spinner"></div></div>
               </div>
+            </div>
+
+            <!-- Bloc Connexions élèves (graphique) -->
+            <div class="ahs-block ahs-block-wide" id="connections-chart-block">
+              <div class="cc-header">
+                <h3 class="cc-title">Connexions élèves</h3>
+                <div class="cc-toggles">
+                  <div class="cc-toggle-group" role="group" aria-label="Période">
+                    <button class="cc-toggle active" data-period="week"  onclick="setConnectionsPeriod('week')">Semaine</button>
+                    <button class="cc-toggle"        data-period="month" onclick="setConnectionsPeriod('month')">Mois</button>
+                  </div>
+                  <div class="cc-toggle-group" role="group" aria-label="Métrique">
+                    <button class="cc-toggle active" data-metric="total"  onclick="setConnectionsMetric('total')">Connexions</button>
+                    <button class="cc-toggle"        data-metric="unique" onclick="setConnectionsMetric('unique')">Élèves uniques</button>
+                  </div>
+                </div>
+              </div>
+              <div id="connections-chart" class="cc-chart">
+                <div class="loader" style="padding:40px 0;"><div class="spinner"></div></div>
+              </div>
+              <div id="connections-stats" class="cc-stats"></div>
             </div>
           </div>
         </div>
@@ -6528,6 +6660,11 @@ async function loginAs(student) {
     last_login_at:     new Date().toISOString()
   }).eq('id', student.id);
 
+  // Historisation de la connexion (fire-and-forget : ne pas bloquer la nav)
+  db.from('student_logins').insert({ student_id: student.id }).then(({ error }) => {
+    if (error) console.warn('[loginAs] student_logins insert error:', error);
+  });
+
   navigateTo('home');
 }
 
@@ -8633,6 +8770,180 @@ async function loadAdminDashboard() {
   
   // Charger le résumé des demandes dans le bloc secondaire
   await loadDashRequestsSummary();
+
+  // Charger le graphique des connexions élèves
+  loadConnectionsChart();
+}
+
+/* ================================================================
+   DASHBOARD ADMIN — GRAPHIQUE CONNEXIONS ÉLÈVES
+   ================================================================ */
+let _ccPeriod = 'week';   // 'week' | 'month'
+let _ccMetric = 'total';  // 'total' | 'unique'
+
+function setConnectionsPeriod(period) {
+  if (period !== 'week' && period !== 'month') return;
+  _ccPeriod = period;
+  document.querySelectorAll('.cc-toggle[data-period]').forEach(b => {
+    b.classList.toggle('active', b.dataset.period === period);
+  });
+  loadConnectionsChart();
+}
+
+function setConnectionsMetric(metric) {
+  if (metric !== 'total' && metric !== 'unique') return;
+  _ccMetric = metric;
+  document.querySelectorAll('.cc-toggle[data-metric]').forEach(b => {
+    b.classList.toggle('active', b.dataset.metric === metric);
+  });
+  loadConnectionsChart();
+}
+
+async function loadConnectionsChart() {
+  const chartEl = document.getElementById('connections-chart');
+  const statsEl = document.getElementById('connections-stats');
+  if (!chartEl) return;
+
+  const days = _ccPeriod === 'week' ? 7 : 30;
+
+  // Date de début (aligné minuit local) : aujourd'hui - (days-1) jours
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const startDate = new Date(today.getTime() - (days - 1) * 24 * 60 * 60 * 1000);
+  const startISO = startDate.toISOString();
+
+  try {
+    const { data, error } = await db.from('student_logins')
+      .select('student_id, logged_at')
+      .gte('logged_at', startISO);
+
+    if (error) {
+      console.error('[loadConnectionsChart] erreur:', error);
+      chartEl.innerHTML = '<div class="cc-empty">Erreur de chargement</div>';
+      if (statsEl) statsEl.innerHTML = '';
+      return;
+    }
+
+    // Construire un index "YYYY-MM-DD" → { total, uniqueIds:Set }
+    const byDay = {};
+    for (let i = 0; i < days; i++) {
+      const d = new Date(startDate.getTime() + i * 24 * 60 * 60 * 1000);
+      const key = _ccDayKey(d);
+      byDay[key] = { date: d, total: 0, uniqueIds: new Set() };
+    }
+    (data || []).forEach(row => {
+      const d = new Date(row.logged_at);
+      d.setHours(0, 0, 0, 0);
+      const key = _ccDayKey(d);
+      if (byDay[key]) {
+        byDay[key].total += 1;
+        byDay[key].uniqueIds.add(row.student_id);
+      }
+    });
+
+    const series = Object.values(byDay).map(b => ({
+      date: b.date,
+      value: _ccMetric === 'unique' ? b.uniqueIds.size : b.total,
+    }));
+
+    _ccRenderChart(chartEl, series, days);
+    _ccRenderStats(statsEl, series);
+
+  } catch (e) {
+    console.error('[loadConnectionsChart] exception:', e);
+    chartEl.innerHTML = '<div class="cc-empty">Erreur de chargement</div>';
+    if (statsEl) statsEl.innerHTML = '';
+  }
+}
+
+function _ccDayKey(d) {
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function _ccRenderChart(chartEl, series, days) {
+  const max = Math.max(1, ...series.map(s => s.value)); // évite division par 0
+
+  // SVG en viewBox pour responsive
+  const W = 800; // width virtuelle
+  const H = 180;
+  const padTop = 16;
+  const padBottom = 28;
+  const padLeft = 8;
+  const padRight = 8;
+  const innerW = W - padLeft - padRight;
+  const innerH = H - padTop - padBottom;
+
+  const slotW = innerW / series.length;
+  const barW = Math.max(2, slotW * 0.6);
+
+  // Labels axe X : tous les jours en mode semaine, 1 jour sur 5 en mode mois
+  const labelEvery = days === 7 ? 1 : 5;
+
+  const dayShort = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+
+  let svg = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">`;
+
+  series.forEach((s, i) => {
+    const x = padLeft + i * slotW + (slotW - barW) / 2;
+    const h = innerH * (s.value / max);
+    const y = padTop + (innerH - h);
+
+    const dateStr = s.date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+    const tooltip = `${dateStr} — ${s.value} ${_ccMetric === 'unique' ? (s.value > 1 ? 'élèves uniques' : 'élève unique') : (s.value > 1 ? 'connexions' : 'connexion')}`;
+
+    svg += `<rect class="cc-bar" x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${Math.max(2, h).toFixed(1)}" rx="2"><title>${tooltip}</title></rect>`;
+
+    // Valeur au-dessus de la barre seulement si non nulle et mode semaine
+    if (days === 7 && s.value > 0) {
+      svg += `<text class="cc-bar-value" x="${(x + barW / 2).toFixed(1)}" y="${(y - 3).toFixed(1)}">${s.value}</text>`;
+    }
+
+    // Label X
+    if (i % labelEvery === 0 || i === series.length - 1) {
+      let label;
+      if (days === 7) {
+        label = dayShort[s.date.getDay()];
+      } else {
+        label = String(s.date.getDate());
+      }
+      svg += `<text class="cc-axis-label" x="${(x + barW / 2).toFixed(1)}" y="${(H - 8).toFixed(1)}" text-anchor="middle">${label}</text>`;
+    }
+  });
+
+  svg += `</svg>`;
+  chartEl.innerHTML = svg;
+}
+
+function _ccRenderStats(statsEl, series) {
+  if (!statsEl) return;
+  const total = series.reduce((acc, s) => acc + s.value, 0);
+  const avg = series.length > 0 ? (total / series.length) : 0;
+  const peak = series.reduce((best, s) => s.value > best.value ? s : best, { value: -1, date: null });
+
+  const peakLabel = peak.date && peak.value > 0
+    ? peak.date.toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: '2-digit' })
+    : '—';
+  const peakValue = peak.value > 0 ? peak.value : 0;
+
+  const metricLabel = _ccMetric === 'unique' ? 'uniques' : 'cnx';
+
+  statsEl.innerHTML = `
+    <div class="cc-stat">
+      <span class="cc-stat-label">Total période</span>
+      <span class="cc-stat-value">${total}</span>
+    </div>
+    <div class="cc-stat">
+      <span class="cc-stat-label">Moy / jour</span>
+      <span class="cc-stat-value">${avg.toFixed(1)}</span>
+    </div>
+    <div class="cc-stat">
+      <span class="cc-stat-label">Pic (${metricLabel})</span>
+      <span class="cc-stat-value" title="${peakLabel}">${peakValue}${peak.date && peak.value > 0 ? ` <span style="font-size:11px;color:var(--text-3);font-weight:600;">(${peakLabel})</span>` : ''}</span>
+    </div>
+  `;
 }
 
 /* ================================================================
