@@ -12401,6 +12401,13 @@ async function loadAdminRequests() {
 let _adminCurrentConv = null;
 let _adminCurrentMessages = [];
 
+/** Échappe les caractères HTML pour éviter les injections XSS */
+function _msgEscapeHTML(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
 /** Charge les conversations admin (actives ou archivées) */
 async function _loadAdminConversations(archived) {
   const list = document.getElementById('admin-requests-list');
