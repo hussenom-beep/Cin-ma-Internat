@@ -6186,11 +6186,14 @@ function _detectPlatform() {
  *   'available'        → tout est OK, on peut activer
  */
 function _getPushSupportStatus() {
-  if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
-    return 'unsupported';
-  }
+  // 1) iOS Safari sans PWA installée → l'API push n'est pas exposée tant qu'on
+  //    n'est pas en mode standalone. On guide d'abord vers l'install.
   if (_detectPlatform() === 'ios' && !_isStandalone()) {
     return 'ios_needs_pwa';
+  }
+  // 2) Vérifier le support des API (après le cas iOS pré-install)
+  if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+    return 'unsupported';
   }
   if (Notification.permission === 'denied')  return 'denied';
   if (Notification.permission === 'granted') return 'granted';
@@ -6233,7 +6236,7 @@ async function enablePushNotifications() {
 
   if (status === 'ios_needs_pwa') {
     toast("Pour activer les notifications, ajoute d'abord l'app à ton écran d'accueil.", 'error');
-    if (!S.isAdmin) openAddToHome();
+    if (typeof openAddToHome === 'function') openAddToHome();
     return { ok: false, reason: 'ios_needs_pwa' };
   }
 
@@ -6330,6 +6333,14 @@ async function disablePushNotifications() {
 
 /** Toggle utilisé par les boutons UI */
 async function togglePushNotifications() {
+  // Court-circuit iOS pré-installation : on ne tente même pas getSubscription
+  // (qui fait `await serviceWorker.ready` et bloque indéfiniment sur Safari).
+  const status = _getPushSupportStatus();
+  if (status === 'ios_needs_pwa' || status === 'unsupported' || status === 'denied') {
+    await enablePushNotifications();
+    return;
+  }
+
   const sub = await _getCurrentPushSubscription();
   if (sub) {
     await disablePushNotifications();
