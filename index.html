@@ -5751,6 +5751,14 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     <div class="sheet-handle"></div>
     <div class="sheet-title" id="studentmsg-title">💬 Messagerie</div>
 
+    <!-- Mode: loading (chargement) -->
+    <div id="studentmsg-mode-loading" class="hidden">
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;">
+        <div class="spinner" style="margin-bottom:16px;"></div>
+        <p class="text-sm text-muted">Chargement...</p>
+      </div>
+    </div>
+
     <!-- Mode: new (créer nouvelle conversation) -->
     <div id="studentmsg-mode-new" class="hidden">
       <p class="text-sm text-muted" style="margin-bottom:12px;" id="studentmsg-help-text">
@@ -13294,59 +13302,78 @@ let _studentCurrentMessages = [];
 async function openStudentMessaging(forceNew = false) {
   if (!S.currentStudent?.id) return;
 
+  // ✅ 1. OUVRIR LA MODALE IMMÉDIATEMENT (feedback visuel instantané)
+  openModal('modal-student-messaging');
+  
+  // ✅ 2. Afficher un état de chargement pendant la requête
+  _showStudentMsgMode('loading');
+
   if (forceNew) {
-    // Forcer le mode 'new' (bouton "Nouveau message" du mode closed)
+    // Mode 'new' forcé (bouton "Nouveau message" du mode closed)
     _showStudentMsgMode('new');
-    openModal('modal-student-messaging');
     return;
   }
 
-  // Chercher une conversation existante (active ou closed)
-  const { data: convs } = await db.from('conversations')
-    .select('*, students!inner(id)')
-    .eq('student_id', S.currentStudent.id)
-    .in('status', ['active', 'closed'])
-    .order('created_at', { ascending: false })
-    .limit(1);
+  // ✅ 3. Charger la conversation EN ARRIÈRE-PLAN (non-bloquant visuellement)
+  try {
+    const { data: convs } = await db.from('conversations')
+      .select('*, students!inner(id)')
+      .eq('student_id', S.currentStudent.id)
+      .in('status', ['active', 'closed'])
+      .order('created_at', { ascending: false })
+      .limit(1);
 
-  const conv = convs?.[0];
+    const conv = convs?.[0];
 
-  if (!conv) {
-    // Aucune conversation → mode 'new'
+    if (!conv) {
+      // Aucune conversation → mode 'new'
+      _showStudentMsgMode('new');
+    } else if (conv.status === 'active') {
+      // Conversation active → charger et afficher
+      await _loadStudentConversation(conv.id);
+      _showStudentMsgMode('active');
+    } else {
+      // Conversation clôturée → charger et afficher
+      await _loadStudentConversation(conv.id);
+      _showStudentMsgMode('closed');
+    }
+  } catch (error) {
+    console.error('[messagerie] erreur chargement:', error);
+    // En cas d'erreur, afficher mode 'new' par défaut
     _showStudentMsgMode('new');
-  } else if (conv.status === 'active') {
-    // Conversation active → mode 'active'
-    await _loadStudentConversation(conv.id);
-    _showStudentMsgMode('active');
-  } else {
-    // Conversation clôturée → mode 'closed'
-    await _loadStudentConversation(conv.id);
-    _showStudentMsgMode('closed');
   }
-
-  openModal('modal-student-messaging');
 }
 
 /** Affiche un mode de la modale */
 function _showStudentMsgMode(mode) {
-  const modes = ['new', 'active', 'closed'];
+  const modes = ['new', 'active', 'closed', 'loading'];
   modes.forEach(m => {
     const el = document.getElementById(`studentmsg-mode-${m}`);
     if (el) el.classList.toggle('hidden', m !== mode);
   });
 
   const supervisorName = getSupervisorName();
-  const capitalizedName = supervisorName.charAt(0).toUpperCase() + supervisorName.slice(1);
+  const capitalizedName = supervisorName === 'le surveillant' 
+    ? supervisorName 
+    : supervisorName.charAt(0).toUpperCase() + supervisorName.slice(1);
   
   if (mode === 'new') {
-    document.getElementById('studentmsg-title').textContent = `💬 Contacter ${capitalizedName}`;
+    const title = supervisorName === 'le surveillant' 
+      ? '💬 Nouveau message'
+      : `💬 Contacter ${capitalizedName}`;
+    document.getElementById('studentmsg-title').textContent = title;
     document.getElementById('studentmsg-new-subject').value = '';
     document.getElementById('studentmsg-new-content').value = '';
     _studentMsgUpdateCounter('new');
   } else if (mode === 'active') {
-    document.getElementById('studentmsg-title').textContent = `💬 Discussion avec ${capitalizedName}`;
+    const title = supervisorName === 'le surveillant'
+      ? '💬 Messagerie'
+      : `💬 Discussion avec ${capitalizedName}`;
+    document.getElementById('studentmsg-title').textContent = title;
   } else if (mode === 'closed') {
     document.getElementById('studentmsg-title').textContent = '💬 Conversation clôturée';
+  } else if (mode === 'loading') {
+    document.getElementById('studentmsg-title').textContent = '💬 Messagerie';
   }
 }
 
