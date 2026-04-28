@@ -4527,7 +4527,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     <div id="ls-admin" class="hidden">
       <div class="text-center mb-2">
         <div style="font-size:36px;margin-bottom:10px;">🔑</div>
-        <div class="fw-bold" style="font-size:17px;">Espace Admin</div>
+        <div class="fw-bold" style="font-size:17px;" id="admin-access-title">Bonjour</div>
       </div>
       <div class="fgroup">
         <label class="flabel">Mot de passe</label>
@@ -5247,7 +5247,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
         <div class="profile-section-title">BESOIN D'AIDE ?</div>
         <button class="profile-action-btn" onclick="openStudentMessaging()">
           <span class="pa-icon">💬</span>
-          <span class="pa-text">Messagerie</span>
+          <span class="pa-text" id="profile-messaging-label">Messagerie</span>
           <span class="pa-arrow">›</span>
         </button>
         <button class="profile-action-btn" onclick="openStudentFAQ()">
@@ -5753,8 +5753,8 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 
     <!-- Mode: new (créer nouvelle conversation) -->
     <div id="studentmsg-mode-new" class="hidden">
-      <p class="text-sm text-muted" style="margin-bottom:12px;">
-        Tu peux envoyer un message à un surveillant pour poser une question ou signaler un problème.
+      <p class="text-sm text-muted" style="margin-bottom:12px;" id="studentmsg-help-text">
+        Tu peux envoyer un message pour poser une question ou signaler un problème.
       </p>
       
       <div class="fgroup">
@@ -5803,7 +5803,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 
       <!-- Bandeau anti-spam -->
       <div class="msg-spam-banner hidden" id="studentmsg-spam-banner" style="margin-top:10px;">
-        ⚠️ Tu as envoyé 3 messages sans réponse. Attends qu'un surveillant réponde avant d'envoyer un nouveau message.
+        <span id="studentmsg-spam-text">⚠️ Tu as envoyé 3 messages sans réponse. Attends la réponse avant d'envoyer un nouveau message.</span>
       </div>
 
       <div style="display:flex;gap:10px;margin-top:14px;">
@@ -5822,8 +5822,8 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 
       <div class="msg-thread" id="studentmsg-closed-thread" style="max-height:50vh;"></div>
 
-      <div class="msg-closed-banner" style="margin-top:10px;">
-        🔒 Cette conversation a été clôturée par un surveillant — lecture seule.
+      <div class="msg-closed-banner" style="margin-top:10px;" id="studentmsg-closed-banner">
+        🔒 Cette conversation a été clôturée — lecture seule.
       </div>
 
       <div style="display:flex;gap:10px;margin-top:14px;">
@@ -6153,6 +6153,24 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
           <div class="profile-install-arrow">›</div>
         </button>
       </div>
+
+      <!-- Personnalisation -->
+      <div class="sd-section">
+        <div class="sd-section-title">Personnalisation</div>
+        <div class="fgroup">
+          <label class="flabel">Nom du surveillant</label>
+          <input type="text" class="finput" id="supervisor-name-input" 
+                 placeholder="Votre prénom (ex: Mathias)" 
+                 maxlength="30"
+                 style="font-size:15px;">
+          <div class="text-sm text-muted" style="margin-top:6px;font-size:11.5px;opacity:.7;">
+            Ce nom apparaîtra dans l'accès admin et la messagerie élève
+          </div>
+        </div>
+        <button class="btn btn-gold btn-full" onclick="saveSupervisorName()">Enregistrer</button>
+      </div>
+
+      <div style="height:1px;background:var(--border);margin:4px 0 20px;"></div>
 
       <!-- Import élèves -->
       <div class="sd-section">
@@ -6702,6 +6720,14 @@ function _invokeSendPush(target, title, body, url) {
 }
 
 /* ----------------------------------------------------------------
+   Configuration du nom du surveillant
+   ---------------------------------------------------------------- */
+function getSupervisorName() {
+  const name = localStorage.getItem('supervisorName');
+  return name && name.trim() ? name.trim() : 'le surveillant';
+}
+
+/* ----------------------------------------------------------------
    Détection promotion waitlist (côté front)
    ----------------------------------------------------------------
    La RPC unregister_student_from_session peut promouvoir le 1er
@@ -7040,6 +7066,11 @@ function showLS(id) {
   }
 
   if (id === 'admin') {
+    const supervisorName = getSupervisorName();
+    const titleEl = document.getElementById('admin-access-title');
+    if (titleEl) {
+      titleEl.textContent = `Bonjour ${supervisorName === 'le surveillant' ? '!' : supervisorName}`;
+    }
     setTimeout(() => document.getElementById('inp-adminpwd').focus(), 80);
   }
 }
@@ -10097,7 +10128,9 @@ function _onStudentRTEvent(table, payload) {
         const modal = document.getElementById('modal-student-messaging');
         if (modal && !modal.classList.contains('hidden')) {
           closeModal('modal-student-messaging');
-          toast('La conversation a été clôturée par un surveillant', 'info');
+          const supervisorName = getSupervisorName();
+          const capitalizedName = supervisorName.charAt(0).toUpperCase() + supervisorName.slice(1);
+          toast(`La conversation a été clôturée par ${capitalizedName}`, 'info');
         }
         // Rafraîchir l'accueil
         if (S.screen === 'home') {
@@ -13161,7 +13194,9 @@ async function sendAdminReply() {
 
     // Push notification élève
     const excerpt = content.length > 50 ? content.slice(0, 47) + '…' : content;
-    _invokeSendPush(_adminCurrentConv.student_id, '💬 Réponse du surveillant', excerpt, '/');
+    const supervisorName = getSupervisorName();
+    const capitalizedName = supervisorName.charAt(0).toUpperCase() + supervisorName.slice(1);
+    _invokeSendPush(_adminCurrentConv.student_id, `💬 Réponse de ${capitalizedName}`, excerpt, '/');
 
     if (input) input.value = '';
     toast('Réponse envoyée', 'success');
@@ -13199,7 +13234,9 @@ async function closeAdminConversation() {
 
   // Push notification élève
   const subject = _adminCurrentConv.subject || 'Conversation';
-  _invokeSendPush(_adminCurrentConv.student_id, '🔒 Conversation clôturée', `"${subject}" a été clôturée par un surveillant`, '/');
+  const supervisorName = getSupervisorName();
+  const capitalizedName = supervisorName.charAt(0).toUpperCase() + supervisorName.slice(1);
+  _invokeSendPush(_adminCurrentConv.student_id, '🔒 Conversation clôturée', `"${subject}" a été clôturée par ${capitalizedName}`, '/');
 
   toast('Conversation clôturée 🔒', 'success');
   closeModal('modal-admin-conversation');
@@ -13275,13 +13312,16 @@ function _showStudentMsgMode(mode) {
     if (el) el.classList.toggle('hidden', m !== mode);
   });
 
+  const supervisorName = getSupervisorName();
+  const capitalizedName = supervisorName.charAt(0).toUpperCase() + supervisorName.slice(1);
+  
   if (mode === 'new') {
-    document.getElementById('studentmsg-title').textContent = '💬 Nouveau message';
+    document.getElementById('studentmsg-title').textContent = `💬 Contacter ${capitalizedName}`;
     document.getElementById('studentmsg-new-subject').value = '';
     document.getElementById('studentmsg-new-content').value = '';
     _studentMsgUpdateCounter('new');
   } else if (mode === 'active') {
-    document.getElementById('studentmsg-title').textContent = '💬 Messagerie';
+    document.getElementById('studentmsg-title').textContent = `💬 Discussion avec ${capitalizedName}`;
   } else if (mode === 'closed') {
     document.getElementById('studentmsg-title').textContent = '💬 Conversation clôturée';
   }
@@ -15637,6 +15677,34 @@ async function exportSelectedStudentsPDF() {
 
 let _importMode = 'ponctuel'; // mode par défaut
 
+/* ----------------------------------------------------------------
+   Gestion du nom du surveillant (paramètres)
+   ---------------------------------------------------------------- */
+function saveSupervisorName() {
+  const input = document.getElementById('supervisor-name-input');
+  if (!input) return;
+  
+  const name = input.value.trim();
+  if (!name) {
+    toast('Indique un prénom pour le surveillant', 'error');
+    return;
+  }
+  
+  localStorage.setItem('supervisorName', name);
+  toast('✅ Nom du surveillant enregistré');
+}
+
+function loadSupervisorName() {
+  const input = document.getElementById('supervisor-name-input');
+  if (!input) return;
+  
+  const name = localStorage.getItem('supervisorName') || '';
+  input.value = name;
+}
+
+/* ----------------------------------------------------------------
+   Import élèves : mode toggle
+   ---------------------------------------------------------------- */
 function setImportMode(mode) {
   _importMode = mode;
   document.getElementById('import-btn-ponctuel').classList.toggle('active', mode === 'ponctuel');
@@ -16168,11 +16236,20 @@ function openModal(id) {
     } else if (identEl) {
       identEl.textContent = '';
     }
+    
+    // Personnaliser le label messagerie
+    const supervisorName = getSupervisorName();
+    const capitalizedName = supervisorName.charAt(0).toUpperCase() + supervisorName.slice(1);
+    const msgLabel = document.getElementById('profile-messaging-label');
+    if (msgLabel) {
+      msgLabel.textContent = `Contacter ${capitalizedName}`;
+    }
   }
   // Réinitialiser le switch import à l'ouverture des Paramètres
   if (id === 'modal-admin-settings') {
     setImportMode('ponctuel');
     document.getElementById('import-result')?.classList.add('hidden');
+    loadSupervisorName();
   }
 
   // Rafraîchir le label du bouton "Activer notifications" à chaque ouverture
