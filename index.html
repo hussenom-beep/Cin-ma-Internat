@@ -13349,20 +13349,49 @@ async function createStudentConversation() {
 
   if (!S.currentStudent?.id) return;
 
-  // Appel RPC pour créer conversation + message initial (anti-spam côté serveur)
-  const { data, error } = await db.rpc('send_student_message', {
-    p_student_id: S.currentStudent.id,
-    p_subject: subject,
-    p_content: content,
-  });
+  // TODO: Remplacer par RPC send_student_message pour sécurité + anti-spam serveur
+  // Pour l'instant : INSERT direct pour tester
 
-  if (error) {
-    console.error('[student-messaging] create error:', error);
-    if (error.message?.includes('spam')) {
-      toast('Tu envoies trop de messages sans réponse. Attends qu\'un surveillant réponde.', 'error');
-    } else {
-      toast('Erreur lors de l\'envoi', 'error');
-    }
+  // Vérifier anti-spam côté front (temporaire)
+  const { count } = await db.from('conversations')
+    .select('id', { count: 'exact', head: true })
+    .eq('student_id', S.currentStudent.id)
+    .eq('status', 'active');
+
+  if (count && count > 0) {
+    toast('Tu as déjà une conversation active', 'error');
+    return;
+  }
+
+  // Créer la conversation
+  const { data: conv, error: e1 } = await db.from('conversations')
+    .insert({
+      student_id: S.currentStudent.id,
+      subject: subject,
+      status: 'active',
+      unread_admin: true,
+      unread_student: false,
+    })
+    .select()
+    .single();
+
+  if (e1 || !conv) {
+    console.error('[student-messaging] create conv error:', e1);
+    toast('Erreur lors de l\'envoi', 'error');
+    return;
+  }
+
+  // Créer le message initial
+  const { error: e2 } = await db.from('conversation_messages')
+    .insert({
+      conversation_id: conv.id,
+      sender_type: 'student',
+      content: content,
+    });
+
+  if (e2) {
+    console.error('[student-messaging] create message error:', e2);
+    toast('Erreur lors de l\'envoi', 'error');
     return;
   }
 
@@ -13371,7 +13400,7 @@ async function createStudentConversation() {
 
   // Rafraîchir l'accueil pour afficher le bloc messagerie
   if (S.screen === 'home') {
-    loadStudentHome();
+    loadHome();
   }
 }
 
@@ -13382,22 +13411,43 @@ async function sendStudentMessage() {
 
   if (!_studentCurrentConv?.id || !S.currentStudent?.id) return;
 
-  // Appel RPC (anti-spam serveur)
-  const { error } = await db.rpc('send_student_message', {
-    p_student_id: S.currentStudent.id,
-    p_conversation_id: _studentCurrentConv.id,
-    p_content: content,
-  });
+  // Vérifier anti-spam côté front (3 messages max sans réponse admin)
+  let consecutiveStudent = 0;
+  for (let i = _studentCurrentMessages.length - 1; i >= 0; i--) {
+    if (_studentCurrentMessages[i].sender_type === 'student') {
+      consecutiveStudent++;
+    } else {
+      break;
+    }
+  }
+
+  if (consecutiveStudent >= 3) {
+    toast('Tu as envoyé trop de messages sans réponse. Attends qu\'un surveillant réponde.', 'error');
+    return;
+  }
+
+  // TODO: Remplacer par RPC send_student_message
+  const { error } = await db.from('conversation_messages')
+    .insert({
+      conversation_id: _studentCurrentConv.id,
+      sender_type: 'student',
+      content: content,
+    });
 
   if (error) {
     console.error('[student-messaging] send error:', error);
-    if (error.message?.includes('spam')) {
-      toast('Tu as envoyé trop de messages sans réponse. Attends qu\'un surveillant réponde.', 'error');
-    } else {
-      toast('Erreur lors de l\'envoi', 'error');
-    }
+    toast('Erreur lors de l\'envoi', 'error');
     return;
   }
+
+  // Mettre à jour unread_admin
+  await db.from('conversations')
+    .update({ 
+      unread_admin: true,
+      unread_student: false,
+      last_message_at: new Date().toISOString(),
+    })
+    .eq('id', _studentCurrentConv.id);
 
   // Recharger les messages
   const { data: messages } = await db.from('conversation_messages')
