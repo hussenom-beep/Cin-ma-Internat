@@ -4389,6 +4389,15 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
   color: var(--text-muted);
 }
 
+.msg-spam-banner {
+  background: rgba(255, 165, 0, 0.15);
+  border-left: 3px solid orange;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
 .msg-conv-header {
   display: flex;
   justify-content: space-between;
@@ -4548,6 +4557,22 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
   <div class="home-section" style="margin-top:20px;">
     <div class="home-section-title">🎟 Prochaine séance</div>
     <div id="home-next-session"></div>
+  </div>
+
+  <!-- Bloc Messagerie (conditionnel - seulement si discussion active) -->
+  <div class="home-section hidden" id="home-messaging" style="margin-top:18px;">
+    <div class="home-section-title">💬 Messagerie</div>
+    <div class="home-card" onclick="openStudentMessaging()" style="cursor:pointer;position:relative;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="font-size:32px;">💬</div>
+        <div style="flex:1;">
+          <div style="font-weight:600;font-size:15px;margin-bottom:4px;" id="home-msg-status">Discussion en cours</div>
+          <div class="text-sm text-muted" id="home-msg-subject">—</div>
+          <div class="text-sm text-muted" style="margin-top:4px;" id="home-msg-preview">—</div>
+        </div>
+      </div>
+      <div class="unread-dot hidden" id="home-msg-unread" style="position:absolute;top:14px;right:14px;width:10px;height:10px;background:var(--gold);border-radius:50%;box-shadow:0 0 8px var(--gold);"></div>
+    </div>
   </div>
 
   <!-- Bloc Nouveautés (propositions récentes) -->
@@ -5220,9 +5245,9 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       <!-- Section Besoin d'aide -->
       <div class="profile-section">
         <div class="profile-section-title">BESOIN D'AIDE ?</div>
-        <button class="profile-action-btn" onclick="openContactSupervisor()">
-          <span class="pa-icon">📨</span>
-          <span class="pa-text">Contacter un surveillant</span>
+        <button class="profile-action-btn" onclick="openStudentMessaging()">
+          <span class="pa-icon">💬</span>
+          <span class="pa-text">Messagerie</span>
           <span class="pa-arrow">›</span>
         </button>
         <button class="profile-action-btn" onclick="openStudentFAQ()">
@@ -5714,6 +5739,97 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     <div style="display:flex;gap:10px;margin-top:14px;padding-bottom:12px;" id="adminconv-actions">
       <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('modal-admin-conversation')">Fermer</button>
       <button class="btn btn-red" style="flex:1;" id="adminconv-close-btn" onclick="closeAdminConversation()">🔒 Clôturer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     MODAL: Messagerie élève
+     ================================================================ -->
+<div class="overlay hidden" id="modal-student-messaging">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="studentmsg-title">💬 Messagerie</div>
+
+    <!-- Mode: new (créer nouvelle conversation) -->
+    <div id="studentmsg-mode-new" class="hidden">
+      <p class="text-sm text-muted" style="margin-bottom:12px;">
+        Tu peux envoyer un message à un surveillant pour poser une question ou signaler un problème.
+      </p>
+      
+      <div class="fgroup">
+        <label class="flabel">Sujet <span style="color:var(--red);">*</span></label>
+        <input type="text" class="finput" id="studentmsg-new-subject" placeholder="De quoi veux-tu parler ?" maxlength="100">
+      </div>
+
+      <div class="fgroup">
+        <label class="flabel">Message <span style="color:var(--red);">*</span></label>
+        <textarea class="finput" id="studentmsg-new-content" rows="4" maxlength="1000" 
+          placeholder="Écris ton message ici…" oninput="_studentMsgUpdateCounter('new')"></textarea>
+        <div style="text-align:right;margin-top:4px;">
+          <span class="msg-char-counter" id="studentmsg-new-counter">0 / 1000</span>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:14px;">
+        <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('modal-student-messaging')">Annuler</button>
+        <button class="btn btn-gold" style="flex:1;" onclick="createStudentConversation()">Envoyer ➤</button>
+      </div>
+    </div>
+
+    <!-- Mode: active (discussion en cours) -->
+    <div id="studentmsg-mode-active" class="hidden">
+      <input type="hidden" id="studentmsg-conv-id">
+
+      <div class="msg-conv-header">
+        <div class="msg-conv-header-subject" id="studentmsg-subject">—</div>
+        <span class="msg-conv-header-status">Active</span>
+      </div>
+
+      <div class="text-sm text-muted" id="studentmsg-meta" style="margin-bottom:8px;">—</div>
+
+      <div class="msg-thread" id="studentmsg-thread" style="max-height:50vh;"></div>
+
+      <!-- Composer élève -->
+      <div class="msg-composer" id="studentmsg-composer">
+        <textarea class="msg-composer-textarea" id="studentmsg-input" rows="2" maxlength="1000"
+          placeholder="Écris ton message…"
+          oninput="_studentMsgUpdateCounter('active')"></textarea>
+        <div class="msg-composer-bottom">
+          <span class="msg-char-counter" id="studentmsg-counter">0 / 1000</span>
+          <button class="btn btn-gold btn-sm" id="studentmsg-send" onclick="sendStudentMessage()">Envoyer ➤</button>
+        </div>
+      </div>
+
+      <!-- Bandeau anti-spam -->
+      <div class="msg-spam-banner hidden" id="studentmsg-spam-banner" style="margin-top:10px;">
+        ⚠️ Tu as envoyé 3 messages sans réponse. Attends qu'un surveillant réponde avant d'envoyer un nouveau message.
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:14px;">
+        <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('modal-student-messaging')">Fermer</button>
+      </div>
+    </div>
+
+    <!-- Mode: closed (conversation clôturée) -->
+    <div id="studentmsg-mode-closed" class="hidden">
+      <div class="msg-conv-header">
+        <div class="msg-conv-header-subject" id="studentmsg-closed-subject">—</div>
+        <span class="msg-conv-header-status closed">Clôturée</span>
+      </div>
+
+      <div class="text-sm text-muted" id="studentmsg-closed-meta" style="margin-bottom:8px;">—</div>
+
+      <div class="msg-thread" id="studentmsg-closed-thread" style="max-height:50vh;"></div>
+
+      <div class="msg-closed-banner" style="margin-top:10px;">
+        🔒 Cette conversation a été clôturée par un surveillant — lecture seule.
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:14px;">
+        <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('modal-student-messaging')">Fermer</button>
+        <button class="btn btn-gold" style="flex:1;" onclick="openStudentMessaging()">Nouveau message</button>
+      </div>
     </div>
   </div>
 </div>
@@ -7343,6 +7459,7 @@ async function loginAs(student) {
     className:    student.class_name,
     lastNewsSeen: prevSeen     // repère "dernière connexion" pour loadHomeNews
   };
+  S.currentStudent = student;  // Pour le realtime et la messagerie
   S.isAdmin = false;
   saveLocal();
   startInactivityTimer();
@@ -7358,6 +7475,9 @@ async function loginAs(student) {
   db.from('student_logins').insert({ student_id: student.id }).then(({ error }) => {
     if (error) console.warn('[loginAs] student_logins insert error:', error);
   });
+
+  // Démarrer le realtime élève
+  startStudentRealtime();
 
   navigateTo('home');
 }
@@ -7617,8 +7737,9 @@ function updateProfileBtn() {
 
 function logout(reason) {
   stopAdminRealtime();
+  stopStudentRealtime();
   stopInactivityTimer();
-  S.user = null; S.isAdmin = false; S.films = []; S.votes = new Set();
+  S.user = null; S.isAdmin = false; S.currentStudent = null; S.films = []; S.votes = new Set();
   clearSession();
   _tmpStudent = null;
   _initialPinVerified = false; // Reset état activation
@@ -7735,8 +7856,73 @@ async function loadHome() {
     </div>`;
   }
 
+  // Bloc Messagerie (conditionnel)
+  await loadHomeMessagingBlock();
+
   // Bloc Nouveautés
   await loadHomeNews();
+}
+
+/* Charge le bloc messagerie conditionnel sur l'accueil */
+async function loadHomeMessagingBlock() {
+  const block = document.getElementById('home-messaging');
+  if (!block || !S.currentStudent?.id) return;
+
+  // Chercher une conversation active ou clôturée récente
+  const { data: convs } = await db.from('conversations')
+    .select('*')
+    .eq('student_id', S.currentStudent.id)
+    .in('status', ['active', 'closed'])
+    .order('created_at', { ascending: false })
+    .limit(1);
+
+  const conv = convs?.[0];
+
+  if (!conv || (conv.status === 'closed' && new Date() - new Date(conv.closed_at) > 7 * 24 * 60 * 60 * 1000)) {
+    // Pas de conversation ou clôturée depuis plus de 7 jours → masquer le bloc
+    block.classList.add('hidden');
+    return;
+  }
+
+  // Afficher le bloc
+  block.classList.remove('hidden');
+
+  const isClosed = conv.status === 'closed';
+  const statusEl = document.getElementById('home-msg-status');
+  const subjectEl = document.getElementById('home-msg-subject');
+  const previewEl = document.getElementById('home-msg-preview');
+  const unreadDot = document.getElementById('home-msg-unread');
+
+  if (statusEl) {
+    statusEl.textContent = isClosed ? 'Conversation clôturée' : 'Discussion en cours';
+    statusEl.style.color = isClosed ? 'var(--text-muted)' : 'var(--text-primary)';
+  }
+
+  if (subjectEl) {
+    subjectEl.textContent = `Sujet : ${conv.subject || '(sans sujet)'}`;
+  }
+
+  // Chercher le dernier message pour l'extrait
+  const { data: lastMsg } = await db.from('conversation_messages')
+    .select('content, sender_type')
+    .eq('conversation_id', conv.id)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single();
+
+  if (previewEl && lastMsg) {
+    const who = lastMsg.sender_type === 'admin' ? 'Surveillant' : 'Toi';
+    const txt = (lastMsg.content || '').replace(/\s+/g, ' ').trim();
+    const extract = txt.length > 60 ? txt.slice(0, 57) + '…' : txt;
+    previewEl.textContent = `${who} : ${extract}`;
+  } else if (previewEl) {
+    previewEl.textContent = '—';
+  }
+
+  // Point doré si non lu
+  if (unreadDot) {
+    unreadDot.classList.toggle('hidden', !conv.unread_student);
+  }
 }
 
 /* Charge les nouveautés (propositions acceptées / refusées récentes) */
@@ -9756,6 +9942,149 @@ function _refreshActiveAdminTab() {
     // 'films'    : pas concerné par les tables temps réel écoutées
   }
 }
+
+/* ================================================================
+   REALTIME ÉLÈVE — abonnement léger aux conversations/messages
+   ================================================================ */
+
+const _studentRT = {
+  channel: null,
+  active: false,
+  debounceTimers: {},
+};
+
+function _studentRTDebounce(key, fn, delay = 300) {
+  if (_studentRT.debounceTimers[key]) clearTimeout(_studentRT.debounceTimers[key]);
+  _studentRT.debounceTimers[key] = setTimeout(() => {
+    delete _studentRT.debounceTimers[key];
+    fn();
+  }, delay);
+}
+
+function startStudentRealtime() {
+  if (!S.currentStudent?.id) return;
+  if (_studentRT.active && _studentRT.channel) {
+    console.log('[studentRT] déjà actif');
+    return;
+  }
+
+  if (_studentRT.channel) {
+    try { db.removeChannel(_studentRT.channel); } catch(_) {}
+    _studentRT.channel = null;
+  }
+
+  console.log('[studentRT] démarrage pour élève:', S.currentStudent.id);
+
+  const ch = db.channel('student-realtime-' + S.currentStudent.id + '-' + Date.now())
+    .on('postgres_changes', { 
+      event: '*', 
+      schema: 'public', 
+      table: 'conversations',
+      filter: `student_id=eq.${S.currentStudent.id}`
+    }, () => _onStudentRTEvent('conversations'))
+    .on('postgres_changes', { 
+      event: '*', 
+      schema: 'public', 
+      table: 'conversation_messages'
+    }, (payload) => {
+      // Filtrer uniquement les messages de cet élève via conversation_id
+      if (_studentCurrentConv && payload.new?.conversation_id === _studentCurrentConv.id) {
+        _onStudentRTEvent('conversation_messages', payload);
+      } else {
+        // Vérifier si ça concerne l'élève via une conv existante
+        _onStudentRTEvent('conversation_messages_global');
+      }
+    })
+    .subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        console.log('[studentRT] ✓ abonné');
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        console.warn('[studentRT] statut canal:', status);
+      }
+    });
+
+  _studentRT.channel = ch;
+  _studentRT.active = true;
+}
+
+function stopStudentRealtime() {
+  console.log('[studentRT] arrêt');
+
+  if (_studentRT.channel) {
+    try { db.removeChannel(_studentRT.channel); } catch(e) { console.warn('[studentRT] removeChannel:', e); }
+    _studentRT.channel = null;
+  }
+  _studentRT.active = false;
+
+  Object.values(_studentRT.debounceTimers).forEach(clearTimeout);
+  _studentRT.debounceTimers = {};
+}
+
+function _onStudentRTEvent(table, payload) {
+  if (!S.currentStudent?.id) return;
+
+  // Refresh du bloc messagerie accueil si on est sur l'écran home
+  if (table === 'conversations' || table === 'conversation_messages_global') {
+    _studentRTDebounce('home-messaging-block', () => {
+      if (S.screen === 'home') {
+        loadHomeMessagingBlock();
+      }
+    }, 300);
+  }
+
+  // Refresh du thread de la conversation ouverte
+  if (table === 'conversation_messages' && _studentCurrentConv) {
+    const modal = document.getElementById('modal-student-messaging');
+    if (modal && !modal.classList.contains('hidden')) {
+      _studentRTDebounce('refresh-open-student-conv', async () => {
+        const { data: messages } = await db.from('conversation_messages')
+          .select('*')
+          .eq('conversation_id', _studentCurrentConv.id)
+          .order('created_at', { ascending: true });
+        
+        if (messages) {
+          _studentCurrentMessages = messages;
+          _renderStudentThread();
+          _checkStudentAntiSpam();
+          
+          setTimeout(() => {
+            const t = document.getElementById('studentmsg-thread');
+            if (t) t.scrollTop = t.scrollHeight;
+          }, 50);
+        }
+      }, 200);
+    }
+  }
+
+  // Si conversation clôturée, refresh mode modale
+  if (table === 'conversations' && _studentCurrentConv) {
+    _studentRTDebounce('check-conv-closed', async () => {
+      const { data: conv } = await db.from('conversations')
+        .select('*')
+        .eq('id', _studentCurrentConv.id)
+        .single();
+      
+      if (conv && conv.status === 'closed' && _studentCurrentConv.status !== 'closed') {
+        // La conv vient d'être clôturée
+        _studentCurrentConv = conv;
+        const modal = document.getElementById('modal-student-messaging');
+        if (modal && !modal.classList.contains('hidden')) {
+          closeModal('modal-student-messaging');
+          toast('La conversation a été clôturée par un surveillant', 'info');
+        }
+        // Rafraîchir l'accueil
+        if (S.screen === 'home') {
+          loadHomeMessagingBlock();
+        }
+      }
+    }, 300);
+  }
+}
+
+/* ================================================================
+   FIN REALTIME ÉLÈVE
+   ================================================================ */
+
 
 function _onAdminRTEvent(table) {
   if (!S.isAdmin) return;
@@ -12850,6 +13179,262 @@ async function closeAdminConversation() {
 
 /* ================================================================
    FIN MESSAGERIE V1 — module admin
+   ================================================================ */
+
+/* ================================================================
+   MESSAGERIE V1 — module élève
+   ================================================================
+   Point d'entrée: openStudentMessaging()
+   - Détecte s'il existe une conversation active
+   - Mode 'new' si aucune conversation
+   - Mode 'active' si conversation active
+   - Mode 'closed' si conversation clôturée
+   Anti-spam: max 3 messages élève sans réponse admin
+   ================================================================ */
+
+let _studentCurrentConv = null;
+let _studentCurrentMessages = [];
+
+/** Ouvre la messagerie élève (point d'entrée unique) */
+async function openStudentMessaging() {
+  if (!S.currentStudent?.id) return;
+
+  // Chercher une conversation existante (active ou closed)
+  const { data: convs } = await db.from('conversations')
+    .select('*, students!inner(id)')
+    .eq('student_id', S.currentStudent.id)
+    .in('status', ['active', 'closed'])
+    .order('created_at', { ascending: false })
+    .limit(1);
+
+  const conv = convs?.[0];
+
+  if (!conv) {
+    // Aucune conversation → mode 'new'
+    _showStudentMsgMode('new');
+  } else if (conv.status === 'active') {
+    // Conversation active → mode 'active'
+    await _loadStudentConversation(conv.id);
+    _showStudentMsgMode('active');
+  } else {
+    // Conversation clôturée → mode 'closed'
+    await _loadStudentConversation(conv.id);
+    _showStudentMsgMode('closed');
+  }
+
+  openModal('modal-student-messaging');
+}
+
+/** Affiche un mode de la modale */
+function _showStudentMsgMode(mode) {
+  const modes = ['new', 'active', 'closed'];
+  modes.forEach(m => {
+    const el = document.getElementById(`studentmsg-mode-${m}`);
+    if (el) el.classList.toggle('hidden', m !== mode);
+  });
+
+  if (mode === 'new') {
+    document.getElementById('studentmsg-title').textContent = '💬 Nouveau message';
+    document.getElementById('studentmsg-new-subject').value = '';
+    document.getElementById('studentmsg-new-content').value = '';
+    _studentMsgUpdateCounter('new');
+  } else if (mode === 'active') {
+    document.getElementById('studentmsg-title').textContent = '💬 Messagerie';
+  } else if (mode === 'closed') {
+    document.getElementById('studentmsg-title').textContent = '💬 Conversation clôturée';
+  }
+}
+
+/** Charge une conversation existante */
+async function _loadStudentConversation(convId) {
+  const [{ data: conv, error: e1 }, { data: messages, error: e2 }] = await Promise.all([
+    db.from('conversations')
+      .select('*')
+      .eq('id', convId)
+      .single(),
+    db.from('conversation_messages')
+      .select('*')
+      .eq('conversation_id', convId)
+      .order('created_at', { ascending: true }),
+  ]);
+
+  if (e1 || !conv) {
+    console.error('[student-messaging] load conv error:', e1);
+    toast('Erreur de chargement', 'error');
+    return;
+  }
+  if (e2) {
+    console.warn('[student-messaging] load messages error:', e2);
+  }
+
+  _studentCurrentConv = conv;
+  _studentCurrentMessages = messages || [];
+
+  // Marquer comme lu côté élève (fire-and-forget)
+  if (conv.unread_student) {
+    db.from('conversations')
+      .update({ unread_student: false })
+      .eq('id', conv.id)
+      .then(({ error }) => { if (error) console.warn('[student-messaging] mark read:', error); });
+  }
+
+  // Remplir les infos
+  const isClosed = conv.status === 'closed';
+  const prefix = isClosed ? 'studentmsg-closed-' : 'studentmsg-';
+
+  document.getElementById(prefix + 'subject').textContent = conv.subject || '(sans sujet)';
+  document.getElementById(prefix + 'meta').textContent = 
+    `Créée le ${fmtDateTime(conv.created_at)}` + (isClosed && conv.closed_at ? ` · Clôturée le ${fmtDateTime(conv.closed_at)}` : '');
+
+  if (!isClosed) {
+    document.getElementById('studentmsg-conv-id').value = conv.id;
+    _renderStudentThread();
+    _checkStudentAntiSpam();
+    document.getElementById('studentmsg-input').value = '';
+    _studentMsgUpdateCounter('active');
+  } else {
+    _renderStudentThread(true);
+  }
+
+  // Scroll auto
+  setTimeout(() => {
+    const t = document.getElementById(isClosed ? 'studentmsg-closed-thread' : 'studentmsg-thread');
+    if (t) t.scrollTop = t.scrollHeight;
+  }, 50);
+}
+
+/** Rend le thread élève */
+function _renderStudentThread(closed = false) {
+  const containerId = closed ? 'studentmsg-closed-thread' : 'studentmsg-thread';
+  _msgRenderThread(containerId, _studentCurrentMessages);
+}
+
+/** Vérifie la règle anti-spam (3 messages élève max sans réponse admin) */
+function _checkStudentAntiSpam() {
+  if (!_studentCurrentMessages?.length) return;
+
+  let consecutiveStudent = 0;
+  for (let i = _studentCurrentMessages.length - 1; i >= 0; i--) {
+    if (_studentCurrentMessages[i].sender_type === 'student') {
+      consecutiveStudent++;
+    } else {
+      break;
+    }
+  }
+
+  const spamLimit = consecutiveStudent >= 3;
+  const banner = document.getElementById('studentmsg-spam-banner');
+  const composer = document.getElementById('studentmsg-composer');
+  const input = document.getElementById('studentmsg-input');
+  const sendBtn = document.getElementById('studentmsg-send');
+
+  if (banner) banner.classList.toggle('hidden', !spamLimit);
+  if (input) input.disabled = spamLimit;
+  if (sendBtn) sendBtn.disabled = spamLimit;
+}
+
+/** Créer une nouvelle conversation */
+async function createStudentConversation() {
+  const subject = document.getElementById('studentmsg-new-subject')?.value.trim();
+  const content = document.getElementById('studentmsg-new-content')?.value.trim();
+
+  if (!subject) {
+    toast('Le sujet est obligatoire', 'error');
+    return;
+  }
+  if (!content) {
+    toast('Le message est obligatoire', 'error');
+    return;
+  }
+
+  if (!S.currentStudent?.id) return;
+
+  // Appel RPC pour créer conversation + message initial (anti-spam côté serveur)
+  const { data, error } = await db.rpc('send_student_message', {
+    p_student_id: S.currentStudent.id,
+    p_subject: subject,
+    p_content: content,
+  });
+
+  if (error) {
+    console.error('[student-messaging] create error:', error);
+    if (error.message?.includes('spam')) {
+      toast('Tu envoies trop de messages sans réponse. Attends qu\'un surveillant réponde.', 'error');
+    } else {
+      toast('Erreur lors de l\'envoi', 'error');
+    }
+    return;
+  }
+
+  toast('Message envoyé ✓', 'success');
+  closeModal('modal-student-messaging');
+
+  // Rafraîchir l'accueil pour afficher le bloc messagerie
+  if (S.screen === 'home') {
+    loadStudentHome();
+  }
+}
+
+/** Envoyer un message dans une conversation active */
+async function sendStudentMessage() {
+  const content = document.getElementById('studentmsg-input')?.value.trim();
+  if (!content) return;
+
+  if (!_studentCurrentConv?.id || !S.currentStudent?.id) return;
+
+  // Appel RPC (anti-spam serveur)
+  const { error } = await db.rpc('send_student_message', {
+    p_student_id: S.currentStudent.id,
+    p_conversation_id: _studentCurrentConv.id,
+    p_content: content,
+  });
+
+  if (error) {
+    console.error('[student-messaging] send error:', error);
+    if (error.message?.includes('spam')) {
+      toast('Tu as envoyé trop de messages sans réponse. Attends qu\'un surveillant réponde.', 'error');
+    } else {
+      toast('Erreur lors de l\'envoi', 'error');
+    }
+    return;
+  }
+
+  // Recharger les messages
+  const { data: messages } = await db.from('conversation_messages')
+    .select('*')
+    .eq('conversation_id', _studentCurrentConv.id)
+    .order('created_at', { ascending: true });
+
+  if (messages) {
+    _studentCurrentMessages = messages;
+    _renderStudentThread();
+    _checkStudentAntiSpam();
+
+    document.getElementById('studentmsg-input').value = '';
+    _studentMsgUpdateCounter('active');
+
+    setTimeout(() => {
+      const t = document.getElementById('studentmsg-thread');
+      if (t) t.scrollTop = t.scrollHeight;
+    }, 50);
+  }
+}
+
+/** Compteur caractères */
+function _studentMsgUpdateCounter(mode) {
+  const inputId = mode === 'new' ? 'studentmsg-new-content' : 'studentmsg-input';
+  const counterId = mode === 'new' ? 'studentmsg-new-counter' : 'studentmsg-counter';
+
+  const txt = document.getElementById(inputId)?.value || '';
+  const counter = document.getElementById(counterId);
+  if (counter) {
+    counter.textContent = txt.length + ' / 1000';
+    counter.classList.toggle('warn', txt.length > 850);
+  }
+}
+
+/* ================================================================
+   FIN MESSAGERIE V1 — module élève
    ================================================================ */
 
 async function markRequestHandled(requestId) {
