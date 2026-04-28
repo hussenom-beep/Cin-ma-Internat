@@ -2324,7 +2324,7 @@ button { cursor: pointer; }
   background: var(--surface);
   border-left: 1px solid var(--border);
   width: 100%;
-  max-width: min(720px, 90vw);
+  max-width: 540px;
   height: 100vh;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
@@ -9026,7 +9026,9 @@ async function loadSessionSheetData(sessionId) {
               ${registrants.map(r => `
                 <div style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: var(--surface-2); border-radius: var(--radius-sm);">
                   <div style="flex: 1; min-width: 0;">
-                    <div style="font-weight: 600; font-size: 13px;">${r.firstName} ${r.lastName}</div>
+                    <div style="font-weight: 600; font-size: 13px;">
+                      <button class="admin-student-link" onclick="event.stopPropagation(); openStudentDetail('${r.studentId}')" title="Voir la fiche élève">${r.firstName} ${r.lastName}</button>
+                    </div>
                     <div style="font-size: 11px; color: var(--text-2);">${r.className || '—'}</div>
                   </div>
                 </div>
@@ -9065,13 +9067,17 @@ async function loadSessionSheetData(sessionId) {
                 const student = waitStudentMap[w.student_id];
                 const name = student ? `${student.first_name} ${student.last_name}` : 'Élève introuvable';
                 const className = student?.class_name || '—';
+                const studentId = student?.id || w.student_id;
+                const nameHtml = student
+                  ? `<button class="admin-student-link" onclick="event.stopPropagation(); openStudentDetail('${studentId}')" title="Voir la fiche élève">${name}</button>`
+                  : name;
                 return `
                   <div style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: var(--surface-2); border-radius: var(--radius-sm);">
                     <div style="min-width: 24px; height: 24px; border-radius: 50%; background: var(--purple); color: white; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;">
                       ${idx + 1}
                     </div>
                     <div style="flex: 1; min-width: 0;">
-                      <div style="font-weight: 600; font-size: 13px;">${name}</div>
+                      <div style="font-weight: 600; font-size: 13px;">${nameHtml}</div>
                       <div style="font-size: 11px; color: var(--text-2);">${className}</div>
                     </div>
                   </div>
@@ -9476,9 +9482,7 @@ async function loadSessionRegistered(sessionId) {
     return `
       <div class="ai" ${isMissing ? 'style="opacity:0.5;"' : ''}>
         <div class="ai-info">
-          <div class="ai-title">
-            <button class="admin-student-link" onclick="event.stopPropagation(); openStudentDetail('${r.studentId}')" title="Voir la fiche élève">${fullName}</button>
-          </div>
+          <div class="ai-title">${fullName}</div>
           <div class="ai-sub">${className}</div>
         </div>
       </div>
@@ -9496,7 +9500,7 @@ async function loadSessionWaitlist(sessionId) {
   try {
     const { data: waitlist } = await db
       .from('registrations')
-      .select('id, waitlist_rank, registered_at, students(id, first_name, last_name, class_name)')
+      .select('id, waitlist_rank, registered_at, students(first_name, last_name, class_name)')
       .eq('session_id', sessionId)
       .eq('status', 'waitlist')
       .order('waitlist_rank');
@@ -9509,11 +9513,10 @@ async function loadSessionWaitlist(sessionId) {
     const html = waitlist.map(r => {
       const student = r.students;
       const fullName = `${student.first_name} ${student.last_name}`;
-      const studentId = student.id;
       return `
         <div class="ai">
           <div class="ai-info">
-            <div class="ai-title">#${r.waitlist_rank || '?'} — <button class="admin-student-link" onclick="event.stopPropagation(); openStudentDetail('${studentId}')" title="Voir la fiche élève">${fullName}</button></div>
+            <div class="ai-title">#${r.waitlist_rank || '?'} — ${fullName}</div>
             <div class="ai-sub">${student.class_name || '—'}</div>
           </div>
         </div>
