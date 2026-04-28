@@ -8694,7 +8694,7 @@ async function loadNextSessionCard() {
             </div>
             <div class="nsc-stat">
               <span class="nsc-stat-label">Inscriptions</span>
-              <span class="nsc-stat-value">${regStatus}</span>
+              <span class="nsc-stat-value" style="cursor: pointer;" onclick="event.stopPropagation(); toggleSesOpenFromHome('${session.id}', ${regOpen})" title="${regOpen ? 'Cliquer pour fermer les inscriptions' : 'Cliquer pour ouvrir les inscriptions'}">${regStatus}</span>
             </div>
           </div>
           <div class="nsc-actions">
@@ -11257,6 +11257,14 @@ async function toggleSesOpen(id, cur) {
     toast('Inscriptions fermées', 'success');
   }
   loadAdminSessions();
+}
+
+/* Bascule depuis la carte d'accueil admin : appelle toggleSesOpen
+   puis rafraîchit la grosse carte "Prochaine séance" pour un retour
+   visuel immédiat (sans attendre l'event Realtime). */
+async function toggleSesOpenFromHome(id, cur) {
+  await toggleSesOpen(id, cur);
+  loadNextSessionCard();
 }
 
 async function viewRegistrants(sesId, date) {
