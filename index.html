@@ -6453,9 +6453,13 @@ function _getPushSupportStatus() {
   if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
     return 'unsupported';
   }
-  if (_detectPlatform() === 'ios' && !_isStandalone()) {
-    return 'ios_needs_pwa';
+  
+  // iOS ET Android : besoin d'installer la PWA pour les notifications
+  const platform = _detectPlatform();
+  if ((platform === 'ios' || platform === 'android') && !_isStandalone()) {
+    return 'needs_pwa';
   }
+  
   if (Notification.permission === 'denied')  return 'denied';
   if (Notification.permission === 'granted') return 'granted';
   return 'available';
@@ -6495,10 +6499,10 @@ async function enablePushNotifications() {
     return { ok: false, reason: 'unsupported' };
   }
 
-  if (status === 'ios_needs_pwa') {
+  if (status === 'needs_pwa') {
     toast("Pour activer les notifications, ajoute d'abord l'app à ton écran d'accueil.", 'error');
     if (!S.isAdmin) openAddToHome();
-    return { ok: false, reason: 'ios_needs_pwa' };
+    return { ok: false, reason: 'needs_pwa' };
   }
 
   if (status === 'denied') {
