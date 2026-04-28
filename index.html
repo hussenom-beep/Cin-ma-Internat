@@ -4313,6 +4313,111 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
   gap: 10px;
 }
 
+/* ================================================================
+   MESSAGERIE - Bulles de messages
+   ================================================================ */
+.msg-thread {
+  overflow-y: auto;
+  padding: 12px;
+  background: var(--surface-2);
+  border-radius: 8px;
+}
+
+.msg-bubble-student {
+  max-width: 75%;
+  margin-left: auto;
+  background: linear-gradient(135deg, var(--gold) 0%, #d4a94e 100%);
+  color: #000;
+  padding: 10px 14px;
+  border-radius: 14px 14px 4px 14px;
+  box-shadow: 0 2px 8px rgba(212, 169, 78, 0.3);
+}
+
+.msg-bubble-admin {
+  max-width: 75%;
+  margin-right: auto;
+  background: var(--surface-4);
+  color: var(--text-primary);
+  padding: 10px 14px;
+  border-radius: 14px 14px 14px 4px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+.msg-composer {
+  margin-top: 12px;
+  background: var(--surface-3);
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.msg-composer-textarea {
+  width: 100%;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 14px;
+  resize: vertical;
+  min-height: 60px;
+}
+
+.msg-composer-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.msg-char-counter {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.msg-char-counter.warn {
+  color: var(--red);
+  font-weight: 600;
+}
+
+.msg-closed-banner {
+  background: var(--surface-4);
+  border-left: 3px solid var(--red);
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.msg-conv-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.msg-conv-header-subject {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.msg-conv-header-status {
+  font-size: 12px;
+  padding: 3px 10px;
+  border-radius: 12px;
+  background: var(--surface-4);
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.msg-conv-header-status.closed {
+  background: var(--red);
+  color: #fff;
+}
+
   </style>
 <body>
 <div id="app">
@@ -12406,6 +12511,46 @@ function _msgEscapeHTML(str) {
   const div = document.createElement('div');
   div.textContent = str;
   return div.innerHTML;
+}
+
+/** Rend un thread de messages dans un container donné */
+function _msgRenderThread(containerId, messages) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  if (!messages || !messages.length) {
+    container.innerHTML = '<div style="padding:20px;text-align:center;opacity:.6;">Aucun message</div>';
+    return;
+  }
+
+  let html = '';
+  let lastDate = null;
+
+  messages.forEach((msg, idx) => {
+    const msgDate = new Date(msg.created_at);
+    const dateKey = msgDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+
+    // Séparateur de jour
+    if (dateKey !== lastDate) {
+      html += `<div style="text-align:center;margin:16px 0;"><span style="display:inline-block;background:var(--surface-3);color:var(--text-muted);padding:4px 12px;border-radius:12px;font-size:12px;font-weight:500;">${dateKey}</span></div>`;
+      lastDate = dateKey;
+    }
+
+    const isStudent = msg.sender_type === 'student';
+    const bubbleClass = isStudent ? 'msg-bubble-student' : 'msg-bubble-admin';
+    const time = msgDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    const sender = isStudent ? 'ÉLÈVE' : 'SURVEILLANT';
+    const content = _msgEscapeHTML(msg.content || '');
+
+    html += `
+      <div class="${bubbleClass}" style="margin-bottom:8px;">
+        <div style="font-size:11px;font-weight:600;opacity:.7;margin-bottom:4px;">${sender}</div>
+        <div style="white-space:pre-wrap;word-wrap:break-word;">${content}</div>
+        <div style="font-size:11px;opacity:.5;margin-top:4px;text-align:${isStudent ? 'right' : 'left'};">${time}</div>
+      </div>`;
+  });
+
+  container.innerHTML = html;
 }
 
 /** Charge les conversations admin (actives ou archivées) */
