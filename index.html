@@ -14807,24 +14807,16 @@ async function openEditSession(id, currentTitle, currentFilmId) {
   const effectiveFilmId = currentFilmId || ses?.film_id || '';
   document.getElementById('edit-ses-prev-film').value = effectiveFilmId;
 
-  // Récupérer les film_id déjà utilisés dans d'autres séances futures
-  const today = new Date().toISOString().split('T')[0];
-  const { data: otherSessions } = await db.from('cinema_sessions')
-    .select('film_id')
-    .gte('session_date', today)
-    .neq('id', id);  // exclure la séance en cours d'édition
-  const takenFilmIds = new Set((otherSessions || []).map(s => s.film_id).filter(Boolean));
-
-  // Charger films actifs + scheduled, mais exclure ceux pris ailleurs
-  const { data: films } = await db.from('films')
-    .select('id,title')
-    .in('status', ['active', 'scheduled'])
-    .order('title');
+  // ✅ NOUVEAU : Utiliser la fonction centralisée pour récupérer les films disponibles
+  const films = await getAvailableFilmsForSession(id, null);
 
   const sel = document.getElementById('edit-ses-film');
   sel.innerHTML = '<option value="">— À définir —</option>' +
-    (films || [])
-      .filter(f => !takenFilmIds.has(f.id) || f.id === effectiveFilmId)
+    films
+      // Garder le film actuel comme choix même s'il serait normalement filtré
+      .concat(effectiveFilmId && !films.find(f => f.id === effectiveFilmId) 
+        ? [{ id: effectiveFilmId, title: currentTitle || 'Film actuel' }] 
+        : [])
       .map(f => `<option value="${f.id}" ${f.id === effectiveFilmId ? 'selected' : ''}>${f.title}</option>`)
       .join('');
 
@@ -14933,26 +14925,73 @@ function handleSmartPickerClick(event, inputId, textZoneWidth = 120) {
   }
 }
 
-function openCreateSessionModal(prefilledFilmId = null) {
+/* ================================================================
+   HELPER : Récupérer les films disponibles pour une séance
+   ================================================================ */
+
+/**
+ * Récupère les films disponibles pour une séance (création ou modification)
+ * @param {string|null} currentSessionId - ID de la séance en cours d'édition (null si création)
+ * @param {string|null} prefilledFilmId - ID du film prérempli (pour création depuis film)
+ * @returns {Promise<Array>} Liste des films disponibles
+ */
+async function getAvailableFilmsForSession(currentSessionId = null, prefilledFilmId = null) {
+  // 1. Récupérer les films déjà utilisés dans des séances futures
+  const today = new Date().toISOString().split('T')[0];
+  let sessionsQuery = db.from('cinema_sessions')
+    .select('film_id')
+    .gte('session_date', today);
+  
+  // Si modification, exclure la séance en cours d'édition
+  if (currentSessionId) {
+    sessionsQuery = sessionsQuery.neq('id', currentSessionId);
+  }
+  
+  const { data: futureSessions } = await sessionsQuery;
+  const takenFilmIds = new Set((futureSessions || []).map(s => s.film_id).filter(Boolean));
+  
+  console.log('[getAvailableFilmsForSession] Films déjà programmés:', Array.from(takenFilmIds));
+  
+  // 2. Récupérer les films actifs/scheduled
+  let filmsQuery = db.from('films').select('id,title');
+  
+  if (prefilledFilmId) {
+    // Si film prérempli, l'inclure même si statut différent
+    filmsQuery = filmsQuery.or(`status.in.(active,scheduled),id.eq.${prefilledFilmId}`);
+  } else {
+    filmsQuery = filmsQuery.in('status', ['active', 'scheduled']);
+  }
+  
+  const { data: films } = await filmsQuery.order('title');
+  
+  // 3. Filtrer les films déjà pris
+  const availableFilms = (films || []).filter(f => {
+    // Garder le film prérempli même s'il est déjà programmé (cas création depuis film)
+    if (prefilledFilmId && f.id === prefilledFilmId) return true;
+    
+    // Exclure les films déjà utilisés dans d'autres séances futures
+    return !takenFilmIds.has(f.id);
+  });
+  
+  console.log('[getAvailableFilmsForSession] Films disponibles:', availableFilms.length);
+  
+  return availableFilms;
+}
+
+async function openCreateSessionModal(prefilledFilmId = null) {
   document.getElementById('ses-date').value = nextWednesday();
   document.getElementById('ses-time').value = '20:00';
   document.getElementById('ses-open').checked = true;
   document.getElementById('ses-capacity').value = '20';
 
-  // Charger la liste des films, et inclure le film prérempli même s'il n'est pas 'active'/'scheduled'
-  let query = db.from('films').select('id,title');
-  if (prefilledFilmId) {
-    query = query.or(`status.in.(active,scheduled),id.eq.${prefilledFilmId}`);
-  } else {
-    query = query.in('status', ['active', 'scheduled']);
-  }
-
-  query.then(({ data }) => {
-    const sel = document.getElementById('ses-film');
-    sel.innerHTML = '<option value="">— À définir —</option>' +
-      (data || []).map(f => `<option value="${f.id}">${f.title}</option>`).join('');
-    if (prefilledFilmId) sel.value = prefilledFilmId;
-  });
+  // ✅ NOUVEAU : Utiliser la fonction centralisée pour récupérer les films disponibles
+  const films = await getAvailableFilmsForSession(null, prefilledFilmId);
+  
+  const sel = document.getElementById('ses-film');
+  sel.innerHTML = '<option value="">— À définir —</option>' +
+    films.map(f => `<option value="${f.id}">${f.title}</option>`).join('');
+  
+  if (prefilledFilmId) sel.value = prefilledFilmId;
 
   openModal('modal-create-session');
 }
