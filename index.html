@@ -5350,28 +5350,6 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 <!-- ================================================================
      MODAL: Programmer un film (date + création séance auto)
      ================================================================ -->
-<div class="overlay hidden" id="modal-schedule-film">
-  <div class="sheet">
-    <div class="sheet-handle"></div>
-    <div class="sheet-title">📅 Programmer ce film</div>
-    <input type="hidden" id="sched-film-id">
-    <div style="font-size:14px;font-weight:600;color:var(--text-2);margin-bottom:14px;" id="sched-film-title"></div>
-    <div class="fgroup">
-      <label class="flabel">Date de projection *</label>
-      <input type="date" class="finput" id="sched-date">
-    </div>
-    <div class="fgroup" style="display:flex;align-items:center;gap:10px;">
-      <input type="checkbox" id="sched-open" checked style="width:18px;height:18px;accent-color:var(--gold);cursor:pointer;">
-      <label for="sched-open" style="font-size:14px;cursor:pointer;">Ouvrir les inscriptions maintenant</label>
-    </div>
-    <p class="text-sm text-muted" style="margin-bottom:14px;">Une séance sera créée automatiquement et le film passera en "Programmé".</p>
-    <div style="display:flex;gap:10px;">
-      <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('modal-schedule-film')">Annuler</button>
-      <button class="btn btn-gold" style="flex:1;" onclick="confirmScheduleFilm()">Programmer ✅</button>
-    </div>
-  </div>
-</div>
-
 <!-- ================================================================
      MODAL: Fiche élève admin — panneau latéral
      ================================================================ -->
@@ -10049,7 +10027,7 @@ async function loadAdminFilms() {
     if (status === 'active') {
       actions = `
         ${!sessionInfo
-          ? `<button class="btn btn-sm btn-ghost" onclick="openScheduleFilm('${f.id}')">📅 Créer séance</button>`
+          ? `<button class="btn btn-sm btn-ghost" onclick="openCreateSessionModal('${f.id}')">📅 Créer séance</button>`
           : `<button class="btn btn-sm btn-red" onclick="cancelSes('${sessionInfo.id}','${f.id}')">🗑 Annuler séance</button>`}
         <button class="btn btn-sm btn-ghost" onclick="openArchiveFilm('${f.id}')">⊘ Archiver</button>
         <button class="btn btn-sm btn-red" onclick="deleteFilm('${f.id}')">Suppr.</button>`;
@@ -10153,70 +10131,12 @@ function _openFilmDetailModal(f) {
   openModal('modal-proposal-detail');
 }
 
-/* Programmer : ouvre modal avec date → crée séance auto */
-function openScheduleFilm(id) {
-  // Trouver le titre depuis les données déjà chargées
-  const item = document.querySelector(`#admin-films-list .ai-title`);
-  // On passe le titre via data-attribute dans le HTML (ajouté dans loadAdminFilms)
-  const titleEl = document.querySelector(`[data-film-id="${id}"] .ai-title`);
-  document.getElementById('sched-film-id').value = id;
-  document.getElementById('sched-film-title').textContent = titleEl ? titleEl.textContent : '';
-  document.getElementById('sched-date').value = nextWednesday();
-  document.getElementById('sched-open').checked = true;
-  openModal('modal-schedule-film');
-}
-
 /* Vérifie si une séance existe déjà à cette date (optionnellement exclure une séance par son id) */
 async function hasSessionOnDate(date, excludeSessionId = null) {
   let query = db.from('cinema_sessions').select('id').eq('session_date', date);
   if (excludeSessionId) query = query.neq('id', excludeSessionId);
   const { data } = await query.limit(1);
   return !!(data && data.length > 0);
-}
-
-async function confirmScheduleFilm() {
-  const filmId  = document.getElementById('sched-film-id').value;
-  const date    = document.getElementById('sched-date').value;
-  const regOpen = document.getElementById('sched-open').checked;
-
-  if (!date) {
-    toast('Sélectionne une date', 'error');
-    return;
-  }
-
-  if (await hasSessionOnDate(date)) {
-    toast('Impossible : une séance existe déjà à cette date', 'error');
-    return;
-  }
-
-  const { data: insertedSession, error: sesErr } = await db
-    .from('cinema_sessions')
-    .insert({
-      session_date:       date,
-      film_id:            filmId,
-      registrations_open: regOpen,
-      max_capacity:       20
-    })
-    .select('id')
-    .single();
-
-  if (sesErr) {
-    toast('Erreur création séance : ' + sesErr.message, 'error');
-    console.error(sesErr);
-    return;
-  }
-
-  if (filmId) {
-    await db.from('films').update({ status: 'scheduled' }).eq('id', filmId);
-  }
-
-  if (insertedSession?.id) {
-    await _notifyAllStudents(insertedSession.id, 'new_session');
-  }
-
-  closeModal('modal-schedule-film');
-  toast('Film programmé + séance créée 📅', 'success');
-  loadAdminFilms();
 }
 
 /* Ouvre modal archiver avec raison */
@@ -11493,15 +11413,27 @@ function handleSmartPickerClick(event, inputId, textZoneWidth = 120) {
   }
 }
 
-function openCreateSessionModal() {
+function openCreateSessionModal(prefilledFilmId = null) {
   document.getElementById('ses-date').value = nextWednesday();
   document.getElementById('ses-time').value = '20:00';
   document.getElementById('ses-open').checked = true;
   document.getElementById('ses-capacity').value = '20';
-  db.from('films').select('id,title').in('status',['active','scheduled']).then(({ data }) => {
-    document.getElementById('ses-film').innerHTML = '<option value="">— À définir —</option>' +
-      (data||[]).map(f => `<option value="${f.id}">${f.title}</option>`).join('');
+
+  // Charger la liste des films, et inclure le film prérempli même s'il n'est pas 'active'/'scheduled'
+  let query = db.from('films').select('id,title');
+  if (prefilledFilmId) {
+    query = query.or(`status.in.(active,scheduled),id.eq.${prefilledFilmId}`);
+  } else {
+    query = query.in('status', ['active', 'scheduled']);
+  }
+
+  query.then(({ data }) => {
+    const sel = document.getElementById('ses-film');
+    sel.innerHTML = '<option value="">— À définir —</option>' +
+      (data || []).map(f => `<option value="${f.id}">${f.title}</option>`).join('');
+    if (prefilledFilmId) sel.value = prefilledFilmId;
   });
+
   openModal('modal-create-session');
 }
 
@@ -11565,6 +11497,11 @@ if (!filmId) {
   // Rafraîchir l'accueil admin si on est sur cet onglet
   if (S.isAdmin && document.getElementById('ap-home')?.classList.contains('active')) {
     loadNextSessionCard();
+  }
+
+  // Rafraîchir la liste des films admin si on y est (pour mettre à jour le statut "scheduled")
+  if (typeof loadAdminFilms === 'function' && document.getElementById('ap-films')?.classList.contains('active')) {
+    loadAdminFilms();
   }
 }
 
