@@ -5250,6 +5250,11 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
           <span class="pa-text" id="profile-messaging-label">Messagerie</span>
           <span class="pa-arrow">›</span>
         </button>
+        <button class="profile-action-btn" onclick="openStudentArchivedConversations()">
+          <span class="pa-icon">📂</span>
+          <span class="pa-text">Conversations archivées</span>
+          <span class="pa-arrow">›</span>
+        </button>
         <button class="profile-action-btn" onclick="openStudentFAQ()">
           <span class="pa-icon">❔</span>
           <span class="pa-text">Aide / FAQ</span>
@@ -5866,6 +5871,56 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
         <button class="btn btn-gold" style="flex:1;" onclick="openStudentMessaging(true)">Nouveau message</button>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     MODAL: Conversations archivées (élève)
+     ================================================================ -->
+<div class="overlay hidden" id="modal-archived-conversations">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">📂 Conversations archivées</div>
+
+    <!-- Liste des conversations archivées -->
+    <div id="archived-list-container" style="margin-top:10px;">
+      <div class="loader" style="padding:40px;">
+        <div class="spinner"></div>
+      </div>
+    </div>
+
+    <button class="btn btn-ghost btn-full" style="margin-top:16px;" onclick="closeModal('modal-archived-conversations')">
+      Fermer
+    </button>
+  </div>
+</div>
+
+<!-- ================================================================
+     MODAL: Lire conversation archivée (élève)
+     ================================================================ -->
+<div class="overlay hidden" id="modal-read-archived">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="archived-conv-title">📂 Conversation</div>
+
+    <input type="hidden" id="archived-conv-id">
+
+    <div class="msg-conv-header">
+      <div class="msg-conv-header-subject" id="archived-subject">—</div>
+      <span class="msg-conv-header-status closed">Clôturée</span>
+    </div>
+
+    <div class="text-sm text-muted" id="archived-meta" style="margin-bottom:8px;">—</div>
+
+    <div class="msg-thread" id="archived-thread" style="max-height:50vh;"></div>
+
+    <div class="msg-closed-banner" style="margin-top:10px;">
+      🔒 Cette conversation est clôturée — lecture seule.
+    </div>
+
+    <button class="btn btn-ghost btn-full" style="margin-top:14px;" onclick="closeModal('modal-read-archived')">
+      Fermer
+    </button>
   </div>
 </div>
 
@@ -8027,7 +8082,11 @@ async function loadHomeMessagingBlock() {
     .single();
 
   if (previewEl && lastMsg) {
-    const who = lastMsg.sender_type === 'admin' ? 'Surveillant' : 'Toi';
+    const supervisorName = getSupervisorName();
+    const capitalizedName = supervisorName === 'le surveillant' 
+      ? 'Surveillant' 
+      : supervisorName.charAt(0).toUpperCase() + supervisorName.slice(1);
+    const who = lastMsg.sender_type === 'admin' ? capitalizedName : 'Toi';
     const txt = (lastMsg.content || '').replace(/\s+/g, ' ').trim();
     const extract = txt.length > 60 ? txt.slice(0, 57) + '…' : txt;
     previewEl.textContent = `${who} : ${extract}`;
@@ -13769,7 +13828,11 @@ async function sendStudentMessage() {
   }
 
   if (consecutiveStudent >= 3) {
-    toast('Tu as envoyé trop de messages sans réponse. Attends qu\'un surveillant réponde.', 'error');
+    const supervisorName = getSupervisorName();
+    const name = supervisorName === 'le surveillant' 
+      ? 'un surveillant' 
+      : supervisorName.charAt(0).toUpperCase() + supervisorName.slice(1);
+    toast(`Tu as envoyé trop de messages sans réponse. Attends que ${name} réponde.`, 'error');
     return;
   }
 
@@ -13834,6 +13897,139 @@ function _studentMsgUpdateCounter(mode) {
     counter.classList.toggle('warn', txt.length > 850);
   }
 }
+
+/* ----------------------------------------------------------------
+   Conversations archivées (élève)
+   ---------------------------------------------------------------- */
+
+/** Ouvre la liste des conversations archivées */
+async function openStudentArchivedConversations() {
+  if (!S.currentStudent?.id) return;
+
+  // Fermer le profil d'abord
+  closeModal('modal-profile');
+
+  // Ouvrir la modale
+  openModal('modal-archived-conversations');
+
+  // Afficher loader
+  const container = document.getElementById('archived-list-container');
+  if (!container) return;
+
+  container.innerHTML = `
+    <div class="loader" style="padding:40px;">
+      <div class="spinner"></div>
+    </div>`;
+
+  // Charger les conversations clôturées
+  const { data: convs, error } = await db.from('conversations')
+    .select('id, subject, created_at, status, students!inner(id)')
+    .eq('student_id', S.currentStudent.id)
+    .eq('status', 'closed')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('[archived] load error:', error);
+    container.innerHTML = `
+      <div class="text-center text-muted" style="padding:40px;">
+        Erreur de chargement
+      </div>`;
+    return;
+  }
+
+  // Afficher les conversations
+  if (!convs || convs.length === 0) {
+    container.innerHTML = `
+      <div class="text-center text-muted" style="padding:40px;">
+        Aucune conversation archivée
+      </div>`;
+    return;
+  }
+
+  // Construire la liste
+  const supervisorName = getSupervisorName();
+  const capitalizedName = supervisorName === 'le surveillant' 
+    ? 'Surveillant' 
+    : supervisorName.charAt(0).toUpperCase() + supervisorName.slice(1);
+
+  let html = '<div style="display:flex;flex-direction:column;gap:8px;">';
+  
+  for (const conv of convs) {
+    const date = new Date(conv.created_at);
+    const dateStr = date.toLocaleDateString('fr-FR', { 
+      day: 'numeric', 
+      month: 'long', 
+      year: 'numeric' 
+    });
+
+    html += `
+      <div class="card" onclick="openArchivedConversation('${conv.id}')" 
+        style="cursor:pointer;padding:14px;border-left:3px solid var(--muted);">
+        <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:6px;">
+          <div class="fw-bold" style="font-size:15px;flex:1;">${conv.subject || '(sans sujet)'}</div>
+          <span class="badge badge-muted" style="font-size:11px;">Clôturée</span>
+        </div>
+        <div class="text-sm text-muted">
+          Discussion avec ${capitalizedName} · ${dateStr}
+        </div>
+      </div>`;
+  }
+  
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+/** Ouvre une conversation archivée en lecture seule */
+async function openArchivedConversation(convId) {
+  if (!convId) return;
+
+  // Fermer la liste
+  closeModal('modal-archived-conversations');
+
+  // Ouvrir la modale de lecture
+  openModal('modal-read-archived');
+
+  // Charger la conversation + messages
+  const [{ data: conv, error: e1 }, { data: messages, error: e2 }] = await Promise.all([
+    db.from('conversations')
+      .select('*, students!inner(id, first_name, last_name, class_name)')
+      .eq('id', convId)
+      .single(),
+    db.from('conversation_messages')
+      .select('*')
+      .eq('conversation_id', convId)
+      .order('created_at', { ascending: true }),
+  ]);
+
+  if (e1 || !conv) {
+    console.error('[archived] load conv error:', e1);
+    toast('Erreur de chargement', 'error');
+    closeModal('modal-read-archived');
+    return;
+  }
+
+  // Afficher les infos
+  const supervisorName = getSupervisorName();
+  const capitalizedName = supervisorName === 'le surveillant' 
+    ? 'Surveillant' 
+    : supervisorName.charAt(0).toUpperCase() + supervisorName.slice(1);
+
+  document.getElementById('archived-conv-id').value = conv.id;
+  document.getElementById('archived-conv-title').textContent = `📂 ${capitalizedName}`;
+  document.getElementById('archived-subject').textContent = conv.subject || '(sans sujet)';
+  document.getElementById('archived-meta').textContent = 
+    `Clôturée le ${fmtDateTime(conv.created_at)}`;
+
+  // Rendre le thread
+  _msgRenderThread('archived-thread', messages || []);
+
+  // Scroll en bas
+  setTimeout(() => {
+    const t = document.getElementById('archived-thread');
+    if (t) t.scrollTop = t.scrollHeight;
+  }, 50);
+}
+
 
 /* ================================================================
    FIN MESSAGERIE V1 — module élève
