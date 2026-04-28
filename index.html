@@ -6720,11 +6720,34 @@ function _invokeSendPush(target, title, body, url) {
 }
 
 /* ----------------------------------------------------------------
-   Configuration du nom du surveillant
+   Configuration du nom du surveillant (Supabase)
    ---------------------------------------------------------------- */
+
+/** Charger le nom du surveillant depuis Supabase au démarrage */
+async function loadSupervisorNameFromDB() {
+  try {
+    const { data, error } = await db
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'supervisor_name')
+      .maybeSingle();
+    
+    if (error) {
+      console.warn('[supervisor] load error:', error);
+      S.supervisorName = 'le surveillant';
+      return;
+    }
+    
+    S.supervisorName = data?.value || 'le surveillant';
+  } catch (err) {
+    console.warn('[supervisor] load exception:', err);
+    S.supervisorName = 'le surveillant';
+  }
+}
+
+/** Retourne le nom du surveillant (depuis mémoire) */
 function getSupervisorName() {
-  const name = localStorage.getItem('supervisorName');
-  return name && name.trim() ? name.trim() : 'le surveillant';
+  return S.supervisorName || 'le surveillant';
 }
 
 /* ----------------------------------------------------------------
@@ -15680,7 +15703,7 @@ let _importMode = 'ponctuel'; // mode par défaut
 /* ----------------------------------------------------------------
    Gestion du nom du surveillant (paramètres)
    ---------------------------------------------------------------- */
-function saveSupervisorName() {
+async function saveSupervisorName() {
   const input = document.getElementById('supervisor-name-input');
   if (!input) return;
   
@@ -15690,16 +15713,44 @@ function saveSupervisorName() {
     return;
   }
   
-  localStorage.setItem('supervisorName', name);
+  // Sauvegarder dans Supabase
+  const { error } = await db
+    .from('app_settings')
+    .upsert({ 
+      key: 'supervisor_name', 
+      value: name,
+      updated_at: new Date().toISOString()
+    });
+  
+  if (error) {
+    console.error('[supervisor] save error:', error);
+    toast('Erreur lors de l\'enregistrement', 'error');
+    return;
+  }
+  
+  // Mettre à jour la valeur en mémoire
+  S.supervisorName = name;
   toast('✅ Nom du surveillant enregistré');
 }
 
-function loadSupervisorName() {
+async function loadSupervisorName() {
   const input = document.getElementById('supervisor-name-input');
   if (!input) return;
   
-  const name = localStorage.getItem('supervisorName') || '';
-  input.value = name;
+  // Charger depuis Supabase
+  const { data, error } = await db
+    .from('app_settings')
+    .select('value')
+    .eq('key', 'supervisor_name')
+    .maybeSingle();
+  
+  if (error) {
+    console.warn('[supervisor] load error:', error);
+    input.value = '';
+    return;
+  }
+  
+  input.value = data?.value || '';
 }
 
 /* ----------------------------------------------------------------
@@ -16534,6 +16585,9 @@ document.getElementById('admin-film-search').addEventListener('input', () => deb
    ================================================================ */
 function init() {
   loadLocal();
+  
+  // Charger le nom du surveillant depuis Supabase
+  loadSupervisorNameFromDB();
 
   if (S.user) {
     startInactivityTimer(); // session restaurée → relancer le timer
