@@ -5710,35 +5710,62 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     <div class="sheet-title" id="adminconv-title">💬 Conversation</div>
 
     <input type="hidden" id="adminconv-id">
+    <input type="hidden" id="adminconv-student-id">
 
-    <div class="msg-conv-header">
-      <div class="msg-conv-header-subject" id="adminconv-subject">—</div>
-      <span class="msg-conv-header-status" id="adminconv-status">Active</span>
-    </div>
+    <!-- Mode: new (admin initie conversation) -->
+    <div id="adminconv-mode-new" class="hidden">
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:16px;">
+        <div class="text-sm text-muted" style="margin-bottom:4px;">Message à :</div>
+        <div class="fw-bold" id="adminconv-new-student-name" style="font-size:15px;">—</div>
+        <div class="text-sm text-muted" id="adminconv-new-student-class">—</div>
+      </div>
 
-    <div class="text-sm text-muted" id="adminconv-meta" style="margin-bottom:8px;">—</div>
+      <div class="fgroup">
+        <label class="flabel">Premier message <span style="color:var(--red);">*</span></label>
+        <textarea class="finput" id="adminconv-new-content" rows="4" maxlength="1000" 
+          placeholder="Écris ton message à l'élève…" oninput="_adminConvUpdateCounter('new')"></textarea>
+        <div style="text-align:right;margin-top:4px;">
+          <span class="msg-char-counter" id="adminconv-new-counter">0 / 1000</span>
+        </div>
+      </div>
 
-    <div class="msg-thread" id="adminconv-thread" style="max-height:50vh;"></div>
-
-    <!-- Composer admin -->
-    <div class="msg-composer" id="adminconv-composer">
-      <textarea class="msg-composer-textarea" id="adminconv-input" rows="2" maxlength="1000"
-        placeholder="Écris ta réponse…"
-        oninput="_adminConvUpdateCounter()"></textarea>
-      <div class="msg-composer-bottom">
-        <span class="msg-char-counter" id="adminconv-counter">0 / 1000</span>
-        <button class="btn btn-gold btn-sm" id="adminconv-send" onclick="sendAdminReply()">Envoyer ➤</button>
+      <div style="display:flex;gap:10px;margin-top:14px;">
+        <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('modal-admin-conversation')">Annuler</button>
+        <button class="btn btn-gold" style="flex:1;" onclick="createAdminConversation()">Envoyer ➤</button>
       </div>
     </div>
 
-    <div class="msg-closed-banner hidden" id="adminconv-closed-banner" style="margin-top:10px;">
-      🔒 Cette conversation est clôturée — lecture seule.
-    </div>
+    <!-- Mode: active (conversation existante) -->
+    <div id="adminconv-mode-active" class="hidden">
+      <div class="msg-conv-header">
+        <div class="msg-conv-header-subject" id="adminconv-subject">—</div>
+        <span class="msg-conv-header-status" id="adminconv-status">Active</span>
+      </div>
 
-    <!-- Actions admin -->
-    <div style="display:flex;gap:10px;margin-top:14px;padding-bottom:12px;" id="adminconv-actions">
-      <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('modal-admin-conversation')">Fermer</button>
-      <button class="btn btn-red" style="flex:1;" id="adminconv-close-btn" onclick="closeAdminConversation()">🔒 Clôturer</button>
+      <div class="text-sm text-muted" id="adminconv-meta" style="margin-bottom:8px;">—</div>
+
+      <div class="msg-thread" id="adminconv-thread" style="max-height:50vh;"></div>
+
+      <!-- Composer admin -->
+      <div class="msg-composer" id="adminconv-composer">
+        <textarea class="msg-composer-textarea" id="adminconv-input" rows="2" maxlength="1000"
+          placeholder="Écris ta réponse…"
+          oninput="_adminConvUpdateCounter('active')"></textarea>
+        <div class="msg-composer-bottom">
+          <span class="msg-char-counter" id="adminconv-counter">0 / 1000</span>
+          <button class="btn btn-gold btn-sm" id="adminconv-send" onclick="sendAdminReply()">Envoyer ➤</button>
+        </div>
+      </div>
+
+      <div class="msg-closed-banner hidden" id="adminconv-closed-banner" style="margin-top:10px;">
+        🔒 Cette conversation est clôturée — lecture seule.
+      </div>
+
+      <!-- Actions admin -->
+      <div style="display:flex;gap:10px;margin-top:14px;padding-bottom:12px;" id="adminconv-actions">
+        <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('modal-admin-conversation')">Fermer</button>
+        <button class="btn btn-red" style="flex:1;" id="adminconv-close-btn" onclick="closeAdminConversation()">🔒 Clôturer</button>
+      </div>
     </div>
   </div>
 </div>
@@ -13155,8 +13182,11 @@ async function openAdminConversation(convId) {
     input.value = '';
     input.disabled = false;
     sendBtn.disabled = false;
-    _adminConvUpdateCounter();
+    _adminConvUpdateCounter('active');
   }
+
+  // Afficher le mode 'active'
+  _showAdminConvMode('active');
 
   openModal('modal-admin-conversation');
 
@@ -13166,15 +13196,194 @@ async function openAdminConversation(convId) {
   }, 50);
 }
 
+/** Affiche un mode de la modale admin */
+function _showAdminConvMode(mode) {
+  const modes = ['new', 'active'];
+  modes.forEach(m => {
+    const el = document.getElementById(`adminconv-mode-${m}`);
+    if (el) el.classList.toggle('hidden', m !== mode);
+  });
+}
+
+/** Ouvre la messagerie admin → élève depuis la fiche élève */
+async function openAdminToStudentMessaging(studentId) {
+  if (!studentId) return;
+
+  try {
+    // 1. Chercher conversation active pour cet élève
+    const { data: conv, error } = await db.from('conversations')
+      .select('id')
+      .eq('student_id', studentId)
+      .eq('status', 'active')
+      .maybeSingle();
+
+    if (error) {
+      console.error('[admin-messagerie] check conv error:', error);
+      toast('Erreur de chargement', 'error');
+      return;
+    }
+
+    // 2. Si conversation active existe → L'ouvrir
+    if (conv) {
+      await openAdminConversation(conv.id);
+    } 
+    // 3. Sinon → Mode "nouveau message admin"
+    else {
+      await _prepareNewAdminConversation(studentId);
+    }
+  } catch (err) {
+    console.error('[admin-messagerie] openAdminToStudent error:', err);
+    toast('Erreur', 'error');
+  }
+}
+
+/** Prépare le mode "nouveau message admin" */
+async function _prepareNewAdminConversation(studentId) {
+  // Charger info élève
+  const { data: student, error } = await db.from('students')
+    .select('id, first_name, last_name, class_name')
+    .eq('id', studentId)
+    .single();
+
+  if (error || !student) {
+    console.error('[admin-messagerie] load student error:', error);
+    toast('Élève introuvable', 'error');
+    return;
+  }
+
+  // Stocker l'ID élève pour la création
+  document.getElementById('adminconv-student-id').value = student.id;
+
+  // Afficher info élève
+  const studentName = `${student.first_name || '?'} ${student.last_name || '?'}`;
+  document.getElementById('adminconv-new-student-name').textContent = studentName;
+  document.getElementById('adminconv-new-student-class').textContent = student.class_name || '?';
+  
+  // Reset formulaire
+  document.getElementById('adminconv-new-content').value = '';
+  _adminConvUpdateCounter('new');
+
+  // Titre modale
+  document.getElementById('adminconv-title').textContent = '💬 Nouveau message';
+
+  // Afficher mode "new"
+  _showAdminConvMode('new');
+
+  // Ouvrir modale
+  openModal('modal-admin-conversation');
+
+  // Focus textarea
+  setTimeout(() => {
+    document.getElementById('adminconv-new-content')?.focus();
+  }, 100);
+}
+
+/** Crée une conversation initiée par l'admin et envoie le premier message */
+async function createAdminConversation() {
+  const studentId = document.getElementById('adminconv-student-id')?.value;
+  const content = (document.getElementById('adminconv-new-content')?.value || '').trim();
+
+  if (!studentId) {
+    toast('Erreur : élève introuvable', 'error');
+    return;
+  }
+
+  if (!content) {
+    toast('Entre un message', 'error');
+    return;
+  }
+
+  if (content.length > 1000) {
+    toast('Message trop long (max 1000)', 'error');
+    return;
+  }
+
+  try {
+    // 1. Vérifier qu'il n'y a pas déjà une conversation active (sécurité)
+    const { data: existing } = await db.from('conversations')
+      .select('id')
+      .eq('student_id', studentId)
+      .eq('status', 'active')
+      .maybeSingle();
+
+    if (existing) {
+      toast('Une conversation active existe déjà', 'info');
+      await openAdminConversation(existing.id);
+      return;
+    }
+
+    // 2. Créer conversation
+    const { data: conv, error: e1 } = await db.from('conversations')
+      .insert({
+        student_id: studentId,
+        subject: 'Nouveau message',
+        status: 'active',
+        unread_student: true,
+        unread_admin: false,
+        initiated_by: 'admin'
+      })
+      .select()
+      .single();
+
+    if (e1 || !conv) {
+      console.error('[admin-messagerie] create conv error:', e1);
+      toast('Erreur de création', 'error');
+      return;
+    }
+
+    // 3. Insérer premier message
+    const { error: e2 } = await db.from('conversation_messages')
+      .insert({
+        conversation_id: conv.id,
+        sender_type: 'admin',
+        content: content
+      });
+
+    if (e2) {
+      console.error('[admin-messagerie] insert message error:', e2);
+      toast('Erreur d\'envoi du message', 'error');
+      return;
+    }
+
+    // 4. Push notification élève
+    const excerpt = content.length > 50 ? content.substring(0, 50) + '…' : content;
+    const supervisorName = getSupervisorName();
+    const capitalizedName = supervisorName === 'le surveillant' 
+      ? 'le surveillant' 
+      : supervisorName.charAt(0).toUpperCase() + supervisorName.slice(1);
+    
+    _invokeSendPush(studentId, '💬 Nouveau message', `${capitalizedName} t'a envoyé un message : "${excerpt}"`, '/');
+
+    toast('Message envoyé !', 'success');
+
+    // 5. Charger la conversation
+    await openAdminConversation(conv.id);
+
+  } catch (err) {
+    console.error('[admin-messagerie] createAdminConv error:', err);
+    toast('Erreur', 'error');
+  }
+}
+
+
 /** Rend le thread admin (réutilise les bulles définies pour l'élève) */
 function _adminConvRenderThread() {
   _msgRenderThread('adminconv-thread', _adminCurrentMessages);
 }
 
 /** Compteur caractères composer admin */
-function _adminConvUpdateCounter() {
-  const txt = document.getElementById('adminconv-input')?.value || '';
-  const counter = document.getElementById('adminconv-counter');
+function _adminConvUpdateCounter(mode = 'active') {
+  let txt = '';
+  let counter = null;
+
+  if (mode === 'new') {
+    txt = document.getElementById('adminconv-new-content')?.value || '';
+    counter = document.getElementById('adminconv-new-counter');
+  } else {
+    txt = document.getElementById('adminconv-input')?.value || '';
+    counter = document.getElementById('adminconv-counter');
+  }
+
   if (counter) {
     counter.textContent = txt.length + ' / 1000';
     counter.classList.toggle('warn', txt.length > 850);
@@ -13503,6 +13712,7 @@ async function createStudentConversation() {
       status: 'active',
       unread_admin: true,
       unread_student: false,
+      initiated_by: 'student'
     })
     .select()
     .single();
@@ -14619,6 +14829,10 @@ async function openStudentDetail(studentId) {
       : `openArchiveStudent('${s.id}','${(s.first_name||'')} ${(s.last_name||'')}','unarchive')`;
 
     actionsEl.innerHTML = `
+      <button class="btn btn-gold btn-full" style="justify-content:flex-start;gap:10px;text-align:left;"
+        onclick="openAdminToStudentMessaging('${s.id}')">
+        💬 Contacter l'élève
+      </button>
       <button class="btn btn-ghost btn-full" style="justify-content:flex-start;gap:10px;text-align:left;"
         onclick="openResetPin('${s.id}','${(s.first_name||'')} ${(s.last_name||'')}')">
         🔐 Réinitialiser le code secret
