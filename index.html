@@ -8427,8 +8427,57 @@ async function _clearLateCancellationsIfReregistered(studentId, sessionId, sessi
   }
 
   console.log(`[clearLateCancel] ✓ ${updated?.length || 0} ligne(s) neutralisée(s)`, updated);
+
+  // Toast visible côté élève — feedback immédiat que le précédent désistement
+  // tardif a été effacé. Permet aussi de diagnostiquer en cas de bug.
+  if (updated && updated.length > 0) {
+    if (typeof toast === 'function') {
+      toast(`✓ Ton précédent désistement tardif a été annulé`, 'success');
+    }
+  }
+
   return { ok: true, updated: updated?.length || 0 };
 }
+
+/**
+ * Outil de diagnostic console — permet de tester la neutralisation
+ * sans passer par l'UI. Usage depuis la console navigateur :
+ *   debugClearLateCancel('UUID_ELEVE', 'UUID_SEANCE')
+ * Listera les lignes actives, fera l'UPDATE, et te dira ce qui s'est passé.
+ */
+window.debugClearLateCancel = async function(studentId, sessionId) {
+  console.log('=== DEBUG clearLateCancel ===');
+  if (!studentId || !sessionId) {
+    console.error('Usage: debugClearLateCancel("UUID_ELEVE", "UUID_SEANCE")');
+    return;
+  }
+  // 1) Lister TOUTES les lignes (actives ET neutralisées) pour ce couple
+  const { data: all, error: allErr } = await db
+    .from('late_cancellations')
+    .select('id, cancelled_at, cleared_at, cleared_reason')
+    .eq('student_id', studentId)
+    .eq('session_id', sessionId)
+    .order('cancelled_at', { ascending: false });
+  if (allErr) { console.error('❌ Erreur lecture:', allErr); return; }
+  console.log(`Toutes lignes pour (élève=${studentId}, séance=${sessionId}) :`, all);
+  console.log(`  → actives (cleared_at IS NULL) : ${all.filter(r => !r.cleared_at).length}`);
+  console.log(`  → neutralisées : ${all.filter(r => r.cleared_at).length}`);
+
+  // 2) Tester le helper
+  console.log('\nAppel du helper...');
+  const result = await _clearLateCancellationsIfReregistered(studentId, sessionId, null, null);
+  console.log('Résultat helper:', result);
+
+  // 3) Re-lire l'état final
+  const { data: after } = await db
+    .from('late_cancellations')
+    .select('id, cancelled_at, cleared_at, cleared_reason')
+    .eq('student_id', studentId)
+    .eq('session_id', sessionId)
+    .order('cancelled_at', { ascending: false });
+  console.log('\nÉtat APRÈS:', after);
+  return { before: all, after, helperResult: result };
+};
 
 /**
  * Génère le HTML des badges à afficher.
