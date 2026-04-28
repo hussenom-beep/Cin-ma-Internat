@@ -2482,6 +2482,121 @@ button { cursor: pointer; }
   color: var(--text-3);
 }
 
+/* ================================================================
+   FICHE ÉLÈVE ADMIN — Bloc "Suivi séance" (absences / désistements)
+   ================================================================ */
+.sd-track-counters {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+  margin-bottom: 12px;
+}
+.sd-track-counter {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
+  transition: border-color .15s, background .15s;
+}
+.sd-track-counter[data-level="warn"] {
+  border-color: rgba(245, 158, 11, .55);
+  background: rgba(245, 158, 11, .07);
+}
+.sd-track-counter[data-level="danger"] {
+  border-color: rgba(239, 68, 68, .55);
+  background: rgba(239, 68, 68, .08);
+}
+.sd-track-counter[data-level="critical"] {
+  border-color: rgba(239, 68, 68, .9);
+  background: rgba(239, 68, 68, .18);
+  box-shadow: 0 0 0 1px rgba(239, 68, 68, .25);
+}
+.sd-track-num {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1;
+}
+.sd-track-counter[data-level="warn"]    .sd-track-num { color: #fbbf24; }
+.sd-track-counter[data-level="danger"]  .sd-track-num { color: #f87171; }
+.sd-track-counter[data-level="critical"] .sd-track-num { color: #fff; }
+.sd-track-lbl {
+  font-size: 11px;
+  color: var(--text-3);
+  font-weight: 600;
+}
+
+.sd-track-history {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.sd-track-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  font-size: 12.5px;
+  border-left: 3px solid var(--border);
+}
+.sd-track-row[data-type="absence"]    { border-left-color: #ef4444; }
+.sd-track-row[data-type="late"]       { border-left-color: #f59e0b; }
+.sd-track-row[data-type="cleared"]    { border-left-color: var(--border); opacity: .55; }
+
+.sd-track-date {
+  flex: 0 0 auto;
+  color: var(--text-2);
+  font-weight: 600;
+  font-size: 11.5px;
+  min-width: 56px;
+}
+.sd-track-title {
+  flex: 1;
+  min-width: 0;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sd-track-tag {
+  flex: 0 0 auto;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  padding: 3px 8px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+.sd-track-tag[data-type="absence"] {
+  background: rgba(239, 68, 68, .15);
+  color: #f87171;
+}
+.sd-track-tag[data-type="late"] {
+  background: rgba(245, 158, 11, .15);
+  color: #fbbf24;
+}
+.sd-track-tag[data-type="cleared"] {
+  background: rgba(120, 120, 130, .12);
+  color: var(--text-3);
+  text-decoration: line-through;
+  text-decoration-color: rgba(120, 120, 130, .5);
+}
+.sd-track-empty {
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-3);
+  padding: 14px 6px;
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+}
+
 /* Bloc repères (compte) — version allégée */
 .sd-repere-row {
   display: flex;
@@ -5678,6 +5793,13 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
         <div class="sd-section">
           <div class="sd-section-title">Activité</div>
           <div class="sd-stats" id="sd-stats"></div>
+        </div>
+        <div class="sd-section">
+          <div class="sd-section-title">Suivi séance — 30 derniers jours</div>
+          <div class="sd-track-counters" id="sd-track-counters">
+            <div class="loader" style="padding:14px;"><div class="spinner"></div></div>
+          </div>
+          <div id="sd-track-history"></div>
         </div>
         <div class="sd-section">
           <div class="sd-section-title">Activité récente</div>
@@ -12866,6 +12988,129 @@ async function _sdLoadOverview(studentId) {
       <span class="sd-activity-text">${item.text}</span>
       <span class="sd-activity-date">${item.date ? fmtDateTime(item.date) : ''}</span>
     </div>`).join('');
+
+  // Bloc Suivi séance — chargé en parallèle (pas bloquant)
+  _sdLoadBehaviorTracking(studentId);
+}
+
+/* ================================================================
+   FICHE ÉLÈVE ADMIN — Suivi séance (absences + désistements tardifs)
+   ----------------------------------------------------------------
+   Source des données :
+   - student_missed_films  → 1 ligne par absence
+   - late_cancellations    → 1 ligne par désistement tardif
+                             (cleared_at NOT NULL = neutralisé)
+   Période : 30 derniers jours.
+   ================================================================ */
+async function _sdLoadBehaviorTracking(studentId) {
+  const countersEl = document.getElementById('sd-track-counters');
+  const historyEl  = document.getElementById('sd-track-history');
+  if (!countersEl || !historyEl) return;
+
+  const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+
+  try {
+    const [missedRes, lateRes] = await Promise.all([
+      db.from('student_missed_films')
+        .select('missed_at, session_id, film_id, films!student_missed_films_film_id_fkey(id, title)')
+        .eq('student_id', studentId)
+        .gte('missed_at', since)
+        .order('missed_at', { ascending: false }),
+      db.from('late_cancellations')
+        .select('cancelled_at, session_date, session_time, session_id, film_id, cleared_at, cleared_reason, films(id, title)')
+        .eq('student_id', studentId)
+        .gte('cancelled_at', since)
+        .order('cancelled_at', { ascending: false }),
+    ]);
+
+    if (missedRes.error) console.warn('[_sdLoadBehaviorTracking] missed:', missedRes.error);
+    if (lateRes.error)   console.warn('[_sdLoadBehaviorTracking] late:',   lateRes.error);
+
+    const missed = missedRes.data || [];
+    const late   = lateRes.data   || [];
+
+    // Compteurs ACTIFS uniquement
+    const absenceCount   = missed.length;
+    const lateActiveCount = late.filter(r => !r.cleared_at).length;
+
+    // Niveaux de couleur (cohérents avec les badges admin existants)
+    // Absences : 1 = rouge simple, ≥2 = rouge renforcé
+    // Désistements : ≥2 = orange
+    const absLevel = absenceCount    >= 2 ? 'critical' : absenceCount    === 1 ? 'danger' : 'none';
+    const latLevel = lateActiveCount >= 2 ? 'warn'     : 'none';
+
+    countersEl.innerHTML = `
+      <div class="sd-track-counter" ${absLevel !== 'none' ? `data-level="${absLevel}"` : ''}>
+        <span class="sd-track-num">${absenceCount}</span>
+        <span class="sd-track-lbl">Absences</span>
+      </div>
+      <div class="sd-track-counter" ${latLevel !== 'none' ? `data-level="${latLevel}"` : ''}>
+        <span class="sd-track-num">${lateActiveCount}</span>
+        <span class="sd-track-lbl">Désistements tardifs</span>
+      </div>
+    `;
+
+    // ---------- Historique unifié ----------
+    // Construire des entrées normalisées (date, type, title)
+    const entries = [];
+
+    missed.forEach(m => {
+      entries.push({
+        date:  new Date(m.missed_at),
+        type:  'absence',
+        title: m.films?.title || 'Séance',
+      });
+    });
+
+    late.forEach(l => {
+      // Date de référence = date de la séance (snapshot) ou fallback sur cancelled_at
+      let refDate;
+      if (l.session_date) {
+        const time = l.session_time || '20:00';
+        refDate = new Date(`${l.session_date}T${time}:00`);
+        if (isNaN(refDate.getTime())) refDate = new Date(l.cancelled_at);
+      } else {
+        refDate = new Date(l.cancelled_at);
+      }
+      entries.push({
+        date:  refDate,
+        type:  l.cleared_at ? 'cleared' : 'late',
+        title: l.films?.title || 'Séance',
+      });
+    });
+
+    // Tri global desc
+    entries.sort((a, b) => b.date.getTime() - a.date.getTime());
+
+    if (entries.length === 0) {
+      historyEl.innerHTML = '<div class="sd-track-empty">Aucun incident sur les 30 derniers jours ✨</div>';
+      return;
+    }
+
+    const tagLabel = {
+      absence: 'Absence',
+      late:    'Désistement tardif',
+      cleared: 'Désistement neutralisé',
+    };
+
+    const dateFmt = d => d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
+
+    historyEl.innerHTML = `
+      <div class="sd-track-history">
+        ${entries.map(e => `
+          <div class="sd-track-row" data-type="${e.type}">
+            <span class="sd-track-date">${dateFmt(e.date)}</span>
+            <span class="sd-track-title" title="${(e.title || '').replace(/"/g,'&quot;')}">${e.title}</span>
+            <span class="sd-track-tag" data-type="${e.type}">${tagLabel[e.type]}</span>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  } catch (e) {
+    console.error('[_sdLoadBehaviorTracking] exception:', e);
+    countersEl.innerHTML = '<div class="text-muted" style="padding:10px;">Erreur de chargement</div>';
+    historyEl.innerHTML = '';
+  }
 }
 
 /* ---- Onglet Films proposés ---- */
