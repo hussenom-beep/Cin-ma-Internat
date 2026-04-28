@@ -12929,16 +12929,17 @@ async function _sdLoadOverview(studentId) {
   const stat = (val, label) =>
     `<div class="sd-stat"><div class="sd-stat-val">${val ?? '—'}</div><div class="sd-stat-label">${label}</div></div>`;
   const statsEl = document.getElementById('sd-stats');
+  // Absences retirées d'ici (doublon avec le bloc "Suivi séance")
+  // En attente retirée d'ici (peu utile sur la fiche)
   statsEl.innerHTML = [
     stat(voteCount,'🗳️ Votes'), stat(propCount,'💡 Propositions'),
-    stat(regCount,'✅ Inscriptions'), stat(waitCount,'⏳ En attente'),
-    stat(watchedCount,'🎬 Films vus'), stat(missedCount,'🚫 Absences')
+    stat(regCount,'✅ Inscriptions'), stat(watchedCount,'🎬 Films vus')
   ].join('');
   if (banCount > 0) statsEl.insertAdjacentHTML('beforeend', stat(banCount,'🚫 Blocages'));
 
   const [
     { data: lastVote }, { data: lastProp },
-    { data: lastReg },  { data: lastEvents }
+    { data: lastReg },  { data: lastWatched }
   ] = await Promise.all([
     db.from('votes').select('created_at,films(title)').eq('student_id',studentId)
       .order('created_at',{ascending:false}).limit(1),
@@ -12946,8 +12947,8 @@ async function _sdLoadOverview(studentId) {
       .order('proposed_at',{ascending:false}).limit(1),
     db.from('registrations').select('registered_at,cinema_sessions(session_date,films(title))')
       .eq('student_id',studentId).order('registered_at',{ascending:false}).limit(1),
-    db.from('student_events').select('created_at,event_type,message').eq('student_id',studentId)
-      .order('created_at',{ascending:false}).limit(3)
+    db.from('student_watched_films').select('watched_at,films(title)')
+      .eq('student_id',studentId).order('watched_at',{ascending:false}).limit(1)
   ]);
 
   const actItems = [];
@@ -12963,17 +12964,14 @@ async function _sdLoadOverview(studentId) {
     const sesDate  = r.cinema_sessions?.session_date;
     actItems.push({icon:'✅', text:`Inscrit à <strong>${sesTitle}</strong>${sesDate?' · '+fmtDateShort(sesDate):''}`, date:r.registered_at});
   }
-  const evMap = {
-    session_waitlist:{icon:'⏳',text:"Passé en liste d'attente"},
-    session_promoted:{icon:'🎉',text:'Promu inscrit confirmé'},
-    session_unbanned:{icon:'✅',text:'Débloqué pour une séance'},
-    new_session:{icon:'🎟️',text:'Nouvelle séance annoncée'},
-    session_opened:{icon:'🟢',text:'Inscriptions ouvertes'},
-  };
-  (lastEvents||[]).forEach(ev => {
-    const e = evMap[ev.event_type];
-    if (e) actItems.push({icon:e.icon, text:ev.message||e.text, date:ev.created_at});
-  });
+  if (lastWatched?.[0]) {
+    const w = lastWatched[0];
+    actItems.push({icon:'🎬', text:`Film vu : <strong>${w.films?.title||'—'}</strong>`, date:w.watched_at});
+  }
+
+  // Note : les events système (waitlist, séance ouverte, nouvelle séance, etc.)
+  // ne sont volontairement PAS affichés ici. Les absences et désistements
+  // tardifs sont traités dans le bloc "Suivi séance".
 
   actItems.sort((a,b) => (b.date||'') > (a.date||'') ? 1 : -1);
   const top5 = actItems.slice(0,5);
