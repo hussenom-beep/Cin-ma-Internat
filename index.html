@@ -6515,7 +6515,11 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
   <div class="sheet">
     <div class="sheet-handle"></div>
     <div class="sheet-title" id="ccd-title">Connexions du —</div>
-    <div id="ccd-summary" style="font-size:13px;color:var(--text-2);margin-bottom:14px;"></div>
+    <div id="ccd-summary" style="font-size:13px;color:var(--text-2);margin-bottom:10px;"></div>
+    <div id="ccd-mode-switch" class="cc-toggle-group" style="margin-bottom:14px;display:none;" role="group" aria-label="Mode d'affichage">
+      <button class="cc-toggle active" data-ccd-mode="recent" onclick="setCcdMode('recent')">Derniers connectés</button>
+      <button class="cc-toggle"        data-ccd-mode="count"  onclick="setCcdMode('count')">Connexions</button>
+    </div>
     <div id="ccd-content">
       <div class="loader"><div class="spinner"></div></div>
     </div>
@@ -10649,6 +10653,70 @@ function _ccRenderStats(statsEl, series) {
   `;
 }
 
+/* État local de la modale connexions-jour */
+let _ccdState = { mode: 'recent', list: [] };
+
+/* Re-rend la liste selon le mode courant (sans re-fetch) */
+function _ccdRender() {
+  const contentEl = document.getElementById('ccd-content');
+  if (!contentEl) return;
+  const { mode, list } = _ccdState;
+  if (!list || list.length === 0) return;
+
+  // Tri selon le mode
+  const sorted = [...list].sort((a, b) => {
+    if (mode === 'recent') {
+      // Plus récent en premier
+      const tA = new Date(a.lastAt).getTime();
+      const tB = new Date(b.lastAt).getTime();
+      if (tB !== tA) return tB - tA;
+      return (a.lastName || '').localeCompare(b.lastName || '', 'fr');
+    }
+    // mode 'count' : nb connexions desc, puis nom asc
+    if (b.count !== a.count) return b.count - a.count;
+    return (a.lastName || '').localeCompare(b.lastName || '', 'fr');
+  });
+
+  const fmtTime = (iso) => {
+    const d = new Date(iso);
+    const h = String(d.getHours()).padStart(2, '0');
+    const m = String(d.getMinutes()).padStart(2, '0');
+    return `${h}:${m}`;
+  };
+
+  const rowsHtml = sorted.map(s => {
+    const fullName = `${s.firstName} ${s.lastName}`.trim() || '— inconnu —';
+    const clsBadge = s.className ? `<span class="badge badge-muted" style="margin-left:6px;">${s.className}</span>` : '';
+    const cntLabel = `${s.count} connexion${s.count > 1 ? 's' : ''}`;
+    // En mode 'recent', l'heure est mise en avant ; en mode 'count', c'est le compteur
+    const primary   = mode === 'recent' ? `dernière à ${fmtTime(s.lastAt)}` : cntLabel;
+    const secondary = mode === 'recent' ? cntLabel : `dernière à ${fmtTime(s.lastAt)}`;
+    return `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface-2);border-radius:8px;gap:10px;">
+        <div style="flex:1;min-width:0;">
+          <button class="admin-student-link" onclick="event.stopPropagation(); openStudentDetail('${s.studentId}')" title="Voir la fiche élève">${fullName}</button>${clsBadge}
+        </div>
+        <div style="text-align:right;font-size:12px;color:var(--text-2);white-space:nowrap;">
+          <div style="font-weight:700;color:var(--gold);">${primary}</div>
+          <div style="font-size:11px;">${secondary}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  contentEl.innerHTML = `<div style="display:flex;flex-direction:column;gap:7px;max-height:60vh;overflow-y:auto;">${rowsHtml}</div>`;
+}
+
+/* Switch entre les 2 modes (recent / count) */
+function setCcdMode(mode) {
+  if (mode !== 'recent' && mode !== 'count') return;
+  _ccdState.mode = mode;
+  document.querySelectorAll('#ccd-mode-switch .cc-toggle').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.ccdMode === mode);
+  });
+  _ccdRender();
+}
+
 /* Détail journalier (clic sur une barre du graphique connexions) */
 async function openConnectionsDayDetail(dayKey) {
   // dayKey au format YYYY-MM-DD
@@ -10659,6 +10727,7 @@ async function openConnectionsDayDetail(dayKey) {
   const titleEl   = document.getElementById('ccd-title');
   const summaryEl = document.getElementById('ccd-summary');
   const contentEl = document.getElementById('ccd-content');
+  const switchEl  = document.getElementById('ccd-mode-switch');
   if (!contentEl) return;
 
   const dateLabel = dayStart.toLocaleDateString('fr-FR', {
@@ -10666,6 +10735,12 @@ async function openConnectionsDayDetail(dayKey) {
   });
   if (titleEl)   titleEl.textContent = `Connexions du ${dateLabel}`;
   if (summaryEl) summaryEl.textContent = '';
+  if (switchEl)  switchEl.style.display = 'none';
+  // Reset à 'recent' à chaque ouverture (mode par défaut)
+  _ccdState = { mode: 'recent', list: [] };
+  document.querySelectorAll('#ccd-mode-switch .cc-toggle').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.ccdMode === 'recent');
+  });
   contentEl.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
   openModal('modal-connections-day');
 
@@ -10706,12 +10781,7 @@ async function openConnectionsDayDetail(dayKey) {
       byStudent.get(sid).count += 1;
     });
 
-    // Tri : par nb connexions desc, puis nom asc
-    const list = Array.from(byStudent.values()).sort((a, b) => {
-      if (b.count !== a.count) return b.count - a.count;
-      return (a.lastName || '').localeCompare(b.lastName || '', 'fr');
-    });
-
+    const list = Array.from(byStudent.values());
     const totalCnx    = data.length;
     const uniqueCount = list.length;
 
@@ -10719,31 +10789,10 @@ async function openConnectionsDayDetail(dayKey) {
       summaryEl.textContent = `${uniqueCount} élève${uniqueCount > 1 ? 's' : ''} • ${totalCnx} connexion${totalCnx > 1 ? 's' : ''} au total`;
     }
 
-    const fmtTime = (iso) => {
-      const d = new Date(iso);
-      const h = String(d.getHours()).padStart(2, '0');
-      const m = String(d.getMinutes()).padStart(2, '0');
-      return `${h}:${m}`;
-    };
-
-    const rowsHtml = list.map(s => {
-      const fullName = `${s.firstName} ${s.lastName}`.trim() || '— inconnu —';
-      const clsBadge = s.className ? `<span class="badge badge-muted" style="margin-left:6px;">${s.className}</span>` : '';
-      const cntLabel = `${s.count} connexion${s.count > 1 ? 's' : ''}`;
-      return `
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface-2);border-radius:8px;gap:10px;">
-          <div style="flex:1;min-width:0;">
-            <button class="admin-student-link" onclick="event.stopPropagation(); openStudentDetail('${s.studentId}')" title="Voir la fiche élève">${fullName}</button>${clsBadge}
-          </div>
-          <div style="text-align:right;font-size:12px;color:var(--text-2);white-space:nowrap;">
-            <div style="font-weight:700;color:var(--gold);">${cntLabel}</div>
-            <div style="font-size:11px;">dernière à ${fmtTime(s.lastAt)}</div>
-          </div>
-        </div>
-      `;
-    }).join('');
-
-    contentEl.innerHTML = `<div style="display:flex;flex-direction:column;gap:7px;max-height:60vh;overflow-y:auto;">${rowsHtml}</div>`;
+    // Stocke la liste et affiche le switch + le rendu initial
+    _ccdState.list = list;
+    if (switchEl) switchEl.style.display = '';
+    _ccdRender();
 
   } catch (e) {
     console.error('[openConnectionsDayDetail] exception:', e);
