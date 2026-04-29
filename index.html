@@ -2671,6 +2671,48 @@ button { cursor: pointer; }
 .sd-activity-text { flex: 1; font-size: 13px; color: var(--text-2); line-height: 1.4; }
 .sd-activity-date { font-size: 11px; color: var(--text-3); white-space: nowrap; }
 
+/* Mise en évidence au survol activité récente — desktop uniquement */
+@media (hover: hover) and (pointer: fine) {
+  .sd-activity-item {
+    transition: background .15s ease;
+    border-radius: 4px;
+  }
+  .sd-activity-item:hover {
+    background: rgba(255,255,255,0.03);
+  }
+  .sd-activity-item:hover .sd-activity-text {
+    color: var(--text);
+  }
+  .sd-activity-item:hover .sd-activity-date {
+    color: var(--text);
+    font-weight: 700;
+  }
+}
+
+/* Lignes additionnelles cachées par défaut (révélées via "Voir plus") */
+.is-hidden-extra { display: none !important; }
+
+/* Bouton "Voir plus" pour les blocs fiche élève */
+.sd-show-more {
+  display: block;
+  width: 100%;
+  background: transparent;
+  border: 1px dashed var(--border);
+  color: var(--text-3);
+  font-size: 12px;
+  padding: 8px 12px;
+  margin-top: 6px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-family: inherit;
+  transition: all .15s ease;
+}
+.sd-show-more:hover {
+  color: var(--gold);
+  border-color: rgba(240,165,0,.4);
+  background: rgba(240,165,0,.04);
+}
+
 /* Onglets (structure pour la suite) */
 .sd-tabs {
   display: flex;
@@ -15470,18 +15512,22 @@ async function _sdLoadOverview(studentId) {
   // tardifs sont traités dans le bloc "Suivi séance".
 
   actItems.sort((a,b) => (b.date||'') > (a.date||'') ? 1 : -1);
-  const top5 = actItems.slice(0,5);
   const recentEl = document.getElementById('sd-recent');
-  if (!top5.length) {
+  if (!actItems.length) {
     recentEl.innerHTML = '<p class="text-sm text-muted" style="padding:4px 0;">Aucune activité enregistrée.</p>';
     return;
   }
-  recentEl.innerHTML = top5.map(item => `
-    <div class="sd-activity-item">
+  // Affichage limité à 5, bouton "Voir plus" si davantage
+  const itemsHtml = actItems.map((item, i) => `
+    <div class="sd-activity-item${i >= 5 ? ' is-hidden-extra' : ''}">
       <span class="sd-activity-icon">${item.icon}</span>
       <span class="sd-activity-text">${item.text}</span>
       <span class="sd-activity-date">${item.date ? fmtDateTime(item.date) : ''}</span>
     </div>`).join('');
+  const moreBtn = actItems.length > 5
+    ? `<button class="sd-show-more" onclick="_sdShowMore(this)">Voir plus (${actItems.length - 5})</button>`
+    : '';
+  recentEl.innerHTML = itemsHtml + moreBtn;
 
   // Bloc Suivi séance — chargé en parallèle (pas bloquant)
   _sdLoadBehaviorTracking(studentId);
@@ -15496,6 +15542,14 @@ async function _sdLoadOverview(studentId) {
                              (cleared_at NOT NULL = neutralisé)
    Période : 30 derniers jours.
    ================================================================ */
+/* Helper : révèle les lignes cachées d'un bloc et retire le bouton */
+function _sdShowMore(btn) {
+  const parent = btn.parentElement;
+  if (!parent) return;
+  parent.querySelectorAll('.is-hidden-extra').forEach(el => el.classList.remove('is-hidden-extra'));
+  btn.remove();
+}
+
 async function _sdLoadBehaviorTracking(studentId) {
   const countersEl = document.getElementById('sd-track-counters');
   const historyEl  = document.getElementById('sd-track-history');
@@ -15589,15 +15643,21 @@ async function _sdLoadBehaviorTracking(studentId) {
 
     const dateFmt = d => d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
 
+    // Affichage limité à 5, bouton "Voir plus" si davantage
+    const rowsHtml = entries.map((e, i) => `
+      <div class="sd-track-row${i >= 5 ? ' is-hidden-extra' : ''}" data-type="${e.type}">
+        <span class="sd-track-date">${dateFmt(e.date)}</span>
+        <span class="sd-track-title" title="${(e.title || '').replace(/"/g,'&quot;')}">${e.title}</span>
+        <span class="sd-track-tag" data-type="${e.type}">${tagLabel[e.type]}</span>
+      </div>
+    `).join('');
+    const moreBtn = entries.length > 5
+      ? `<button class="sd-show-more" onclick="_sdShowMore(this)">Voir plus (${entries.length - 5})</button>`
+      : '';
     historyEl.innerHTML = `
       <div class="sd-track-history">
-        ${entries.map(e => `
-          <div class="sd-track-row" data-type="${e.type}">
-            <span class="sd-track-date">${dateFmt(e.date)}</span>
-            <span class="sd-track-title" title="${(e.title || '').replace(/"/g,'&quot;')}">${e.title}</span>
-            <span class="sd-track-tag" data-type="${e.type}">${tagLabel[e.type]}</span>
-          </div>
-        `).join('')}
+        ${rowsHtml}
+        ${moreBtn}
       </div>
     `;
   } catch (e) {
