@@ -6708,6 +6708,16 @@ async function disablePushNotifications() {
 
 /** Toggle utilisé par les boutons UI */
 async function togglePushNotifications() {
+  // Court-circuit : si la PWA n'est pas installée, on redirige tout de suite
+  // vers la modale d'installation. Évite un éventuel hang sur
+  // navigator.serviceWorker.ready (Safari iOS / SW pas encore actif).
+  const status = _getPushSupportStatus();
+  if (status === 'needs_pwa') {
+    toast("Pour activer les notifications, ajoute d'abord l'app à ton écran d'accueil.", 'error');
+    if (!S.isAdmin) openAddToHome();
+    return;
+  }
+
   const sub = await _getCurrentPushSubscription();
   if (sub) {
     await disablePushNotifications();
@@ -6734,10 +6744,10 @@ async function _refreshPushButtons() {
       if (subEl)   subEl.textContent   = 'Ce navigateur ne les gère pas';
       return;
     }
-    if (status === 'ios_needs_pwa') {
+    if (status === 'needs_pwa') {
       el.disabled = false;
       if (iconEl)  iconEl.textContent  = '📲';
-      if (labelEl) labelEl.textContent = 'Notifications iOS';
+      if (labelEl) labelEl.textContent = 'Activer les notifications';
       if (subEl)   subEl.textContent   = 'Installe d\'abord l\'app sur l\'écran d\'accueil';
       return;
     }
