@@ -6560,14 +6560,23 @@ function _detectPlatform() {
  *   'available'        → tout est OK, on peut activer
  */
 function _getPushSupportStatus() {
-  if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+  // Check minimal : SW + Notification. PushManager est testé plus loin
+  // car sur Safari iOS en mode navigateur il n'est PAS exposé dans window
+  // (Apple ne l'expose qu'en mode PWA standalone). On veut donc d'abord
+  // détecter le besoin d'installer la PWA avant de conclure 'unsupported'.
+  if (!('serviceWorker' in navigator) || !('Notification' in window)) {
     return 'unsupported';
   }
   
-  // iOS ET Android : besoin d'installer la PWA pour les notifications
+  // iOS ET Android non-installés en PWA : on demande l'installation
   const platform = _detectPlatform();
   if ((platform === 'ios' || platform === 'android') && !_isStandalone()) {
     return 'needs_pwa';
+  }
+  
+  // En mode PWA (iOS/Android) ou sur desktop, PushManager doit exister
+  if (!('PushManager' in window)) {
+    return 'unsupported';
   }
   
   if (Notification.permission === 'denied')  return 'denied';
