@@ -1273,6 +1273,37 @@ button { cursor: pointer; }
   flex-shrink: 0;
 }
 
+/* Encart d'aide notifications (visible uniquement quand needs_pwa) */
+.push-help-box {
+  background: rgba(240, 165, 0, 0.04);
+  border: 1px solid rgba(240, 165, 0, 0.30);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  margin-top: -8px;
+  margin-bottom: 18px;
+  font-size: 12.5px;
+  color: var(--text-2);
+  line-height: 1.55;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.push-help-box-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+  line-height: 1.4;
+}
+.push-help-box-title {
+  font-weight: 600;
+  color: var(--gold);
+  margin-bottom: 4px;
+  font-size: 13px;
+}
+.push-help-box strong {
+  color: var(--gold);
+  font-weight: 600;
+}
+
 /* Sections du profil */
 .profile-section {
   margin-bottom: 16px;
@@ -5219,6 +5250,16 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       <div class="profile-install-arrow">›</div>
     </button>
 
+    <!-- Encart d'aide : visible uniquement si needs_pwa (géré par _refreshPushButtons) -->
+    <div class="push-help-box hidden" data-push-help>
+      <div class="push-help-box-icon">💡</div>
+      <div>
+        <div class="push-help-box-title">Comment activer les notifications ?</div>
+        1. Installe l'application en suivant le tuto <strong>📲 Installer l'application</strong> ci-dessus.<br>
+        2. Une fois l'app ouverte depuis l'icône sur ton écran d'accueil, reviens ici et appuie sur <strong>🔕 Activer les notifications</strong>.
+      </div>
+    </div>
+
     <!-- Actions organisées par sections -->
     <div class="profile-actions">
       
@@ -6752,6 +6793,11 @@ async function _refreshPushButtons() {
   const status = _getPushSupportStatus();
   const sub = await _getCurrentPushSubscription();
   const isOn = !!sub && status === 'granted';
+
+  // Encart d'aide notifications dans la fiche profil élève :
+  // visible uniquement quand l'app n'est pas installée en PWA
+  const helpEl = document.querySelector('[data-push-help]');
+  if (helpEl) helpEl.classList.toggle('hidden', status !== 'needs_pwa');
 
   document.querySelectorAll('[data-push-toggle]').forEach(el => {
     const labelEl = el.querySelector('[data-push-label]');
