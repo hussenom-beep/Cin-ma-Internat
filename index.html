@@ -4822,8 +4822,8 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       <div class="admin-panel-title">Demandes élèves</div>
       <!-- Sous-onglets filtres types -->
       <div class="sub-tabs" id="req-subtabs">
-        <button class="sub-tab active" onclick="filterRequests('forgot_pin')">🔑 Codes oubliés <span class="pending-badge hidden" id="req-forgot-badge">0</span></button>
-        <button class="sub-tab" onclick="filterRequests('message')">💬 Messages <span class="pending-badge hidden" id="req-message-badge">0</span></button>
+        <button class="sub-tab active" onclick="filterRequests('message')">💬 Messages <span class="pending-badge hidden" id="req-message-badge">0</span></button>
+        <button class="sub-tab" onclick="filterRequests('forgot_pin')">🔑 Codes oubliés <span class="pending-badge hidden" id="req-forgot-badge">0</span></button>
         <button class="sub-tab" onclick="filterRequests('archived_messages')">📁 Archivées</button>
         <button class="sub-tab" onclick="filterRequests('handled')">✅ Traitées</button>
       </div>
@@ -10090,11 +10090,11 @@ function filterProposals(status) {
 /* ================================================================
    ADMIN DEMANDES — filtres et chargement
    ================================================================ */
-let _requestFilter = 'forgot_pin';
+let _requestFilter = 'message';
 
 function filterRequests(type) {
   _requestFilter = type;
-  const filters = ['forgot_pin', 'message', 'archived_messages', 'handled'];
+  const filters = ['message', 'forgot_pin', 'archived_messages', 'handled'];
   document.querySelectorAll('#req-subtabs .sub-tab').forEach((btn, i) => {
     btn.classList.toggle('active', filters[i] === type);
   });
