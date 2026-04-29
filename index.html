@@ -6795,9 +6795,10 @@ async function _refreshPushButtons() {
   const isOn = !!sub && status === 'granted';
 
   // Encart d'aide notifications dans la fiche profil élève :
-  // visible uniquement quand l'app n'est pas installée en PWA
+  // visible dès que les notifs ne sont pas actives (peu importe le support),
+  // caché uniquement quand elles sont actives sur ce device
   const helpEl = document.querySelector('[data-push-help]');
-  if (helpEl) helpEl.classList.toggle('hidden', status !== 'needs_pwa');
+  if (helpEl) helpEl.classList.toggle('hidden', isOn);
 
   document.querySelectorAll('[data-push-toggle]').forEach(el => {
     const labelEl = el.querySelector('[data-push-label]');
