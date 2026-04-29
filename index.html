@@ -2580,6 +2580,22 @@ button { cursor: pointer; }
 .sd-track-row[data-type="late"]       { border-left-color: #f59e0b; }
 .sd-track-row[data-type="cleared"]    { border-left-color: var(--border); opacity: .55; }
 
+/* Mise en évidence au survol — desktop uniquement (vrai pointeur) */
+@media (hover: hover) and (pointer: fine) {
+  .sd-track-row {
+    transition: background .15s ease, transform .15s ease;
+  }
+  .sd-track-row:hover {
+    background: var(--surface-3, #2a2a2a);
+    transform: translateX(2px);
+  }
+  .sd-track-row:hover .sd-track-title,
+  .sd-track-row:hover .sd-track-date {
+    color: var(--text);
+    font-weight: 700;
+  }
+}
+
 .sd-track-date {
   flex: 0 0 auto;
   color: var(--text-2);
