@@ -8228,7 +8228,8 @@ async function loadHome() {
     const isRegistered = !!userReg;
     const cap   = s.max_capacity || 20;
     const full  = regCount >= cap;
-    const open  = s.registrations_open;
+    // Auto-fermeture J - 30 min : on traite comme fermées même si le flag est à true
+    const open  = s.registrations_open && !_isSessionLocked(s);
 
     let badgeHtml;
     if (isBlocked) {
@@ -9511,7 +9512,9 @@ async function loadSessions() {
     const reg       = regSet.has(s.id);
     const onWait    = waitSet.has(s.id);
     const banned    = !!banMap[s.id];
-    const open      = s.registrations_open;
+    // Auto-fermeture J - 30 min : on traite comme fermées même si le flag est à true
+    const lockedByTime = _isSessionLocked(s);
+    const open      = s.registrations_open && !lockedByTime;
     const cap       = s.max_capacity || 20;
     const count     = rc[s.id] || 0;   // inscrits confirmés
     const waitCount = wc[s.id] || 0;   // liste d'attente
@@ -9540,7 +9543,10 @@ async function loadSessions() {
       badgeHtml = `<span class="badge badge-green">✅ Ouvertes</span>`;
     } else {
       badgeHtml = `<span class="badge badge-muted">⏸ Fermées</span>`;
-      helpText = `<div class="session-help-text">Les inscriptions sont fermées pour cette séance.</div>`;
+      // Si la fermeture vient de l'auto-lock (et non du flag manuel), on l'explicite
+      helpText = (lockedByTime && s.registrations_open)
+        ? `<div class="session-help-text">La séance commence bientôt.</div>`
+        : `<div class="session-help-text">Les inscriptions sont fermées pour cette séance.</div>`;
     }
 
     // Capacité affichée : inscrits confirmés / max, + attente si > 0
@@ -9830,6 +9836,22 @@ function _isLateCancellation(sessionDate, sessionTime) {
   const sessionDT = new Date(`${sessionDate}T${time}:00`);
   if (isNaN(sessionDT.getTime())) return false;
   const deadline = new Date(sessionDT.getTime() - _LATE_CANCEL_HOURS * 60 * 60 * 1000);
+  return Date.now() >= deadline.getTime();
+}
+
+/** Fenêtre de fermeture auto des inscriptions, en minutes avant la séance */
+const _AUTO_LOCK_MINUTES = 30;
+
+/** Retourne true si la séance doit être considérée comme verrouillée
+ *  (fermeture auto J - 30 min ou séance déjà passée).
+ *  Utilisé côté UI pour bloquer l'inscription élève même si le flag
+ *  registrations_open est encore à true en base. */
+function _isSessionLocked(s) {
+  if (!s?.session_date) return false;
+  const time = s.session_time || '20:00';
+  const sessionDT = new Date(`${s.session_date}T${time}:00`);
+  if (isNaN(sessionDT.getTime())) return false;
+  const deadline = new Date(sessionDT.getTime() - _AUTO_LOCK_MINUTES * 60 * 1000);
   return Date.now() >= deadline.getTime();
 }
 
@@ -15853,31 +15875,19 @@ async function _arsClickSession(sessionId, filmTitle, sessionDate, sessionTime, 
     return;
   }
 
-  await _arsPerformRegister(studentId, sessionId, isClosed, studentName);
+  await _arsPerformRegister(studentId, sessionId, studentName);
 }
 
-/* Effectue l'inscription via la RPC. Pour les séances fermées, flip temporaire
-   de registrations_open afin de réutiliser toute la logique métier de la RPC
-   (capacité, waitlist, ban, etc.). Restauration dans un finally. */
-async function _arsPerformRegister(studentId, sessionId, isClosed, studentName) {
-  let needsRestore = false;
-
+/* Effectue l'inscription via la RPC en mode admin override.
+   Le param p_admin_override:true bypass les checks "registrations_open"
+   et "auto-fermeture J - 30 min" côté serveur. Le ban reste actif
+   (l'admin lève le ban séparément en amont si besoin). */
+async function _arsPerformRegister(studentId, sessionId, studentName) {
   try {
-    if (isClosed) {
-      const { error: openErr } = await db.from('cinema_sessions')
-        .update({ registrations_open: true })
-        .eq('id', sessionId);
-      if (openErr) {
-        console.error('[_arsPerformRegister] flip open:', openErr);
-        toast('Erreur — impossible d\'ouvrir temporairement la séance', 'error');
-        return;
-      }
-      needsRestore = true;
-    }
-
     const { data: result, error } = await db.rpc('register_student_to_session', {
       p_student_id: studentId,
-      p_session_id: sessionId
+      p_session_id: sessionId,
+      p_admin_override: true
     });
 
     if (error) {
@@ -15904,15 +15914,6 @@ async function _arsPerformRegister(studentId, sessionId, isClosed, studentName) 
     }
 
   } finally {
-    if (needsRestore) {
-      const { error: closeErr } = await db.from('cinema_sessions')
-        .update({ registrations_open: false })
-        .eq('id', sessionId);
-      if (closeErr) {
-        console.error('[_arsPerformRegister] restore close:', closeErr);
-        toast('⚠️ La séance est restée ouverte aux inscriptions ! À refermer manuellement.', 'error');
-      }
-    }
     // Rafraîchir la liste de la modale
     await _arsRenderList(studentId);
   }
