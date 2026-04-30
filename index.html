@@ -2713,6 +2713,89 @@ button { cursor: pointer; }
   background: rgba(240,165,0,.04);
 }
 
+/* Modale "Inscrire un élève à une séance" (admin) */
+.ars-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all .15s ease;
+  text-align: left;
+  width: 100%;
+  font-family: inherit;
+  color: var(--text);
+}
+.ars-row:hover {
+  border-color: var(--gold);
+  background: rgba(240,165,0,.04);
+}
+.ars-row[data-state="banned"] {
+  border-color: rgba(239, 68, 68, .55);
+  background: rgba(239, 68, 68, .07);
+}
+.ars-row[data-state="banned"]:hover {
+  border-color: rgba(239, 68, 68, .85);
+  background: rgba(239, 68, 68, .12);
+}
+.ars-row[data-state="closed"] {
+  opacity: .7;
+}
+.ars-row[data-state="closed"]:hover {
+  opacity: 1;
+}
+.ars-row-info {
+  flex: 1;
+  min-width: 0;
+}
+.ars-row-date {
+  font-size: 11.5px;
+  color: var(--text-2);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  margin-bottom: 3px;
+}
+.ars-row-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ars-row-meta {
+  font-size: 12px;
+  color: var(--text-3);
+  margin-top: 3px;
+}
+.ars-row-tag {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  padding: 4px 9px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+.ars-row-tag[data-state="banned"] {
+  background: rgba(239,68,68,.15);
+  color: #f87171;
+}
+.ars-row-tag[data-state="closed"] {
+  background: rgba(120,120,130,.15);
+  color: var(--text-3);
+}
+.ars-row-tag[data-state="full"] {
+  background: rgba(245,158,11,.15);
+  color: #fbbf24;
+}
+
 /* Onglets (structure pour la suite) */
 .sd-tabs {
   display: flex;
@@ -6251,6 +6334,8 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
           </div>
           <!-- Bouton Contacter l'élève -->
           <div id="sd-contact-btn" style="margin-top:10px;"></div>
+          <!-- Bouton Inscrire à une séance (admin force-register) -->
+          <div id="sd-register-btn" style="margin-top:6px;"></div>
         </div>
       </div>
 
@@ -6583,6 +6668,27 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     </div>
     <div style="margin-top:14px;">
       <button class="btn btn-ghost btn-full" onclick="closeModal('modal-connections-day')">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     MODAL: Inscrire un élève à une séance (admin)
+     ================================================================ -->
+<div class="overlay hidden" id="modal-admin-register-student">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">
+      Inscrire <span id="ars-student-name" style="color:var(--gold);">—</span>
+    </div>
+    <div id="ars-summary" style="font-size:13px;color:var(--text-2);margin-bottom:14px;">
+      Choisis la séance dans la liste ci-dessous.
+    </div>
+    <div id="ars-content" style="max-height:60vh;overflow-y:auto;">
+      <div class="loader"><div class="spinner"></div></div>
+    </div>
+    <div style="margin-top:14px;">
+      <button class="btn btn-ghost btn-full" onclick="closeModal('modal-admin-register-student')">Fermer</button>
     </div>
   </div>
 </div>
@@ -15397,6 +15503,17 @@ async function openStudentDetail(studentId) {
       </button>`;
   }
 
+  // Bouton Inscrire à une séance (force-register admin)
+  const registerBtnEl = document.getElementById('sd-register-btn');
+  if (registerBtnEl) {
+    const fullName = `${s.first_name || ''} ${s.last_name || ''}`.trim();
+    registerBtnEl.innerHTML = `
+      <button class="btn" style="width:100%;justify-content:flex-start;gap:8px;padding:8px 12px;font-size:13px;background:var(--surface-2);border:1px solid var(--border);color:var(--text);"
+        onclick="openAdminRegisterStudentModal('${s.id}', ${JSON.stringify(fullName)})">
+        ➕ Inscrire à une séance
+      </button>`;
+  }
+
   const repere = (label, val, dim = false) =>
     `<div class="sd-repere-row">
        <span class="sd-repere-label">${label}</span>
@@ -15542,6 +15659,260 @@ async function _sdLoadOverview(studentId) {
                              (cleared_at NOT NULL = neutralisé)
    Période : 30 derniers jours.
    ================================================================ */
+/* ================================================================
+   FICHE ÉLÈVE ADMIN — Inscrire de force à une séance
+   ----------------------------------------------------------------
+   Permet à l'admin d'inscrire un élève qui n'arrive pas à le faire
+   lui-même (ex : problème de tel). Liste toutes les séances futures.
+   - Si déjà inscrit → masqué
+   - Si banni → propose de lever le ban d'abord
+   - Si inscriptions fermées → propose "force inscrit" (flip temporaire
+     de registrations_open pour réutiliser la RPC)
+   ================================================================ */
+async function openAdminRegisterStudentModal(studentId, studentName) {
+  const titleEl   = document.getElementById('ars-student-name');
+  const summaryEl = document.getElementById('ars-summary');
+  const contentEl = document.getElementById('ars-content');
+  if (!contentEl) return;
+
+  // Mémoriser le studentId sur la modale (pour les callbacks de chaque ligne)
+  contentEl.dataset.studentId = studentId;
+  contentEl.dataset.studentName = studentName || '';
+
+  if (titleEl)   titleEl.textContent = studentName || '—';
+  if (summaryEl) summaryEl.textContent = 'Choisis la séance dans la liste ci-dessous.';
+  contentEl.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
+  openModal('modal-admin-register-student');
+
+  await _arsRenderList(studentId);
+}
+
+/* Charge et rend la liste des séances pour cet élève */
+async function _arsRenderList(studentId) {
+  const summaryEl = document.getElementById('ars-summary');
+  const contentEl = document.getElementById('ars-content');
+  if (!contentEl) return;
+
+  const today = new Date().toISOString().split('T')[0];
+
+  try {
+    const [sesRes, regsRes, bansRes, regCountsRes] = await Promise.all([
+      // Séances futures avec film
+      db.from('cinema_sessions')
+        .select('id, session_date, session_time, max_capacity, registrations_open, films(id, title)')
+        .gte('session_date', today)
+        .order('session_date', { ascending: true }),
+      // Inscriptions existantes de l'élève (pour exclusion)
+      db.from('registrations')
+        .select('session_id, status')
+        .eq('student_id', studentId),
+      // Bans de l'élève
+      db.from('session_bans')
+        .select('id, session_id')
+        .eq('student_id', studentId),
+      // Comptes d'inscrits par séance (statut "registered" pour la jauge)
+      db.from('registrations')
+        .select('session_id, status'),
+    ]);
+
+    if (sesRes.error)       console.warn('[ars] sessions:',     sesRes.error);
+    if (regsRes.error)      console.warn('[ars] regs:',         regsRes.error);
+    if (bansRes.error)      console.warn('[ars] bans:',         bansRes.error);
+    if (regCountsRes.error) console.warn('[ars] regCounts:',    regCountsRes.error);
+
+    const sessions  = sesRes.data       || [];
+    const myRegs    = regsRes.data      || [];
+    const myBans    = bansRes.data      || [];
+    const allRegs   = regCountsRes.data || [];
+
+    // Sets pour lookup rapide
+    const registeredSesIds = new Set(myRegs.map(r => r.session_id));
+    const banBySesId       = new Map(myBans.map(b => [b.session_id, b.id]));
+
+    // Compte d'inscrits 'registered' par séance
+    const countBySesId = new Map();
+    allRegs.forEach(r => {
+      if (r.status === 'registered') {
+        countBySesId.set(r.session_id, (countBySesId.get(r.session_id) || 0) + 1);
+      }
+    });
+
+    // On garde uniquement celles où l'élève n'est PAS déjà inscrit
+    const eligible = sessions.filter(s => !registeredSesIds.has(s.id));
+
+    if (eligible.length === 0) {
+      const reason = sessions.length === 0
+        ? 'Aucune séance future à venir.'
+        : 'L\'élève est déjà inscrit à toutes les séances futures.';
+      contentEl.innerHTML = `<div class="text-muted text-center" style="padding:18px 0;">${reason}</div>`;
+      if (summaryEl) summaryEl.textContent = '';
+      return;
+    }
+
+    if (summaryEl) {
+      summaryEl.textContent = `${eligible.length} séance${eligible.length > 1 ? 's' : ''} disponible${eligible.length > 1 ? 's' : ''} (l'élève n'y est pas encore inscrit).`;
+    }
+
+    const fmtDate = (iso) => {
+      const d = new Date(iso + 'T00:00:00');
+      return d.toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: 'short' });
+    };
+
+    const rowsHtml = eligible.map(s => {
+      const isBanned = banBySesId.has(s.id);
+      const isClosed = !s.registrations_open;
+      const cap      = s.max_capacity || 20;
+      const cnt      = countBySesId.get(s.id) || 0;
+      const isFull   = cnt >= cap;
+
+      // Priorité d'état pour le tag : banned > closed > full > (rien)
+      let state = '';
+      let tagHtml = '';
+      if (isBanned) {
+        state = 'banned';
+        tagHtml = '<span class="ars-row-tag" data-state="banned">🚫 Bloqué</span>';
+      } else if (isClosed) {
+        state = 'closed';
+        tagHtml = '<span class="ars-row-tag" data-state="closed">🔒 Fermées</span>';
+      } else if (isFull) {
+        state = 'full';
+        tagHtml = '<span class="ars-row-tag" data-state="full">⏳ Liste d\'attente</span>';
+      }
+
+      const filmTitle = s.films?.title || 'Séance';
+      const time = (s.session_time || '20:00').slice(0,5);
+
+      return `
+        <button class="ars-row" ${state ? `data-state="${state}"` : ''}
+          onclick="_arsClickSession('${s.id}', ${JSON.stringify(filmTitle).replace(/"/g,'&quot;')}, '${s.session_date}', '${time}', ${isBanned}, ${isClosed})">
+          <div class="ars-row-info">
+            <div class="ars-row-date">${fmtDate(s.session_date)} • ${time}</div>
+            <div class="ars-row-title">${filmTitle}</div>
+            <div class="ars-row-meta">${cnt} / ${cap} inscrit${cnt > 1 ? 's' : ''}</div>
+          </div>
+          ${tagHtml}
+        </button>
+      `;
+    }).join('');
+
+    contentEl.innerHTML = rowsHtml;
+
+  } catch (e) {
+    console.error('[_arsRenderList] exception:', e);
+    contentEl.innerHTML = '<div class="text-muted text-center" style="padding:14px 0;">Erreur de chargement</div>';
+  }
+}
+
+/* Clic sur une séance : confirmation, gestion ban et inscriptions fermées */
+async function _arsClickSession(sessionId, filmTitle, sessionDate, sessionTime, isBanned, isClosed) {
+  const contentEl = document.getElementById('ars-content');
+  const studentId   = contentEl?.dataset.studentId;
+  const studentName = contentEl?.dataset.studentName || 'cet élève';
+  if (!studentId) return;
+
+  const dateLabel = new Date(sessionDate + 'T00:00:00').toLocaleDateString('fr-FR', {
+    weekday: 'long', day: '2-digit', month: 'long'
+  });
+
+  // --- Cas 1 : Banni → demander à lever le blocage ---
+  if (isBanned) {
+    const ok = confirm(
+      `${studentName} est BLOQUÉ pour la séance du ${dateLabel} (${filmTitle}).\n\n` +
+      `Lever le blocage et l'inscrire ?`
+    );
+    if (!ok) return;
+
+    const { error: delErr } = await db.from('session_bans')
+      .delete()
+      .eq('student_id', studentId)
+      .eq('session_id', sessionId);
+    if (delErr) {
+      console.error('[_arsClickSession] suppr ban:', delErr);
+      toast('Erreur lors de la levée du blocage', 'error');
+      return;
+    }
+    // Le ban est levé : on continue le flux (avec confirmation finale)
+  }
+
+  // --- Confirmation principale ---
+  const closedNote = isClosed ? '\n\n⚠️ Les inscriptions sont FERMÉES. L\'inscription sera forcée.' : '';
+  const ok = confirm(
+    `Inscrire ${studentName} à la séance du ${dateLabel} (${filmTitle}) ?${closedNote}`
+  );
+  if (!ok) {
+    // Si on a levé un ban juste avant et que l'admin annule maintenant, on prévient.
+    if (isBanned) {
+      toast('Blocage levé mais inscription annulée', 'info');
+      await _arsRenderList(studentId);
+    }
+    return;
+  }
+
+  await _arsPerformRegister(studentId, sessionId, isClosed, studentName);
+}
+
+/* Effectue l'inscription via la RPC. Pour les séances fermées, flip temporaire
+   de registrations_open afin de réutiliser toute la logique métier de la RPC
+   (capacité, waitlist, ban, etc.). Restauration dans un finally. */
+async function _arsPerformRegister(studentId, sessionId, isClosed, studentName) {
+  let needsRestore = false;
+
+  try {
+    if (isClosed) {
+      const { error: openErr } = await db.from('cinema_sessions')
+        .update({ registrations_open: true })
+        .eq('id', sessionId);
+      if (openErr) {
+        console.error('[_arsPerformRegister] flip open:', openErr);
+        toast('Erreur — impossible d\'ouvrir temporairement la séance', 'error');
+        return;
+      }
+      needsRestore = true;
+    }
+
+    const { data: result, error } = await db.rpc('register_student_to_session', {
+      p_student_id: studentId,
+      p_session_id: sessionId
+    });
+
+    if (error) {
+      console.error('[_arsPerformRegister] RPC:', error);
+      toast('Erreur lors de l\'inscription', 'error');
+      return;
+    }
+
+    if (!result?.ok) {
+      const code = result?.code;
+      if (code === 'ALREADY_EXISTS') {
+        toast(`${studentName} est déjà inscrit à cette séance`);
+      } else if (code === 'BANNED') {
+        toast('Inscription impossible : élève bloqué', 'error');
+      } else if (code === 'REGISTRATIONS_CLOSED') {
+        toast('Inscriptions fermées', 'error');
+      } else {
+        toast('Inscription impossible', 'error');
+      }
+    } else if (result?.status === 'waitlist') {
+      toast(`${studentName} placé(e) en liste d'attente ⏳`, 'success');
+    } else {
+      toast(`${studentName} inscrit(e) avec succès 🎉`, 'success');
+    }
+
+  } finally {
+    if (needsRestore) {
+      const { error: closeErr } = await db.from('cinema_sessions')
+        .update({ registrations_open: false })
+        .eq('id', sessionId);
+      if (closeErr) {
+        console.error('[_arsPerformRegister] restore close:', closeErr);
+        toast('⚠️ La séance est restée ouverte aux inscriptions ! À refermer manuellement.', 'error');
+      }
+    }
+    // Rafraîchir la liste de la modale
+    await _arsRenderList(studentId);
+  }
+}
+
 /* Helper : révèle les lignes cachées d'un bloc et retire le bouton */
 function _sdShowMore(btn) {
   const parent = btn.parentElement;
