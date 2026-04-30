@@ -15507,9 +15507,10 @@ async function openStudentDetail(studentId) {
   const registerBtnEl = document.getElementById('sd-register-btn');
   if (registerBtnEl) {
     const fullName = `${s.first_name || ''} ${s.last_name || ''}`.trim();
+    const fullNameAttr = JSON.stringify(fullName).replace(/"/g, '&quot;');
     registerBtnEl.innerHTML = `
       <button class="btn" style="width:100%;justify-content:flex-start;gap:8px;padding:8px 12px;font-size:13px;background:var(--surface-2);border:1px solid var(--border);color:var(--text);"
-        onclick="openAdminRegisterStudentModal('${s.id}', ${JSON.stringify(fullName)})">
+        onclick="openAdminRegisterStudentModal('${s.id}', ${fullNameAttr})">
         ➕ Inscrire à une séance
       </button>`;
   }
