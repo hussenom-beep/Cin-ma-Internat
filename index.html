@@ -15631,6 +15631,13 @@ async function _sdLoadOverview(studentId) {
 
   actItems.sort((a,b) => (b.date||'') > (a.date||'') ? 1 : -1);
   const recentEl = document.getElementById('sd-recent');
+
+  // Bloc Suivi séance — chargé en parallèle (pas bloquant).
+  // Déclenché ICI, AVANT tout return early possible sur l'activité récente,
+  // pour qu'il soit toujours appelé (sinon les élèves sans activité voient
+  // un spinner figé sur le suivi séance).
+  _sdLoadBehaviorTracking(studentId);
+
   if (!actItems.length) {
     recentEl.innerHTML = '<p class="text-sm text-muted" style="padding:4px 0;">Aucune activité enregistrée.</p>';
     return;
@@ -15646,9 +15653,6 @@ async function _sdLoadOverview(studentId) {
     ? `<button class="sd-show-more" onclick="_sdShowMore(this)">Voir plus (${actItems.length - 5})</button>`
     : '';
   recentEl.innerHTML = itemsHtml + moreBtn;
-
-  // Bloc Suivi séance — chargé en parallèle (pas bloquant)
-  _sdLoadBehaviorTracking(studentId);
 }
 
 /* ================================================================
