@@ -8229,7 +8229,12 @@ async function loadHome() {
     const cap   = s.max_capacity || 20;
     const full  = regCount >= cap;
     // Auto-fermeture J - 30 min : on traite comme fermées même si le flag est à true
-    const open  = s.registrations_open && !_isSessionLocked(s);
+    const lockedByTime = _isSessionLocked(s);
+    const open  = s.registrations_open && !lockedByTime;
+    // HelpText spécifique quand la fermeture vient du timing (pas du flag manuel)
+    const lockedHelpHtml = (lockedByTime && s.registrations_open && !isBlocked && !isRegistered)
+      ? `<div style="font-size:11.5px;color:var(--text-3);margin-top:6px;font-style:italic;">⏱ La séance commence bientôt.</div>`
+      : '';
 
     let badgeHtml;
     if (isBlocked) {
@@ -8296,6 +8301,7 @@ async function loadHome() {
               ${registeredBadge}
               ${banReasonHtml}
               ${actionBtn}
+              ${lockedHelpHtml}
             </div>
           </div>
         </div>
@@ -11050,7 +11056,12 @@ async function loadNextSessionCard() {
     const sessionDate = fmtDateShort(session.session_date);
     const capacity = session.max_capacity || 20;
     const regOpen = session.registrations_open;
-    const regStatus = regOpen ? 'Ouvertes' : 'Fermées';
+    // Auto-fermeture J - 30 min : pour cohérence visuelle avec la vue élève.
+    // L'admin garde son super-pouvoir d'inscrire via "Inscrire à une séance".
+    const lockedByTime = _isSessionLocked(session);
+    const regStatus = (regOpen && lockedByTime)
+      ? 'Auto-fermées'
+      : (regOpen ? 'Ouvertes' : 'Fermées');
     
     // Vérifier si on peut faire l'appel
     const canAttend = checkAttendanceAllowed(session);
