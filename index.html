@@ -17890,12 +17890,14 @@ function openTrailer(ytKey, label) {
     allowfullscreen>
   </iframe>`;
 
-  document.getElementById('modal-trailer').classList.remove('hidden');
+  // Passer par openModal pour gérer le stack + z-index dynamique
+  // (sinon la trailer reste sous modal-tmdb-detail si on l'ouvre depuis là).
+  openModal('modal-trailer');
 }
 
 /** Ferme la modale et détruit l'iframe (arrêt lecture) */
 function closeTrailer() {
-  document.getElementById('modal-trailer').classList.add('hidden');
+  closeModal('modal-trailer');
   document.getElementById('trailer-iframe-wrap').innerHTML = '';
 }
 
