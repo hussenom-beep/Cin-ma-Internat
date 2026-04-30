@@ -8888,6 +8888,16 @@ async function _renderTMDBModal(detail, credits) {
   document.getElementById('tmdb-d-synopsis').textContent =
     detail.overview || 'Aucun synopsis disponible en français.';
 
+  // Distribution : réalisateur + 6 premiers acteurs (même rendu que côté élève)
+  const director = (credits.crew || []).find(c => c.job === 'Director');
+  const cast     = (credits.cast || []).slice(0, 6);
+  const crewHtml = [
+    director ? `<div class="tmdb-crew-row"><span class="tmdb-crew-label">Réalisateur</span><span>${director.name}</span></div>` : '',
+    cast.length ? `<div class="tmdb-crew-row"><span class="tmdb-crew-label">Avec</span>
+      <div class="tmdb-cast-chips">${cast.map(a => `<span class="tmdb-cast-chip">${a.name}</span>`).join('')}</div></div>` : ''
+  ].filter(Boolean).join('');
+  document.getElementById('tmdb-d-crew').innerHTML = crewHtml;
+
 	const actionBtn = document.getElementById('tmdb-d-action');
 	const dupEl = document.getElementById('tmdb-d-dupwarn');
 
