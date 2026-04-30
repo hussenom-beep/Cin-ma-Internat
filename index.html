@@ -15507,10 +15507,9 @@ async function openStudentDetail(studentId) {
   const registerBtnEl = document.getElementById('sd-register-btn');
   if (registerBtnEl) {
     const fullName = `${s.first_name || ''} ${s.last_name || ''}`.trim();
-    const fullNameAttr = JSON.stringify(fullName).replace(/"/g, '&quot;');
     registerBtnEl.innerHTML = `
       <button class="btn" style="width:100%;justify-content:flex-start;gap:8px;padding:8px 12px;font-size:13px;background:var(--surface-2);border:1px solid var(--border);color:var(--text);"
-        onclick="openAdminRegisterStudentModal('${s.id}', ${fullNameAttr})">
+        onclick="openAdminRegisterStudentModal('${s.id}', ${JSON.stringify(fullName)})">
         ➕ Inscrire à une séance
       </button>`;
   }
@@ -15927,6 +15926,17 @@ async function _sdLoadBehaviorTracking(studentId) {
   const historyEl  = document.getElementById('sd-track-history');
   if (!countersEl || !historyEl) return;
 
+  // Reset immédiat : feedback visuel clair pendant le chargement.
+  // Évite de voir les données de l'élève précédent en attendant la réponse.
+  countersEl.innerHTML = '<div class="loader" style="padding:14px;"><div class="spinner"></div></div>';
+  historyEl.innerHTML  = '';
+
+  // Capture du studentId pour la garde anti-race :
+  // si l'admin ouvre une autre fiche pendant que la requête tourne,
+  // _sdCurrentStudentId aura changé et on jettera le résultat obsolète.
+  const requestStudentId = studentId;
+  const isStillCurrent = () => _sdCurrentStudentId === requestStudentId;
+
   const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
   try {
@@ -15945,6 +15955,9 @@ async function _sdLoadBehaviorTracking(studentId) {
 
     if (missedRes.error) console.warn('[_sdLoadBehaviorTracking] missed:', missedRes.error);
     if (lateRes.error)   console.warn('[_sdLoadBehaviorTracking] late:',   lateRes.error);
+
+    // Garde anti-race : si l'admin a ouvert une autre fiche, on jette le résultat
+    if (!isStillCurrent()) return;
 
     const missed = missedRes.data || [];
     const late   = lateRes.data   || [];
@@ -16034,6 +16047,8 @@ async function _sdLoadBehaviorTracking(studentId) {
     `;
   } catch (e) {
     console.error('[_sdLoadBehaviorTracking] exception:', e);
+    // Même garde dans le catch : ne pas écraser l'affichage de l'élève courant
+    if (!isStillCurrent()) return;
     countersEl.innerHTML = '<div class="text-muted" style="padding:10px;">Erreur de chargement</div>';
     historyEl.innerHTML = '';
   }
