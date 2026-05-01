@@ -17839,6 +17839,10 @@ document.querySelectorAll('.overlay').forEach(o => {
   o.addEventListener('click', (e) => {
     if (e.target !== o) return;
     if (o.id === 'modal-create-session') return;
+    // Maintenance : on n'autorise PAS le clic à côté à fermer la modale.
+    // L'élève DOIT cliquer "Fermer" qui passe par closeMaintenanceLiveAndLogout()
+    // pour garantir le logout. Sinon il pourrait bypass et garder sa session.
+    if (o.id === 'modal-maintenance-live') return;
     closeModal(o.id);
   });
 });
