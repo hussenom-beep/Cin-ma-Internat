@@ -8124,9 +8124,22 @@ async function loginAs(student) {
   // ⛔ Mode maintenance : bloquer si non autorisé.
   // Goulot unique des connexions élève — tout flow (premier accès, PIN classique,
   // auto-login depuis session restaurée) passe par ici.
+  // On RECHARGE le cache à chaque tentative pour deux raisons :
+  //   1. la maintenance peut avoir été levée pendant que l'élève saisissait
+  //      son PIN (sinon il reste bloqué tant qu'il ne ferme pas l'app)
+  //   2. la maintenance peut au contraire avoir été activée (sécurité).
+  await loadMaintenanceFromDB();
+
   if (!_isStudentAllowedDuringMaintenance(student)) {
-    showMaintenanceBanner();
+    // Reset complet de la state machine du login :
+    // - efface l'élève temporaire (sinon coincé sur ls-pin)
+    // - revient à l'étape "saisir l'identifiant"
+    // - affiche le bandeau permanent en haut
+    _initialPinVerified = false;
+    _tmpStudent = null;
+    showLS('code');
     showScreen('login');
+    showMaintenanceBanner();
     return;
   }
 
