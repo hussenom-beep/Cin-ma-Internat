@@ -4617,6 +4617,18 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
   <div class="login-title">Cinéma Internat Blum</div>
   <div class="login-sub">Espace élèves · Soirées du mercredi</div>
 
+  <!-- Bandeau maintenance (affiché dynamiquement par JS quand un élève bloqué tente de se connecter) -->
+  <div id="login-maintenance-banner" class="hidden" style="
+    max-width:520px;margin:14px auto 0;padding:12px 16px;
+    background:rgba(240,165,0,.10);border:1px solid rgba(240,165,0,.40);
+    border-radius:var(--radius-md);color:var(--gold);font-size:14px;
+    text-align:center;line-height:1.45;">
+    <div style="font-weight:700;margin-bottom:4px;">🛠️ Application en maintenance</div>
+    <div id="login-maintenance-text" style="font-weight:400;color:var(--text-2);font-size:13px;">
+      Merci de revenir plus tard.
+    </div>
+  </div>
+
   <div class="login-box">
 
     <!-- Étape 1 : saisir le code -->
@@ -6460,6 +6472,45 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 
       <div style="height:1px;background:var(--border);margin:4px 0 20px;"></div>
 
+      <!-- Maintenance -->
+      <div class="sd-section">
+        <div class="sd-section-title">🛠️ Mode maintenance</div>
+
+        <div class="fgroup">
+          <label class="flabel">État</label>
+          <div class="cc-toggle-group" role="group" aria-label="Mode maintenance" style="margin-bottom:4px;">
+            <button class="cc-toggle active" data-maint-mode="off" onclick="setMaintenanceMode('off')">✅ Désactivé</button>
+            <button class="cc-toggle"        data-maint-mode="on"  onclick="setMaintenanceMode('on')">🛠️ Activé</button>
+          </div>
+          <div class="text-sm text-muted" style="margin-top:6px;font-size:11.5px;opacity:.7;">
+            Quand activé, seul l'admin et l'élève test ci-dessous peuvent se connecter.
+          </div>
+        </div>
+
+        <div class="fgroup">
+          <label class="flabel">Message affiché aux élèves bloqués</label>
+          <textarea class="finput" id="maintenance-message-input"
+                    placeholder="Application en maintenance. Merci de revenir plus tard."
+                    maxlength="280" rows="2"
+                    style="font-size:14px;resize:vertical;"></textarea>
+        </div>
+
+        <div class="fgroup">
+          <label class="flabel">Identifiant élève test autorisé</label>
+          <input type="text" class="finput" id="maintenance-test-uid-input"
+                 placeholder="ex : elv_xxxxxxxxxxxxxx"
+                 maxlength="60"
+                 style="font-size:14px;font-family:monospace;">
+          <div class="text-sm text-muted" style="margin-top:6px;font-size:11.5px;opacity:.7;">
+            Colle ici le 🪪 <code>eleve_uid</code> visible dans la fiche d'un élève. Laisse vide pour bloquer tous les élèves.
+          </div>
+        </div>
+
+        <button class="btn btn-gold btn-full" onclick="saveMaintenanceSettings()">Enregistrer la maintenance</button>
+      </div>
+
+      <div style="height:1px;background:var(--border);margin:4px 0 20px;"></div>
+
       <!-- Import élèves -->
       <div class="sd-section">
         <div class="sd-section-title">Import élèves</div>
@@ -7088,6 +7139,111 @@ function getSupervisorName() {
   return S.supervisorName || 'le surveillant';
 }
 
+/* ================================================================
+   MODE MAINTENANCE
+   ----------------------------------------------------------------
+   Stocké dans app_settings (clés maintenance_mode, maintenance_message,
+   maintenance_test_uid). Cache en mémoire dans S.maintenance.
+   Quand actif, seuls l'admin et l'élève dont eleve_uid correspond à
+   maintenance_test_uid peuvent se connecter.
+   ================================================================ */
+
+const _MAINT_DEFAULT_MSG = 'Application en maintenance. Merci de revenir plus tard.';
+
+/** Charger les 3 clés maintenance depuis Supabase au démarrage */
+async function loadMaintenanceFromDB() {
+  S.maintenance = { mode: 'off', message: _MAINT_DEFAULT_MSG, testUid: '' };
+  try {
+    const { data, error } = await db
+      .from('app_settings')
+      .select('key, value')
+      .in('key', ['maintenance_mode', 'maintenance_message', 'maintenance_test_uid']);
+
+    if (error) {
+      console.warn('[maintenance] load error:', error);
+      return;
+    }
+    (data || []).forEach(row => {
+      if (row.key === 'maintenance_mode')     S.maintenance.mode    = (row.value === 'on') ? 'on' : 'off';
+      if (row.key === 'maintenance_message')  S.maintenance.message = row.value || _MAINT_DEFAULT_MSG;
+      if (row.key === 'maintenance_test_uid') S.maintenance.testUid = (row.value || '').trim();
+    });
+  } catch (err) {
+    console.warn('[maintenance] load exception:', err);
+  }
+}
+
+/** Retourne true si l'élève a le droit de se connecter actuellement.
+ *  Toujours true si maintenance OFF, true uniquement pour l'élève test si ON. */
+function _isStudentAllowedDuringMaintenance(student) {
+  const m = S.maintenance || { mode: 'off' };
+  if (m.mode !== 'on') return true;
+  if (!m.testUid) return false; // maintenance ON sans UID test → blackout total
+  // Comparaison stricte sur eleve_uid
+  return (student?.eleve_uid || '').trim() === m.testUid;
+}
+
+/** Affiche le bandeau de maintenance sur l'écran login avec le message courant */
+function showMaintenanceBanner() {
+  const banner = document.getElementById('login-maintenance-banner');
+  const text   = document.getElementById('login-maintenance-text');
+  if (!banner || !text) return;
+  text.textContent = (S.maintenance?.message) || _MAINT_DEFAULT_MSG;
+  banner.classList.remove('hidden');
+}
+
+/** Cache le bandeau (utilisé après une déconnexion automatique propre) */
+function hideMaintenanceBanner() {
+  const banner = document.getElementById('login-maintenance-banner');
+  if (banner) banner.classList.add('hidden');
+}
+
+/** Click handler du switch Activé/Désactivé. État local seulement,
+ *  persistance via le bouton "Enregistrer la maintenance". */
+function setMaintenanceMode(mode) {
+  if (mode !== 'on' && mode !== 'off') return;
+  document.querySelectorAll('#modal-admin-settings [data-maint-mode]').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.maintMode === mode);
+  });
+}
+
+/** Charge l'UI maintenance avec les valeurs en mémoire (à l'ouverture du panneau) */
+function loadMaintenanceUI() {
+  const m = S.maintenance || { mode: 'off', message: '', testUid: '' };
+  setMaintenanceMode(m.mode);
+  const msgEl = document.getElementById('maintenance-message-input');
+  const uidEl = document.getElementById('maintenance-test-uid-input');
+  if (msgEl) msgEl.value = (m.message === _MAINT_DEFAULT_MSG) ? '' : (m.message || '');
+  if (uidEl) uidEl.value = m.testUid || '';
+}
+
+/** Enregistre les 3 valeurs en BDD + met à jour le cache mémoire */
+async function saveMaintenanceSettings() {
+  // Lire l'état UI courant
+  const activeBtn = document.querySelector('#modal-admin-settings [data-maint-mode].active');
+  const mode    = activeBtn?.dataset.maintMode === 'on' ? 'on' : 'off';
+  const message = (document.getElementById('maintenance-message-input')?.value || '').trim() || _MAINT_DEFAULT_MSG;
+  const testUid = (document.getElementById('maintenance-test-uid-input')?.value || '').trim();
+
+  // Upsert des 3 clés en parallèle
+  const now = new Date().toISOString();
+  const rows = [
+    { key: 'maintenance_mode',     value: mode,    updated_at: now },
+    { key: 'maintenance_message',  value: message, updated_at: now },
+    { key: 'maintenance_test_uid', value: testUid, updated_at: now },
+  ];
+  const { error } = await db.from('app_settings').upsert(rows);
+  if (error) {
+    console.error('[maintenance] save error:', error);
+    toast(`Erreur Supabase : ${error.message || 'Enregistrement impossible'}`, 'error');
+    return;
+  }
+
+  // Cache mémoire à jour immédiatement (le check dans loginAs lit S.maintenance)
+  S.maintenance = { mode, message, testUid };
+  toast(mode === 'on' ? '🛠️ Mode maintenance activé' : '✅ Mode maintenance désactivé', 'success');
+}
+
 /* ----------------------------------------------------------------
    Détection promotion waitlist (côté front)
    ----------------------------------------------------------------
@@ -7659,6 +7815,9 @@ function rememberSave(identifier) {
   }
 }
 async function handleCode() {
+  // Cache le bandeau de maintenance d'une éventuelle tentative précédente
+  hideMaintenanceBanner();
+
   const raw = document.getElementById('inp-code').value.trim();
   const login = raw.toLowerCase();
 
@@ -7867,6 +8026,15 @@ async function handleAdminLogin() {
 }
 
 async function loginAs(student) {
+  // ⛔ Mode maintenance : bloquer si non autorisé.
+  // Goulot unique des connexions élève — tout flow (premier accès, PIN classique,
+  // auto-login depuis session restaurée) passe par ici.
+  if (!_isStudentAllowedDuringMaintenance(student)) {
+    showMaintenanceBanner();
+    showScreen('login');
+    return;
+  }
+
   // Récupérer last_news_seen_at AVANT de le mettre à jour
   // C'est la référence pour les nouveautés de cette session
   const prevSeen = student.last_news_seen_at || null;
@@ -17507,6 +17675,9 @@ function openModal(id) {
     setImportMode('ponctuel');
     document.getElementById('import-result')?.classList.add('hidden');
     loadSupervisorName();
+    // Maintenance : recharger depuis la DB puis remplir l'UI (au cas où une
+    // autre tab admin aurait modifié les valeurs).
+    loadMaintenanceFromDB().then(() => loadMaintenanceUI());
   }
 
   // Rafraîchir le label du bouton "Activer notifications" à chaque ouverture
@@ -17789,14 +17960,33 @@ document.getElementById('admin-film-search').addEventListener('input', () => deb
 /* ================================================================
    INIT
    ================================================================ */
-function init() {
+async function init() {
   loadLocal();
-  
-  // Charger le nom du surveillant depuis Supabase
+
+  // Charger les paramètres globaux depuis Supabase
   loadSupervisorNameFromDB();
+  // Maintenance : on attend la fin du chargement avant de décider d'auto-login,
+  // sinon une session élève restaurée pourrait passer alors que la maintenance
+  // a été activée pendant que l'onglet était fermé.
+  await loadMaintenanceFromDB();
 
   if (S.user) {
-    startInactivityTimer(); // session restaurée → relancer le timer
+    // Session restaurée : si maintenance ON et que l'élève n'est pas autorisé,
+    // on déconnecte proprement et on revient au login avec le bandeau.
+    if (!S.isAdmin && S.maintenance?.mode === 'on') {
+      const { data: student } = await db.from('students')
+        .select('eleve_uid')
+        .eq('id', S.user.id)
+        .maybeSingle();
+      if (!_isStudentAllowedDuringMaintenance(student)) {
+        clearSession();
+        S.user = null; S.isAdmin = false;
+        showMaintenanceBanner();
+        showScreen('login');
+        return;
+      }
+    }
+    startInactivityTimer();
     if (S.isAdmin) navigateTo('admin');
     else navigateTo('home');
   } else {
