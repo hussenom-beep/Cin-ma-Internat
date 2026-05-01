@@ -6745,6 +6745,21 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 </div>
 
 <!-- ================================================================
+     MODAL: Maintenance live (éviction immédiate de l'élève)
+     ================================================================ -->
+<div class="overlay hidden" id="modal-maintenance-live">
+  <div class="sheet">
+    <div class="sheet-title" style="text-align:center;">
+      🛠️ Application en maintenance
+    </div>
+    <p id="maintenance-live-text" style="text-align:center;color:var(--text-2);font-size:14px;line-height:1.55;margin-bottom:18px;">
+      Merci de revenir plus tard.
+    </p>
+    <button class="btn btn-gold btn-full" onclick="closeMaintenanceLiveAndLogout()">Fermer</button>
+  </div>
+</div>
+
+<!-- ================================================================
      MODAL: Confirmation de désistement tardif (élève)
      ================================================================ -->
 <div class="overlay hidden" id="modal-late-cancel-confirm">
@@ -7242,6 +7257,86 @@ async function saveMaintenanceSettings() {
   // Cache mémoire à jour immédiatement (le check dans loginAs lit S.maintenance)
   S.maintenance = { mode, message, testUid };
   toast(mode === 'on' ? '🛠️ Mode maintenance activé' : '✅ Mode maintenance désactivé', 'success');
+}
+
+/* ----------------------------------------------------------------
+   Realtime maintenance — éviction live des élèves non autorisés
+   ----------------------------------------------------------------
+   Channel léger abonné à app_settings. Dès qu'une des 3 clés
+   maintenance_* change, on met à jour le cache S.maintenance et on
+   re-vérifie les droits de l'élève courant. Si la maintenance vient
+   de passer ON et qu'il n'est plus autorisé → modale + logout. */
+
+const _maintRT = { channel: null, active: false };
+
+function startMaintenanceRealtime() {
+  if (S.isAdmin) return;                 // l'admin n'est jamais évincé
+  if (_maintRT.active && _maintRT.channel) return;
+
+  if (_maintRT.channel) {
+    try { db.removeChannel(_maintRT.channel); } catch(_) {}
+    _maintRT.channel = null;
+  }
+
+  const ch = db.channel('maintenance-rt-' + Date.now())
+    .on('postgres_changes',
+      { event: '*', schema: 'public', table: 'app_settings' },
+      async (payload) => {
+        // Filtre côté JS : uniquement les 3 clés maintenance_*
+        const key = payload?.new?.key || payload?.old?.key;
+        if (!key || !key.startsWith('maintenance_')) return;
+
+        // Recharger les 3 clés depuis la DB pour avoir un état cohérent
+        // (un upsert atomique côté admin envoie plusieurs events séparés)
+        await loadMaintenanceFromDB();
+
+        // Si plus de session élève, plus rien à faire
+        if (!S.user || S.isAdmin) return;
+
+        // Re-fetch eleve_uid à jour (au cas où testUid a changé)
+        const { data: student } = await db.from('students')
+          .select('eleve_uid')
+          .eq('id', S.user.id)
+          .maybeSingle();
+
+        if (!_isStudentAllowedDuringMaintenance(student)) {
+          showMaintenanceLiveModal();
+        }
+      })
+    .subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        console.log('[maintRT] ✓ abonné');
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        console.warn('[maintRT] statut canal:', status);
+      }
+    });
+
+  _maintRT.channel = ch;
+  _maintRT.active = true;
+}
+
+function stopMaintenanceRealtime() {
+  if (_maintRT.channel) {
+    try { db.removeChannel(_maintRT.channel); } catch(e) { console.warn('[maintRT] removeChannel:', e); }
+    _maintRT.channel = null;
+  }
+  _maintRT.active = false;
+}
+
+/** Affiche la modale d'éviction live avec le message courant. */
+function showMaintenanceLiveModal() {
+  const txt = document.getElementById('maintenance-live-text');
+  if (txt) txt.textContent = (S.maintenance?.message) || _MAINT_DEFAULT_MSG;
+  openModal('modal-maintenance-live');
+}
+
+/** Click handler du bouton Fermer : logout + retour login avec bandeau. */
+function closeMaintenanceLiveAndLogout() {
+  closeModal('modal-maintenance-live');
+  // Logout standard (stop realtime, clear session, reset UI)
+  logout();
+  // Affichage du bandeau permanent sur l'écran login
+  showMaintenanceBanner();
 }
 
 /* ----------------------------------------------------------------
@@ -8065,6 +8160,8 @@ async function loginAs(student) {
 
   // Démarrer le realtime élève
   startStudentRealtime();
+  // Démarrer le realtime maintenance (éviction live si maintenance activée pendant la session)
+  startMaintenanceRealtime();
 
   navigateTo('home');
 }
@@ -8325,6 +8422,7 @@ function updateProfileBtn() {
 function logout(reason) {
   stopAdminRealtime();
   stopStudentRealtime();
+  stopMaintenanceRealtime();
   stopInactivityTimer();
   S.user = null; S.isAdmin = false; S.currentStudent = null; S.films = []; S.votes = new Set();
   clearSession();
@@ -17987,8 +18085,13 @@ async function init() {
       }
     }
     startInactivityTimer();
-    if (S.isAdmin) navigateTo('admin');
-    else navigateTo('home');
+    if (S.isAdmin) {
+      navigateTo('admin');
+    } else {
+      // Session élève restaurée → démarrer le realtime maintenance pour l'éviction live
+      startMaintenanceRealtime();
+      navigateTo('home');
+    }
   } else {
     showScreen('login');
   }
