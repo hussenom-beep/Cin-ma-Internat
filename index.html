@@ -12456,15 +12456,49 @@ async function loadNextSessionCard() {
     const sessionDate = fmtDateShort(session.session_date);
     const capacity = session.max_capacity || 20;
     const regOpen = session.registrations_open;
+    const isEvent = !!session.event_tag;
+    const eventLabel = session.event_tag === 'halloween' ? '🎃 Halloween' : '🎉 Événement';
     // Auto-fermeture J - 30 min : pour cohérence visuelle avec la vue élève.
     // L'admin garde son super-pouvoir d'inscrire via "Inscrire à une séance".
     const lockedByTime = _isSessionLocked(session);
-    const regStatus = (regOpen && lockedByTime)
-      ? 'Auto-fermées'
-      : (regOpen ? 'Ouvertes' : 'Fermées');
+    const regStatus = isEvent
+      ? (regOpen ? 'Annoncée' : 'Non annoncée')
+      : ((regOpen && lockedByTime) ? 'Auto-fermées' : (regOpen ? 'Ouvertes' : 'Fermées'));
+    const regToggleHint = isEvent
+      ? (regOpen ? 'Cliquer pour masquer la séance aux élèves' : 'Cliquer pour annoncer la séance')
+      : (regOpen ? 'Cliquer pour fermer les inscriptions' : 'Cliquer pour ouvrir les inscriptions');
     
-    // Vérifier si on peut faire l'appel
-    const canAttend = checkAttendanceAllowed(session);
+    // Vérifier si on peut faire l'appel (jamais sur séance événement → H+4 fait le passage en vu auto)
+    const canAttend = !isEvent && checkAttendanceAllowed(session);
+
+    // Stats : différentes pour les séances événement
+    const statsHtml = isEvent ? `
+      <div class="nsc-stat" style="grid-column:1/-1;">
+        <span class="nsc-stat-label">Catégorie</span>
+        <span class="nsc-stat-value" style="color:#ff9d3d;">${eventLabel}</span>
+      </div>
+      <div class="nsc-stat" style="grid-column:1/-1;">
+        <span class="nsc-stat-label">Public</span>
+        <span class="nsc-stat-value" style="font-size:14px;">👥 Tous les internes conviés</span>
+      </div>
+      <div class="nsc-stat" style="grid-column:1/-1;">
+        <span class="nsc-stat-label">Annonce</span>
+        <span class="nsc-stat-value" style="cursor: pointer;" onclick="event.stopPropagation(); toggleSesOpenFromHome('${session.id}', ${regOpen})" title="${regToggleHint}">${regStatus}</span>
+      </div>
+    ` : `
+      <div class="nsc-stat">
+        <span class="nsc-stat-label">Inscrits</span>
+        <span class="nsc-stat-value" style="cursor: pointer;" onclick="viewRegistrants('${session.id}', '${session.session_date}')" title="Voir tous les participants">${registeredCount} / ${capacity}</span>
+      </div>
+      <div class="nsc-stat">
+        <span class="nsc-stat-label">Liste d'attente</span>
+        <span class="nsc-stat-value">${waitlistCount || 0}</span>
+      </div>
+      <div class="nsc-stat">
+        <span class="nsc-stat-label">Inscriptions</span>
+        <span class="nsc-stat-value" style="cursor: pointer;" onclick="event.stopPropagation(); toggleSesOpenFromHome('${session.id}', ${regOpen})" title="${regToggleHint}">${regStatus}</span>
+      </div>
+    `;
     
     el.innerHTML = `
       ${posterUrl ? `<img class="nsc-bg" src="${posterUrl}" alt="" aria-hidden="true">` : ''}
@@ -12476,18 +12510,7 @@ async function loadNextSessionCard() {
         </div>
         <div class="nsc-bottom">
           <div class="nsc-stats">
-            <div class="nsc-stat">
-              <span class="nsc-stat-label">Inscrits</span>
-              <span class="nsc-stat-value" style="cursor: pointer;" onclick="viewRegistrants('${session.id}', '${session.session_date}')" title="Voir tous les participants">${registeredCount} / ${capacity}</span>
-            </div>
-            <div class="nsc-stat">
-              <span class="nsc-stat-label">Liste d'attente</span>
-              <span class="nsc-stat-value">${waitlistCount || 0}</span>
-            </div>
-            <div class="nsc-stat">
-              <span class="nsc-stat-label">Inscriptions</span>
-              <span class="nsc-stat-value" style="cursor: pointer;" onclick="event.stopPropagation(); toggleSesOpenFromHome('${session.id}', ${regOpen})" title="${regOpen ? 'Cliquer pour fermer les inscriptions' : 'Cliquer pour ouvrir les inscriptions'}">${regStatus}</span>
-            </div>
+            ${statsHtml}
           </div>
           <div class="nsc-actions">
             <button class="btn btn-gold" onclick="openSessionSheet('${session.id}')">
@@ -16358,6 +16381,36 @@ async function loadAdminSessions() {
     const waitCount = wc[s.id] || 0;
     const openSes   = s.registrations_open;
     const cap       = s.max_capacity || 20;
+    const isEvent   = !!s.event_tag;
+    const eventLabel = s.event_tag === 'halloween' ? '🎃 Halloween' : '🎉 Événement';
+
+    // Badges et stats : différents pour les séances événement
+    // (pas de comptage inscrits, pas de capacité, juste le badge thème + état)
+    let badgesHtml;
+    if (isEvent) {
+      badgesHtml = `
+        <span class="badge" style="background:linear-gradient(135deg,rgba(255,122,0,.30),rgba(255,122,0,.15));color:#ff9d3d;border:1px solid rgba(255,122,0,.5);font-weight:700;">${eventLabel}</span>
+        <span class="badge ${openSes ? 'badge-green' : 'badge-muted'}">
+          ${openSes ? '✅ Annoncée' : '⏸ Non annoncée'}
+        </span>
+        <span class="badge badge-purple" style="font-style:italic;">👥 Tous les internes conviés</span>
+      `;
+    } else {
+      badgesHtml = `
+        ${count >= cap
+          ? `<span class="badge badge-red">🚫 Complet</span>`
+          : `<span class="badge ${openSes ? 'badge-green' : 'badge-muted'}">
+              ${openSes ? '✅ Ouvertes' : '⏸ Fermées'}
+             </span>`}
+        <span class="badge badge-count" onclick="viewRegistrants('${s.id}','${s.session_date}')">👥 ${count} / ${cap}</span>
+        ${waitCount > 0 ? `<span class="badge badge-gold">⏳ ${waitCount} en attente</span>` : ''}
+      `;
+    }
+
+    // Toggle libellé adapté
+    const toggleLbl = isEvent
+      ? (openSes ? 'Masquer aux élèves' : 'Annoncer aux élèves')
+      : (openSes ? 'Fermer inscrip.' : 'Ouvrir inscrip.');
 
     return `
     <div class="admin-ses-card">
@@ -16380,17 +16433,11 @@ async function loadAdminSessions() {
           </div>
           <div class="admin-ses-content">
             <div class="admin-ses-badges">
-              ${count >= cap
-                ? `<span class="badge badge-red">🚫 Complet</span>`
-                : `<span class="badge ${openSes ? 'badge-green' : 'badge-muted'}">
-                    ${openSes ? '✅ Ouvertes' : '⏸ Fermées'}
-                   </span>`}
-              <span class="badge badge-count" onclick="viewRegistrants('${s.id}','${s.session_date}')">👥 ${count} / ${cap}</span>
-              ${waitCount > 0 ? `<span class="badge badge-gold">⏳ ${waitCount} en attente</span>` : ''}
+              ${badgesHtml}
             </div>
             <div class="admin-ses-actions">
               <button class="btn btn-sm btn-ghost" onclick="toggleSesOpen('${s.id}',${openSes})">
-                ${openSes ? 'Fermer inscrip.' : 'Ouvrir inscrip.'}
+                ${toggleLbl}
               </button>
 
               <button class="btn btn-sm btn-ghost" onclick="openEditSession('${s.id}','${(s.films?.title || '').replace(/'/g,"\\'")}','${s.film_id || ''}')">✏️ Film</button>
@@ -16441,30 +16488,54 @@ async function _notifyAllStudents(sessionId, eventType) {
 async function toggleSesOpen(id, cur) {
   await db.from('cinema_sessions').update({ registrations_open: !cur }).eq('id', id);
   if (!cur) {
-    // Ouverture → notifier tous les élèves
-    toast('Inscriptions ouvertes ✅', 'success');
-    _notifyAllStudents(id, 'session_opened'); // fire-and-forget
-
-    // Push notif aux élèves (récupère le titre du film + la date)
+    // Ouverture / annonce → récupérer la séance pour adapter le toast et le push
     db.from('cinema_sessions')
-      .select('session_date, session_time, films(title)')
+      .select('session_date, session_time, event_tag, films(title)')
       .eq('id', id).single()
       .then(({ data }) => {
         if (!data) return;
+        const isEvent = !!data.event_tag;
         const filmTitle = data.films?.title || 'Séance';
         const dateFmt = data.session_date
           ? new Date(`${data.session_date}T${data.session_time || '20:00'}:00`)
               .toLocaleDateString('fr-FR', { weekday: 'long', day: '2-digit', month: 'long' })
           : '';
+
+        // Toast adapté
+        toast(isEvent ? 'Séance annoncée 📣' : 'Inscriptions ouvertes ✅', 'success');
+
+        // Notifier tous les élèves (event log)
+        _notifyAllStudents(id, 'session_opened'); // fire-and-forget
+
+        // Push notif adapté
+        let pushTitle, pushBody;
+        if (data.event_tag === 'halloween') {
+          pushTitle = '🎃 Séance Halloween annoncée !';
+          pushBody  = `${filmTitle}${dateFmt ? ' — ' + dateFmt : ''}. Tous les internes y sont conviés.`;
+        } else if (isEvent) {
+          pushTitle = '🎉 Séance événement annoncée !';
+          pushBody  = `${filmTitle}${dateFmt ? ' — ' + dateFmt : ''}. Tous les internes y sont conviés.`;
+        } else {
+          pushTitle = '🟢 Inscriptions ouvertes';
+          pushBody  = `${filmTitle}${dateFmt ? ' — ' + dateFmt : ''}. Réserve ta place dès maintenant.`;
+        }
+
         _invokeSendPush(
           { type: 'students_all' },
-          '🟢 Inscriptions ouvertes',
-          `${filmTitle}${dateFmt ? ' — ' + dateFmt : ''}. Réserve ta place dès maintenant.`,
+          pushTitle,
+          pushBody,
           '/'
         );
       });
   } else {
-    toast('Inscriptions fermées', 'success');
+    // Fermeture / masquage : on récupère le tag pour adapter le toast
+    db.from('cinema_sessions')
+      .select('event_tag')
+      .eq('id', id).single()
+      .then(({ data }) => {
+        const isEvent = !!data?.event_tag;
+        toast(isEvent ? 'Séance masquée aux élèves' : 'Inscriptions fermées', 'success');
+      });
   }
   loadAdminSessions();
 }
