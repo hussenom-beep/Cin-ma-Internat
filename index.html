@@ -1872,12 +1872,28 @@ body.theme-halloween .s-header {
 /* ----------------------------------------------------------------
    TMDB DETAIL MODAL — scroll mobile corrigé
    ---------------------------------------------------------------- */
+#modal-tmdb-detail {
+  /* z-index supérieur à .overlay (500) pour passer devant modal-add-film
+     quand l'admin ouvre une fiche depuis la recherche TMDB */
+  z-index: 600;
+}
 #modal-tmdb-detail .sheet {
   padding: 0; overflow: hidden;
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   display: flex; flex-direction: column;
   max-height: 92vh;
   /* iOS fix : le overflow:hidden empêchait le scroll enfant */
+}
+/* Override desktop : la règle globale .overlay:not(...) > .sheet
+   a une spécificité (2,2,0) qui écrase notre règle (1,1,0).
+   On force avec !important pour préserver padding:0 et max-height:92vh,
+   essentiels au layout flex avec scroll interne. */
+@media (min-width: 768px) {
+  #modal-tmdb-detail .sheet {
+    padding: 0 !important;
+    max-height: 92vh !important;
+    border-radius: var(--radius-lg) !important;
+  }
 }
 .tmdb-poster-header {
   position: relative; width: 100%; height: 200px;
