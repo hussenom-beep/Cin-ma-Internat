@@ -5428,6 +5428,39 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 </div>
 
 <!-- ================================================================
+     MODAL: Choisir la catégorie événement à l'ajout d'un film
+     (visible uniquement si un thème événement est actif)
+     ================================================================ -->
+<div class="overlay hidden" id="modal-add-film-event-choice">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Catégorie du film</div>
+
+    <p class="text-sm text-muted" style="margin-bottom:18px;">
+      Un thème événement est actif. Dans quelle catégorie veux-tu ajouter
+      <strong id="afec-film-title" style="color:var(--text);">ce film</strong> ?
+    </p>
+
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:8px;">
+      <button id="afec-btn-event" class="btn btn-gold btn-full btn-lg" onclick="confirmAddFilmWithChoice('event')">
+        <span id="afec-event-label">🎃 Pour Halloween</span>
+      </button>
+      <button class="btn btn-ghost btn-full btn-lg" onclick="confirmAddFilmWithChoice('general')">
+        🎬 Film général (année complète)
+      </button>
+    </div>
+
+    <div class="text-sm text-muted" style="margin-top:14px;font-size:11.5px;opacity:.7;">
+      <span id="afec-help-event">Le film sera visible aux élèves uniquement quand le thème Halloween est actif.</span>
+    </div>
+
+    <div style="margin-top:18px;">
+      <button class="btn btn-ghost btn-full btn-sm" onclick="closeModal('modal-add-film-event-choice')">Annuler</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
      MODAL: Créer une séance
      ================================================================ -->
 <div class="overlay hidden" id="modal-create-session">
@@ -9884,8 +9917,52 @@ async function confirmAddFilm() {
     return;
   }
 
-  btn.disabled = true;
-  btn.textContent = 'Ajout en cours…';
+  // Si un thème événement est actif, on ouvre la modale de choix
+  // (Halloween ou Année complète) avant d'insérer le film.
+  // Sinon, ajout direct sans tag.
+  const theme = S.eventTheme || 'none';
+  if (theme !== 'none') {
+    // Préparer la modale avec le titre du film + libellés selon le thème
+    const titleEl = document.getElementById('afec-film-title');
+    if (titleEl) titleEl.textContent = `« ${m.title} »`;
+
+    const eventLabelEl = document.getElementById('afec-event-label');
+    if (eventLabelEl) {
+      eventLabelEl.textContent = (theme === 'halloween') ? '🎃 Pour Halloween' : '🎉 Pour l\'événement';
+    }
+    const helpEl = document.getElementById('afec-help-event');
+    if (helpEl) {
+      helpEl.textContent = (theme === 'halloween')
+        ? 'Le film sera visible aux élèves uniquement quand le thème Halloween est actif.'
+        : 'Le film sera visible aux élèves uniquement pendant cet événement.';
+    }
+    openModal('modal-add-film-event-choice');
+    return;
+  }
+
+  // Pas de thème actif → ajout direct (comportement classique)
+  await _doAddFilmWithTag(null);
+}
+
+/** Appelée par les boutons de la modale de choix.
+    mode: 'event' (tag = thème actif) ou 'general' (tag = null) */
+async function confirmAddFilmWithChoice(mode) {
+  const theme = S.eventTheme || 'none';
+  const tag = (mode === 'event' && theme !== 'none') ? theme : null;
+  closeModal('modal-add-film-event-choice');
+  await _doAddFilmWithTag(tag);
+}
+
+/** Insertion réelle du film dans la BDD avec le event_tag fourni. */
+async function _doAddFilmWithTag(eventTag) {
+  if (!_tmdbMovie) return;
+  const m = _tmdbMovie;
+  const btn = document.getElementById('tmdb-d-action');
+
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Ajout en cours…';
+  }
 
   const { error } = await db.from('films').insert({
     title:      m.title,
@@ -9895,11 +9972,14 @@ async function confirmAddFilm() {
     synopsis:   m.overview || null,
     poster_url: m.poster_path ? `https://image.tmdb.org/t/p/w500${m.poster_path}` : null,
     tmdb_id:    m.id || null,
-    status:     'active'
+    status:     'active',
+    event_tag:  eventTag || null
   });
 
-  btn.disabled = false;
-  btn.textContent = '🎬 Ajouter au catalogue';
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = '🎬 Ajouter au catalogue';
+  }
 
   if (error) { toast('Erreur : ' + error.message, 'error'); return; }
 
@@ -9907,7 +9987,10 @@ async function confirmAddFilm() {
   closeModal('modal-add-film');
   document.getElementById('admin-film-search').value = '';
   document.getElementById('admin-tmdb-results').innerHTML = '';
-  toast('Film ajouté au catalogue 🎬', 'success');
+  const successMsg = eventTag === 'halloween'
+    ? 'Film ajouté au catalogue Halloween 🎃'
+    : 'Film ajouté au catalogue 🎬';
+  toast(successMsg, 'success');
   loadAdminFilms();
 }
 
