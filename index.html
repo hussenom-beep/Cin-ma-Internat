@@ -8420,6 +8420,8 @@ async function navigateTo(id, isBack = false) {
 }
 
 function goBack() {
+  // Reset du tag séance événement (la fiche TMDB n'est plus une consultation séance)
+  _studentSessionEventTag = null;
   // Si on revient sur "propose" depuis la fiche TMDB élève, initPropose restaurera l'état
   if (S.prevScreen) navigateTo(S.prevScreen, true); else navigateTo('home', true);
 }
@@ -9226,7 +9228,7 @@ async function loadHome() {
 
   const today = new Date().toISOString().split('T')[0];
 
-  // Prochaine séance + nb inscrits
+  // Prochaine séance + nb inscrits + tag événement
   const { data } = await db.from('cinema_sessions')
     .select('*, films(title, poster_url, duration)')
     .gte('session_date', today)
@@ -9246,7 +9248,56 @@ async function loadHome() {
     const poster = s.films?.poster_url || '';
     const title  = s.films?.title || '🎬 Film à annoncer';
     const runtime = s.films?.duration || null;
+    const sessionTime = s.session_time || '20:00';
+    const runtimeStr = runtime ? formatRuntime(runtime) : '';
 
+    // ============================================================
+    // CAS SÉANCE ÉVÉNEMENT (Halloween, etc.)
+    // - Pas de comptage inscrits, pas de capacité, pas de bouton.
+    // - Bandeau spécial "Tous les internes y sont conviés".
+    // ============================================================
+    if (s.event_tag) {
+      const eventLabel = s.event_tag === 'halloween' ? '🎃 Séance Halloween' : '🎉 Séance événement';
+      const eventBadgeHtml = `<span class="badge" style="background:linear-gradient(135deg,rgba(255,122,0,.30),rgba(255,122,0,.15));color:#ff9d3d;border:1px solid rgba(255,122,0,.5);font-weight:700;">${eventLabel}</span>`;
+
+      el.innerHTML = `<div class="session-banner" onclick="openStudentSessionDetail('${s.id}')">
+        ${poster ? `<img src="${poster}" class="session-banner-poster" alt="">` : ''}
+        <div class="session-banner-overlay"></div>
+        <div class="session-banner-inner">
+          <div class="session-banner-top">
+            <div class="session-banner-date">📅 ${fmtDateShort(s.session_date)} • ${sessionTime}</div>
+            <div class="session-banner-film">${title}</div>
+            ${runtimeStr ? `<div style="font-size:12px;color:var(--text-3);margin-top:6px;">⏱ ${runtimeStr}</div>` : ''}
+          </div>
+          <div class="session-banner-bottom">
+            <div class="session-banner-thumb">
+              ${poster
+                ? `<img src="${poster}" alt="${title}">`
+                : `<div class="session-banner-thumb-empty">🎬</div>`}
+            </div>
+            <div class="session-banner-content">
+              <div class="session-banner-footer" style="flex-direction:column;align-items:flex-start;gap:8px;">
+                ${eventBadgeHtml}
+                <div style="background:linear-gradient(135deg,rgba(255,122,0,.10),rgba(255,122,0,.04));border:1px solid rgba(255,122,0,.3);border-radius:8px;padding:10px 12px;font-size:12.5px;color:var(--text);line-height:1.5;width:100%;box-sizing:border-box;">
+                  <strong>Tu es automatiquement convié(e).</strong><br>
+                  <span style="opacity:.85;">Aucune inscription nécessaire — viens profiter du film avec tout l'internat !</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>`;
+
+      // Bloc Messagerie (conditionnel)
+      await loadHomeMessagingBlock();
+      // Bloc Nouveautés
+      await loadHomeNews();
+      return;
+    }
+
+    // ============================================================
+    // CAS SÉANCE NORMALE (comportement existant)
+    // ============================================================
     // Compter les inscrits + vérifier capacité
     const { count: regCount } = await db.from('registrations')
       .select('id', { count: 'exact', head: true })
@@ -9324,11 +9375,7 @@ async function loadHome() {
       actionBtn = `<button class="session-banner-action is-disabled">⏸ Fermé</button>`;
     }
 
-    // Durée formatée
-    const runtimeStr = runtime ? formatRuntime(runtime) : '';
-    
-    // ✅ NOUVEAU : Heure de la séance (fallback 20:00 si absente)
-    const sessionTime = s.session_time || '20:00';
+    // (runtimeStr et sessionTime sont déjà déclarés en amont du bloc commun)
 
     el.innerHTML = `<div class="session-banner" onclick="openStudentSessionDetail('${s.id}')">
       ${poster ? `<img src="${poster}" class="session-banner-poster" alt="">` : ''}
@@ -9967,6 +10014,22 @@ async function _renderTMDBScreen(detail, credits) {
       <div class="tmdb-cast-chips">${cast.map(a => `<span class="tmdb-cast-chip">${a.name}</span>`).join('')}</div></div>` : ''
   ].filter(Boolean).join('');
 
+  // Bandeau séance événement (Halloween, etc.) — affiché si la fiche
+  // est ouverte depuis une séance tagée. Le bouton "Proposer ce film"
+  // est masqué dans ce cas (on ne propose pas un film qu'on regarde).
+  let eventBannerHtml = '';
+  let hideProposeBtn = false;
+  if (_studentSessionEventTag === 'halloween') {
+    hideProposeBtn = true;
+    eventBannerHtml = `
+      <div style="background:linear-gradient(135deg,rgba(255,122,0,.18),rgba(255,122,0,.08));border:1px solid rgba(255,122,0,.45);border-radius:10px;padding:12px 14px;margin-bottom:14px;">
+        <div style="font-size:13.5px;font-weight:700;color:#ff9d3d;margin-bottom:4px;">🎃 Séance Halloween</div>
+        <div style="font-size:12.5px;color:var(--text);line-height:1.5;">
+          <strong>Tu es automatiquement convié(e).</strong> Aucune inscription nécessaire — viens profiter du film avec tout l'internat !
+        </div>
+      </div>`;
+  }
+
   document.getElementById('tmdb-screen-content').innerHTML = `
     <div class="detail-poster-wrap">
       ${detail.poster_path
@@ -9982,17 +10045,18 @@ async function _renderTMDBScreen(detail, credits) {
         ${duration ? `<span class="badge badge-muted">${duration}</span>` : ''}
       </div>
       ${ratingHtml}
+      ${eventBannerHtml}
       ${dupHtml}
       <div class="tmdb-d-synopsis" style="margin-bottom:16px;">${detail.overview || 'Aucun synopsis disponible.'}</div>
       <div class="tmdb-crew-block" style="margin-bottom:20px;">${crewHtml}</div>
       <div id="trailer-slot-student" style="margin-bottom:4px;"></div>
-      <button id="tmdb-screen-action"
+      ${hideProposeBtn ? '' : `<button id="tmdb-screen-action"
               class="btn btn-gold btn-full btn-lg"
               style="margin-bottom:10px;"
               ${blocked ? 'disabled' : ''}
               onclick="confirmProposeFilm()">
         ${blocked ? '🚫 Non disponible' : '💡 Proposer ce film'}
-      </button>
+      </button>`}
     </div>`;
 
   // Charger le bouton bande-annonce en arrière-plan (non bloquant)
@@ -11480,15 +11544,21 @@ async function viewStudentRegistrants(sesId, date) {
 }
 
 /* Ouvre la fiche séance / film détaillée pour l'élève */
+/* Tag événement de la séance courante en consultation côté élève.
+   Set par openStudentSessionDetail, lu par _renderTMDBScreen pour
+   afficher un bandeau Halloween dans la fiche film.
+   Reset à chaque ouverture/fermeture de la fiche TMDB élève. */
+let _studentSessionEventTag = null;
+
 async function openStudentSessionDetail(sessionId) {
   if (!sessionId) {
     console.error('[openStudentSessionDetail] sessionId manquant');
     return;
   }
 
-  // Récupérer la séance
+  // Récupérer la séance + son tag événement
   const { data: session, error: sessionError } = await db.from('cinema_sessions')
-    .select('id, film_id')
+    .select('id, film_id, event_tag')
     .eq('id', sessionId)
     .maybeSingle();
 
@@ -11509,6 +11579,9 @@ async function openStudentSessionDetail(sessionId) {
     return;
   }
 
+  // Mémoriser le tag pour le rendu de la fiche TMDB élève
+  _studentSessionEventTag = session.event_tag || null;
+
   // Récupérer le film
   const { data: film, error: filmError } = await db.from('films')
     .select('id, title, tmdb_id')
@@ -11518,17 +11591,20 @@ async function openStudentSessionDetail(sessionId) {
   if (filmError) {
     console.error('[openStudentSessionDetail] Erreur récupération film:', filmError);
     toast('Erreur lors du chargement du film', 'error');
+    _studentSessionEventTag = null;
     return;
   }
 
   if (!film) {
     console.error('[openStudentSessionDetail] Film introuvable:', session.film_id);
     toast('Film introuvable', 'error');
+    _studentSessionEventTag = null;
     return;
   }
 
   if (!film.tmdb_id) {
     toast('Fiche TMDB indisponible pour ce film', 'error');
+    _studentSessionEventTag = null;
     return;
   }
 
