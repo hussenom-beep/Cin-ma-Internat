@@ -7039,10 +7039,10 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 
           <div class="fgroup">
             <label class="flabel">Thème actif</label>
-            <select id="event-theme-select" class="finput" style="font-size:14px;">
-              <option value="none">Aucun thème</option>
-              <option value="halloween">🎃 Halloween</option>
-            </select>
+            <div class="cc-toggle-group" role="group" aria-label="Thème événementiel" style="margin-bottom:4px;flex-wrap:wrap;">
+              <button class="cc-toggle active" data-theme-mode="none"      onclick="setEventThemeMode('none')">Aucun</button>
+              <button class="cc-toggle"        data-theme-mode="halloween" onclick="setEventThemeMode('halloween')">🎃 Halloween</button>
+            </div>
             <div class="text-sm text-muted" style="margin-top:6px;font-size:11.5px;opacity:.7;">
               Le changement s'applique immédiatement à tous les élèves connectés.
             </div>
@@ -8218,15 +8218,28 @@ function applyEventTheme() {
 
 /** Charge l'UI du sélecteur dans les paramètres admin */
 function loadEventThemeUI() {
-  const select = document.getElementById('event-theme-select');
-  if (select) select.value = S.eventTheme || 'none';
+  const current = S.eventTheme || 'none';
+  document.querySelectorAll('#modal-admin-settings [data-theme-mode]').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.themeMode === current);
+  });
+  // Mémoriser le choix pendant que l'admin est dans la modale
+  // (sera utilisé par saveEventTheme, indépendant de S.eventTheme tant
+  //  qu'il n'a pas cliqué sur "Appliquer")
+  _pendingEventTheme = current;
+}
+
+/** Pré-sélection visuelle d'un thème (sans sauvegarde) */
+let _pendingEventTheme = 'none';
+function setEventThemeMode(mode) {
+  _pendingEventTheme = mode;
+  document.querySelectorAll('#modal-admin-settings [data-theme-mode]').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.themeMode === mode);
+  });
 }
 
 /** Click handler : modale de confirmation puis sauvegarde */
 async function saveEventTheme() {
-  const select = document.getElementById('event-theme-select');
-  if (!select) return;
-  const newTheme = select.value;
+  const newTheme = _pendingEventTheme || 'none';
   const current = S.eventTheme || 'none';
 
   if (newTheme === current) {
@@ -8242,7 +8255,8 @@ async function saveEventTheme() {
     : `Activer le thème ${newLabel} ? L'apparence changera pour tous les élèves connectés.`;
 
   if (!confirm(confirmMsg)) {
-    select.value = current; // revert le select
+    // Revert visuel
+    setEventThemeMode(current);
     return;
   }
 
@@ -8256,7 +8270,7 @@ async function saveEventTheme() {
   if (error) {
     console.error('[event_theme] save error:', error);
     toast(`Erreur Supabase : ${error.message || 'Enregistrement impossible'}`, 'error');
-    select.value = current; // revert UI
+    setEventThemeMode(current); // revert UI
     return;
   }
 
