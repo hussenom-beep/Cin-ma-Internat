@@ -9594,10 +9594,13 @@ async function openTMDBDetail(tmdbId, ctx) {
       '<div class="loader" style="padding:60px;"><div class="spinner"></div></div>';
     showScreen('tmdb-detail');
   } else {
-    // Admin → modal existant (conservé tel quel)
+    // Admin → modal. On passe par openModal() pour entrer dans le stack
+    // de modales et obtenir un z-index dynamique au-dessus de modal-add-film
+    // (qui peut être ouverte derrière). Sans ça, le !important à 1000 du
+    // stack figerait modal-tmdb-detail derrière la 1re modal.
     document.getElementById('tmdb-detail-loader').classList.remove('hidden');
     document.getElementById('tmdb-detail-body').classList.add('hidden');
-    document.getElementById('modal-tmdb-detail').classList.remove('hidden');
+    openModal('modal-tmdb-detail');
   }
 
   try {
