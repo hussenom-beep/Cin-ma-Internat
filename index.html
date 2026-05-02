@@ -3051,6 +3051,20 @@ body.theme-halloween .s-header {
   }
 }
 
+/* Panneaux d'onglet : un seul visible à la fois.
+   Réutilisé par modal-student-detail ET modal-admin-settings. */
+.sd-tab-panel { display: none; }
+.sd-tab-panel.active {
+  display: block;
+  animation: sdTabFade .18s ease;
+}
+@keyframes sdTabFade {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+/* Pas de margin-bottom sur la dernière section d'un panneau */
+.sd-tab-panel .sd-section:last-child { margin-bottom: 0; }
+
 /* Lien élève cliquable dans les modals admin */
 .admin-student-link {
   cursor: pointer;
@@ -6797,247 +6811,304 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     </div>
     <div class="sd-body">
 
-      <!-- Notifications push admin -->
-      <div class="sd-section">
-        <div class="sd-section-title">Notifications</div>
-        <button class="profile-install-card profile-push-card" data-push-toggle onclick="togglePushNotifications()" style="border:none;width:100%;text-align:left;font-family:inherit;cursor:pointer;margin-bottom:0;">
-          <div class="profile-install-icon" data-push-icon>🔕</div>
-          <div class="profile-install-content">
-            <div class="profile-install-title" data-push-label>Activer les notifications</div>
-            <div class="profile-install-text" data-push-sub>Sois averti des nouvelles demandes, désistements tardifs et propositions</div>
-          </div>
-          <div class="profile-install-arrow">›</div>
-        </button>
+      <!-- ===== Barre d'onglets ===== -->
+      <div class="sd-tabs">
+        <button class="sd-tab active" id="sd-stab-compte"      onclick="sdSwitchSettingsTab('compte')">👤 Compte</button>
+        <button class="sd-tab"        id="sd-stab-comm"        onclick="sdSwitchSettingsTab('comm')">📢 Comm.</button>
+        <button class="sd-tab"        id="sd-stab-apparence"   onclick="sdSwitchSettingsTab('apparence')">🎨 Apparence</button>
+        <button class="sd-tab"        id="sd-stab-maintenance" onclick="sdSwitchSettingsTab('maintenance')">🛠️ Maintenance</button>
+        <button class="sd-tab"        id="sd-stab-donnees"     onclick="sdSwitchSettingsTab('donnees')">📊 Données</button>
       </div>
 
-      <!-- Personnalisation -->
-      <div class="sd-section">
-        <div class="sd-section-title">Personnalisation</div>
-        <div class="fgroup">
-          <label class="flabel">Nom du surveillant</label>
-          <input type="text" class="finput" id="supervisor-name-input" 
-                 placeholder="Votre prénom (ex: Mathias)" 
-                 maxlength="30"
-                 style="font-size:15px;">
-          <div class="text-sm text-muted" style="margin-top:6px;font-size:11.5px;opacity:.7;">
-            Ce nom apparaîtra dans l'accès admin et la messagerie élève
-          </div>
-        </div>
-        <button class="btn btn-gold btn-full" onclick="saveSupervisorName()">Enregistrer</button>
-      </div>
+      <!-- ============================================================
+           ONGLET : 👤 COMPTE
+           ============================================================ -->
+      <div class="sd-tab-panel active" id="sd-spane-compte">
 
-      <div style="height:1px;background:var(--border);margin:4px 0 20px;"></div>
-
-      <!-- Maintenance -->
-      <div class="sd-section">
-        <div class="sd-section-title">🛠️ Mode maintenance</div>
-
-        <div class="fgroup">
-          <label class="flabel">État</label>
-          <div class="cc-toggle-group" role="group" aria-label="Mode maintenance" style="margin-bottom:4px;">
-            <button class="cc-toggle active" data-maint-mode="off" onclick="setMaintenanceMode('off')">✅ Désactivé</button>
-            <button class="cc-toggle"        data-maint-mode="on"  onclick="setMaintenanceMode('on')">🛠️ Activé</button>
-          </div>
-          <div class="text-sm text-muted" style="margin-top:6px;font-size:11.5px;opacity:.7;">
-            Quand activé, seul l'admin et l'élève test ci-dessous peuvent se connecter.
-          </div>
-        </div>
-
-        <div class="fgroup">
-          <label class="flabel">Message affiché aux élèves bloqués</label>
-          <textarea class="finput" id="maintenance-message-input"
-                    placeholder="Application en maintenance. Merci de revenir plus tard."
-                    maxlength="280" rows="2"
-                    style="font-size:14px;resize:vertical;"></textarea>
-        </div>
-
-        <div class="fgroup">
-          <label class="flabel">Identifiant élève test autorisé</label>
-          <input type="text" class="finput" id="maintenance-test-uid-input"
-                 placeholder="ex : elv_xxxxxxxxxxxxxx"
-                 maxlength="60"
-                 style="font-size:14px;font-family:monospace;">
-          <div class="text-sm text-muted" style="margin-top:6px;font-size:11.5px;opacity:.7;">
-            Colle ici le 🪪 <code>eleve_uid</code> visible dans la fiche d'un élève. Laisse vide pour bloquer tous les élèves.
-          </div>
-        </div>
-
-        <button class="btn btn-gold btn-full" onclick="saveMaintenanceSettings()">Enregistrer la maintenance</button>
-      </div>
-
-      <div style="height:1px;background:var(--border);margin:4px 0 20px;"></div>
-
-      <!-- Thème événementiel -->
-      <div class="sd-section">
-        <div class="sd-section-title">🎉 Thème événementiel</div>
-
-        <div class="fgroup">
-          <label class="flabel">Thème actif</label>
-          <select id="event-theme-select" class="finput" style="font-size:14px;">
-            <option value="none">Aucun thème</option>
-            <option value="halloween">🎃 Halloween</option>
-          </select>
-          <div class="text-sm text-muted" style="margin-top:6px;font-size:11.5px;opacity:.7;">
-            Le changement s'applique immédiatement à tous les élèves connectés.
-          </div>
-        </div>
-
-        <button class="btn btn-gold btn-full" onclick="saveEventTheme()">Appliquer le thème</button>
-      </div>
-
-      <div style="height:1px;background:var(--border);margin:4px 0 20px;"></div>
-
-      <!-- Push notification générale -->
-      <div class="sd-section">
-        <div class="sd-section-title">📢 Notification générale</div>
-        <p class="text-sm text-muted" style="margin-bottom:14px;">
-          Envoie une notification push à tous les élèves abonnés. Seuls les élèves ayant activé les notifications la recevront.
-        </p>
-
-        <div class="fgroup">
-          <label class="flabel">Titre <span class="text-muted" style="font-weight:400;font-size:11px;">(max 60)</span></label>
-          <input type="text" class="finput" id="bcast-title"
-                 maxlength="60"
-                 placeholder="Ex : Information importante"
-                 oninput="_updateBcastUI()">
-          <div class="text-sm text-muted" style="margin-top:4px;font-size:11px;text-align:right;">
-            <span id="bcast-title-counter">0</span> / 60
-          </div>
-        </div>
-
-        <div class="fgroup">
-          <label class="flabel">Message <span class="text-muted" style="font-weight:400;font-size:11px;">(max 200)</span></label>
-          <textarea class="ftextarea" id="bcast-body"
-                    rows="3"
-                    maxlength="200"
-                    placeholder="Le message qui sera affiché dans la notification."
-                    oninput="_updateBcastUI()"></textarea>
-          <div class="text-sm text-muted" style="margin-top:4px;font-size:11px;text-align:right;">
-            <span id="bcast-body-counter">0</span> / 200
-          </div>
-        </div>
-
-        <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:12.5px;">
-          <span class="text-muted">Destinataires : </span>
-          <strong id="bcast-recipient-count" style="color:var(--gold);">…</strong>
-          <span class="text-muted" id="bcast-recipient-label"> élèves abonnés aux notifications</span>
-        </div>
-
-        <button class="btn btn-gold btn-full" id="bcast-send-btn" onclick="openBroadcastConfirm()" disabled>
-          📢 Envoyer la notification
-        </button>
-      </div>
-
-      <div style="height:1px;background:var(--border);margin:4px 0 20px;"></div>
-
-      <!-- Import élèves -->
-      <div class="sd-section">
-        <div class="sd-section-title">Import élèves</div>
-        <p class="text-sm text-muted" style="margin-bottom:14px;">
-          Format CSV : <code>prénom,nom,classe,eleveUid,année,sexe</code>
-          <br><span style="opacity:.6;font-size:11.5px;">L'année scolaire est lue automatiquement depuis le fichier (5e colonne). Le sexe (6e colonne) : <code>F</code> pour filles, <code>M</code> pour garçons.</span>
-        </p>
-
-        <!-- Switch mode -->
-        <div class="import-switch-wrap">
-          <button class="import-switch-btn active" id="import-btn-ponctuel"
-                  onclick="setImportMode('ponctuel')">
-            📋 Import ponctuel<br>
-            <span style="font-size:10.5px;font-weight:500;opacity:.7;">Ajoute / met à jour</span>
-          </button>
-          <button class="import-switch-btn annual" id="import-btn-annual"
-                  onclick="setImportMode('annual')">
-            🎓 Import annuel<br>
-            <span style="font-size:10.5px;font-weight:500;opacity:.7;">Rentrée / réinitialise</span>
+        <!-- Notifications push admin -->
+        <div class="sd-section">
+          <div class="sd-section-title">Notifications</div>
+          <button class="profile-install-card profile-push-card" data-push-toggle onclick="togglePushNotifications()" style="border:none;width:100%;text-align:left;font-family:inherit;cursor:pointer;margin-bottom:0;">
+            <div class="profile-install-icon" data-push-icon>🔕</div>
+            <div class="profile-install-content">
+              <div class="profile-install-title" data-push-label>Activer les notifications</div>
+              <div class="profile-install-text" data-push-sub>Sois averti des nouvelles demandes, désistements tardifs et propositions</div>
+            </div>
+            <div class="profile-install-arrow">›</div>
           </button>
         </div>
 
-        <!-- Warning annuel (masqué par défaut) -->
-        <div class="import-annual-warning hidden" id="import-annual-warning">
-          ⚠️ Cet import mettra à jour l'année scolaire active, archivera les élèves absents du fichier et <strong>réinitialisera tous les votes</strong>.
-        </div>
-
-        <!-- CSV -->
-        <div class="fgroup">
-          <label class="flabel">Données CSV</label>
-          <textarea class="ftextarea" id="csv-data" rows="6"
-            placeholder="Jean,Dupont,Terminale A,UID123,2025-2026&#10;Marie,Martin,Première B,UID456,2025-2026&#10;..."></textarea>
-        </div>
-
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
-          <input type="file" id="csv-file" accept=".csv,.txt" style="display:none;" onchange="onCSVFile(event)">
-          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('csv-file').click()">📁 Charger fichier</button>
-        </div>
-
-        <!-- Mot de passe annuel (masqué par défaut) -->
-        <div class="fgroup hidden" id="import-annual-pwd-wrap">
-          <label class="flabel">Mot de passe admin (obligatoire pour import annuel)</label>
-          <input type="password" class="finput" id="import-annual-pwd" placeholder="••••••••">
-        </div>
-
-        <button class="btn btn-gold btn-full" onclick="importStudentsFromSettings()">Importer les élèves ↑</button>
-
-        <!-- Résultat import -->
-        <div id="import-result" class="hidden"></div>
-      </div>
-
-      <div style="height:1px;background:var(--border);margin:4px 0 20px;"></div>
-
-      <!-- Export codes -->
-      <div class="sd-section">
-        <div class="sd-section-title">Export</div>
-        <p class="text-sm text-muted" style="margin-bottom:12px;">
-          Exporte les codes d'activation des élèves.
-        </p>
-        <button class="btn btn-ghost btn-full" onclick="exportCodes()">⬇ Télécharger codes CSV</button>
-      </div>
-
-      <div style="height:1px;background:var(--border);margin:4px 0 20px;"></div>
-
-      <!-- Export PDF élèves -->
-      <div class="sd-section">
-        <div class="sd-section-title">📄 Export PDF élèves</div>
-        <p class="text-sm text-muted" style="margin-bottom:12px;">
-          Génère une fiche PDF pour <strong>tous les élèves</strong> de la liste.<br>
-          <span style="opacity:.7;font-size:11px;">Ordre : filles puis garçons, par ordre alphabétique. Format : 10 fiches par page A4.</span>
-        </p>
-        <button class="btn btn-gold btn-full" onclick="exportStudentsPDF()">
-          📄 Générer le PDF des fiches
-        </button>
-      </div>
-
-      <div style="height:1px;background:var(--border);margin:4px 0 20px;"></div>
-
-      <!-- Polices PDF Cinzel -->
-      <div class="sd-section">
-        <div class="sd-section-title">🎨 Police PDF (Cinzel)</div>
-        <p class="text-sm text-muted" style="margin-bottom:12px;">
-          <span id="cinzel-status-text">
-            Les polices Cinzel sont chargées automatiquement depuis les CDN. Si ça ne fonctionne pas, vous pouvez les uploader manuellement.
-          </span>
-        </p>
-        <div id="cinzel-upload-zone" style="display:none;">
+        <!-- Personnalisation -->
+        <div class="sd-section">
+          <div class="sd-section-title">Personnalisation</div>
           <div class="fgroup">
-            <label class="flabel">Cinzel-Regular.ttf</label>
-            <input type="file" class="finput" id="cinzel-regular-file" accept=".ttf" style="padding:8px;">
+            <label class="flabel">Nom du surveillant</label>
+            <input type="text" class="finput" id="supervisor-name-input" 
+                   placeholder="Votre prénom (ex: Mathias)" 
+                   maxlength="30"
+                   style="font-size:15px;">
+            <div class="text-sm text-muted" style="margin-top:6px;font-size:11.5px;opacity:.7;">
+              Ce nom apparaîtra dans l'accès admin et la messagerie élève
+            </div>
           </div>
-          <div class="fgroup">
-            <label class="flabel">Cinzel-Bold.ttf</label>
-            <input type="file" class="finput" id="cinzel-bold-file" accept=".ttf" style="padding:8px;">
-          </div>
-          <button class="btn btn-gold btn-full" onclick="uploadCinzelFonts()">📥 Installer les polices</button>
-          <p class="text-sm text-muted" style="margin-top:8px;font-size:11px;opacity:.7;">
-            Téléchargez les fichiers depuis <a href="https://fonts.google.com/specimen/Cinzel" target="_blank" style="color:var(--gold);">Google Fonts</a>
+          <button class="btn btn-gold btn-full" onclick="saveSupervisorName()">Enregistrer</button>
+        </div>
+
+        <!-- Mot de passe admin -->
+        <div class="sd-section">
+          <div class="sd-section-title">🔐 Mot de passe admin</div>
+          <p class="text-sm text-muted" style="margin-bottom:14px;">
+            Modifie le mot de passe utilisé pour accéder à l'espace admin.
           </p>
+
+          <div class="fgroup">
+            <label class="flabel">Mot de passe actuel</label>
+            <input type="password" class="finput" id="adm-pwd-current" autocomplete="current-password" placeholder="••••••••">
+          </div>
+
+          <div class="fgroup">
+            <label class="flabel">Nouveau mot de passe</label>
+            <input type="password" class="finput" id="adm-pwd-new" autocomplete="new-password" placeholder="6 caractères minimum" minlength="6">
+          </div>
+
+          <div class="fgroup">
+            <label class="flabel">Confirmer le nouveau mot de passe</label>
+            <input type="password" class="finput" id="adm-pwd-confirm" autocomplete="new-password" placeholder="••••••••">
+          </div>
+
+          <button class="btn btn-gold btn-full" id="adm-pwd-save-btn" onclick="changeAdminPassword()" disabled
+                  title="Fonction en attente d'activation côté base — voir batch suivant">
+            🔐 Modifier le mot de passe
+          </button>
+          <div class="text-sm text-muted" style="margin-top:8px;font-size:11px;opacity:.7;text-align:center;">
+            ⏳ Activation imminente (migration SQL en cours)
+          </div>
         </div>
-        <button class="btn btn-ghost btn-full" id="cinzel-toggle-btn" onclick="toggleCinzelUpload()">
-          📤 Uploader manuellement
-        </button>
-        <button class="btn btn-ghost btn-full" id="cinzel-clear-btn" onclick="clearCinzelFonts()" style="display:none;">
-          🗑️ Supprimer les polices stockées
-        </button>
       </div>
 
+      <!-- ============================================================
+           ONGLET : 📢 COMMUNICATION
+           ============================================================ -->
+      <div class="sd-tab-panel" id="sd-spane-comm">
+
+        <!-- Push notification générale -->
+        <div class="sd-section">
+          <div class="sd-section-title">📢 Notification générale</div>
+          <p class="text-sm text-muted" style="margin-bottom:14px;">
+            Envoie une notification push à tous les élèves abonnés. Seuls les élèves ayant activé les notifications la recevront.
+          </p>
+
+          <div class="fgroup">
+            <label class="flabel">Titre <span class="text-muted" style="font-weight:400;font-size:11px;">(max 60)</span></label>
+            <input type="text" class="finput" id="bcast-title"
+                   maxlength="60"
+                   placeholder="Ex : Information importante"
+                   oninput="_updateBcastUI()">
+            <div class="text-sm text-muted" style="margin-top:4px;font-size:11px;text-align:right;">
+              <span id="bcast-title-counter">0</span> / 60
+            </div>
+          </div>
+
+          <div class="fgroup">
+            <label class="flabel">Message <span class="text-muted" style="font-weight:400;font-size:11px;">(max 200)</span></label>
+            <textarea class="ftextarea" id="bcast-body"
+                      rows="3"
+                      maxlength="200"
+                      placeholder="Le message qui sera affiché dans la notification."
+                      oninput="_updateBcastUI()"></textarea>
+            <div class="text-sm text-muted" style="margin-top:4px;font-size:11px;text-align:right;">
+              <span id="bcast-body-counter">0</span> / 200
+            </div>
+          </div>
+
+          <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:12.5px;">
+            <span class="text-muted">Destinataires : </span>
+            <strong id="bcast-recipient-count" style="color:var(--gold);">…</strong>
+            <span class="text-muted" id="bcast-recipient-label"> élèves abonnés aux notifications</span>
+          </div>
+
+          <button class="btn btn-gold btn-full" id="bcast-send-btn" onclick="openBroadcastConfirm()" disabled>
+            📢 Envoyer la notification
+          </button>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           ONGLET : 🎨 APPARENCE
+           ============================================================ -->
+      <div class="sd-tab-panel" id="sd-spane-apparence">
+
+        <!-- Thème événementiel -->
+        <div class="sd-section">
+          <div class="sd-section-title">🎉 Thème événementiel</div>
+          <p class="text-sm text-muted" style="margin-bottom:14px;">
+            Active un thème visuel pour habiller l'application pendant un événement.
+          </p>
+
+          <div class="fgroup">
+            <label class="flabel">Thème actif</label>
+            <select id="event-theme-select" class="finput" style="font-size:14px;">
+              <option value="none">Aucun thème</option>
+              <option value="halloween">🎃 Halloween</option>
+            </select>
+            <div class="text-sm text-muted" style="margin-top:6px;font-size:11.5px;opacity:.7;">
+              Le changement s'applique immédiatement à tous les élèves connectés.
+            </div>
+          </div>
+
+          <button class="btn btn-gold btn-full" onclick="saveEventTheme()">Appliquer le thème</button>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           ONGLET : 🛠️ MAINTENANCE
+           ============================================================ -->
+      <div class="sd-tab-panel" id="sd-spane-maintenance">
+
+        <div class="sd-section">
+          <div class="sd-section-title">🛠️ Mode maintenance</div>
+
+          <div class="fgroup">
+            <label class="flabel">État</label>
+            <div class="cc-toggle-group" role="group" aria-label="Mode maintenance" style="margin-bottom:4px;">
+              <button class="cc-toggle active" data-maint-mode="off" onclick="setMaintenanceMode('off')">✅ Désactivé</button>
+              <button class="cc-toggle"        data-maint-mode="on"  onclick="setMaintenanceMode('on')">🛠️ Activé</button>
+            </div>
+            <div class="text-sm text-muted" style="margin-top:6px;font-size:11.5px;opacity:.7;">
+              Quand activé, seul l'admin et l'élève test ci-dessous peuvent se connecter.
+            </div>
+          </div>
+
+          <div class="fgroup">
+            <label class="flabel">Message affiché aux élèves bloqués</label>
+            <textarea class="finput" id="maintenance-message-input"
+                      placeholder="Application en maintenance. Merci de revenir plus tard."
+                      maxlength="280" rows="2"
+                      style="font-size:14px;resize:vertical;"></textarea>
+          </div>
+
+          <div class="fgroup">
+            <label class="flabel">Identifiant élève test autorisé</label>
+            <input type="text" class="finput" id="maintenance-test-uid-input"
+                   placeholder="ex : elv_xxxxxxxxxxxxxx"
+                   maxlength="60"
+                   style="font-size:14px;font-family:monospace;">
+            <div class="text-sm text-muted" style="margin-top:6px;font-size:11.5px;opacity:.7;">
+              Colle ici le 🪪 <code>eleve_uid</code> visible dans la fiche d'un élève. Laisse vide pour bloquer tous les élèves.
+            </div>
+          </div>
+
+          <button class="btn btn-gold btn-full" onclick="saveMaintenanceSettings()">Enregistrer la maintenance</button>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           ONGLET : 📊 DONNÉES
+           ============================================================ -->
+      <div class="sd-tab-panel" id="sd-spane-donnees">
+
+        <!-- Import élèves -->
+        <div class="sd-section">
+          <div class="sd-section-title">Import élèves</div>
+          <p class="text-sm text-muted" style="margin-bottom:14px;">
+            Format CSV : <code>prénom,nom,classe,eleveUid,année,sexe</code>
+            <br><span style="opacity:.6;font-size:11.5px;">L'année scolaire est lue automatiquement depuis le fichier (5e colonne). Le sexe (6e colonne) : <code>F</code> pour filles, <code>M</code> pour garçons.</span>
+          </p>
+
+          <!-- Switch mode -->
+          <div class="import-switch-wrap">
+            <button class="import-switch-btn active" id="import-btn-ponctuel"
+                    onclick="setImportMode('ponctuel')">
+              📋 Import ponctuel<br>
+              <span style="font-size:10.5px;font-weight:500;opacity:.7;">Ajoute / met à jour</span>
+            </button>
+            <button class="import-switch-btn annual" id="import-btn-annual"
+                    onclick="setImportMode('annual')">
+              🎓 Import annuel<br>
+              <span style="font-size:10.5px;font-weight:500;opacity:.7;">Rentrée / réinitialise</span>
+            </button>
+          </div>
+
+          <!-- Warning annuel (masqué par défaut) -->
+          <div class="import-annual-warning hidden" id="import-annual-warning">
+            ⚠️ Cet import mettra à jour l'année scolaire active, archivera les élèves absents du fichier et <strong>réinitialisera tous les votes</strong>.
+          </div>
+
+          <!-- CSV -->
+          <div class="fgroup">
+            <label class="flabel">Données CSV</label>
+            <textarea class="ftextarea" id="csv-data" rows="6"
+              placeholder="Jean,Dupont,Terminale A,UID123,2025-2026&#10;Marie,Martin,Première B,UID456,2025-2026&#10;..."></textarea>
+          </div>
+
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+            <input type="file" id="csv-file" accept=".csv,.txt" style="display:none;" onchange="onCSVFile(event)">
+            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('csv-file').click()">📁 Charger fichier</button>
+          </div>
+
+          <!-- Mot de passe annuel (masqué par défaut) -->
+          <div class="fgroup hidden" id="import-annual-pwd-wrap">
+            <label class="flabel">Mot de passe admin (obligatoire pour import annuel)</label>
+            <input type="password" class="finput" id="import-annual-pwd" placeholder="••••••••">
+          </div>
+
+          <button class="btn btn-gold btn-full" onclick="importStudentsFromSettings()">Importer les élèves ↑</button>
+
+          <!-- Résultat import -->
+          <div id="import-result" class="hidden"></div>
+        </div>
+
+        <!-- Export codes -->
+        <div class="sd-section">
+          <div class="sd-section-title">Export codes</div>
+          <p class="text-sm text-muted" style="margin-bottom:12px;">
+            Exporte les codes d'activation des élèves.
+          </p>
+          <button class="btn btn-ghost btn-full" onclick="exportCodes()">⬇ Télécharger codes CSV</button>
+        </div>
+
+        <!-- Export PDF élèves -->
+        <div class="sd-section">
+          <div class="sd-section-title">📄 Export PDF élèves</div>
+          <p class="text-sm text-muted" style="margin-bottom:12px;">
+            Génère une fiche PDF pour <strong>tous les élèves</strong> de la liste.<br>
+            <span style="opacity:.7;font-size:11px;">Ordre : filles puis garçons, par ordre alphabétique. Format : 10 fiches par page A4.</span>
+          </p>
+          <button class="btn btn-gold btn-full" onclick="exportStudentsPDF()">
+            📄 Générer le PDF des fiches
+          </button>
+        </div>
+
+        <!-- Polices PDF Cinzel -->
+        <div class="sd-section">
+          <div class="sd-section-title">🎨 Police PDF (Cinzel)</div>
+          <p class="text-sm text-muted" style="margin-bottom:12px;">
+            <span id="cinzel-status-text">
+              Les polices Cinzel sont chargées automatiquement depuis les CDN. Si ça ne fonctionne pas, vous pouvez les uploader manuellement.
+            </span>
+          </p>
+          <div id="cinzel-upload-zone" style="display:none;">
+            <div class="fgroup">
+              <label class="flabel">Cinzel-Regular.ttf</label>
+              <input type="file" class="finput" id="cinzel-regular-file" accept=".ttf" style="padding:8px;">
+            </div>
+            <div class="fgroup">
+              <label class="flabel">Cinzel-Bold.ttf</label>
+              <input type="file" class="finput" id="cinzel-bold-file" accept=".ttf" style="padding:8px;">
+            </div>
+            <button class="btn btn-gold btn-full" onclick="uploadCinzelFonts()">📥 Installer les polices</button>
+            <p class="text-sm text-muted" style="margin-top:8px;font-size:11px;opacity:.7;">
+              Téléchargez les fichiers depuis <a href="https://fonts.google.com/specimen/Cinzel" target="_blank" style="color:var(--gold);">Google Fonts</a>
+            </p>
+          </div>
+          <button class="btn btn-ghost btn-full" id="cinzel-toggle-btn" onclick="toggleCinzelUpload()">
+            📤 Uploader manuellement
+          </button>
+          <button class="btn btn-ghost btn-full" id="cinzel-clear-btn" onclick="clearCinzelFonts()" style="display:none;">
+            🗑️ Supprimer les polices stockées
+          </button>
+        </div>
+      </div>
 
     </div>
   </div>
@@ -17527,6 +17598,27 @@ function sdSwitchTab(tab) {
   if (tab === 'missed')    _sdLoadMissed(_sdCurrentStudentId);
 }
 
+/* ----------------------------------------------------------------
+   Onglets de la modale Paramètres admin (#modal-admin-settings)
+   ---------------------------------------------------------------- */
+function sdSwitchSettingsTab(tab) {
+  ['compte','comm','apparence','maintenance','donnees'].forEach(t => {
+    document.getElementById(`sd-stab-${t}`)?.classList.toggle('active', t === tab);
+    document.getElementById(`sd-spane-${t}`)?.classList.toggle('active', t === tab);
+  });
+}
+
+/* ----------------------------------------------------------------
+   Changement du mot de passe admin (placeholder)
+   ----------------------------------------------------------------
+   La fonction sera branchée après création de la RPC SQL
+   change_admin_password côté Supabase. Pour l'instant le bouton
+   est désactivé via l'attribut HTML.
+*/
+async function changeAdminPassword() {
+  toast('Fonction en cours d\'activation — disponible au prochain batch.', 'info');
+}
+
 /* ---- Vue d'ensemble ---- */
 async function _sdLoadOverview(studentId) {
   const [
@@ -19526,6 +19618,13 @@ function openModal(id) {
     if (bcastBody)  bcastBody.value  = '';
     _updateBcastUI();
     loadBroadcastRecipientCount();
+    // Reset onglet : toujours ouvrir sur "Compte"
+    sdSwitchSettingsTab('compte');
+    // Reset champs mot de passe admin (sécurité : ne jamais pré-remplir)
+    ['adm-pwd-current','adm-pwd-new','adm-pwd-confirm'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
   }
 
   // Rafraîchir le label du bouton "Activer notifications" à chaque ouverture
