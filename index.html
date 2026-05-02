@@ -10355,7 +10355,6 @@ async function toggleReg(sessionId, action) {
 
     // La RPC renvoie { ok, status, code, ... }
     if (!result?.ok) {
-      console.log('[register RPC] résultat brut :', result);   // 🔍 DEBUG TEMPORAIRE
       const code = result?.code;
       if (code === 'ALREADY_EXISTS') {
         toast(result?.status === 'waitlist'
