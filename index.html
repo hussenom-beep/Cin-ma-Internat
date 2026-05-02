@@ -965,6 +965,20 @@ body.theme-halloween .s-header {
   letter-spacing: 0.3px;
 }
 
+/* Badge événement inline (à côté du texte, ne casse pas la mise en page) */
+.badge-event-inline {
+  display: inline-block;
+  background: linear-gradient(135deg, rgba(255,122,0,0.25) 0%, rgba(255,122,0,0.12) 100%);
+  color: #ff9d3d;
+  border: 1px solid rgba(255,122,0,0.4);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+
 /* ================================================================
    MODALS (bottom sheet)
    ================================================================ */
@@ -9267,8 +9281,9 @@ function renderFilms() {
     // Aucun thème : uniquement les films généraux (event_tag null)
     visibleFilms = S.films.filter(f => !f.event_tag);
   } else if (S.filmFilterMode === 'all') {
-    // Thème actif + mode "Année complète" : tout
-    visibleFilms = S.films.slice();
+    // Thème actif + mode "Année complète" : films généraux UNIQUEMENT (hors événement)
+    // → permet de garder une vraie séparation visuelle entre les 2 catégories.
+    visibleFilms = S.films.filter(f => !f.event_tag);
   } else {
     // Thème actif + mode "Événement" : uniquement les films taggés du thème courant
     visibleFilms = S.films.filter(f => f.event_tag === theme);
@@ -9282,7 +9297,10 @@ function renderFilms() {
     if (theme !== 'none' && S.filmFilterMode === 'event') {
       icon = (theme === 'halloween') ? '🎃' : '🎉';
       title = `Aucun film ${EVENT_FILTER_LABELS[theme] || ''} pour l'instant`;
-      sub = 'Tu peux basculer sur "Année complète" pour voir tous les films.';
+      sub = 'Tu peux basculer sur "Année complète" pour voir les autres films.';
+    } else if (theme !== 'none' && S.filmFilterMode === 'all') {
+      title = 'Aucun film général pour l\'instant';
+      sub = `Tu peux basculer sur "${EVENT_FILTER_LABELS[theme] || 'Événement'}" pour voir les films de l'événement.`;
     }
     list.innerHTML = `<div class="empty"><div class="icon">${icon}</div><h3>${title}</h3><p>${sub}</p></div>`;
     return;
@@ -14093,8 +14111,7 @@ if (validDateLabels.length === 1) {
     const cardStyle = hasDetail ? 'cursor:pointer;' : '';
 
     return `
-    <div class="ai" style="${cardStyle}position:relative;" ${cardClick}>
-      ${p.event_tag === 'halloween' ? `<div class="film-event-badge" style="top:6px;right:6px;left:auto;">🎃 Halloween</div>` : ''}
+    <div class="ai" style="${cardStyle}" ${cardClick}>
       <div style="flex-shrink:0;" onclick="event.stopPropagation()">
         ${p.poster_url
           ? `<img src="${p.poster_url}" class="ai-img" alt="" onclick="openProposalDetail('${p.id}')" style="cursor:pointer;">`
@@ -14102,7 +14119,7 @@ if (validDateLabels.length === 1) {
       </div>
       <div class="ai-info">
         <div class="ai-title">${p.title}${p.year ? ' (' + p.year + ')' : ''}</div>
-        <div class="ai-sub">Par ${studentLink}</div>
+        <div class="ai-sub">Par ${studentLink}${p.event_tag === 'halloween' ? ' <span class="badge-event-inline">🎃 Halloween</span>' : ''}</div>
         ${extra}
       </div>
       ${status === 'pending' ? `
