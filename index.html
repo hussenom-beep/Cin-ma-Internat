@@ -427,11 +427,20 @@ button { cursor: pointer; }
 .ftextarea { resize: vertical; min-height: 80px; }
 .fselect { appearance: none; cursor: pointer; }
 
-/* Options du select avec fond sombre pour meilleure lisibilité */
+/* Options du select avec fond noir et texte doré pour meilleure lisibilité */
 .fselect option {
-  background: rgba(26,26,40,.95);
-  color: var(--text);
-  padding: 8px;
+  background: #0a0a0f !important;
+  color: var(--gold) !important;
+  padding: 10px !important;
+  font-weight: 500;
+}
+
+.fselect option:hover,
+.fselect option:focus,
+.fselect option:checked {
+  background: linear-gradient(135deg, rgba(240,165,0,.25) 0%, rgba(240,165,0,.15) 100%) !important;
+  color: #fff !important;
+  font-weight: 600;
 }
 
 /* Boutons raisons rapides */
