@@ -965,20 +965,6 @@ body.theme-halloween .s-header {
   letter-spacing: 0.3px;
 }
 
-/* Badge événement inline (à côté du texte, ne casse pas la mise en page) */
-.badge-event-inline {
-  display: inline-block;
-  background: linear-gradient(135deg, rgba(255,122,0,0.25) 0%, rgba(255,122,0,0.12) 100%);
-  color: #ff9d3d;
-  border: 1px solid rgba(255,122,0,0.4);
-  font-size: 11px;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 999px;
-  margin-left: 4px;
-  vertical-align: middle;
-}
-
 /* ================================================================
    MODALS (bottom sheet)
    ================================================================ */
@@ -5154,6 +5140,15 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
         <button class="sub-tab" onclick="filterFilms('screened')">✅ Vus</button>
         <button class="sub-tab" onclick="filterFilms('archived')">⊘ Archivés</button>
       </div>
+      <!-- Toggle de filtre événement (visible uniquement si thème actif) -->
+      <div id="admin-films-event-filter" class="event-filter-bar hidden">
+        <button type="button" id="admin-films-filter-event" class="event-filter-btn active" onclick="setAdminFilmEventFilter('event')">
+          <span id="admin-films-filter-event-label">🎃 Halloween</span>
+        </button>
+        <button type="button" id="admin-films-filter-all" class="event-filter-btn" onclick="setAdminFilmEventFilter('all')">
+          🎬 Année complète
+        </button>
+      </div>
       <!-- Recherche rapide dans la liste films -->
       <div class="admin-film-search-wrap">
         <span class="admin-film-search-icon">🔍</span>
@@ -5171,6 +5166,15 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       <div class="admin-panel-title" style="flex-direction:column;align-items:flex-start;gap:4px;">
         Résultats des votes
         <span class="text-sm text-muted" style="font-weight:400;">Non visible par les élèves</span>
+      </div>
+      <!-- Toggle de filtre événement (visible uniquement si thème actif) -->
+      <div id="admin-votes-event-filter" class="event-filter-bar hidden">
+        <button type="button" id="admin-votes-filter-event" class="event-filter-btn active" onclick="setAdminVoteEventFilter('event')">
+          <span id="admin-votes-filter-event-label">🎃 Halloween</span>
+        </button>
+        <button type="button" id="admin-votes-filter-all" class="event-filter-btn" onclick="setAdminVoteEventFilter('all')">
+          🎬 Année complète
+        </button>
       </div>
       <div class="admin-list" id="admin-votes-list"><div class="loader"><div class="spinner"></div></div></div>
     </div>
@@ -5575,6 +5579,9 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
           <button class="btn btn-green" style="flex:1;" onclick="acceptProposalFromTMDB()">✅ Accepter</button>
           <button class="btn btn-red"   style="flex:1;" onclick="rejectProposalFromTMDB()">❌ Refuser</button>
         </div>
+
+        <!-- Toggle tag événement (visible si film catalogue + thème actif) -->
+        <button id="tmdb-d-event-toggle" class="btn btn-ghost btn-full hidden" style="margin-bottom:10px;" onclick="toggleFilmEventTagFromModal()">—</button>
 
         <button id="tmdb-d-action" class="btn btn-gold btn-full btn-lg" style="margin-bottom:10px;">—</button>
         <button class="btn btn-ghost btn-full btn-sm" onclick="closeModal('modal-tmdb-detail')">Fermer</button>
@@ -7615,6 +7622,15 @@ function startEventThemeRealtime() {
             updateFilmEventFilterUI();
           }
         } catch (e) { console.warn('[themeRT] reload films:', e); }
+        // Côté admin : recharger films/votes si visibles
+        try {
+          const apFilms = document.getElementById('ap-films');
+          if (apFilms && !apFilms.classList.contains('hidden')) loadAdminFilms();
+          else updateAdminFilmEventFilterUI();
+          const apVotes = document.getElementById('ap-votes');
+          if (apVotes && !apVotes.classList.contains('hidden')) loadAdminVotes();
+          else updateAdminVoteEventFilterUI();
+        } catch (e) { console.warn('[themeRT] reload admin:', e); }
       })
     .subscribe((status) => {
       if (status === 'SUBSCRIBED') {
@@ -9281,9 +9297,8 @@ function renderFilms() {
     // Aucun thème : uniquement les films généraux (event_tag null)
     visibleFilms = S.films.filter(f => !f.event_tag);
   } else if (S.filmFilterMode === 'all') {
-    // Thème actif + mode "Année complète" : films généraux UNIQUEMENT (hors événement)
-    // → permet de garder une vraie séparation visuelle entre les 2 catégories.
-    visibleFilms = S.films.filter(f => !f.event_tag);
+    // Thème actif + mode "Année complète" : tout
+    visibleFilms = S.films.slice();
   } else {
     // Thème actif + mode "Événement" : uniquement les films taggés du thème courant
     visibleFilms = S.films.filter(f => f.event_tag === theme);
@@ -9297,10 +9312,7 @@ function renderFilms() {
     if (theme !== 'none' && S.filmFilterMode === 'event') {
       icon = (theme === 'halloween') ? '🎃' : '🎉';
       title = `Aucun film ${EVENT_FILTER_LABELS[theme] || ''} pour l'instant`;
-      sub = 'Tu peux basculer sur "Année complète" pour voir les autres films.';
-    } else if (theme !== 'none' && S.filmFilterMode === 'all') {
-      title = 'Aucun film général pour l\'instant';
-      sub = `Tu peux basculer sur "${EVENT_FILTER_LABELS[theme] || 'Événement'}" pour voir les films de l'événement.`;
+      sub = 'Tu peux basculer sur "Année complète" pour voir tous les films.';
     }
     list.innerHTML = `<div class="empty"><div class="icon">${icon}</div><h3>${title}</h3><p>${sub}</p></div>`;
     return;
@@ -9747,6 +9759,33 @@ actionBtn.onclick = dup.msg ? null : confirmAddFilm;
     proposalReasonEl.classList.add('hidden');
     proposalCommentEl.classList.add('hidden');
     proposalActionsEl.classList.add('hidden');
+  }
+
+  // Toggle tag événement : visible uniquement si film catalogue (pas une proposition) + thème actif + film déjà au catalogue
+  const eventToggleBtn = document.getElementById('tmdb-d-event-toggle');
+  if (eventToggleBtn) {
+    const theme = S.eventTheme || 'none';
+    // Trouver le film catalogue correspondant à ce TMDB id
+    const catalogFilm = (detail.id && !_tmdbProposalId)
+      ? Object.values(_adminFilmCache).find(f => f && f.tmdb_id === detail.id)
+      : null;
+
+    if (theme !== 'none' && catalogFilm && !_tmdbProposalId) {
+      eventToggleBtn.classList.remove('hidden');
+      eventToggleBtn.dataset.filmId = catalogFilm.id;
+      if (catalogFilm.event_tag === theme) {
+        eventToggleBtn.dataset.action = 'untag';
+        eventToggleBtn.textContent = `🎬 Retirer ${EVENT_FILTER_LABELS[theme] || 'tag événement'}`;
+      } else if (!catalogFilm.event_tag) {
+        eventToggleBtn.dataset.action = 'tag';
+        eventToggleBtn.textContent = `${EVENT_FILTER_LABELS[theme] || '🎉 Marquer événement'}`;
+      } else {
+        // Tagué d'un autre événement : on cache (cas futur multi-events)
+        eventToggleBtn.classList.add('hidden');
+      }
+    } else {
+      eventToggleBtn.classList.add('hidden');
+    }
   }
 
   document.getElementById('tmdb-detail-loader').classList.add('hidden');
@@ -13593,6 +13632,119 @@ async function cleanupPastSessions() {
 /* ================================================================
    ADMIN — FILMS
    ================================================================ */
+/* Mode de filtrage event côté admin (films + votes) :
+   - 'event' : uniquement les films taggés du thème actif
+   - 'all'   : films généraux uniquement (hors événement)
+   Ignoré si aucun thème actif. */
+if (typeof S.adminFilmEventFilter === 'undefined') S.adminFilmEventFilter = 'event';
+if (typeof S.adminVoteEventFilter === 'undefined') S.adminVoteEventFilter = 'event';
+
+/** Met à jour visibilité + libellés du toggle admin films */
+function updateAdminFilmEventFilterUI() {
+  const bar = document.getElementById('admin-films-event-filter');
+  if (!bar) return;
+  const theme = S.eventTheme || 'none';
+  if (theme === 'none') { bar.classList.add('hidden'); return; }
+  bar.classList.remove('hidden');
+
+  const labelEl = document.getElementById('admin-films-filter-event-label');
+  if (labelEl) labelEl.textContent = EVENT_FILTER_LABELS[theme] || '🎉 Événement';
+
+  const btnEvent = document.getElementById('admin-films-filter-event');
+  const btnAll   = document.getElementById('admin-films-filter-all');
+  if (btnEvent && btnAll) {
+    if (S.adminFilmEventFilter === 'all') {
+      btnAll.classList.add('active');   btnEvent.classList.remove('active');
+    } else {
+      btnEvent.classList.add('active'); btnAll.classList.remove('active');
+    }
+  }
+}
+
+/** Switch du toggle admin films */
+function setAdminFilmEventFilter(mode) {
+  S.adminFilmEventFilter = (mode === 'all') ? 'all' : 'event';
+  updateAdminFilmEventFilterUI();
+  loadAdminFilms();
+}
+
+/** Met à jour visibilité + libellés du toggle admin votes */
+function updateAdminVoteEventFilterUI() {
+  const bar = document.getElementById('admin-votes-event-filter');
+  if (!bar) return;
+  const theme = S.eventTheme || 'none';
+  if (theme === 'none') { bar.classList.add('hidden'); return; }
+  bar.classList.remove('hidden');
+
+  const labelEl = document.getElementById('admin-votes-filter-event-label');
+  if (labelEl) labelEl.textContent = EVENT_FILTER_LABELS[theme] || '🎉 Événement';
+
+  const btnEvent = document.getElementById('admin-votes-filter-event');
+  const btnAll   = document.getElementById('admin-votes-filter-all');
+  if (btnEvent && btnAll) {
+    if (S.adminVoteEventFilter === 'all') {
+      btnAll.classList.add('active');   btnEvent.classList.remove('active');
+    } else {
+      btnEvent.classList.add('active'); btnAll.classList.remove('active');
+    }
+  }
+}
+
+/** Switch du toggle admin votes */
+function setAdminVoteEventFilter(mode) {
+  S.adminVoteEventFilter = (mode === 'all') ? 'all' : 'event';
+  updateAdminVoteEventFilterUI();
+  loadAdminVotes();
+}
+
+/** Toggle du tag event_tag sur un film (depuis liste admin ou fiche). */
+async function toggleFilmEventTag(filmId, makeEventTag) {
+  // makeEventTag: true → tagger avec le thème actif, false → retirer le tag
+  const theme = S.eventTheme || 'none';
+  if (theme === 'none' && makeEventTag) {
+    toast('Aucun thème événement actif', 'error');
+    return;
+  }
+  const newTag = makeEventTag ? theme : null;
+  const { error } = await db.from('films').update({ event_tag: newTag }).eq('id', filmId);
+  if (error) {
+    console.error('toggleFilmEventTag error:', error);
+    toast('Erreur lors de la mise à jour', 'error');
+    return;
+  }
+  // Mettre à jour le cache si présent
+  if (_adminFilmCache[filmId]) _adminFilmCache[filmId].event_tag = newTag;
+  toast(makeEventTag ? '🎃 Film marqué Halloween' : '🎬 Tag retiré', 'success');
+  // Refresh des listes admin si visibles
+  loadAdminFilms();
+}
+
+/** Action du bouton de toggle event dans la modal admin TMDB */
+async function toggleFilmEventTagFromModal() {
+  const btn = document.getElementById('tmdb-d-event-toggle');
+  if (!btn) return;
+  const filmId = btn.dataset.filmId;
+  const action = btn.dataset.action; // 'tag' ou 'untag'
+  if (!filmId || !action) return;
+
+  btn.disabled = true;
+  await toggleFilmEventTag(filmId, action === 'tag');
+  btn.disabled = false;
+
+  // Mettre à jour le bouton dans la modal sans la fermer
+  const theme = S.eventTheme || 'none';
+  const film = _adminFilmCache[filmId];
+  if (film && theme !== 'none') {
+    if (film.event_tag === theme) {
+      btn.dataset.action = 'untag';
+      btn.textContent = `🎬 Retirer ${EVENT_FILTER_LABELS[theme] || 'tag événement'}`;
+    } else if (!film.event_tag) {
+      btn.dataset.action = 'tag';
+      btn.textContent = `${EVENT_FILTER_LABELS[theme] || '🎉 Marquer événement'}`;
+    }
+  }
+}
+
 async function loadAdminFilms() {
   const list   = document.getElementById('admin-films-list');
   const status = _filmFilter;
@@ -13607,9 +13759,35 @@ async function loadAdminFilms() {
   }
   const { data } = await query;
 
-  if (!data?.length) {
+  // Mise à jour visibilité du toggle event (selon thème actif)
+  updateAdminFilmEventFilterUI();
+
+  // Filtrage event_tag selon le mode courant si thème actif
+  const theme = S.eventTheme || 'none';
+  let filtered = data || [];
+  if (theme !== 'none') {
+    if (S.adminFilmEventFilter === 'event') {
+      filtered = filtered.filter(f => f.event_tag === theme);
+    } else {
+      // 'all' = films généraux uniquement (hors événement)
+      filtered = filtered.filter(f => !f.event_tag);
+    }
+  }
+
+  if (!filtered.length) {
     const labels = { active:'actif', screened:'diffusé', archived:'archivé' };
-    list.innerHTML = `<div class="empty"><div class="icon">🎬</div><h3>Aucun film ${labels[status] || ''}</h3></div>`;
+    let icon = '🎬';
+    let title = `Aucun film ${labels[status] || ''}`;
+    let sub = '';
+    if (theme !== 'none' && S.adminFilmEventFilter === 'event') {
+      icon = (theme === 'halloween') ? '🎃' : '🎉';
+      title = `Aucun film ${EVENT_FILTER_LABELS[theme] || ''} ${labels[status] || ''}`;
+      sub = '<p>Bascule sur "Année complète" pour voir les autres films.</p>';
+    } else if (theme !== 'none' && S.adminFilmEventFilter === 'all') {
+      title = `Aucun film général ${labels[status] || ''}`;
+      sub = `<p>Bascule sur "${EVENT_FILTER_LABELS[theme] || 'Événement'}" pour voir les films de l'événement.</p>`;
+    }
+    list.innerHTML = `<div class="empty"><div class="icon">${icon}</div><h3>${title}</h3>${sub}</div>`;
     return;
   }
 
@@ -13618,7 +13796,7 @@ async function loadAdminFilms() {
 
   // Pour les films actifs+scheduled, récupérer les séances futures associées
   const today = new Date().toISOString().split('T')[0];
-  const filmIds = data.map(f => f.id);
+  const filmIds = filtered.map(f => f.id);
   let sessionMap = {};
   if (status === 'active' && filmIds.length) {
     const { data: sessions } = await db.from('cinema_sessions')
@@ -13632,17 +13810,29 @@ async function loadAdminFilms() {
   }
 
   // Tri : scheduled avec séance en tête (par date asc), puis active sans séance (ordre d'ajout desc)
-  let displayData = data;
+  let displayData = filtered;
   if (status === 'active') {
-    const withSession    = data.filter(f =>  sessionMap[f.id])
+    const withSession    = filtered.filter(f =>  sessionMap[f.id])
       .sort((a, b) => sessionMap[a.id].date < sessionMap[b.id].date ? -1 : 1);
-    const withoutSession = data.filter(f => !sessionMap[f.id]);
+    const withoutSession = filtered.filter(f => !sessionMap[f.id]);
     displayData = [...withSession, ...withoutSession];
   }
 
   list.innerHTML = displayData.map(f => {
+    // Mémoriser dans le cache pour ouverture fiche
+    _adminFilmCache[f.id] = f;
     const sessionInfo = sessionMap[f.id];
     const isScheduled = f.status === 'scheduled';
+
+    // Bouton tag/untag halloween (visible uniquement si thème actif)
+    let tagBtn = '';
+    if (theme !== 'none') {
+      if (f.event_tag === theme) {
+        tagBtn = `<button class="btn btn-sm btn-ghost" onclick="toggleFilmEventTag('${f.id}', false)">🎬 Retirer ${EVENT_FILTER_LABELS[theme] || 'tag'}</button>`;
+      } else if (!f.event_tag) {
+        tagBtn = `<button class="btn btn-sm btn-ghost" onclick="toggleFilmEventTag('${f.id}', true)">${EVENT_FILTER_LABELS[theme] || '🎉 Marquer événement'}</button>`;
+      }
+    }
 
     let actions = '';
     if (status === 'active') {
@@ -13650,15 +13840,18 @@ async function loadAdminFilms() {
         ${!sessionInfo
           ? `<button class="btn btn-sm btn-ghost" onclick="openCreateSessionModal('${f.id}')">📅 Créer séance</button>`
           : `<button class="btn btn-sm btn-red" onclick="cancelSes('${sessionInfo.id}','${f.id}')">🗑 Annuler séance</button>`}
+        ${tagBtn}
         <button class="btn btn-sm btn-ghost" onclick="openArchiveFilm('${f.id}')">⊘ Archiver</button>
         <button class="btn btn-sm btn-red" onclick="deleteFilm('${f.id}')">Suppr.</button>`;
     } else if (status === 'screened') {
       actions = `
         <button class="btn btn-sm btn-ghost" onclick="setFilmStatus('${f.id}','active')">↩ Remettre actif</button>
+        ${tagBtn}
         <button class="btn btn-sm btn-ghost" onclick="openArchiveFilm('${f.id}')">⊘ Archiver</button>`;
     } else {
       actions = `
         <button class="btn btn-sm btn-ghost" onclick="setFilmStatus('${f.id}','active')">↩ Restaurer</button>
+        ${tagBtn}
         <button class="btn btn-sm btn-red" onclick="deleteFilm('${f.id}')">Suppr.</button>`;
     }
 
@@ -13672,15 +13865,20 @@ async function loadAdminFilms() {
            onclick="event.stopPropagation(); openEditSession('${sessionInfo.id}','','${f.id}')">📅 ${fmtDateShort(sessionInfo.date)}</span>`
       : '';
 
+    // Badge event si le film est tagué
+    const eventBadge = f.event_tag === 'halloween'
+      ? '<span class="badge-event-inline">🎃 Halloween</span>'
+      : '';
+
     return `
     <div class="ai" data-film-id="${f.id}">
       <div style="flex-shrink:0;cursor:pointer;"
-           onclick="openAdminFilmDetail(${JSON.stringify({ id:f.id, tmdb_id:f.tmdb_id, title:f.title, year:f.year, genre:f.genre, duration:f.duration, synopsis:f.synopsis, poster_url:f.poster_url, screened_at:f.screened_at, archive_reason:f.archive_reason }).replace(/"/g,'&quot;')})">
+           onclick="openAdminFilmDetail(${JSON.stringify({ id:f.id, tmdb_id:f.tmdb_id, title:f.title, year:f.year, genre:f.genre, duration:f.duration, synopsis:f.synopsis, poster_url:f.poster_url, screened_at:f.screened_at, archive_reason:f.archive_reason, event_tag:f.event_tag }).replace(/"/g,'&quot;')})">
         ${f.poster_url ? `<img src="${f.poster_url}" class="ai-img" alt="">` : `<div class="ai-img">🎬</div>`}
       </div>
       <div class="ai-info" style="cursor:pointer;"
            onclick="openAdminFilmDetailById('${f.id}')">
-        <div class="ai-title">${f.title}</div>
+        <div class="ai-title">${f.title}${eventBadge ? ' ' + eventBadge : ''}</div>
         <div class="ai-sub">${f.year || ''}${f.genre ? ' · ' + f.genre : ''}${f.screened_at && status === 'screened' ? ' · Vu le ' + fmtDateShort(f.screened_at.split('T')[0]) : ''}</div>
         <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px;">
           ${statusBadge}
@@ -13944,19 +14142,42 @@ async function loadAdminVotes() {
   const list = document.getElementById('admin-votes-list');
   list.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
 
+  // Mise à jour du toggle
+  updateAdminVoteEventFilterUI();
+
   const [{ data: films }, { data: votes }] = await Promise.all([
-    db.from('films').select('id,title,poster_url').eq('status','active'),
+    db.from('films').select('id,title,poster_url,event_tag').eq('status','active'),
     db.from('votes').select('film_id')
   ]);
 
-  if (!films?.length) {
-    list.innerHTML = '<div class="empty"><div class="icon">🗳️</div><h3>Aucun film actif</h3></div>';
+  // Filtrage event_tag selon le mode courant si thème actif
+  const theme = S.eventTheme || 'none';
+  let filteredFilms = films || [];
+  if (theme !== 'none') {
+    if (S.adminVoteEventFilter === 'event') {
+      filteredFilms = filteredFilms.filter(f => f.event_tag === theme);
+    } else {
+      filteredFilms = filteredFilms.filter(f => !f.event_tag);
+    }
+  }
+
+  if (!filteredFilms.length) {
+    let title = 'Aucun film actif';
+    let sub = '';
+    if (theme !== 'none' && S.adminVoteEventFilter === 'event') {
+      title = `Aucun film ${EVENT_FILTER_LABELS[theme] || ''} actif`;
+      sub = '<p>Bascule sur "Année complète" pour voir les autres films.</p>';
+    } else if (theme !== 'none' && S.adminVoteEventFilter === 'all') {
+      title = 'Aucun film général actif';
+      sub = `<p>Bascule sur "${EVENT_FILTER_LABELS[theme] || 'Événement'}" pour voir les films de l'événement.</p>`;
+    }
+    list.innerHTML = `<div class="empty"><div class="icon">🗳️</div><h3>${title}</h3>${sub}</div>`;
     return;
   }
 
   const counts = {};
   (votes || []).forEach(v => counts[v.film_id] = (counts[v.film_id] || 0) + 1);
-  const sorted = films.map(f => ({ ...f, n: counts[f.id] || 0 })).sort((a, b) => b.n - a.n);
+  const sorted = filteredFilms.map(f => ({ ...f, n: counts[f.id] || 0 })).sort((a, b) => b.n - a.n);
   const max = Math.max(...sorted.map(f => f.n), 1);
 
   list.innerHTML = sorted.map((f, i) => `
@@ -13966,7 +14187,7 @@ async function loadAdminVotes() {
         ${f.poster_url ? `<img src="${f.poster_url}" alt="" style="width:100%;height:100%;object-fit:cover;">` : '🎬'}
       </div>
       <div class="vbr-info">
-        <div class="vbr-title">${f.title}</div>
+        <div class="vbr-title">${f.title}${f.event_tag === 'halloween' ? ' <span class="badge-event-inline">🎃 Halloween</span>' : ''}</div>
         <div class="vbar-track"><div class="vbar-fill" style="width:${Math.round(f.n / max * 100)}%"></div></div>
         <div class="vbar-count">${f.n} vote${f.n !== 1 ? 's' : ''}</div>
       </div>
@@ -14111,7 +14332,8 @@ if (validDateLabels.length === 1) {
     const cardStyle = hasDetail ? 'cursor:pointer;' : '';
 
     return `
-    <div class="ai" style="${cardStyle}" ${cardClick}>
+    <div class="ai" style="${cardStyle}position:relative;" ${cardClick}>
+      ${p.event_tag === 'halloween' ? `<div class="film-event-badge" style="top:6px;right:6px;left:auto;">🎃 Halloween</div>` : ''}
       <div style="flex-shrink:0;" onclick="event.stopPropagation()">
         ${p.poster_url
           ? `<img src="${p.poster_url}" class="ai-img" alt="" onclick="openProposalDetail('${p.id}')" style="cursor:pointer;">`
@@ -14119,7 +14341,7 @@ if (validDateLabels.length === 1) {
       </div>
       <div class="ai-info">
         <div class="ai-title">${p.title}${p.year ? ' (' + p.year + ')' : ''}</div>
-        <div class="ai-sub">Par ${studentLink}${p.event_tag === 'halloween' ? ' <span class="badge-event-inline">🎃 Halloween</span>' : ''}</div>
+        <div class="ai-sub">Par ${studentLink}</div>
         ${extra}
       </div>
       ${status === 'pending' ? `
