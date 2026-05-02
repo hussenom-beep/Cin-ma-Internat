@@ -2605,6 +2605,102 @@ body.theme-halloween .s-header {
   to   { transform: translateX(0);    opacity: 1; }
 }
 
+/* ================================================================
+   DESKTOP — Grandes modales centrées (≥ 900px)
+   ----------------------------------------------------------------
+   On bascule les panneaux side-right en modales centrées premium :
+   border-radius, ombre marquée, animation scale+fade, scroll interne
+   au sd-body (le sd-header et la barre d'onglets restent fixes en haut).
+   ================================================================ */
+@media (min-width: 900px) {
+  #modal-student-detail,
+  #modal-admin-settings {
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  #modal-student-detail .sd-panel,
+  #modal-admin-settings .sd-panel {
+    width: 100%;
+    height: auto;
+    max-height: 88vh;
+    border: 1px solid var(--border);
+    border-left: 1px solid var(--border); /* override side-only border */
+    border-radius: 20px;
+    box-shadow:
+      0 28px 60px -12px rgba(0, 0, 0, 0.75),
+      0 0 0 1px rgba(255, 255, 255, 0.04),
+      0 0 80px -20px rgba(240, 165, 0, 0.08);
+    overflow: hidden;          /* scroll délégué au sd-body */
+    animation: sdScaleIn .28s cubic-bezier(.32, 1.05, .64, 1) both;
+  }
+
+  #modal-student-detail .sd-panel { max-width: 780px; }
+  #modal-admin-settings .sd-panel { max-width: 720px; }
+
+  /* Le scroll passe sur sd-body, sd-panel devient un container fixe */
+  #modal-student-detail .sd-body,
+  #modal-admin-settings .sd-body {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    flex: 1;
+    padding: 22px 26px 32px;
+  }
+
+  /* Header desktop : un peu plus aéré, déjà sticky → reste en haut du panel */
+  #modal-student-detail .sd-header,
+  #modal-admin-settings .sd-header {
+    padding: 16px 24px;
+    border-radius: 20px 20px 0 0;
+  }
+  #modal-student-detail .sd-header-title,
+  #modal-admin-settings .sd-header-title {
+    font-size: 16px;
+  }
+  #modal-student-detail .sd-header-close,
+  #modal-admin-settings .sd-header-close {
+    width: 36px; height: 36px;
+    font-size: 18px;
+  }
+
+  /* Onglets plus généreux sur desktop */
+  #modal-student-detail .sd-tab,
+  #modal-admin-settings .sd-tab {
+    padding: 13px 18px;
+    font-size: 13.5px;
+  }
+  #modal-student-detail .sd-tab.active::after,
+  #modal-admin-settings .sd-tab.active::after { /* future si besoin */ }
+
+  /* Tabs sticky en haut du sd-body (sous le header qui reste fixe) */
+  #modal-student-detail .sd-tabs,
+  #modal-admin-settings .sd-tabs {
+    position: sticky;
+    top: -22px;  /* compense le padding-top du sd-body pour rester au ras */
+    z-index: 5;
+    background: var(--surface);
+    margin: -22px -26px 22px;
+    padding: 0 26px;
+  }
+
+  /* Boutons un peu plus présents */
+  #modal-admin-settings .btn.btn-full,
+  #modal-student-detail .btn.btn-full {
+    padding: 12px 16px;
+    font-size: 14px;
+  }
+
+  /* Sections : plus d'air entre les blocs sur desktop */
+  #modal-admin-settings .sd-tab-panel .sd-section,
+  #modal-student-detail .sd-tab-panel .sd-section { margin-bottom: 22px; }
+}
+
+@keyframes sdScaleIn {
+  from { transform: translateY(20px) scale(.96); opacity: 0; }
+  to   { transform: translateY(0)    scale(1);   opacity: 1; }
+}
+
 /* Header de la fiche */
 .sd-header {
   position: sticky;
