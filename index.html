@@ -751,6 +751,93 @@ button { cursor: pointer; }
   opacity: .55;
   box-shadow: none;
 }
+
+/* ============================================================
+   THÈME HALLOWEEN — surcharges activées via body.theme-halloween
+   ============================================================
+   Le thème surcharge UNIQUEMENT les variables CSS et quelques
+   éléments décoratifs. Tout le layout/structure reste identique.
+   Désactivable instantanément en retirant la classe du body. */
+
+body.theme-halloween {
+  --bg:          #15091c;     /* violet très sombre, ciel d'orage */
+  --surface:     #1d0f24;
+  --surface-2:   #281433;
+  --surface-3:   #371a45;
+  --border:      #3a1c4a;
+  --border-2:    #4d2860;
+  --gold:        #ff7a00;     /* orange citrouille au lieu du doré */
+  --gold-dim:    rgba(255,122,0,0.14);
+  --gold-glow:   rgba(255,122,0,0.40);
+}
+
+/* Fond d'écran Halloween pour l'écran de connexion */
+body.theme-halloween #screen-login {
+  background-image: url('fond_ecran_halloween.png');
+}
+
+/* Petite citrouille à côté du logo cinéma sur l'écran de connexion */
+body.theme-halloween .login-cinema-icon::before {
+  content: '🎃';
+  position: absolute;
+  font-size: 0.5em;
+  top: -8%;
+  right: -18%;
+  filter: drop-shadow(0 2px 4px rgba(255,122,0,0.5));
+  animation: hw-pumpkin-bob 3.5s ease-in-out infinite;
+}
+@keyframes hw-pumpkin-bob {
+  0%, 100% { transform: translateY(0) rotate(-3deg); }
+  50%      { transform: translateY(-4px) rotate(3deg); }
+}
+
+/* Image héros optionnelle au-dessus du logo (rendue par JS si URL définie) */
+body.theme-halloween .login-hero-img {
+  display: block;
+  max-width: 220px;
+  width: 60%;
+  margin: 0 auto 18px;
+  filter: drop-shadow(0 8px 16px rgba(255,122,0,0.25));
+  animation: hw-hero-glow 4s ease-in-out infinite;
+}
+@keyframes hw-hero-glow {
+  0%, 100% { filter: drop-shadow(0 8px 16px rgba(255,122,0,0.25)); }
+  50%      { filter: drop-shadow(0 12px 24px rgba(255,122,0,0.45)); }
+}
+
+/* Citrouille à côté du titre "Bienvenue, Matthias" sur la home */
+body.theme-halloween .home-greeting::after {
+  content: ' 🎃';
+  display: inline-block;
+  margin-left: 4px;
+  animation: hw-pumpkin-bob 3.5s ease-in-out infinite;
+}
+
+/* Toiles d'araignée subtiles dans les coins (SVG en pseudo-élément) */
+body.theme-halloween::before,
+body.theme-halloween::after {
+  content: '';
+  position: fixed;
+  width: 110px;
+  height: 110px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><g fill='none' stroke='%23ff7a00' stroke-width='0.4' opacity='0.5'><path d='M0,0 L60,40 M0,0 L40,60 M0,0 L70,20 M0,0 L20,70 M0,0 L50,50'/><path d='M0,15 Q15,18 35,30 Q40,40 30,50 Q20,55 15,40 Q10,30 0,28' stroke-width='0.3'/><path d='M0,35 Q25,38 50,55 M0,55 Q15,55 25,68'/></g></svg>");
+  background-repeat: no-repeat;
+  background-size: contain;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.7;
+}
+body.theme-halloween::before { top: 0; left: 0; }
+body.theme-halloween::after  { top: 0; right: 0; transform: scaleX(-1); }
+
+/* Préférences d'accessibilité : suspendre les animations décoratives */
+@media (prefers-reduced-motion: reduce) {
+  body.theme-halloween .login-cinema-icon::before,
+  body.theme-halloween .login-hero-img,
+  body.theme-halloween .home-greeting::after {
+    animation: none;
+  }
+}
 @keyframes live-dot-pulse-green {
   0%   { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.65); }
   70%  { transform: scale(1);    box-shadow: 0 0 0 7px rgba(34, 197, 94, 0);  }
@@ -4662,6 +4749,9 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
      SCREEN: LOGIN
      ================================================================ -->
 <div class="screen no-nav" id="screen-login">
+  <!-- Image héros événement (rendue dynamiquement si URL définie + thème actif) -->
+  <img id="login-hero-img" class="login-hero-img hidden" alt="" />
+
   <!-- logo : appui long 5s = accès admin caché -->
   <div class="login-cinema-icon" id="login-logo">🎬</div>
   <div class="login-title">Cinéma Internat Blum</div>
@@ -6561,6 +6651,26 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 
       <div style="height:1px;background:var(--border);margin:4px 0 20px;"></div>
 
+      <!-- Thème événementiel -->
+      <div class="sd-section">
+        <div class="sd-section-title">🎉 Thème événementiel</div>
+
+        <div class="fgroup">
+          <label class="flabel">Thème actif</label>
+          <select id="event-theme-select" class="finput" style="font-size:14px;">
+            <option value="none">Aucun thème</option>
+            <option value="halloween">🎃 Halloween</option>
+          </select>
+          <div class="text-sm text-muted" style="margin-top:6px;font-size:11.5px;opacity:.7;">
+            Le changement s'applique immédiatement à tous les élèves connectés.
+          </div>
+        </div>
+
+        <button class="btn btn-gold btn-full" onclick="saveEventTheme()">Appliquer le thème</button>
+      </div>
+
+      <div style="height:1px;background:var(--border);margin:4px 0 20px;"></div>
+
       <!-- Import élèves -->
       <div class="sd-section">
         <div class="sd-section-title">Import élèves</div>
@@ -7373,6 +7483,48 @@ function stopMaintenanceRealtime() {
   _maintRT.active = false;
 }
 
+/* ----------------------------------------------------------------
+   Realtime thème événementiel — concerne TOUS les utilisateurs
+   (élèves ET admin), démarré au boot indépendamment du login.
+   Réutilise le même mécanisme realtime que la maintenance, mais
+   sur un channel séparé pour pas perturber la logique d'éviction. */
+
+const _themeRT = { channel: null, active: false };
+
+function startEventThemeRealtime() {
+  if (_themeRT.active && _themeRT.channel) return;
+
+  if (_themeRT.channel) {
+    try { db.removeChannel(_themeRT.channel); } catch(_) {}
+    _themeRT.channel = null;
+  }
+
+  const ch = db.channel('event-theme-rt-' + Date.now())
+    .on('postgres_changes',
+      { event: '*', schema: 'public', table: 'app_settings' },
+      async (payload) => {
+        // Filtre côté JS : uniquement la clé event_theme
+        const key = payload?.new?.key || payload?.old?.key;
+        if (key !== 'event_theme') return;
+
+        // Recharger la valeur + appliquer
+        await loadEventThemeFromDB();
+        applyEventTheme();
+        // Si on a le panneau admin settings ouvert, refresh aussi le sélecteur
+        loadEventThemeUI();
+      })
+    .subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        console.log('[themeRT] ✓ abonné');
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        console.warn('[themeRT] statut canal:', status);
+      }
+    });
+
+  _themeRT.channel = ch;
+  _themeRT.active = true;
+}
+
 /** Affiche la modale d'éviction live avec le message courant. */
 function showMaintenanceLiveModal() {
   const txt = document.getElementById('maintenance-live-text');
@@ -7387,6 +7539,122 @@ function closeMaintenanceLiveAndLogout() {
   logout();
   // Affichage du bandeau permanent sur l'écran login
   showMaintenanceBanner();
+}
+
+/* ================================================================
+   THÈME ÉVÉNEMENTIEL (Halloween, Noël, …)
+   ----------------------------------------------------------------
+   Stocké dans app_settings (clé event_theme = 'none' | 'halloween').
+   Cache mémoire : S.eventTheme.
+   Application : ajoute/retire la classe theme-<name> sur <body>.
+   Realtime : se greffe sur le channel maintenance déjà en place
+   en écoutant les changements de la clé event_theme. */
+
+// URL des images héros (à remplir avec tes liens GitHub raw quand prêt).
+// Tant qu'elles sont vides, le fallback CSS s'applique (citrouille emoji).
+const EVENT_HERO_IMAGES = {
+  halloween: '',  // ex: 'https://raw.githubusercontent.com/.../halloween-hero.png'
+  // christmas: '',  // pour la phase 5
+};
+
+// Liste des thèmes valides (utilisé pour le sélecteur admin et le nettoyage)
+const EVENT_THEMES = ['none', 'halloween'];
+
+/** Charger le thème actif depuis Supabase au démarrage */
+async function loadEventThemeFromDB() {
+  S.eventTheme = 'none';
+  try {
+    const { data, error } = await db
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'event_theme')
+      .maybeSingle();
+    if (error) {
+      console.warn('[event_theme] load error:', error);
+      return;
+    }
+    const raw = (data?.value || 'none').trim().toLowerCase();
+    S.eventTheme = EVENT_THEMES.includes(raw) ? raw : 'none';
+  } catch (e) {
+    console.warn('[event_theme] load exception:', e);
+  }
+}
+
+/** Applique le thème courant : ajoute la classe sur <body> et l'image héros si dispo */
+function applyEventTheme() {
+  const theme = S.eventTheme || 'none';
+  const body = document.body;
+  if (!body) return;
+
+  // Retire toutes les classes theme-* puis applique la bonne
+  EVENT_THEMES.forEach(t => {
+    if (t !== 'none') body.classList.remove('theme-' + t);
+  });
+  if (theme !== 'none') body.classList.add('theme-' + theme);
+
+  // Image héros sur l'écran login (si URL fournie)
+  const hero = document.getElementById('login-hero-img');
+  if (hero) {
+    const url = EVENT_HERO_IMAGES[theme] || '';
+    if (url) {
+      hero.src = url;
+      hero.classList.remove('hidden');
+    } else {
+      hero.removeAttribute('src');
+      hero.classList.add('hidden');
+    }
+  }
+}
+
+/** Charge l'UI du sélecteur dans les paramètres admin */
+function loadEventThemeUI() {
+  const select = document.getElementById('event-theme-select');
+  if (select) select.value = S.eventTheme || 'none';
+}
+
+/** Click handler : modale de confirmation puis sauvegarde */
+async function saveEventTheme() {
+  const select = document.getElementById('event-theme-select');
+  if (!select) return;
+  const newTheme = select.value;
+  const current = S.eventTheme || 'none';
+
+  if (newTheme === current) {
+    toast('Aucun changement', 'info');
+    return;
+  }
+
+  // Modale de confirmation pour sécurité
+  const labelMap = { none: 'Aucun thème', halloween: '🎃 Halloween' };
+  const newLabel = labelMap[newTheme] || newTheme;
+  const confirmMsg = newTheme === 'none'
+    ? `Désactiver le thème événementiel ? L'apparence redeviendra normale pour tous les élèves connectés.`
+    : `Activer le thème ${newLabel} ? L'apparence changera pour tous les élèves connectés.`;
+
+  if (!confirm(confirmMsg)) {
+    select.value = current; // revert le select
+    return;
+  }
+
+  // Upsert en BDD
+  const { error } = await db.from('app_settings').upsert({
+    key: 'event_theme',
+    value: newTheme,
+    updated_at: new Date().toISOString(),
+  });
+
+  if (error) {
+    console.error('[event_theme] save error:', error);
+    toast(`Erreur Supabase : ${error.message || 'Enregistrement impossible'}`, 'error');
+    select.value = current; // revert UI
+    return;
+  }
+
+  // Mise à jour immédiate du cache + application
+  S.eventTheme = newTheme;
+  applyEventTheme();
+
+  toast(newTheme === 'none' ? '✅ Thème désactivé' : `${newLabel} activé`, 'success');
 }
 
 /* ----------------------------------------------------------------
@@ -18053,6 +18321,8 @@ function openModal(id) {
     // Maintenance : recharger depuis la DB puis remplir l'UI (au cas où une
     // autre tab admin aurait modifié les valeurs).
     loadMaintenanceFromDB().then(() => loadMaintenanceUI());
+    // Thème événementiel : pareil, refresh + remplir le sélecteur
+    loadEventThemeFromDB().then(() => loadEventThemeUI());
   }
 
   // Rafraîchir le label du bouton "Activer notifications" à chaque ouverture
@@ -18348,6 +18618,11 @@ async function init() {
   // sinon une session élève restaurée pourrait passer alors que la maintenance
   // a été activée pendant que l'onglet était fermé.
   await loadMaintenanceFromDB();
+  // Thème événementiel : charger + appliquer au plus tôt (pas de flash visuel)
+  await loadEventThemeFromDB();
+  applyEventTheme();
+  // Démarrer le realtime thème (concerne tout le monde, dès le boot)
+  startEventThemeRealtime();
 
   if (S.user) {
     // Session restaurée : si maintenance ON et que l'élève n'est pas autorisé,
