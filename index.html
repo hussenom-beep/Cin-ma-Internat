@@ -1895,6 +1895,17 @@ body.theme-halloween .s-header {
     border-radius: var(--radius-lg) !important;
   }
 }
+
+/* Le body est l'enfant flex du sheet et doit propager la chaîne flex
+   à .tmdb-detail-scroll (qui a flex:1). Sans ça, flex:1 ne fonctionne
+   pas car son parent direct n'est pas un flex container. */
+#tmdb-detail-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
 .tmdb-poster-header {
   position: relative; width: 100%; height: 200px;
   background: var(--surface-2); flex-shrink: 0; overflow: hidden;
