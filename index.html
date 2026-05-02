@@ -6389,6 +6389,22 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       </div>
     </div>
 
+    <!-- Toggle catégorie événement (visible uniquement si thème actif) -->
+    <div class="fgroup hidden" id="pconf-event-toggle-wrap" style="margin-bottom:16px;">
+      <label class="flabel">Catégorie de la proposition</label>
+      <div class="event-filter-bar" style="padding:0;background:none;border:none;margin-top:8px;">
+        <button type="button" id="pconf-tag-event" class="event-filter-btn active" onclick="setProposalTag('event')">
+          <span id="pconf-tag-event-label">🎃 Pour Halloween</span>
+        </button>
+        <button type="button" id="pconf-tag-general" class="event-filter-btn" onclick="setProposalTag('general')">
+          🎬 Film général
+        </button>
+      </div>
+      <div class="text-sm text-muted" style="margin-top:6px;font-size:11.5px;opacity:.7;">
+        <span id="pconf-tag-help-event">Ce film sera proposé pour la soirée Halloween.</span>
+      </div>
+    </div>
+
     <!-- Raisons rapides -->
     <div class="fgroup" style="margin-bottom:16px;">
       <label class="flabel">Pourquoi ce film ? (optionnel)</label>
@@ -9906,7 +9922,78 @@ function confirmProposeFilm() {
   commentEl.value = '';
   resetQuickReasons('quick-reasons-container');
 
+  // Initialiser le toggle catégorie événement selon le thème actif
+  initProposalEventToggle();
+
   openModal('modal-propose-confirm');
+}
+
+/* ================================================================
+   PROPOSAL EVENT TAG — toggle Halloween / Général dans la modal
+   ================================================================ */
+
+/* Mémorisation du tag choisi pour la proposition courante.
+   - 'event'   : tag = thème actif (ex: 'halloween')
+   - 'general' : tag = null (film général)
+   Par défaut on propose le tag événement quand un thème est actif. */
+let _proposalTagMode = 'event';
+
+const PROPOSAL_TAG_LABELS = {
+  halloween: '🎃 Pour Halloween',
+  // christmas: '🎄 Pour Noël',
+};
+const PROPOSAL_TAG_HELP = {
+  halloween: 'Ce film sera proposé pour la soirée Halloween.',
+  // christmas: 'Ce film sera proposé pour la soirée de Noël.',
+};
+
+/** Initialise le toggle au moment d'ouvrir la modal de proposition */
+function initProposalEventToggle() {
+  const wrap = document.getElementById('pconf-event-toggle-wrap');
+  if (!wrap) return;
+
+  const theme = S.eventTheme || 'none';
+  if (theme === 'none') {
+    wrap.classList.add('hidden');
+    _proposalTagMode = 'general'; // pas de thème actif → toujours général
+    return;
+  }
+
+  // Thème actif : afficher le toggle, défaut sur "événement"
+  wrap.classList.remove('hidden');
+  _proposalTagMode = 'event';
+
+  const labelEl = document.getElementById('pconf-tag-event-label');
+  if (labelEl) labelEl.textContent = PROPOSAL_TAG_LABELS[theme] || '🎉 Pour l\'événement';
+
+  const helpEl = document.getElementById('pconf-tag-help-event');
+  if (helpEl) helpEl.textContent = PROPOSAL_TAG_HELP[theme] || 'Ce film sera proposé pour l\'événement en cours.';
+
+  setProposalTag('event');
+}
+
+/** Switch entre tag événement et tag général */
+function setProposalTag(mode) {
+  _proposalTagMode = (mode === 'general') ? 'general' : 'event';
+
+  const btnEvt = document.getElementById('pconf-tag-event');
+  const btnGen = document.getElementById('pconf-tag-general');
+  const helpEl = document.getElementById('pconf-tag-help-event');
+
+  if (_proposalTagMode === 'event') {
+    btnEvt?.classList.add('active');
+    btnGen?.classList.remove('active');
+    if (helpEl) {
+      const theme = S.eventTheme || 'none';
+      helpEl.textContent = PROPOSAL_TAG_HELP[theme] || 'Ce film sera proposé pour l\'événement en cours.';
+    }
+  } else {
+    btnGen?.classList.add('active');
+    btnEvt?.classList.remove('active');
+    if (helpEl) {
+      helpEl.textContent = 'Ce film sera proposé pour le catalogue général (visible hors période événement).';
+    }
+  }
 }
 
 async function sendProposalConfirmed() {
@@ -9919,6 +10006,10 @@ async function sendProposalConfirmed() {
   const m = _proposalDraft;
   const comment = (document.getElementById('pconf-comment')?.value || '').trim();
   const quickReasons = getSelectedQuickReasons('quick-reasons-container');
+
+  // Détermine le tag à enregistrer
+  const theme = S.eventTheme || 'none';
+  const eventTag = (theme !== 'none' && _proposalTagMode === 'event') ? theme : null;
 
   btn.disabled = true;
   btn.textContent = 'Envoi…';
@@ -9941,7 +10032,8 @@ async function sendProposalConfirmed() {
     synopsis: m.overview || '',
     status: 'pending',
     student_comment: comment || null,
-    quick_reasons: quickReasons
+    quick_reasons: quickReasons,
+    event_tag: eventTag
   });
 
   btn.disabled = false;
@@ -9996,7 +10088,7 @@ async function loadStudentProposals() {
   const sortField = (status === 'pending') ? 'proposed_at' : 'reviewed_at';
 
   const { data, error } = await db.from('proposals')
-    .select('id,title,poster_url,year,status,proposed_at,reviewed_at,admin_refusal_reason,student_comment,quick_reasons')
+    .select('id,title,poster_url,year,status,proposed_at,reviewed_at,admin_refusal_reason,student_comment,quick_reasons,event_tag')
     .eq('student_id', S.user.id)
     .eq('status', status)
     .order(sortField, { ascending: false });
@@ -10052,7 +10144,10 @@ async function loadStudentProposals() {
           : `<div class="history-poster-ph">🎬</div>`}
         <div class="history-info">
           <div class="history-film">${p.title}${p.year ? ` <span style="font-weight:400;color:var(--text-3);">(${p.year})</span>` : ''}</div>
-          <div style="margin:4px 0;"><span class="badge ${badgeCls[p.status] || 'badge-muted'}">${badgeLbl[p.status] || p.status}</span></div>
+          <div style="margin:4px 0;display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
+            <span class="badge ${badgeCls[p.status] || 'badge-muted'}">${badgeLbl[p.status] || p.status}</span>
+            ${p.event_tag === 'halloween' ? '<span class="badge" style="background:linear-gradient(135deg,rgba(255,122,0,.25),rgba(255,122,0,.12));color:#ff9d3d;border:1px solid rgba(255,122,0,.4);font-size:11px;">🎃 Halloween</span>' : ''}
+          </div>
           ${reasonsHTML}
           ${commentHTML}
           ${p.status === 'rejected' && p.admin_refusal_reason
@@ -13998,7 +14093,8 @@ if (validDateLabels.length === 1) {
     const cardStyle = hasDetail ? 'cursor:pointer;' : '';
 
     return `
-    <div class="ai" style="${cardStyle}" ${cardClick}>
+    <div class="ai" style="${cardStyle}position:relative;" ${cardClick}>
+      ${p.event_tag === 'halloween' ? `<div class="film-event-badge" style="top:6px;right:6px;left:auto;">🎃 Halloween</div>` : ''}
       <div style="flex-shrink:0;" onclick="event.stopPropagation()">
         ${p.poster_url
           ? `<img src="${p.poster_url}" class="ai-img" alt="" onclick="openProposalDetail('${p.id}')" style="cursor:pointer;">`
@@ -15423,7 +15519,8 @@ async function acceptProposal(id) {
   if (!exists) {
     const { error } = await db.from('films').insert({
       title: p.title, tmdb_id: p.tmdb_id || null, poster_url: p.poster_url || null,
-      year: p.year || null, synopsis: p.synopsis || null, genre: p.genre || null, status: 'active'
+      year: p.year || null, synopsis: p.synopsis || null, genre: p.genre || null, status: 'active',
+      event_tag: p.event_tag || null
     });
     if (error) { toast('Erreur ajout film : ' + error.message, 'error'); return; }
   } else {
