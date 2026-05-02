@@ -427,17 +427,17 @@ button { cursor: pointer; }
 .ftextarea { resize: vertical; min-height: 80px; }
 .fselect { appearance: none; cursor: pointer; }
 
-/* Options du select avec fond noir et texte doré pour meilleure lisibilité */
-.fselect option {
+/* Options de TOUS les select avec fond noir et texte doré pour meilleure lisibilité */
+select option {
   background: #0a0a0f !important;
   color: var(--gold) !important;
   padding: 10px !important;
   font-weight: 500;
 }
 
-.fselect option:hover,
-.fselect option:focus,
-.fselect option:checked {
+select option:hover,
+select option:focus,
+select option:checked {
   background: linear-gradient(135deg, rgba(240,165,0,.25) 0%, rgba(240,165,0,.15) 100%) !important;
   color: #fff !important;
   font-weight: 600;
