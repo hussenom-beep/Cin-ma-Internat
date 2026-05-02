@@ -6876,13 +6876,9 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
             <input type="password" class="finput" id="adm-pwd-confirm" autocomplete="new-password" placeholder="••••••••">
           </div>
 
-          <button class="btn btn-gold btn-full" id="adm-pwd-save-btn" onclick="changeAdminPassword()" disabled
-                  title="Fonction en attente d'activation côté base — voir batch suivant">
+          <button class="btn btn-gold btn-full" id="adm-pwd-save-btn" onclick="changeAdminPassword()">
             🔐 Modifier le mot de passe
           </button>
-          <div class="text-sm text-muted" style="margin-top:8px;font-size:11px;opacity:.7;text-align:center;">
-            ⏳ Activation imminente (migration SQL en cours)
-          </div>
         </div>
       </div>
 
@@ -17609,14 +17605,88 @@ function sdSwitchSettingsTab(tab) {
 }
 
 /* ----------------------------------------------------------------
-   Changement du mot de passe admin (placeholder)
+   Changement du mot de passe admin
    ----------------------------------------------------------------
-   La fonction sera branchée après création de la RPC SQL
-   change_admin_password côté Supabase. Pour l'instant le bouton
-   est désactivé via l'attribut HTML.
+   Appelle la RPC `change_admin_password(p_old_password, p_new_password)`.
+   - Retour true  → succès
+   - Retour false → ancien mot de passe incorrect
+   - Exception 'NEW_PASSWORD_TOO_SHORT' → nouveau mdp trop court
 */
 async function changeAdminPassword() {
-  toast('Fonction en cours d\'activation — disponible au prochain batch.', 'info');
+  const elOld = document.getElementById('adm-pwd-current');
+  const elNew = document.getElementById('adm-pwd-new');
+  const elCfm = document.getElementById('adm-pwd-confirm');
+  const btn   = document.getElementById('adm-pwd-save-btn');
+
+  const oldPwd = (elOld?.value || '').trim();
+  const newPwd = (elNew?.value || '').trim();
+  const confirm = (elCfm?.value || '').trim();
+
+  // Validations côté client
+  if (!oldPwd || !newPwd || !confirm) {
+    toast('Tous les champs sont requis', 'error');
+    return;
+  }
+  if (newPwd.length < 6) {
+    toast('Le nouveau mot de passe doit faire au moins 6 caractères', 'error');
+    elNew?.focus();
+    return;
+  }
+  if (newPwd !== confirm) {
+    toast('Les nouveaux mots de passe ne correspondent pas', 'error');
+    elCfm?.focus();
+    return;
+  }
+  if (newPwd === oldPwd) {
+    toast('Le nouveau mot de passe doit être différent', 'error');
+    elNew?.focus();
+    return;
+  }
+
+  // État loading
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '⏳ Modification…';
+  }
+
+  try {
+    const { data: ok, error } = await db.rpc('change_admin_password', {
+      p_old_password: oldPwd,
+      p_new_password: newPwd
+    });
+
+    if (error) {
+      // L'exception SQL contient le message dans error.message
+      if (error.message && error.message.includes('NEW_PASSWORD_TOO_SHORT')) {
+        toast('Le nouveau mot de passe doit faire au moins 6 caractères', 'error');
+      } else {
+        console.error('[changeAdminPassword] RPC error:', error);
+        toast('Erreur lors de la modification', 'error');
+      }
+      return;
+    }
+
+    if (!ok) {
+      toast('Mot de passe actuel incorrect', 'error');
+      elOld?.focus();
+      elOld?.select();
+      return;
+    }
+
+    // ✅ Succès
+    toast('Mot de passe admin modifié 🔐', 'success');
+    if (elOld) elOld.value = '';
+    if (elNew) elNew.value = '';
+    if (elCfm) elCfm.value = '';
+  } catch (e) {
+    console.error('[changeAdminPassword] Exception:', e);
+    toast('Erreur inattendue', 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '🔐 Modifier le mot de passe';
+    }
+  }
 }
 
 /* ---- Vue d'ensemble ---- */
