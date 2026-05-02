@@ -7423,6 +7423,23 @@ function _invokeSendPush(target, title, body, url) {
   else {
     targetObj = { type: 'student', id: target };
   }
+
+  // ============================================================
+  // FILTRAGE MAINTENANCE
+  // Pendant la maintenance, on bloque tous les push aux élèves
+  // sauf à l'élève de test autorisé. Les admins reçoivent toujours.
+  // ============================================================
+  const m = S.maintenance || { mode: 'off' };
+  if (m.mode === 'on') {
+    if (targetObj.type === 'student') {
+      const allowed = m.testStudentId && targetObj.id === m.testStudentId;
+      if (!allowed) {
+        console.log('[push] bloqué par maintenance : target=student', targetObj.id, '(élève non autorisé) | titre="' + title + '"');
+        return;
+      }
+    }
+    // type 'admins' ou autre → on laisse passer (admins toujours actifs)
+  }
   
   const payload = { 
     target: targetObj, 
@@ -7487,7 +7504,7 @@ const _MAINT_DEFAULT_MSG = 'Application en maintenance. Merci de revenir plus ta
 
 /** Charger les 3 clés maintenance depuis Supabase au démarrage */
 async function loadMaintenanceFromDB() {
-  S.maintenance = { mode: 'off', message: _MAINT_DEFAULT_MSG, testUid: '' };
+  S.maintenance = { mode: 'off', message: _MAINT_DEFAULT_MSG, testUid: '', testStudentId: null };
   try {
     const { data, error } = await db
       .from('app_settings')
@@ -7503,8 +7520,28 @@ async function loadMaintenanceFromDB() {
       if (row.key === 'maintenance_message')  S.maintenance.message = row.value || _MAINT_DEFAULT_MSG;
       if (row.key === 'maintenance_test_uid') S.maintenance.testUid = (row.value || '').trim();
     });
+    // Résoudre l'ID interne de l'élève autorisé pour pouvoir filtrer les push
+    // (les push utilisent students.id alors que testUid est students.eleve_uid)
+    await _resolveMaintenanceTestStudentId();
   } catch (err) {
     console.warn('[maintenance] load exception:', err);
+  }
+}
+
+/** Résout S.maintenance.testStudentId depuis testUid (eleve_uid → students.id) */
+async function _resolveMaintenanceTestStudentId() {
+  if (!S.maintenance) return;
+  S.maintenance.testStudentId = null;
+  const uid = (S.maintenance.testUid || '').trim();
+  if (!uid) return;
+  try {
+    const { data } = await db.from('students')
+      .select('id')
+      .eq('eleve_uid', uid)
+      .maybeSingle();
+    if (data?.id) S.maintenance.testStudentId = data.id;
+  } catch (e) {
+    console.warn('[maintenance] resolve testStudentId failed:', e);
   }
 }
 
@@ -7575,7 +7612,9 @@ async function saveMaintenanceSettings() {
   }
 
   // Cache mémoire à jour immédiatement (le check dans loginAs lit S.maintenance)
-  S.maintenance = { mode, message, testUid };
+  S.maintenance = { mode, message, testUid, testStudentId: null };
+  // Résoudre l'ID interne pour le filtrage des push pendant la maintenance
+  await _resolveMaintenanceTestStudentId();
   toast(mode === 'on' ? '🛠️ Mode maintenance activé' : '✅ Mode maintenance désactivé', 'success');
 }
 
