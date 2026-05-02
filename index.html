@@ -10320,12 +10320,16 @@ async function toggleReg(sessionId, action) {
     await _doUnregister(sessionId, false, null);
     return;
   } else {
+    console.log('[toggleReg] DEBUG 1 — branche register, sessionId=', sessionId, 'userId=', S.user?.id);
+
     // Vérification ban côté client
     const { data: bans } = await db.from('session_bans')
       .select('id')
       .eq('session_id', sessionId)
       .eq('student_id', S.user.id)
       .limit(1);
+
+    console.log('[toggleReg] DEBUG 2 — check bans:', bans);
 
     if (bans?.length) {
       toast('Tu ne peux pas te réinscrire à cette séance', 'error');
@@ -10337,15 +10341,22 @@ async function toggleReg(sessionId, action) {
       .eq('id', sessionId)
       .single();
 
+    console.log('[toggleReg] DEBUG 3 — session:', ses);
+
     if (!ses?.registrations_open) {
+      console.log('[toggleReg] DEBUG 4 — registrations_open=false, blocked here');
       toast('Les inscriptions sont fermées', 'error');
       return;
     }
+
+    console.log('[toggleReg] DEBUG 5 — about to call RPC register_student_to_session');
 
     const { data: result, error } = await db.rpc('register_student_to_session', {
       p_student_id: S.user.id,
       p_session_id: sessionId
     });
+
+    console.log('[toggleReg] DEBUG 6 — RPC retour:', { result, error });
 
     if (error) {
       console.error('register RPC error:', error);
@@ -10355,6 +10366,7 @@ async function toggleReg(sessionId, action) {
 
     // La RPC renvoie { ok, status, code, ... }
     if (!result?.ok) {
+      console.log('[toggleReg] DEBUG 7 — !result.ok, full result:', result);
       const code = result?.code;
       if (code === 'ALREADY_EXISTS') {
         toast(result?.status === 'waitlist'
@@ -10365,11 +10377,14 @@ async function toggleReg(sessionId, action) {
       } else if (code === 'BANNED') {
         toast("Tu ne peux pas t'inscrire à cette séance", 'error');
       } else {
+        console.log('[toggleReg] DEBUG 8 — code non géré:', code, 'result complet:', result);
         toast('Inscription impossible', 'error');
       }
       await loadSessions();
       return;
     }
+
+    console.log('[toggleReg] DEBUG 9 — succès, status=', result?.status);
 
     // Réinscription réussie → neutraliser un éventuel désistement tardif
     // antérieur sur cette MÊME séance. AWAIT explicite pour être sûr que
