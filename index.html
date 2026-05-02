@@ -11898,36 +11898,123 @@ function cancelCapacityEdit() {
 async function saveCapacity() {
   const input = document.getElementById('ssh-capacity-input');
   if (!input || !window._editingCapacity) return;
-  
+
   const newCapacity = parseInt(input.value, 10);
   if (isNaN(newCapacity) || newCapacity < 1) {
     toast('Capacité invalide', 'error');
     return;
   }
-  
+
   const sessionId = window._editingCapacity.sessionId;
-  
+
   try {
+    // 1) UPDATE de la capacité
     const { error } = await db
       .from('cinema_sessions')
       .update({ max_capacity: newCapacity })
       .eq('id', sessionId);
-    
+
     if (error) {
       console.error('[saveCapacity] Erreur:', error);
       toast('Erreur de mise à jour', 'error');
       return;
     }
-    
-    toast('Capacité mise à jour', 'success');
+
+    // 2) Promotion auto : combien de places sont à présent disponibles ?
+    //    On compte les inscrits "registered" et on vérifie s'il y a des
+    //    élèves en waitlist à promouvoir.
+    const promotedCount = await _autoPromoteFromWaitlistAfterCapacityChange(sessionId, newCapacity);
+
+    // 3) Toast — message adapté selon qu'il y a eu promotion ou pas
+    if (promotedCount > 0) {
+      toast(`Capacité mise à jour — ${promotedCount} élève${promotedCount > 1 ? 's' : ''} promu${promotedCount > 1 ? 's' : ''} 🎉`, 'success');
+    } else {
+      toast('Capacité mise à jour', 'success');
+    }
+
     delete window._editingCapacity;
-    
+
     // Recharger les données de la fiche
     await loadSessionSheetData(sessionId);
   } catch (e) {
     console.error('[saveCapacity] Exception:', e);
     toast('Erreur de mise à jour', 'error');
   }
+}
+
+/* Promotion auto des élèves en waitlist quand la capacité est augmentée.
+   Retourne le nombre d'élèves promus. Envoie une notif push à chaque promu.
+   Idempotent : si la capacité est diminuée ou identique, ne fait rien.    */
+async function _autoPromoteFromWaitlistAfterCapacityChange(sessionId, newCapacity) {
+  // Compter les inscrits confirmés actuels
+  const { count: registeredCount, error: countErr } = await db.from('registrations')
+    .select('id', { count: 'exact', head: true })
+    .eq('session_id', sessionId)
+    .eq('status', 'registered');
+
+  if (countErr) {
+    console.warn('[autoPromote] count registered:', countErr);
+    return 0;
+  }
+
+  const placesToFill = newCapacity - (registeredCount || 0);
+  if (placesToFill <= 0) return 0; // pas de place libre, rien à faire
+
+  // Récupérer les N premiers en waitlist (par rang croissant)
+  const { data: waitlisters, error: waitErr } = await db.from('registrations')
+    .select('id, student_id, waitlist_rank')
+    .eq('session_id', sessionId)
+    .eq('status', 'waitlist')
+    .order('waitlist_rank', { ascending: true })
+    .limit(placesToFill);
+
+  if (waitErr) {
+    console.warn('[autoPromote] fetch waitlist:', waitErr);
+    return 0;
+  }
+  if (!waitlisters?.length) return 0;
+
+  // Promouvoir : update individuel pour avoir un comportement explicite et
+  // pour que chaque ligne ait son propre promoted_at à la même valeur now().
+  const nowIso = new Date().toISOString();
+  const promotedIds = [];
+
+  for (const reg of waitlisters) {
+    const { error: updErr } = await db.from('registrations')
+      .update({
+        status:        'registered',
+        waitlist_rank: null,
+        promoted_at:   nowIso,
+      })
+      .eq('id', reg.id);
+
+    if (updErr) {
+      console.warn('[autoPromote] update reg', reg.id, ':', updErr);
+      continue;
+    }
+    promotedIds.push(reg.student_id);
+  }
+
+  if (promotedIds.length === 0) return 0;
+
+  // Récupérer le titre pour personnaliser la notif
+  const { data: ses } = await db.from('cinema_sessions')
+    .select('films(title)')
+    .eq('id', sessionId)
+    .maybeSingle();
+  const filmTitle = ses?.films?.title || 'la séance';
+
+  // Notif push individuelle à chaque promu (fire-and-forget)
+  promotedIds.forEach(studentId => {
+    _invokeSendPush(
+      { type: 'student', id: studentId },
+      '🎉 Tu es inscrit !',
+      `Une place s'est libérée pour ${filmTitle}.`,
+      '/'
+    );
+  });
+
+  return promotedIds.length;
 }
 
 async function editSessionDate() {
