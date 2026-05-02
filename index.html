@@ -916,6 +916,56 @@ body.theme-halloween .s-header {
 .empty p { font-size: 13.5px; }
 
 /* ================================================================
+   EVENT FILTER BAR (toggle Halloween / Année complète)
+   ================================================================ */
+.event-filter-bar {
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px;
+  background: linear-gradient(180deg, rgba(240,165,0,0.06) 0%, transparent 100%);
+  border-bottom: 1px solid var(--border);
+}
+.event-filter-btn {
+  flex: 1;
+  padding: 9px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text-2);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .18s ease;
+  white-space: nowrap;
+}
+.event-filter-btn:hover {
+  background: var(--surface-3);
+  color: var(--text);
+}
+.event-filter-btn.active {
+  background: linear-gradient(135deg, rgba(240,165,0,0.20) 0%, rgba(240,165,0,0.10) 100%);
+  border-color: var(--gold);
+  color: var(--gold);
+  box-shadow: 0 0 0 1px rgba(240,165,0,0.15) inset;
+}
+
+/* Badge événement sur les cartes film */
+.film-event-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: linear-gradient(135deg, rgba(255,122,0,0.95) 0%, rgba(180,80,0,0.95) 100%);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 8px;
+  z-index: 2;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+  letter-spacing: 0.3px;
+}
+
+/* ================================================================
    MODALS (bottom sheet)
    ================================================================ */
 .overlay {
@@ -4918,6 +4968,15 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     <h1>🎬 Films en vote</h1>
     <button class="home-profile-btn" onclick="openModal('modal-profile')" title="Mon profil">?</button>
   </div>
+  <!-- Toggle de filtre événement (visible uniquement si thème actif) -->
+  <div id="films-event-filter" class="event-filter-bar hidden">
+    <button type="button" id="films-filter-event" class="event-filter-btn active" onclick="setFilmFilterMode('event')">
+      <span id="films-filter-event-label">🎃 Halloween</span>
+    </button>
+    <button type="button" id="films-filter-all" class="event-filter-btn" onclick="setFilmFilterMode('all')">
+      🎬 Année complète
+    </button>
+  </div>
   <div class="films-list" id="films-list">
     <div class="loader"><div class="spinner"></div></div>
   </div>
@@ -7516,6 +7575,16 @@ function startEventThemeRealtime() {
         applyEventTheme();
         // Si on a le panneau admin settings ouvert, refresh aussi le sélecteur
         loadEventThemeUI();
+        // Si l'élève est sur l'écran films, recharger pour appliquer le filtrage
+        try {
+          const filmsScreen = document.getElementById('screen-films');
+          if (filmsScreen && !filmsScreen.classList.contains('hidden')) {
+            loadFilms();
+          } else {
+            // Sinon, on met juste à jour la barre de toggle pour la prochaine fois
+            updateFilmEventFilterUI();
+          }
+        } catch (e) { console.warn('[themeRT] reload films:', e); }
       })
     .subscribe((status) => {
       if (status === 'SUBSCRIBED') {
@@ -9101,10 +9170,61 @@ async function loadHomeNews() {
 /* ================================================================
    FILMS (student)
    ================================================================ */
+
+/* Mode de filtrage des films côté élève quand un thème événement est actif :
+   - 'event' : uniquement les films taggés (ex: halloween) — DÉFAUT si thème actif
+   - 'all'   : tous les films (généraux + taggés)
+   Si aucun thème actif, ce filtre est ignoré (on affiche uniquement les films généraux). */
+if (typeof S.filmFilterMode === 'undefined') S.filmFilterMode = 'event';
+
+/** Libellés affichés sur le toggle selon le thème actif */
+const EVENT_FILTER_LABELS = {
+  halloween: '🎃 Halloween',
+  // christmas: '🎄 Noël',
+};
+
+/** Met à jour la visibilité et les libellés de la barre de toggle */
+function updateFilmEventFilterUI() {
+  const bar = document.getElementById('films-event-filter');
+  if (!bar) return;
+  const theme = S.eventTheme || 'none';
+  if (theme === 'none') {
+    bar.classList.add('hidden');
+    return;
+  }
+  bar.classList.remove('hidden');
+
+  // Libellé du bouton événement selon le thème
+  const labelEl = document.getElementById('films-filter-event-label');
+  if (labelEl) labelEl.textContent = EVENT_FILTER_LABELS[theme] || '🎉 Événement';
+
+  // Bouton actif
+  const btnEvent = document.getElementById('films-filter-event');
+  const btnAll   = document.getElementById('films-filter-all');
+  if (btnEvent && btnAll) {
+    if (S.filmFilterMode === 'all') {
+      btnAll.classList.add('active');
+      btnEvent.classList.remove('active');
+    } else {
+      btnEvent.classList.add('active');
+      btnAll.classList.remove('active');
+    }
+  }
+}
+
+/** Switch entre 'event' (films Halloween) et 'all' (tous les films) */
+function setFilmFilterMode(mode) {
+  S.filmFilterMode = (mode === 'all') ? 'all' : 'event';
+  updateFilmEventFilterUI();
+  renderFilms();
+}
+
 async function loadFilms() {
   const list = document.getElementById('films-list');
   list.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
 
+  // On charge TOUS les films actifs ; le filtrage par event_tag est fait côté JS
+  // pour permettre le switch rapide via le toggle sans refaire un round-trip réseau.
   const [{ data: films }, { data: votes }] = await Promise.all([
     db.from('films').select('*').eq('status','active').order('added_at', { ascending: false }),
     S.user ? db.from('votes').select('film_id').eq('student_id', S.user.id) : { data: [] }
@@ -9112,24 +9232,59 @@ async function loadFilms() {
 
   S.films = films || [];
   S.votes = new Set((votes || []).map(v => v.film_id));
+
+  // Réinitialiser le mode par défaut quand on (re)charge (utile si le thème change en live)
+  const theme = S.eventTheme || 'none';
+  if (theme === 'none') S.filmFilterMode = 'event'; // valeur ignorée mais on remet propre
+
+  updateFilmEventFilterUI();
   renderFilms();
 }
 
 function renderFilms() {
   const list = document.getElementById('films-list');
-  if (!S.films.length) {
-    list.innerHTML = `<div class="empty"><div class="icon">🎬</div><h3>Aucun film disponible</h3><p>Des films seront bientôt proposés. Revenez vite !</p></div>`;
+  const theme = S.eventTheme || 'none';
+
+  // ---- Filtrage selon le thème actif et le mode choisi ----
+  let visibleFilms;
+  if (theme === 'none') {
+    // Aucun thème : uniquement les films généraux (event_tag null)
+    visibleFilms = S.films.filter(f => !f.event_tag);
+  } else if (S.filmFilterMode === 'all') {
+    // Thème actif + mode "Année complète" : tout
+    visibleFilms = S.films.slice();
+  } else {
+    // Thème actif + mode "Événement" : uniquement les films taggés du thème courant
+    visibleFilms = S.films.filter(f => f.event_tag === theme);
+  }
+
+  if (!visibleFilms.length) {
+    // Message vide adapté au contexte
+    let icon = '🎬';
+    let title = 'Aucun film disponible';
+    let sub = 'Des films seront bientôt proposés. Revenez vite !';
+    if (theme !== 'none' && S.filmFilterMode === 'event') {
+      icon = (theme === 'halloween') ? '🎃' : '🎉';
+      title = `Aucun film ${EVENT_FILTER_LABELS[theme] || ''} pour l'instant`;
+      sub = 'Tu peux basculer sur "Année complète" pour voir tous les films.';
+    }
+    list.innerHTML = `<div class="empty"><div class="icon">${icon}</div><h3>${title}</h3><p>${sub}</p></div>`;
     return;
   }
 
-  list.innerHTML = S.films.map(f => {
+  list.innerHTML = visibleFilms.map(f => {
     const v = S.votes.has(f.id);
     const runtimeStr = f.duration ? formatRuntime(f.duration) : '';
     // Ouvrir la fiche TMDB si disponible (plus riche), sinon fiche locale
     const clickAction = f.tmdb_id 
       ? `openTMDBDetail(${f.tmdb_id}, 'student')` 
       : `openDetail('${f.id}')`;
-    return `<div class="film-card" onclick="${clickAction}" style="cursor:pointer;">
+    // Badge événement
+    const eventBadge = f.event_tag === 'halloween'
+      ? `<div class="film-event-badge">🎃 Halloween</div>`
+      : '';
+    return `<div class="film-card" onclick="${clickAction}" style="cursor:pointer;position:relative;">
+      ${eventBadge}
       <div class="film-card-poster">
         ${f.poster_url
           ? `<img src="${f.poster_url}" alt="${f.title}" loading="lazy" style="height:150px;">`
