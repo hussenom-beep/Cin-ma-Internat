@@ -5461,6 +5461,35 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 </div>
 
 <!-- ================================================================
+     MODAL: Confirmer l'envoi d'une notification générale
+     ================================================================ -->
+<div class="overlay hidden" id="modal-broadcast-confirm">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">📢 Envoyer la notification ?</div>
+
+    <p class="text-sm text-muted" style="margin-bottom:14px;">
+      Cette notification sera envoyée à
+      <strong id="bcast-confirm-count" style="color:var(--gold);">…</strong>
+      <span id="bcast-confirm-label">élève(s) abonné(s)</span>.
+      Cette action est immédiate et ne peut pas être annulée.
+    </p>
+
+    <!-- Aperçu du push -->
+    <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:18px;">
+      <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Aperçu</div>
+      <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px;" id="bcast-confirm-title-preview">—</div>
+      <div style="font-size:13px;color:var(--text-2);line-height:1.5;" id="bcast-confirm-body-preview">—</div>
+    </div>
+
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('modal-broadcast-confirm')">Annuler</button>
+      <button class="btn btn-gold" style="flex:1;" id="bcast-confirm-send-btn" onclick="confirmBroadcastSend()">📢 Envoyer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
      MODAL: Créer une séance
      ================================================================ -->
 <div class="overlay hidden" id="modal-create-session">
@@ -6831,6 +6860,49 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 
       <div style="height:1px;background:var(--border);margin:4px 0 20px;"></div>
 
+      <!-- Push notification générale -->
+      <div class="sd-section">
+        <div class="sd-section-title">📢 Notification générale</div>
+        <p class="text-sm text-muted" style="margin-bottom:14px;">
+          Envoie une notification push à tous les élèves abonnés. Seuls les élèves ayant activé les notifications la recevront.
+        </p>
+
+        <div class="fgroup">
+          <label class="flabel">Titre <span class="text-muted" style="font-weight:400;font-size:11px;">(max 60)</span></label>
+          <input type="text" class="finput" id="bcast-title"
+                 maxlength="60"
+                 placeholder="Ex : Information importante"
+                 oninput="_updateBcastUI()">
+          <div class="text-sm text-muted" style="margin-top:4px;font-size:11px;text-align:right;">
+            <span id="bcast-title-counter">0</span> / 60
+          </div>
+        </div>
+
+        <div class="fgroup">
+          <label class="flabel">Message <span class="text-muted" style="font-weight:400;font-size:11px;">(max 200)</span></label>
+          <textarea class="ftextarea" id="bcast-body"
+                    rows="3"
+                    maxlength="200"
+                    placeholder="Le message qui sera affiché dans la notification."
+                    oninput="_updateBcastUI()"></textarea>
+          <div class="text-sm text-muted" style="margin-top:4px;font-size:11px;text-align:right;">
+            <span id="bcast-body-counter">0</span> / 200
+          </div>
+        </div>
+
+        <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:12.5px;">
+          <span class="text-muted">Destinataires : </span>
+          <strong id="bcast-recipient-count" style="color:var(--gold);">…</strong>
+          <span class="text-muted" id="bcast-recipient-label"> élèves abonnés aux notifications</span>
+        </div>
+
+        <button class="btn btn-gold btn-full" id="bcast-send-btn" onclick="openBroadcastConfirm()" disabled>
+          📢 Envoyer la notification
+        </button>
+      </div>
+
+      <div style="height:1px;background:var(--border);margin:4px 0 20px;"></div>
+
       <!-- Import élèves -->
       <div class="sd-section">
         <div class="sd-section-title">Import élèves</div>
@@ -7473,6 +7545,121 @@ function _invokeSendPush(target, title, body, url) {
       }
     })
     .catch(err => console.warn('[push] send-push exception:', err));
+}
+
+/* ================================================================
+   PUSH BROADCAST — Envoi d'une notification générale aux élèves
+   ----------------------------------------------------------------
+   Disponible depuis Paramètres admin. L'admin saisit titre + corps,
+   on lui montre un compteur d'élèves abonnés, et après confirmation
+   on envoie via _invokeSendPush avec target = students_all.
+   Le filtrage maintenance s'applique automatiquement (cf. _invokeSendPush).
+   ================================================================ */
+
+/** Compte le nombre d'élèves actifs et activés ayant au moins une push_subscription active */
+async function _countBroadcastRecipients() {
+  try {
+    // 1. Élèves avec push subs actives
+    const { data: subs, error: e1 } = await db.from('push_subscriptions')
+      .select('student_id')
+      .eq('active', true)
+      .not('student_id', 'is', null);
+    if (e1) { console.warn('[broadcast] count subs error:', e1); return 0; }
+    const studentIds = [...new Set((subs || []).map(s => s.student_id))];
+    if (!studentIds.length) return 0;
+
+    // 2. Filtrer ceux qui sont actifs + activés (vrais destinataires)
+    const { count, error: e2 } = await db.from('students')
+      .select('id', { count: 'exact', head: true })
+      .in('id', studentIds)
+      .eq('is_active', true)
+      .eq('is_activated', true);
+    if (e2) { console.warn('[broadcast] count students error:', e2); return studentIds.length; }
+    return count || 0;
+  } catch (err) {
+    console.warn('[broadcast] count exception:', err);
+    return 0;
+  }
+}
+
+/** Met à jour les compteurs + activation du bouton Envoyer */
+async function _updateBcastUI() {
+  const titleEl   = document.getElementById('bcast-title');
+  const bodyEl    = document.getElementById('bcast-body');
+  const tCounter  = document.getElementById('bcast-title-counter');
+  const bCounter  = document.getElementById('bcast-body-counter');
+  const sendBtn   = document.getElementById('bcast-send-btn');
+
+  const tLen = (titleEl?.value || '').length;
+  const bLen = (bodyEl?.value  || '').length;
+  if (tCounter) tCounter.textContent = tLen;
+  if (bCounter) bCounter.textContent = bLen;
+
+  const titleOk = (titleEl?.value || '').trim().length > 0;
+  const bodyOk  = (bodyEl?.value  || '').trim().length > 0;
+  if (sendBtn) sendBtn.disabled = !(titleOk && bodyOk);
+}
+
+/** Charge le compteur de destinataires (appelé à l'ouverture des paramètres) */
+async function loadBroadcastRecipientCount() {
+  const countEl = document.getElementById('bcast-recipient-count');
+  const labelEl = document.getElementById('bcast-recipient-label');
+  if (!countEl) return;
+  countEl.textContent = '…';
+  const n = await _countBroadcastRecipients();
+  countEl.textContent = String(n);
+  if (labelEl) {
+    labelEl.textContent = n <= 1 ? ' élève abonné aux notifications' : ' élèves abonnés aux notifications';
+  }
+}
+
+/** Ouverture de la modale de confirmation */
+async function openBroadcastConfirm() {
+  const title = (document.getElementById('bcast-title')?.value || '').trim();
+  const body  = (document.getElementById('bcast-body')?.value  || '').trim();
+  if (!title || !body) {
+    toast('Titre et message obligatoires', 'error');
+    return;
+  }
+
+  // Recompter (au cas où des élèves auraient activé/désactivé entre-temps)
+  const n = await _countBroadcastRecipients();
+
+  document.getElementById('bcast-confirm-count').textContent = String(n);
+  document.getElementById('bcast-confirm-label').textContent = n <= 1 ? 'élève abonné' : 'élèves abonnés';
+  document.getElementById('bcast-confirm-title-preview').textContent = title;
+  document.getElementById('bcast-confirm-body-preview').textContent  = body;
+
+  openModal('modal-broadcast-confirm');
+}
+
+/** Envoi effectif du push broadcast après confirmation */
+async function confirmBroadcastSend() {
+  const title = (document.getElementById('bcast-title')?.value || '').trim();
+  const body  = (document.getElementById('bcast-body')?.value  || '').trim();
+  if (!title || !body) return;
+
+  const sendBtn = document.getElementById('bcast-confirm-send-btn');
+  if (sendBtn) {
+    sendBtn.disabled = true;
+    sendBtn.textContent = 'Envoi…';
+  }
+
+  // Push broadcast (filtrage maintenance appliqué dans _invokeSendPush)
+  _invokeSendPush({ type: 'students_all' }, title, body, '/');
+
+  // Reset UI
+  setTimeout(() => {
+    closeModal('modal-broadcast-confirm');
+    if (sendBtn) {
+      sendBtn.disabled = false;
+      sendBtn.textContent = '📢 Envoyer';
+    }
+    document.getElementById('bcast-title').value = '';
+    document.getElementById('bcast-body').value  = '';
+    _updateBcastUI();
+    toast('📢 Notification envoyée', 'success');
+  }, 300);
 }
 
 /* ----------------------------------------------------------------
@@ -18985,6 +19172,13 @@ function openModal(id) {
     loadMaintenanceFromDB().then(() => loadMaintenanceUI());
     // Thème événementiel : pareil, refresh + remplir le sélecteur
     loadEventThemeFromDB().then(() => loadEventThemeUI());
+    // Push broadcast : charger le compteur de destinataires + reset les champs
+    const bcastTitle = document.getElementById('bcast-title');
+    const bcastBody  = document.getElementById('bcast-body');
+    if (bcastTitle) bcastTitle.value = '';
+    if (bcastBody)  bcastBody.value  = '';
+    _updateBcastUI();
+    loadBroadcastRecipientCount();
   }
 
   // Rafraîchir le label du bouton "Activer notifications" à chaque ouverture
