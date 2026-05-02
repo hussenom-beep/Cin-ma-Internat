@@ -7425,28 +7425,34 @@ function _invokeSendPush(target, title, body, url) {
   }
 
   // ============================================================
-  // FILTRAGE MAINTENANCE — WHITELIST STRICTE
-  // Pendant la maintenance, on bloque TOUS les push aux élèves
-  // (y compris les broadcasts type 'students_all').
-  // Seuls passent :
-  //   - les push 'admins' (admins toujours actifs)
-  //   - les push 'student' ciblés sur l'élève autorisé (testStudentId)
-  // Tout autre type (students_all, multi-élèves, etc.) est bloqué.
+  // FILTRAGE MAINTENANCE
+  // - 'admins'  → toujours autorisé
+  // - 'student' ciblé sur l'élève de test → autorisé
+  // - 'student' ciblé sur un autre élève → bloqué
+  // - 'students_all' / autre broadcast → REDIRIGÉ vers l'élève de test
+  //   (pour qu'il reçoive bien les notifs broadcast pendant ses tests).
+  //   Si aucun élève de test défini → bloqué.
   // ============================================================
   const m = S.maintenance || { mode: 'off' };
   if (m.mode === 'on') {
-    let allowed = false;
     if (targetObj.type === 'admins') {
-      allowed = true;
+      // OK : passe
     } else if (targetObj.type === 'student') {
-      allowed = !!(m.testStudentId && targetObj.id === m.testStudentId);
-    }
-    // Tous les autres types ('students_all', futurs types broadcast, etc.)
-    // restent à allowed=false et seront bloqués.
-
-    if (!allowed) {
-      console.log('[push] bloqué par maintenance : target=', targetObj, '| titre="' + title + '"');
-      return;
+      const isTestStudent = m.testStudentId && targetObj.id === m.testStudentId;
+      if (!isTestStudent) {
+        console.log('[push] bloqué par maintenance : target=', targetObj, '| titre="' + title + '"');
+        return;
+      }
+      // sinon : passe (élève autorisé)
+    } else {
+      // Type broadcast (students_all, etc.) → rediriger vers l'élève de test
+      if (m.testStudentId) {
+        console.log('[push] redirigé vers élève test (maintenance) : était', { ...targetObj }, '| titre="' + title + '"');
+        targetObj = { type: 'student', id: m.testStudentId };
+      } else {
+        console.log('[push] bloqué par maintenance (pas d\'élève test défini) : target=', targetObj, '| titre="' + title + '"');
+        return;
+      }
     }
   }
   
