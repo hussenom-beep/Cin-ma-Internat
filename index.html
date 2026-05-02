@@ -5497,6 +5497,19 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     <div class="sheet-handle"></div>
     <div class="sheet-title">Créer une séance</div>
 
+    <!-- Toggle Halloween (visible uniquement si thème actif) -->
+    <div class="fgroup hidden" id="ses-event-toggle-wrap" style="margin-bottom:14px;">
+      <div style="display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,rgba(255,122,0,.10),rgba(255,122,0,.04));border:1px solid rgba(255,122,0,.3);border-radius:10px;padding:10px 12px;">
+        <input type="checkbox" id="ses-event-tag" style="width:18px;height:18px;accent-color:#ff7a00;cursor:pointer;flex-shrink:0;" onchange="_onSesEventToggle()">
+        <label for="ses-event-tag" style="font-size:14px;cursor:pointer;flex:1;">
+          <strong id="ses-event-label">🎃 Séance Halloween</strong>
+          <div class="text-sm text-muted" style="font-size:11.5px;margin-top:2px;opacity:.85;">
+            Tous les internes y sont conviés. Pas d'inscription.
+          </div>
+        </label>
+      </div>
+    </div>
+
     <div class="fgroup">
       <label class="flabel">Date *</label>
       <input type="date" class="finput" id="ses-date" onmousedown="handleSmartPickerClick(event, 'ses-date', 145)">
@@ -5509,7 +5522,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       <label class="flabel">Film *</label>
       <select class="finput fselect" id="ses-film"><option value="">— À définir —</option></select>
     </div>
-    <div class="fgroup">
+    <div class="fgroup" id="ses-capacity-wrap">
       <label class="flabel">Capacité max</label>
       <input type="number" class="finput" id="ses-capacity" value="20">
     </div>
@@ -5593,6 +5606,20 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     <div class="sheet-title">Modifier la séance</div>
     <input type="hidden" id="edit-ses-id">
     <input type="hidden" id="edit-ses-prev-film">
+
+    <!-- Toggle Halloween (visible si thème actif OU séance déjà tagée) -->
+    <div class="fgroup hidden" id="edit-ses-event-toggle-wrap" style="margin-bottom:14px;">
+      <div style="display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,rgba(255,122,0,.10),rgba(255,122,0,.04));border:1px solid rgba(255,122,0,.3);border-radius:10px;padding:10px 12px;">
+        <input type="checkbox" id="edit-ses-event-tag" style="width:18px;height:18px;accent-color:#ff7a00;cursor:pointer;flex-shrink:0;" onchange="_onEditSesEventToggle()">
+        <label for="edit-ses-event-tag" style="font-size:14px;cursor:pointer;flex:1;">
+          <strong id="edit-ses-event-label">🎃 Séance Halloween</strong>
+          <div class="text-sm text-muted" style="font-size:11.5px;margin-top:2px;opacity:.85;">
+            Tous les internes y sont conviés. Pas d'inscription.
+          </div>
+        </label>
+      </div>
+    </div>
+
     <div class="fgroup">
       <label class="flabel">Date de la séance</label>
       <input type="date" class="finput" id="edit-ses-date" onclick="handleSmartPickerClick(event, 'edit-ses-date', 120)">
@@ -16689,9 +16716,9 @@ async function openEditSession(id, currentTitle, currentFilmId) {
   document.getElementById('edit-ses-id').value = id;
   document.getElementById('edit-ses-prev-film').value = currentFilmId || '';
 
-  // Charger la date, l'heure et le film actuels de la séance
+  // Charger la date, l'heure, le film actuel + le tag événement
   const { data: ses } = await db.from('cinema_sessions')
-    .select('session_date, session_time, film_id')
+    .select('session_date, session_time, film_id, event_tag')
     .eq('id', id)
     .single();
 
@@ -16701,8 +16728,41 @@ async function openEditSession(id, currentTitle, currentFilmId) {
   const effectiveFilmId = currentFilmId || ses?.film_id || '';
   document.getElementById('edit-ses-prev-film').value = effectiveFilmId;
 
-  // ✅ NOUVEAU : Utiliser la fonction centralisée pour récupérer les films disponibles
-  const films = await getAvailableFilmsForSession(id, null);
+  // ----- Toggle événement -----
+  // Visible si : thème actif OU séance déjà tagée
+  const theme = S.eventTheme || 'none';
+  const sessionTag = ses?.event_tag || null;
+  const wrap  = document.getElementById('edit-ses-event-toggle-wrap');
+  const cb    = document.getElementById('edit-ses-event-tag');
+  const lblEl = document.getElementById('edit-ses-event-label');
+
+  if (cb) cb.checked = !!sessionTag;
+  if (wrap) {
+    if (theme === 'none' && !sessionTag) {
+      // Pas de thème actif et séance non tagée → on cache le toggle
+      wrap.classList.add('hidden');
+    } else {
+      wrap.classList.remove('hidden');
+      // Le label utilise le tag du thème actif si dispo, sinon celui de la séance
+      const labelTag = (theme !== 'none') ? theme : sessionTag;
+      if (lblEl) lblEl.textContent = SESSION_EVENT_LABELS[labelTag] || '🎉 Séance événement';
+    }
+  }
+
+  // Filtre des films selon le tag courant
+  // - Si toggle coché → films du thème
+  // - Sinon → films généraux
+  // - Si pas de thème actif et séance non tagée → pas de filtre (legacy)
+  let eventTagForFilter;
+  if (theme === 'none' && !sessionTag) {
+    eventTagForFilter = undefined;
+  } else if (cb && cb.checked) {
+    eventTagForFilter = sessionTag || theme;
+  } else {
+    eventTagForFilter = null;
+  }
+
+  const films = await getAvailableFilmsForSession(id, null, eventTagForFilter);
 
   const sel = document.getElementById('edit-ses-film');
   sel.innerHTML = '<option value="">— À définir —</option>' +
@@ -16723,6 +16783,8 @@ async function saveEditSession() {
   const prevFilmId = document.getElementById('edit-ses-prev-film').value || null;
   const newDate    = document.getElementById('edit-ses-date').value;
   const newTime    = document.getElementById('edit-ses-time').value || '20:00';
+  const isEvent    = !!document.getElementById('edit-ses-event-tag')?.checked;
+  const theme      = S.eventTheme || 'none';
 
   if (!newDate) { toast('Sélectionne une date', 'error'); return; }
 
@@ -16746,10 +16808,21 @@ async function saveEditSession() {
     }
   }
 
+  // Détermination du nouveau event_tag
+  // - Si toggle coché : on garde l'ancien tag si présent, sinon on prend le thème actif
+  // - Si toggle décoché : on retire le tag (null)
+  let newEventTag = null;
+  if (isEvent) {
+    // Récupérer l'ancien tag pour préserver si la séance était déjà tagée
+    const { data: cur } = await db.from('cinema_sessions').select('event_tag').eq('id', id).maybeSingle();
+    newEventTag = cur?.event_tag || (theme !== 'none' ? theme : null);
+  }
+
   await db.from('cinema_sessions').update({
     session_date: newDate,
     session_time: newTime,
-    film_id:      newFilmId
+    film_id:      newFilmId,
+    event_tag:    newEventTag
   }).eq('id', id);
 
   // Gestion des statuts films
@@ -16829,7 +16902,7 @@ function handleSmartPickerClick(event, inputId, textZoneWidth = 120) {
  * @param {string|null} prefilledFilmId - ID du film prérempli (pour création depuis film)
  * @returns {Promise<Array>} Liste des films disponibles
  */
-async function getAvailableFilmsForSession(currentSessionId = null, prefilledFilmId = null) {
+async function getAvailableFilmsForSession(currentSessionId = null, prefilledFilmId = null, eventTag = undefined) {
   // 1. Récupérer les films déjà utilisés dans des séances futures
   const today = new Date().toISOString().split('T')[0];
   let sessionsQuery = db.from('cinema_sessions')
@@ -16846,8 +16919,8 @@ async function getAvailableFilmsForSession(currentSessionId = null, prefilledFil
   
   console.log('[getAvailableFilmsForSession] Films déjà programmés:', Array.from(takenFilmIds));
   
-  // 2. Récupérer les films actifs/scheduled
-  let filmsQuery = db.from('films').select('id,title');
+  // 2. Récupérer les films actifs/scheduled (avec event_tag pour filtrage)
+  let filmsQuery = db.from('films').select('id,title,event_tag');
   
   if (prefilledFilmId) {
     // Si film prérempli, l'inclure même si statut différent
@@ -16858,18 +16931,87 @@ async function getAvailableFilmsForSession(currentSessionId = null, prefilledFil
   
   const { data: films } = await filmsQuery.order('title');
   
-  // 3. Filtrer les films déjà pris
+  // 3. Filtrer films pris + filtre event_tag
+  // eventTag peut être :
+  //   - undefined : pas de filtre (comportement legacy)
+  //   - 'halloween' (ou autre) : uniquement films avec ce tag
+  //   - null : uniquement films généraux (event_tag null)
   const availableFilms = (films || []).filter(f => {
     // Garder le film prérempli même s'il est déjà programmé (cas création depuis film)
     if (prefilledFilmId && f.id === prefilledFilmId) return true;
     
     // Exclure les films déjà utilisés dans d'autres séances futures
-    return !takenFilmIds.has(f.id);
+    if (takenFilmIds.has(f.id)) return false;
+
+    // Filtre event_tag si demandé
+    if (eventTag !== undefined) {
+      if (eventTag === null) return !f.event_tag;
+      return f.event_tag === eventTag;
+    }
+    return true;
   });
   
-  console.log('[getAvailableFilmsForSession] Films disponibles:', availableFilms.length);
+  console.log('[getAvailableFilmsForSession] Films disponibles:', availableFilms.length, '| eventTag:', eventTag);
   
   return availableFilms;
+}
+
+/* ----------------------------------------------------------------
+   SESSION EVENT TOGGLE — bascule séance Halloween
+   ----------------------------------------------------------------
+   Recharge le sélecteur de films selon le tag actif et masque/affiche
+   la capacité (inutile pour les séances événement). */
+
+const SESSION_EVENT_LABELS = {
+  halloween: '🎃 Séance Halloween',
+  // christmas: '🎄 Séance de Noël',
+};
+
+/** Handler du toggle dans la modale CRÉATION */
+async function _onSesEventToggle() {
+  const cb = document.getElementById('ses-event-tag');
+  const isEvent = !!(cb && cb.checked);
+  const theme = S.eventTheme || 'none';
+  const eventTag = (isEvent && theme !== 'none') ? theme : null;
+
+  // Cacher/afficher capacité
+  const capWrap = document.getElementById('ses-capacity-wrap');
+  if (capWrap) capWrap.classList.toggle('hidden', isEvent);
+
+  // Recharger le sélecteur de films avec le bon filtre
+  const sel = document.getElementById('ses-film');
+  if (sel) {
+    const films = await getAvailableFilmsForSession(null, null, eventTag);
+    sel.innerHTML = '<option value="">— À définir —</option>' +
+      films.map(f => `<option value="${f.id}">${f.title}</option>`).join('');
+  }
+}
+
+/** Handler du toggle dans la modale ÉDITION */
+async function _onEditSesEventToggle() {
+  const cb = document.getElementById('edit-ses-event-tag');
+  const isEvent = !!(cb && cb.checked);
+  const theme = S.eventTheme || 'none';
+  const eventTag = (isEvent && theme !== 'none') ? theme : null;
+
+  // Recharger le sélecteur de films avec le bon filtre
+  const sesId = document.getElementById('edit-ses-id')?.value || null;
+  const prevFilmId = document.getElementById('edit-ses-prev-film')?.value || null;
+  const sel = document.getElementById('edit-ses-film');
+  if (sel) {
+    const films = await getAvailableFilmsForSession(sesId, null, eventTag);
+    // Conserver le film actuel comme option même s'il ne match plus le filtre
+    const currentFilmInList = films.find(f => f.id === prevFilmId);
+    let merged = films;
+    if (prevFilmId && !currentFilmInList) {
+      // Récupérer le titre du film actuel
+      const opts = Array.from(sel.options);
+      const cur = opts.find(o => o.value === prevFilmId);
+      merged = films.concat([{ id: prevFilmId, title: (cur?.textContent || 'Film actuel') + ' (actuel)' }]);
+    }
+    sel.innerHTML = '<option value="">— À définir —</option>' +
+      merged.map(f => `<option value="${f.id}" ${f.id === prevFilmId ? 'selected' : ''}>${f.title}</option>`).join('');
+  }
 }
 
 async function openCreateSessionModal(prefilledFilmId = null) {
@@ -16878,8 +17020,48 @@ async function openCreateSessionModal(prefilledFilmId = null) {
   document.getElementById('ses-open').checked = true;
   document.getElementById('ses-capacity').value = '20';
 
-  // ✅ NOUVEAU : Utiliser la fonction centralisée pour récupérer les films disponibles
-  const films = await getAvailableFilmsForSession(null, prefilledFilmId);
+  // ----- Toggle événement (visible uniquement si thème actif) -----
+  const theme = S.eventTheme || 'none';
+  const wrap  = document.getElementById('ses-event-toggle-wrap');
+  const cb    = document.getElementById('ses-event-tag');
+  const lblEl = document.getElementById('ses-event-label');
+  const capWrap = document.getElementById('ses-capacity-wrap');
+
+  if (cb) cb.checked = false;
+  if (capWrap) capWrap.classList.remove('hidden');
+
+  if (wrap) {
+    if (theme === 'none') {
+      wrap.classList.add('hidden');
+    } else {
+      wrap.classList.remove('hidden');
+      if (lblEl) lblEl.textContent = SESSION_EVENT_LABELS[theme] || '🎉 Séance événement';
+    }
+  }
+
+  // Si on crée depuis un film prérempli, déterminer si le film est tagué
+  // → cocher automatiquement le toggle dans ce cas
+  let initialEventTag;
+  if (prefilledFilmId) {
+    const { data: f } = await db.from('films').select('event_tag').eq('id', prefilledFilmId).maybeSingle();
+    if (f?.event_tag && theme !== 'none' && f.event_tag === theme) {
+      if (cb) cb.checked = true;
+      if (capWrap) capWrap.classList.add('hidden');
+      initialEventTag = theme;
+    }
+  }
+
+  // Charger les films selon le tag actif (ou pas de filtre si pas de toggle)
+  // Note: si thème actif et toggle PAS coché → films généraux uniquement
+  // Si thème désactivé → pas de filtre (comportement legacy)
+  let eventTagForFilter;
+  if (theme === 'none') {
+    eventTagForFilter = undefined; // legacy
+  } else {
+    eventTagForFilter = (cb && cb.checked) ? theme : null;
+  }
+
+  const films = await getAvailableFilmsForSession(null, prefilledFilmId, eventTagForFilter);
   
   const sel = document.getElementById('ses-film');
   sel.innerHTML = '<option value="">— À définir —</option>' +
@@ -16894,6 +17076,9 @@ async function saveSession() {
   const date   = document.getElementById('ses-date').value;
   const time   = document.getElementById('ses-time').value || '20:00';
   const filmId = document.getElementById('ses-film').value || null;
+  const isEvent = !!document.getElementById('ses-event-tag')?.checked;
+  const theme = S.eventTheme || 'none';
+  const eventTag = (isEvent && theme !== 'none') ? theme : null;
 
   if (!date) {
   toast('Sélectionne une date', 'error');
@@ -16910,7 +17095,7 @@ if (!filmId) {
     return;
   }
 
-  console.log('[saveSession] Création séance - date:', date, 'time:', time, 'film:', filmId);
+  console.log('[saveSession] Création séance - date:', date, 'time:', time, 'film:', filmId, '| eventTag:', eventTag);
 
   const { data: insertedSession, error } = await db
     .from('cinema_sessions')
@@ -16920,7 +17105,8 @@ if (!filmId) {
       film_id:            filmId,
       registrations_open: document.getElementById('ses-open').checked,
       max_capacity:       parseInt(document.getElementById('ses-capacity').value) || 20,
-      notes: null
+      notes: null,
+      event_tag: eventTag
     })
     .select('id')
     .single();
@@ -16943,7 +17129,7 @@ if (!filmId) {
     await _notifyAllStudents(insertedSession.id, 'new_session');
   }
 
-  // Push notif vers tous les élèves
+  // Push notif vers tous les élèves (libellé adapté si séance Halloween)
   try {
     const filmTitle = filmId
       ? (document.getElementById('ses-film')?.selectedOptions[0]?.text || 'Séance')
@@ -16951,17 +17137,24 @@ if (!filmId) {
     const dateFmt = new Date(`${date}T${time}:00`)
       .toLocaleDateString('fr-FR', { weekday: 'long', day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit' });
     const isOpen = document.getElementById('ses-open')?.checked;
-    const bodyTxt = `${filmTitle} — ${dateFmt}.${isOpen ? ' Inscriptions ouvertes !' : ''}`;
+    let pushTitle, bodyTxt;
+    if (eventTag === 'halloween') {
+      pushTitle = '🎃 Séance Halloween prévue !';
+      bodyTxt = `${filmTitle} — ${dateFmt}. Tous les internes y sont conviés.`;
+    } else {
+      pushTitle = '🎬 Nouvelle séance';
+      bodyTxt = `${filmTitle} — ${dateFmt}.${isOpen ? ' Inscriptions ouvertes !' : ''}`;
+    }
     _invokeSendPush(
       { type: 'students_all' },
-      '🎬 Nouvelle séance',
+      pushTitle,
       bodyTxt,
       '/'
     );
   } catch (e) { console.warn('[push] new_session payload build:', e); }
 
   closeModal('modal-create-session');
-  toast('Séance créée 🎟️', 'success');
+  toast(eventTag === 'halloween' ? 'Séance Halloween créée 🎃' : 'Séance créée 🎟️', 'success');
   loadAdminSessions();
   
   // Rafraîchir l'accueil admin si on est sur cet onglet
