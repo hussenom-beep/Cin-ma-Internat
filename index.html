@@ -8592,7 +8592,11 @@ async function loadHome() {
       actionBtn = `<button class="session-banner-action is-disabled">🚫 Accès refusé</button>`;
     } else if (isRegistered) {
       actionBtn = `<button class="session-banner-action" style="background: linear-gradient(135deg, rgba(239,68,68,.12) 0%, rgba(239,68,68,.06) 100%); border-color: rgba(239,68,68,.3); color: var(--red);" onclick="event.stopPropagation(); toggleReg('${s.id}','unregister'); setTimeout(() => loadHome(), 500)">❌ Se désinscrire</button>`;
-    } else if (open && !full) {
+    } else if (full && open) {
+      // Plein mais ouvert → on peut rejoindre la liste d'attente
+      // (la RPC register_student_to_session bascule auto en 'waitlist')
+      actionBtn = `<button class="session-banner-action" onclick="event.stopPropagation(); toggleReg('${s.id}','register'); setTimeout(() => loadHome(), 500)">⏳ Rejoindre la liste d'attente</button>`;
+    } else if (open) {
       actionBtn = `<button class="session-banner-action" onclick="event.stopPropagation(); toggleReg('${s.id}','register'); setTimeout(() => loadHome(), 500)">➕ S'inscrire</button>`;
     } else if (full) {
       actionBtn = `<button class="session-banner-action is-disabled">🚫 Complet</button>`;
