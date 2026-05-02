@@ -7425,20 +7425,29 @@ function _invokeSendPush(target, title, body, url) {
   }
 
   // ============================================================
-  // FILTRAGE MAINTENANCE
-  // Pendant la maintenance, on bloque tous les push aux élèves
-  // sauf à l'élève de test autorisé. Les admins reçoivent toujours.
+  // FILTRAGE MAINTENANCE — WHITELIST STRICTE
+  // Pendant la maintenance, on bloque TOUS les push aux élèves
+  // (y compris les broadcasts type 'students_all').
+  // Seuls passent :
+  //   - les push 'admins' (admins toujours actifs)
+  //   - les push 'student' ciblés sur l'élève autorisé (testStudentId)
+  // Tout autre type (students_all, multi-élèves, etc.) est bloqué.
   // ============================================================
   const m = S.maintenance || { mode: 'off' };
   if (m.mode === 'on') {
-    if (targetObj.type === 'student') {
-      const allowed = m.testStudentId && targetObj.id === m.testStudentId;
-      if (!allowed) {
-        console.log('[push] bloqué par maintenance : target=student', targetObj.id, '(élève non autorisé) | titre="' + title + '"');
-        return;
-      }
+    let allowed = false;
+    if (targetObj.type === 'admins') {
+      allowed = true;
+    } else if (targetObj.type === 'student') {
+      allowed = !!(m.testStudentId && targetObj.id === m.testStudentId);
     }
-    // type 'admins' ou autre → on laisse passer (admins toujours actifs)
+    // Tous les autres types ('students_all', futurs types broadcast, etc.)
+    // restent à allowed=false et seront bloqués.
+
+    if (!allowed) {
+      console.log('[push] bloqué par maintenance : target=', targetObj, '| titre="' + title + '"');
+      return;
+    }
   }
   
   const payload = { 
