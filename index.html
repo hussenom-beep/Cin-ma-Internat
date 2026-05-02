@@ -746,6 +746,11 @@ button { cursor: pointer; }
   background: var(--red);
   box-shadow: 0 0 4px rgba(239, 68, 68, 0.4);
 }
+.live-dot[data-state="off"] {
+  background: var(--text-3);
+  opacity: .55;
+  box-shadow: none;
+}
 @keyframes live-dot-pulse-green {
   0%   { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.65); }
   70%  { transform: scale(1);    box-shadow: 0 0 0 7px rgba(34, 197, 94, 0);  }
@@ -15865,13 +15870,26 @@ let _sdCurrentStudentId = null;
 /* Ouverture par SQL id */
 async function openStudentDetail(studentId) {
   _sdCurrentStudentId = studentId;
-  const { data: s } = await db.from('students').select('*').eq('id', studentId).single();
+  // Charger en parallèle : fiche élève + état push de cet élève
+  const [studentRes, pushRes] = await Promise.all([
+    db.from('students').select('*').eq('id', studentId).single(),
+    db.from('push_subscriptions').select('id', { count: 'exact', head: true })
+      .eq('student_id', studentId).eq('active', true),
+  ]);
+  const s = studentRes.data;
   if (!s) { toast('Élève introuvable', 'error'); return; }
+
+  // Mise à jour du cache pour ce student précis
+  if ((pushRes.count || 0) > 0) _studentsWithPush.add(studentId);
+  else _studentsWithPush.delete(studentId);
+
+  // Pastille notif à côté du nom (header + corps)
+  const notifDotHtml = _renderNotifDot(s);
 
   document.getElementById('sd-header-title').textContent = `${s.first_name} ${s.last_name}`;
   const initials = ((s.first_name?.[0] || '') + (s.last_name?.[0] || '')).toUpperCase() || '?';
   document.getElementById('sd-avatar').textContent = initials;
-  document.getElementById('sd-name').textContent   = `${s.first_name} ${s.last_name}`;
+  document.getElementById('sd-name').innerHTML     = `${notifDotHtml}${s.first_name} ${s.last_name}`;
 
   const classBadge = document.getElementById('sd-class-badge');
   classBadge.className   = 'profile-class';
@@ -16900,13 +16918,45 @@ function _sexeBadgeHTML(sexe) {
 }
 
 async function loadAdminStudents() {
-  const { data } = await db.from('students').select('*').order('last_name');
-  _studentsAll = data || [];
+  // Chargement parallèle : élèves + IDs des élèves ayant au moins une push_subscription active
+  const [studentsRes, pushRes] = await Promise.all([
+    db.from('students').select('*').order('last_name'),
+    db.from('push_subscriptions').select('student_id').eq('active', true).not('student_id', 'is', null),
+  ]);
+  _studentsAll = studentsRes.data || [];
+  // Set des student_id ayant au moins un device avec notifs ON (lookup O(1))
+  _studentsWithPush = new Set((pushRes.data || []).map(r => r.student_id));
+
   // Réinitialiser les filtres au chargement
   document.getElementById('filter-visibility').value = 'active';
   document.getElementById('filter-activation').value = 'all';
   document.getElementById('filter-sexe').value = 'all';
   _renderStudentTable();
+}
+
+// Cache des élèves ayant au moins une push_subscription active
+// (rempli par loadAdminStudents et openStudentDetail)
+let _studentsWithPush = new Set();
+
+/* Retourne le HTML d'une pastille "live" pour l'état notif d'un élève.
+   3 états :
+   - off  (gris fixe)  : compte non activé OU élève archivé
+   - open (vert pulse) : compte activé + au moins un device avec notifs ON
+   - closed (rouge fixe) : compte activé mais aucun device actif
+   Inclut un title pour le tooltip natif au survol. */
+function _renderNotifDot(student) {
+  if (!student) return '';
+  let state, title;
+  if (!student.is_active) {
+    state = 'off';  title = 'Élève archivé';
+  } else if (!student.is_activated) {
+    state = 'off';  title = 'Compte pas encore activé';
+  } else if (_studentsWithPush.has(student.id)) {
+    state = 'open'; title = 'Notifications activées sur au moins un appareil';
+  } else {
+    state = 'closed'; title = 'Compte activé, mais notifications désactivées';
+  }
+  return `<span class="live-dot" data-state="${state}" title="${title}"></span>`;
 }
 
 function _renderStudentTable() {
@@ -17006,7 +17056,7 @@ function _renderStudentTable() {
         </span>
       </td>
       <td>
-        <span onclick="event.stopPropagation(); openStudentDetail('${s.id}')" style="cursor:pointer; text-decoration:underline; text-decoration-color:rgba(0,0,0,0.15);">
+        ${_renderNotifDot(s)}<span onclick="event.stopPropagation(); openStudentDetail('${s.id}')" style="cursor:pointer; text-decoration:underline; text-decoration-color:rgba(0,0,0,0.15);">
           ${s.first_name || '—'}
         </span>
       </td>
@@ -17566,9 +17616,26 @@ async function importStudentsFromSettings() {
       s.is_active && s.eleve_uid && !incomingUids.has(s.eleve_uid)
     );
     if (toArchive.length) {
+      const archivedIds = toArchive.map(s => s.id);
       await db.from('students').update({ is_active: false })
-        .in('id', toArchive.map(s => s.id));
+        .in('id', archivedIds);
       archived = toArchive.length;
+
+      // Couper les notifications push de tous les élèves archivés en masse
+      // (sinon ils continueraient à recevoir les notifs sur leur device)
+      try {
+        const { error: pushErr } = await db.from('push_subscriptions')
+          .update({
+            active: false,
+            last_error: 'student_archived',
+            last_seen_at: new Date().toISOString(),
+          })
+          .in('student_id', archivedIds)
+          .eq('active', true);
+        if (pushErr) console.warn('[bulk archive] update push_subs:', pushErr);
+      } catch (e) {
+        console.warn('[bulk archive] push sync exception:', e);
+      }
     }
     // Reset votes
     await db.from('votes').delete().neq('id', '00000000-0000-0000-0000-000000000000');
@@ -17659,10 +17726,50 @@ async function confirmArchiveStudent() {
   const { error } = await db.from('students').update({ is_active: newActive }).eq('id', studentId);
   if (error) { toast('Erreur lors de l\'opération', 'error'); return; }
 
+  // Synchroniser push_subscriptions avec l'état d'activité de l'élève.
+  // - Archivage : désactiver toutes ses subscriptions (les notifs cessent immédiatement)
+  // - Désarchivage : on ne réactive PAS automatiquement (token peut être expiré).
+  //   On enlève juste le marqueur d'erreur 'student_archived' pour pas bloquer
+  //   une future ré-inscription. L'élève cliquera "Activer notifications"
+  //   à sa prochaine connexion comme un nouveau device.
+  await _syncPushSubscriptionsOnArchive(studentId, newActive);
+
   closeModal('modal-archive-student');
   toast(newActive ? 'Élève désarchivé — connexion à nouveau possible' : 'Élève archivé', 'success');
   openStudentDetail(studentId);
   loadAdminStudents();
+}
+
+/* Met à jour les push_subscriptions liées à un élève selon son état d'activité.
+   - isActive=false (archivé) : passe active=false + last_error='student_archived'
+   - isActive=true  (désarchivé) : retire le marqueur si présent (n'active rien)
+   Erreurs non bloquantes : warn console et continue. */
+async function _syncPushSubscriptionsOnArchive(studentId, isActive) {
+  if (!studentId) return;
+  try {
+    if (!isActive) {
+      // Archivage : on coupe toutes les subs actives de cet élève
+      const { error } = await db.from('push_subscriptions')
+        .update({
+          active: false,
+          last_error: 'student_archived',
+          last_seen_at: new Date().toISOString(),
+        })
+        .eq('student_id', studentId)
+        .eq('active', true);
+      if (error) console.warn('[archive] update push_subs (off):', error);
+    } else {
+      // Désarchivage : nettoyage du marqueur uniquement
+      // (on ne remet PAS active=true, l'élève doit re-souscrire proprement)
+      const { error } = await db.from('push_subscriptions')
+        .update({ last_error: null })
+        .eq('student_id', studentId)
+        .eq('last_error', 'student_archived');
+      if (error) console.warn('[archive] update push_subs (clear flag):', error);
+    }
+  } catch (e) {
+    console.warn('[archive] _syncPushSubscriptionsOnArchive exception:', e);
+  }
 }
 
 /* Réinitialisation du code PIN élève */
