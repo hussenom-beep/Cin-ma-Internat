@@ -1726,6 +1726,96 @@ body.theme-christmas .s-header {
   font-size: 16px;
 }
 
+/* ================================================================
+   BANNIÈRE NOTIFICATIONS PUSH (variante "alerte" du même slot)
+   ----------------------------------------------------------------
+   Réutilise la structure .pwa-install-banner (même position, même
+   pulse). On change juste légèrement la teinte pour différencier
+   visuellement les deux bannières (jaune vs bleu doré).
+   ================================================================ */
+.push-prompt-banner {
+  background: linear-gradient(135deg, rgba(240,165,0,.10) 0%, rgba(240,165,0,.04) 100%);
+  border: 1px solid rgba(240,165,0,.35);
+  border-radius: var(--radius-md);
+  padding: 16px 18px;
+  margin-top: 18px;
+  margin-bottom: 0;
+  position: relative;
+  overflow: hidden;
+  animation: pwaBannerPulse 3.5s ease-in-out infinite;
+}
+.push-prompt-banner-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.push-prompt-banner-icon {
+  font-size: 22px;
+  filter: drop-shadow(0 2px 6px rgba(240,165,0,.4));
+  animation: pushBellRing 2.4s ease-in-out infinite;
+  transform-origin: top center;
+}
+@keyframes pushBellRing {
+  0%, 50%, 100% { transform: rotate(0); }
+  10%           { transform: rotate(-12deg); }
+  20%           { transform: rotate(10deg); }
+  30%           { transform: rotate(-6deg); }
+  40%           { transform: rotate(4deg); }
+}
+.push-prompt-banner-title {
+  flex: 1;
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--gold);
+}
+.push-prompt-banner-text {
+  font-size: 13px;
+  color: var(--text-2);
+  line-height: 1.5;
+  margin-bottom: 14px;
+}
+.push-prompt-banner-btn {
+  width: 100%;
+  padding: 11px 14px;
+  background: var(--gold);
+  color: #000;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all .15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.push-prompt-banner-btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+.push-prompt-banner-btn:active { transform: translateY(0); }
+
+/* Variante "denied" : couleur plus orangée (alerte non agressive) */
+.push-prompt-banner.is-denied {
+  background: linear-gradient(135deg, rgba(255,148,77,.08) 0%, rgba(255,148,77,.03) 100%);
+  border-color: rgba(255,148,77,.35);
+}
+.push-prompt-banner.is-denied .push-prompt-banner-title { color: #ffb066; }
+.push-prompt-banner.is-denied .push-prompt-banner-icon { filter: drop-shadow(0 2px 6px rgba(255,148,77,.4)); }
+.push-prompt-banner.is-denied .push-prompt-banner-btn {
+  background: rgba(255,148,77,.15);
+  color: #ffb066;
+  border: 1px solid rgba(255,148,77,.4);
+}
+.push-prompt-banner.is-denied .push-prompt-banner-btn:hover {
+  background: rgba(255,148,77,.22);
+  filter: none;
+}
+
+/* Modale "barrière douce" notifications — héritée du style PWA firstlogin */
+#modal-push-firstlogin .sheet { text-align: center; padding-top: 28px; }
+#modal-push-firstlogin .pwa-flogin-emoji { animation: pushBellRing 2.4s ease-in-out infinite; }
+
 /* Encart d'aide notifications (visible uniquement quand needs_pwa) */
 .push-help-box {
   background: rgba(240, 165, 0, 0.04);
@@ -6510,6 +6600,164 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 </div>
 
 <!-- ================================================================
+     PUSH — Modale "barrière douce" au premier lancement de la PWA
+     ================================================================
+     Affichée une fois quand l'élève ouvre la PWA et que les notifs
+     ne sont pas encore activées. L'élève doit choisir : activer
+     (déclenche la demande native) ou plus tard (laisse la bannière).
+-->
+<div class="overlay hidden" id="modal-push-firstlogin">
+  <div class="sheet" onclick="event.stopPropagation()" style="max-width:440px;">
+    <div class="pwa-flogin-emoji">🔔</div>
+    <div class="pwa-flogin-title">Active les notifications !</div>
+    <div class="pwa-flogin-subtitle">
+      Sois prévenu(e) en direct des séances, des fermetures de dernière minute<br>et des messages des surveillants.
+    </div>
+
+    <div class="pwa-flogin-perks">
+      <div>🎬 <strong>Séances</strong> annoncées dès l'ouverture des inscriptions</div>
+      <div>📩 <strong>Messages</strong> du surveillant en direct</div>
+      <div>🪑 <strong>Place libérée</strong> en liste d'attente — prévenu(e) automatiquement</div>
+    </div>
+
+    <button class="btn btn-gold btn-full btn-lg" onclick="pushPromptActivate()">
+      🔔 Activer maintenant
+    </button>
+    <button class="btn btn-ghost btn-full" style="margin-top:10px;" onclick="closeModal('modal-push-firstlogin')">
+      Plus tard
+    </button>
+  </div>
+</div>
+
+<!-- ================================================================
+     PUSH — Modale "comment réactiver après refus" (iOS Safari PWA)
+     ================================================================
+     Affichée si Notification.permission === 'denied'. Un refus système
+     est définitif et le navigateur ne re-prompte plus : l'élève doit
+     aller manuellement dans les paramètres système pour réautoriser.
+-->
+<div class="overlay hidden" id="modal-push-tuto-ios">
+  <div class="sheet" onclick="event.stopPropagation()" style="max-width:440px;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" style="text-align:center;">🔔 Réactiver les notifications (iPhone)</div>
+    <p class="text-sm text-muted" style="margin-bottom:16px;text-align:center;">
+      Tu as refusé les notifications. Pour les réactiver, il faut passer<br>par les <strong>Réglages</strong> de ton iPhone.
+    </p>
+
+    <div class="pwa-ios-tuto-step">
+      <div class="pwa-ios-tuto-num">1</div>
+      <div class="pwa-ios-tuto-content">
+        Ouvre l'app <span class="pwa-ios-tuto-icon">⚙️</span> <strong>Réglages</strong> de ton iPhone.
+      </div>
+    </div>
+
+    <div class="pwa-ios-tuto-step">
+      <div class="pwa-ios-tuto-num">2</div>
+      <div class="pwa-ios-tuto-content">
+        Fais défiler jusqu'à <strong>Cinéma Internat</strong> (en bas, dans la liste des apps).
+      </div>
+    </div>
+
+    <div class="pwa-ios-tuto-step">
+      <div class="pwa-ios-tuto-num">3</div>
+      <div class="pwa-ios-tuto-content">
+        Touche <strong>Notifications</strong> puis active <strong>Autoriser les notifications</strong>.
+      </div>
+    </div>
+
+    <div style="background:rgba(240,165,0,.08);border:1px solid rgba(240,165,0,.3);border-radius:8px;padding:10px 12px;margin-top:14px;font-size:12.5px;color:var(--text-2);">
+      💡 Reviens ensuite ici et recharge la page pour finaliser.
+    </div>
+
+    <button class="btn btn-gold btn-full" style="margin-top:16px;" onclick="closeModal('modal-push-tuto-ios')">
+      ✓ Compris
+    </button>
+  </div>
+</div>
+
+<!-- ================================================================
+     PUSH — Modale "comment réactiver après refus" (Android Chrome)
+     ================================================================
+-->
+<div class="overlay hidden" id="modal-push-tuto-android">
+  <div class="sheet" onclick="event.stopPropagation()" style="max-width:440px;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" style="text-align:center;">🔔 Réactiver les notifications (Android)</div>
+    <p class="text-sm text-muted" style="margin-bottom:16px;text-align:center;">
+      Tu as refusé les notifications. Voici comment les réactiver :
+    </p>
+
+    <div class="pwa-ios-tuto-step">
+      <div class="pwa-ios-tuto-num">1</div>
+      <div class="pwa-ios-tuto-content">
+        Touche le menu <span class="pwa-ios-tuto-icon">⋮</span> en haut à droite (ou les 3 points).
+      </div>
+    </div>
+
+    <div class="pwa-ios-tuto-step">
+      <div class="pwa-ios-tuto-num">2</div>
+      <div class="pwa-ios-tuto-content">
+        Choisis <strong>Infos sur le site</strong> ou <strong>Paramètres du site</strong>.
+      </div>
+    </div>
+
+    <div class="pwa-ios-tuto-step">
+      <div class="pwa-ios-tuto-num">3</div>
+      <div class="pwa-ios-tuto-content">
+        Touche <strong>Notifications</strong> puis sélectionne <strong>Autoriser</strong>.
+      </div>
+    </div>
+
+    <div style="background:rgba(240,165,0,.08);border:1px solid rgba(240,165,0,.3);border-radius:8px;padding:10px 12px;margin-top:14px;font-size:12.5px;color:var(--text-2);">
+      💡 Si l'app est installée, tu peux aussi maintenir l'icône → <strong>Infos</strong> → <strong>Notifications</strong>.
+    </div>
+
+    <button class="btn btn-gold btn-full" style="margin-top:16px;" onclick="closeModal('modal-push-tuto-android')">
+      ✓ Compris
+    </button>
+  </div>
+</div>
+
+<!-- ================================================================
+     PUSH — Modale "comment réactiver après refus" (Desktop)
+     ================================================================
+-->
+<div class="overlay hidden" id="modal-push-tuto-desktop">
+  <div class="sheet" onclick="event.stopPropagation()" style="max-width:440px;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" style="text-align:center;">🔔 Réactiver les notifications</div>
+    <p class="text-sm text-muted" style="margin-bottom:16px;text-align:center;">
+      Tu as refusé les notifications. Pour les réactiver depuis le navigateur :
+    </p>
+
+    <div class="pwa-ios-tuto-step">
+      <div class="pwa-ios-tuto-num">1</div>
+      <div class="pwa-ios-tuto-content">
+        Clique sur l'icône <span class="pwa-ios-tuto-icon">🔒</span> à gauche de l'URL dans la barre d'adresse.
+      </div>
+    </div>
+
+    <div class="pwa-ios-tuto-step">
+      <div class="pwa-ios-tuto-num">2</div>
+      <div class="pwa-ios-tuto-content">
+        Trouve la ligne <strong>Notifications</strong> et change-la sur <strong>Autoriser</strong>.
+      </div>
+    </div>
+
+    <div class="pwa-ios-tuto-step">
+      <div class="pwa-ios-tuto-num">3</div>
+      <div class="pwa-ios-tuto-content">
+        Recharge la page pour finaliser.
+      </div>
+    </div>
+
+    <button class="btn btn-gold btn-full" style="margin-top:16px;" onclick="closeModal('modal-push-tuto-desktop')">
+      ✓ Compris
+    </button>
+  </div>
+</div>
+
+<!-- ================================================================
      MODAL: FAQ / Aide élève
      ================================================================ -->
 <div class="overlay hidden" id="modal-student-faq">
@@ -7945,10 +8193,13 @@ function pwaCheckAndShow() {
   _pwaCheckedThisLoad = true;
 
   // Vraie source de vérité : on est-il en standalone ?
-  // Si OUI → app installée, rien à montrer + on note le succès.
+  // Si OUI → app installée. La bannière PWA install n'a plus à être
+  // affichée. Mais on enchaîne sur le check notifications.
   if (_pwaIsStandalone()) {
     _pwaHideBanner();
     try { localStorage.setItem('cinema_pwa_user_installed', 'true'); } catch (_) {}
+    // Maintenant qu'on est dans la PWA, on peut prompter pour les notifs
+    pushPromptCheckAndShow();
     return;
   }
 
@@ -7974,6 +8225,187 @@ function pwaCheckAndShow() {
 
   // Logins suivants → bannière persistante
   _pwaRenderBanner();
+}
+
+/* ================================================================
+   PUSH PROMPT — Bannière & modale d'invitation à activer les notifs
+   ----------------------------------------------------------------
+   Stratégie :
+   - Ne s'active QUE si l'app est en standalone (PWA installée)
+   - Au tout premier lancement de la PWA : modale obligatoire
+     "Active les notifs" (700ms après le loadHome)
+   - Aux lancements suivants si pas activées : bannière persistante
+     dans le même slot que la bannière PWA install
+   - Si l'élève a refusé (Notification.permission === 'denied') :
+     bannière "comment réactiver" avec modale tutoriel par OS
+   - Si activées (granted + subscription valide) → tout caché
+
+   Persistance localStorage :
+   - cinema_push_first_seen : true après la 1re modale
+*/
+
+let _pushPromptCheckedThisLoad = false;
+
+/** Render de la bannière. Variante différente selon état :
+    - 'available' : invitation classique (pulsation dorée + cloche)
+    - 'denied'    : avertissement "comment réactiver"
+*/
+function _pushPromptRenderBanner(state) {
+  const host = document.getElementById('pwa-install-banner-host');
+  if (!host) return;
+
+  if (state === 'denied') {
+    host.innerHTML = `
+      <div class="push-prompt-banner is-denied">
+        <div class="push-prompt-banner-header">
+          <div class="push-prompt-banner-icon">🔕</div>
+          <div class="push-prompt-banner-title">Notifications bloquées</div>
+        </div>
+        <div class="push-prompt-banner-text">
+          Tu as refusé les notifications. Pour ne plus rien manquer (séances, places libérées, messages), réactive-les en quelques clics.
+        </div>
+        <button class="push-prompt-banner-btn" onclick="pushPromptShowReactivationTuto()">
+          📖 Voir comment réactiver
+        </button>
+      </div>
+    `;
+  } else {
+    host.innerHTML = `
+      <div class="push-prompt-banner">
+        <div class="push-prompt-banner-header">
+          <div class="push-prompt-banner-icon">🔔</div>
+          <div class="push-prompt-banner-title">Active les notifications</div>
+        </div>
+        <div class="push-prompt-banner-text">
+          Sois prévenu(e) en direct des séances, places libérées et messages des surveillants.
+        </div>
+        <button class="push-prompt-banner-btn" onclick="pushPromptActivate()">
+          🔔 Activer maintenant
+        </button>
+      </div>
+    `;
+  }
+  host.classList.remove('hidden');
+}
+
+function _pushPromptHideBanner() {
+  const host = document.getElementById('pwa-install-banner-host');
+  if (host) {
+    host.innerHTML = '';
+    host.classList.add('hidden');
+  }
+}
+
+/** Déclenché par les boutons "Activer maintenant" (bannière OU modale firstlogin).
+    Appelle togglePushNotifications qui gère tout :
+    - demande de permission native
+    - subscription PushManager
+    - persistance en BDD
+    - refresh des boutons UI
+    Après l'opération, on relit l'état pour adapter la bannière. */
+async function pushPromptActivate() {
+  closeModal('modal-push-firstlogin');
+
+  // Lance le flow d'activation existant
+  await togglePushNotifications();
+
+  // Re-vérifier l'état pour mettre à jour la bannière
+  const status = _getPushSupportStatus();
+  if (status === 'granted') {
+    _pushPromptHideBanner();
+    // togglePushNotifications affiche déjà son toast de succès
+  } else if (status === 'denied') {
+    // L'élève a refusé au popup natif → bannière "comment réactiver"
+    _pushPromptRenderBanner('denied');
+  } else {
+    // Toujours en 'available' (l'élève a peut-être fermé le popup)
+    _pushPromptRenderBanner('available');
+  }
+}
+
+/** Ouvre la modale tutoriel correspondant à la plateforme */
+function pushPromptShowReactivationTuto() {
+  const platform = _detectPlatform();
+  if (platform === 'ios') {
+    openModal('modal-push-tuto-ios');
+  } else if (platform === 'android') {
+    openModal('modal-push-tuto-android');
+  } else {
+    openModal('modal-push-tuto-desktop');
+  }
+}
+
+/** Décide quoi afficher concernant les notifications.
+    À appeler UNIQUEMENT en standalone (la PWA est déjà installée).
+    NE FAIT RIEN pour les comptes admin.
+    
+    États possibles renvoyés par _getPushSupportStatus :
+    - 'unsupported' → rien (navigateur incompatible)
+    - 'needs_pwa'   → ne devrait pas arriver ici (on est standalone)
+    - 'granted'     → notifs OK : tout caché
+    - 'denied'      → bannière "comment réactiver"
+    - 'available'   → premier login PWA = modale + bannière, sinon bannière
+*/
+async function pushPromptCheckAndShow() {
+  // Pas pour admin
+  if (S?.isAdmin) {
+    _pushPromptHideBanner();
+    return;
+  }
+  if (_pushPromptCheckedThisLoad) return;
+  _pushPromptCheckedThisLoad = true;
+
+  const status = _getPushSupportStatus();
+
+  // Cas où il n'y a rien à proposer
+  if (status === 'unsupported' || status === 'needs_pwa') {
+    _pushPromptHideBanner();
+    return;
+  }
+
+  // Si déjà accordé, vérifier qu'on a bien une subscription active.
+  // Si pas de sub (ex. nettoyage navigateur) → re-souscrire silencieusement.
+  if (status === 'granted') {
+    try {
+      const sub = await _getCurrentPushSubscription();
+      if (sub) {
+        _pushPromptHideBanner();
+        return;
+      }
+      // Permission OK mais pas de sub → re-souscrire (sans modale)
+      console.log('[push prompt] permission granted mais pas de sub → re-subscription silencieuse');
+      await enablePushNotifications();
+      _pushPromptHideBanner();
+      return;
+    } catch (e) {
+      console.warn('[push prompt] re-subscription:', e);
+      _pushPromptHideBanner();
+      return;
+    }
+  }
+
+  // Cas 'denied' : bannière persistante avec tutoriel
+  if (status === 'denied') {
+    _pushPromptRenderBanner('denied');
+    return;
+  }
+
+  // Cas 'available' : on peut proposer
+  let firstSeen = false;
+  try {
+    firstSeen = localStorage.getItem('cinema_push_first_seen') === 'true';
+  } catch (_) {}
+
+  if (!firstSeen) {
+    // Premier lancement de la PWA → modale obligatoire
+    try { localStorage.setItem('cinema_push_first_seen', 'true'); } catch (_) {}
+    setTimeout(() => openModal('modal-push-firstlogin'), 700);
+    _pushPromptRenderBanner('available');
+    return;
+  }
+
+  // Lancements suivants → bannière persistante
+  _pushPromptRenderBanner('available');
 }
 
 /* ================================================================
