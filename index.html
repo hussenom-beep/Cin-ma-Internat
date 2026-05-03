@@ -7885,27 +7885,55 @@ async function pwaTriggerInstall() {
   openModal('modal-add-to-home');
 }
 
-/** L'élève déclare avoir installé. On note + relance dans 24h pour vérifier.
-    Si à la prochaine ouverture l'app n'est PAS en standalone, on remontre
-    la bannière. Si elle est en standalone, on confirme l'installation. */
+/** L'élève déclare avoir installé.
+    Vérification immédiate : on regarde tout de suite si l'app
+    tourne en standalone. Si OUI → confirmation. Si NON → on
+    refuse la déclaration et on garde la bannière visible.
+    
+    Ce comportement protège contre les "J'ai installé" mensongers
+    sur iOS Safari (où on peut détecter le standalone via
+    navigator.standalone). L'élève ne peut pas faire disparaitre
+    la bannière en mentant — il doit vraiment installer pour
+    que la prochaine ouverture depuis l'écran d'accueil détecte
+    le standalone. */
 function pwaUserClaimsInstalled() {
-  try {
-    localStorage.setItem('cinema_pwa_user_installed', 'true');
-    // Programmer une vérification dans 24h : si à ce moment-là l'app n'est
-    // toujours pas en standalone, on remontrera la bannière.
-    const recheckAt = Date.now() + 24 * 60 * 60 * 1000;
-    localStorage.setItem('cinema_pwa_claim_recheck', String(recheckAt));
-  } catch (_) {}
+  // Vérification immédiate : sommes-nous vraiment en standalone ?
+  if (_pwaIsStandalone()) {
+    // ✅ Vrai standalone → on confirme et on cache tout
+    try { localStorage.setItem('cinema_pwa_user_installed', 'true'); } catch (_) {}
+    closeModal('modal-pwa-firstlogin');
+    closeModal('modal-pwa-ios-tuto');
+    _pwaHideBanner();
+    toast('🎉 App installée — merci !', 'success');
+    return;
+  }
 
+  // ❌ Pas en standalone → la déclaration est probablement fausse
+  // (l'élève est encore dans le navigateur classique).
+  // On NE l'enregistre PAS dans localStorage : la bannière restera
+  // visible au prochain reload tant qu'on n'est pas en standalone.
   closeModal('modal-pwa-firstlogin');
   closeModal('modal-pwa-ios-tuto');
-  _pwaHideBanner();
-  toast("Parfait ! Si jamais l'app n'est pas vraiment installée, on te le rappellera 😉", 'success');
+
+  // Message clair pour ne pas frustrer
+  toast(
+    "Tu n'es pas encore dans l'app installée. Lance-la depuis ton écran d'accueil pour finaliser.",
+    'info'
+  );
+
+  // On laisse la bannière visible (re-render au cas où elle aurait été masquée)
+  _pwaRenderBanner();
 }
 
 /** Décide quoi afficher après le login d'un élève.
     À appeler après l'arrivée sur l'accueil élève (loadHome).
-    NE FAIT RIEN pour les comptes admin (S.isAdmin === true). */
+    NE FAIT RIEN pour les comptes admin (S.isAdmin === true).
+
+    Logique :
+    - Si l'app est en standalone (vraiment installée) → tout caché
+    - Sinon, premier login (pas de localStorage) → modale obligatoire
+    - Sinon, logins suivants → bannière persistante
+*/
 function pwaCheckAndShow() {
   // Pas pour admin
   if (S?.isAdmin) {
@@ -7916,38 +7944,23 @@ function pwaCheckAndShow() {
   if (_pwaCheckedThisLoad) return;
   _pwaCheckedThisLoad = true;
 
-  // Déjà installée → rien à faire
+  // Vraie source de vérité : on est-il en standalone ?
+  // Si OUI → app installée, rien à montrer + on note le succès.
   if (_pwaIsStandalone()) {
     _pwaHideBanner();
     try { localStorage.setItem('cinema_pwa_user_installed', 'true'); } catch (_) {}
     return;
   }
 
-  // Lecture localStorage (try/catch au cas où le storage est bloqué)
+  // Pas en standalone → on doit afficher quelque chose.
+  // (On ignore tout localStorage user_installed : seul le standalone fait foi.
+  //  Si l'élève a menti, la bannière revient à chaque reload tant qu'il
+  //  n'est pas dans la vraie PWA.)
+
   let firstSeen = false;
-  let userClaimsInstalled = false;
-  let recheckTs = 0;
   try {
-    firstSeen           = localStorage.getItem('cinema_pwa_first_seen') === 'true';
-    userClaimsInstalled = localStorage.getItem('cinema_pwa_user_installed') === 'true';
-    recheckTs           = parseInt(localStorage.getItem('cinema_pwa_claim_recheck') || '0', 10);
+    firstSeen = localStorage.getItem('cinema_pwa_first_seen') === 'true';
   } catch (_) {}
-
-  // Cas "élève a dit installé mais on est pas en standalone" + délai écoulé
-  // → on annule la déclaration et on re-prompt
-  if (userClaimsInstalled && recheckTs && Date.now() > recheckTs) {
-    try {
-      localStorage.removeItem('cinema_pwa_user_installed');
-      localStorage.removeItem('cinema_pwa_claim_recheck');
-    } catch (_) {}
-    userClaimsInstalled = false;
-  }
-
-  if (userClaimsInstalled) {
-    // L'élève prétend avoir installé → on le croit (recheck pas encore atteint)
-    _pwaHideBanner();
-    return;
-  }
 
   // Premier login → modale obligatoire
   if (!firstSeen) {
