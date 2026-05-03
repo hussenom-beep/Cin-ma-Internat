@@ -851,16 +851,23 @@ body.theme-halloween .s-header {
 }
 
 /* ================================================================
-   THÈME NOËL — palette rouge / vert sapin / or chaud
-   Suit la même logique que le thème Halloween mais avec
-   des accents festifs et chaleureux.
+   THÈME NOËL — surcharges activées via body.theme-christmas
+   ================================================================
+   Palette "Noël magique" : vert sapin profond + or chaud.
+   Donne une vraie ambiance immersive distincte du classique
+   tout en restant cohérente avec les bandeaux/fonds Noël
+   (qui contiennent du vert sapin, du rouge baie et de l'or).
    ================================================================ */
 body.theme-christmas {
-  --gold:        #e8b04b;   /* or chaud légèrement plus orangé */
-  --gold-light:  #f5c772;
-  --gold-dark:   #b88835;
-  --gold-soft:   rgba(232,176,75,0.18);
-  --gold-glow:   rgba(232,176,75,0.40);
+  --bg:          #0e1f17;     /* vert sapin très sombre */
+  --surface:     #14271c;     /* vert profond pour les cartes */
+  --surface-2:   #1a3225;     /* vert un peu plus clair */
+  --surface-3:   #224030;     /* vert "branche éclairée" */
+  --border:      #2a4a35;
+  --border-2:    #3d6048;
+  --gold:        #e8c547;     /* or chaud "lumière de bougie" */
+  --gold-dim:    rgba(232,197,71,0.14);
+  --gold-glow:   rgba(232,197,71,0.40);
 }
 
 /* Fond d'écran Noël pour l'écran de connexion — mobile par défaut */
@@ -882,7 +889,7 @@ body.theme-christmas .login-cinema-icon::before {
   font-size: 0.5em;
   top: -8%;
   right: -18%;
-  filter: drop-shadow(0 2px 4px rgba(232,176,75,0.5));
+  filter: drop-shadow(0 2px 4px rgba(232,197,71,0.5));
   animation: xmas-tree-bob 3.5s ease-in-out infinite;
 }
 @keyframes xmas-tree-bob {
@@ -896,12 +903,12 @@ body.theme-christmas .login-hero-img {
   max-width: 220px;
   width: 60%;
   margin: 0 auto 18px;
-  filter: drop-shadow(0 8px 16px rgba(232,176,75,0.25));
+  filter: drop-shadow(0 8px 16px rgba(232,197,71,0.25));
   animation: xmas-hero-glow 4s ease-in-out infinite;
 }
 @keyframes xmas-hero-glow {
-  0%, 100% { filter: drop-shadow(0 8px 16px rgba(232,176,75,0.25)); }
-  50%      { filter: drop-shadow(0 12px 24px rgba(232,176,75,0.45)); }
+  0%, 100% { filter: drop-shadow(0 8px 16px rgba(232,197,71,0.25)); }
+  50%      { filter: drop-shadow(0 12px 24px rgba(232,197,71,0.45)); }
 }
 
 /* Sapin à côté du titre "Bienvenue, Matthias" sur la home admin */
@@ -20728,20 +20735,49 @@ function initLoginParticles() {
   resizeCanvas();
   window.addEventListener('resize', resizeCanvas);
 
+  /* ----------------------------------------------------------------
+     CONFIGURATION DES PARTICULES SELON LE THÈME ACTIF
+     ----------------------------------------------------------------
+     - Classique : petites boules dorées chaudes (#f0a500)
+     - Halloween : petites particules orange citrouille
+     - Noël     : flocons blancs argentés (forme de flocon dessinée)
+     Le thème est détecté à l'init (via la classe sur <body>).
+  */
+  const themeBody = document.body;
+  let particleTheme = 'classic';
+  if (themeBody.classList.contains('theme-halloween')) particleTheme = 'halloween';
+  else if (themeBody.classList.contains('theme-christmas')) particleTheme = 'christmas';
+
+  // Couleur RGB selon thème (utilisée dans rgba())
+  const PARTICLE_COLORS = {
+    classic:   '240, 165, 0',     // doré classique
+    halloween: '255, 122, 0',     // orange citrouille
+    christmas: '230, 240, 255',   // blanc bleuté (neige)
+  };
+  const particleRGB = PARTICLE_COLORS[particleTheme];
+
   // Classe Particule OPTIMISÉE
   class Particle {
     constructor() {
       this.reset();
       this.y = Math.random() * canvas.height;
       this.baseOpacity = Math.random() * 0.4 + 0.2;
+      // Pour les flocons : rotation aléatoire (Noël)
+      this.rotation = Math.random() * Math.PI * 2;
+      this.rotSpeed = (Math.random() - 0.5) * 0.02;
     }
 
     reset() {
       this.x = Math.random() * canvas.width;
       this.y = -20;
-      this.size = isMobile ? Math.random() * 2 + 0.5 : Math.random() * 3 + 0.5;
-      this.speedY = isMobile ? Math.random() * 0.4 + 0.15 : Math.random() * 0.3 + 0.1;
-      this.speedX = (Math.random() - 0.5) * 0.15;
+      // Les flocons (Noël) sont un peu plus gros pour qu'on voit la forme
+      const sizeBoost = (particleTheme === 'christmas') ? 1.6 : 1;
+      this.size = (isMobile ? Math.random() * 2 + 0.5 : Math.random() * 3 + 0.5) * sizeBoost;
+      // Vitesse : plus lent pour les flocons (poésie de la chute)
+      const speedMul = (particleTheme === 'christmas') ? 0.7 : 1;
+      this.speedY = (isMobile ? Math.random() * 0.4 + 0.15 : Math.random() * 0.3 + 0.1) * speedMul;
+      // Mouvement latéral : ondulant pour les flocons
+      this.speedX = (Math.random() - 0.5) * (particleTheme === 'christmas' ? 0.25 : 0.15);
       this.baseOpacity = Math.random() * 0.4 + 0.2;
       this.twinkle = Math.random() * Math.PI * 2;
       this.twinkleSpeed = Math.random() * 0.015 + 0.008;
@@ -20752,6 +20788,10 @@ function initLoginParticles() {
       this.x += this.speedX;
       this.twinkle += this.twinkleSpeed;
       this.currentOpacity = this.baseOpacity + Math.sin(this.twinkle) * 0.15;
+      // Rotation des flocons (Noël uniquement)
+      if (particleTheme === 'christmas') {
+        this.rotation += this.rotSpeed;
+      }
 
       if (this.y > canvas.height + 20 || this.x < -20 || this.x > canvas.width + 20) {
         this.reset();
@@ -20759,9 +20799,38 @@ function initLoginParticles() {
     }
 
     draw() {
+      // ===== NOËL : flocons stylisés =====
+      if (particleTheme === 'christmas') {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.rotation);
+        ctx.strokeStyle = `rgba(${particleRGB}, ${this.currentOpacity})`;
+        ctx.lineWidth = isMobile ? 0.8 : 1;
+        ctx.lineCap = 'round';
+        const r = this.size * 1.5;
+        // 3 traits croisés = flocon simple (ultra-perf)
+        for (let i = 0; i < 3; i++) {
+          ctx.beginPath();
+          ctx.moveTo(0, -r);
+          ctx.lineTo(0, r);
+          ctx.stroke();
+          ctx.rotate(Math.PI / 3);
+        }
+        // Sur desktop : petit halo pour donner du volume
+        if (!isMobile) {
+          ctx.fillStyle = `rgba(${particleRGB}, ${this.currentOpacity * 0.4})`;
+          ctx.beginPath();
+          ctx.arc(0, 0, r * 0.4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+        return;
+      }
+
+      // ===== CLASSIQUE / HALLOWEEN : boules colorées =====
       // VERSION MOBILE ULTRA-LIGHT : cercle simple, pas de gradient ni blur
       if (isMobile) {
-        ctx.fillStyle = `rgba(240, 165, 0, ${this.currentOpacity})`;
+        ctx.fillStyle = `rgba(${particleRGB}, ${this.currentOpacity})`;
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
         ctx.fill();
@@ -20769,9 +20838,9 @@ function initLoginParticles() {
       // VERSION DESKTOP : avec gradient
       else {
         const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size * 2);
-        gradient.addColorStop(0, `rgba(240, 165, 0, ${this.currentOpacity})`);
-        gradient.addColorStop(0.5, `rgba(240, 165, 0, ${this.currentOpacity * 0.5})`);
-        gradient.addColorStop(1, 'rgba(240, 165, 0, 0)');
+        gradient.addColorStop(0, `rgba(${particleRGB}, ${this.currentOpacity})`);
+        gradient.addColorStop(0.5, `rgba(${particleRGB}, ${this.currentOpacity * 0.5})`);
+        gradient.addColorStop(1, `rgba(${particleRGB}, 0)`);
         ctx.fillStyle = gradient;
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.size * 2, 0, Math.PI * 2);
