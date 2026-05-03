@@ -1569,6 +1569,163 @@ body.theme-christmas .s-header {
   flex-shrink: 0;
 }
 
+/* ================================================================
+   BANNIÈRE D'INSTALLATION PWA SUR L'ACCUEIL ÉLÈVE
+   ----------------------------------------------------------------
+   Affichée juste sous la prochaine séance, avant la messagerie.
+   Persistante (pas de bouton fermer) tant que l'app n'est pas
+   installée. Disparaît automatiquement quand display-mode = standalone.
+   ================================================================ */
+.pwa-install-banner {
+  background: linear-gradient(135deg, rgba(240,165,0,.10) 0%, rgba(240,165,0,.04) 100%);
+  border: 1px solid rgba(240,165,0,.35);
+  border-radius: var(--radius-md);
+  padding: 16px 18px;
+  margin-top: 18px;
+  margin-bottom: 0;
+  position: relative;
+  overflow: hidden;
+  animation: pwaBannerPulse 3.5s ease-in-out infinite;
+}
+
+/* Petit halo doré qui pulse pour attirer l'œil */
+@keyframes pwaBannerPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(240,165,0,0); }
+  50%      { box-shadow: 0 0 24px -6px rgba(240,165,0,.35); }
+}
+
+.pwa-install-banner-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.pwa-install-banner-icon {
+  font-size: 22px;
+  filter: drop-shadow(0 2px 6px rgba(240,165,0,.4));
+}
+.pwa-install-banner-title {
+  flex: 1;
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--gold);
+}
+
+.pwa-install-banner-text {
+  font-size: 13px;
+  color: var(--text-2);
+  line-height: 1.5;
+  margin-bottom: 14px;
+}
+
+.pwa-install-banner-btn {
+  width: 100%;
+  padding: 11px 14px;
+  background: var(--gold);
+  color: #000;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all .15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.pwa-install-banner-btn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+.pwa-install-banner-btn:active {
+  transform: translateY(0);
+}
+
+/* Modale "barrière douce" au premier login : occupe presque l'écran */
+#modal-pwa-firstlogin .sheet {
+  text-align: center;
+  padding-top: 28px;
+}
+.pwa-flogin-emoji {
+  font-size: 56px;
+  margin-bottom: 10px;
+  filter: drop-shadow(0 8px 18px rgba(240,165,0,.45));
+  animation: pwaFloginBob 2.2s ease-in-out infinite;
+}
+@keyframes pwaFloginBob {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
+.pwa-flogin-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--gold);
+  margin-bottom: 8px;
+  font-family: 'Playfair Display', serif;
+}
+.pwa-flogin-subtitle {
+  font-size: 14px;
+  color: var(--text-2);
+  line-height: 1.55;
+  margin-bottom: 22px;
+  padding: 0 6px;
+}
+.pwa-flogin-perks {
+  text-align: left;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  margin-bottom: 18px;
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.7;
+}
+.pwa-flogin-perks strong {
+  color: var(--gold);
+}
+
+/* Modale tutoriel iOS — captures stylisées */
+.pwa-ios-tuto-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 12px 0;
+}
+.pwa-ios-tuto-num {
+  flex-shrink: 0;
+  width: 28px; height: 28px;
+  background: var(--gold);
+  color: #000;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  margin-top: 2px;
+}
+.pwa-ios-tuto-content {
+  flex: 1;
+  font-size: 13.5px;
+  line-height: 1.55;
+}
+.pwa-ios-tuto-content strong { color: var(--gold); }
+.pwa-ios-tuto-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px; height: 28px;
+  background: rgba(240,165,0,.15);
+  border: 1px solid rgba(240,165,0,.4);
+  border-radius: 6px;
+  margin: 0 4px;
+  vertical-align: middle;
+  font-size: 16px;
+}
+
 /* Encart d'aide notifications (visible uniquement quand needs_pwa) */
 .push-help-box {
   background: rgba(240, 165, 0, 0.04);
@@ -5179,6 +5336,16 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     <div id="home-next-session"></div>
   </div>
 
+  <!-- ================================================================
+       BANNIÈRE D'INSTALLATION PWA
+       ================================================================
+       Affichée juste sous la prochaine séance, avant la messagerie.
+       Persistante : pas de bouton "Plus tard". Disparait quand
+       l'app est installée (display-mode = standalone détecté en JS).
+       Le contenu (bouton vs tutoriel iOS) est rendu par JS selon le
+       device et la disponibilité du prompt natif. -->
+  <div id="pwa-install-banner-host" class="hidden"></div>
+
   <!-- Bloc Messagerie (conditionnel - seulement si discussion active) -->
   <div class="home-section hidden" id="home-messaging" style="margin-top:18px;">
     <div class="home-section-title">💬 Messagerie</div>
@@ -6260,6 +6427,85 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     </div>
 
     <button class="btn btn-ghost btn-full" style="margin-top:6px;" onclick="closeModal('modal-add-to-home')">Fermer</button>
+  </div>
+</div>
+
+<!-- ================================================================
+     PWA — Modale "barrière douce" affichée au premier login
+     ================================================================
+     Force l'élève à choisir entre installer (bouton actif sur Android/PC,
+     tuto sur iOS) ou cliquer "J'ai déjà installé". Pas de bouton fermer.
+-->
+<div class="overlay hidden" id="modal-pwa-firstlogin">
+  <div class="sheet" onclick="event.stopPropagation()" style="max-width:440px;">
+    <div class="pwa-flogin-emoji">📲</div>
+    <div class="pwa-flogin-title">Installe l'app !</div>
+    <div class="pwa-flogin-subtitle">
+      Cinéma Internat fonctionne mieux en mode app.<br>
+      C'est gratuit, ça prend <strong>5 secondes</strong>, et tu pourras la lancer comme une vraie application.
+    </div>
+
+    <div class="pwa-flogin-perks">
+      <div>🔔 <strong>Notifications</strong> instantanées des séances</div>
+      <div>⚡ <strong>Accès rapide</strong> depuis l'écran d'accueil</div>
+      <div>🎬 <strong>Plein écran</strong>, sans la barre du navigateur</div>
+    </div>
+
+    <button class="btn btn-gold btn-full btn-lg" id="pwa-flogin-install-btn" onclick="pwaTriggerInstall()">
+      ✨ Installer maintenant
+    </button>
+    <button class="btn btn-ghost btn-full" style="margin-top:10px;" onclick="pwaUserClaimsInstalled()">
+      J'ai déjà installé
+    </button>
+  </div>
+</div>
+
+<!-- ================================================================
+     PWA — Modale tutoriel iOS Safari
+     ================================================================
+     Affichée quand on clique "Installer" sur iOS (Safari ne propose
+     pas d'installation programmatique, il faut passer par le bouton
+     Partager → Sur l'écran d'accueil).
+-->
+<div class="overlay hidden" id="modal-pwa-ios-tuto">
+  <div class="sheet" onclick="event.stopPropagation()" style="max-width:440px;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" style="text-align:center;">📲 Installer sur iPhone</div>
+    <p class="text-sm text-muted" style="margin-bottom:16px;text-align:center;">
+      Sur iPhone, l'installation se fait depuis Safari. Suis ces 3 étapes :
+    </p>
+
+    <div class="pwa-ios-tuto-step">
+      <div class="pwa-ios-tuto-num">1</div>
+      <div class="pwa-ios-tuto-content">
+        Vérifie que cette page est ouverte dans <strong>Safari</strong> (pas Chrome ni Firefox).
+      </div>
+    </div>
+
+    <div class="pwa-ios-tuto-step">
+      <div class="pwa-ios-tuto-num">2</div>
+      <div class="pwa-ios-tuto-content">
+        Touche le bouton <span class="pwa-ios-tuto-icon">⬆️</span> <strong>Partager</strong> en bas de l'écran.
+      </div>
+    </div>
+
+    <div class="pwa-ios-tuto-step">
+      <div class="pwa-ios-tuto-num">3</div>
+      <div class="pwa-ios-tuto-content">
+        Fais défiler vers le bas et choisis <span class="pwa-ios-tuto-icon">➕</span> <strong>"Sur l'écran d'accueil"</strong>, puis confirme.
+      </div>
+    </div>
+
+    <div style="background:rgba(240,165,0,.08);border:1px solid rgba(240,165,0,.3);border-radius:8px;padding:10px 12px;margin-top:14px;font-size:12.5px;color:var(--text-2);">
+      💡 Une fois ajoutée, l'app apparaîtra sur ton écran d'accueil comme n'importe quelle application.
+    </div>
+
+    <button class="btn btn-gold btn-full" style="margin-top:16px;" onclick="pwaUserClaimsInstalled()">
+      ✓ J'ai installé
+    </button>
+    <button class="btn btn-ghost btn-full" style="margin-top:8px;" onclick="closeModal('modal-pwa-ios-tuto')">
+      Plus tard
+    </button>
   </div>
 </div>
 
@@ -7500,6 +7746,221 @@ if ('serviceWorker' in navigator) {
       .then(reg => console.log('[SW] enregistré, scope:', reg.scope))
       .catch(err => console.warn('[SW] échec enregistrement:', err));
   });
+}
+
+/* ================================================================
+   PWA INSTALL — Bannière persistante & modale "barrière douce"
+   ----------------------------------------------------------------
+   Stratégie :
+   - Au tout premier login : modale plein écran obligatoire
+   - Aux logins suivants si pas installée : bannière persistante
+     juste sous la prochaine séance
+   - Une fois installée (display-mode standalone détecté) → tout
+     disparaît automatiquement.
+
+   Sur Android/PC : on capture le prompt natif beforeinstallprompt
+   pour déclencher l'installation en 1 clic.
+   Sur iOS Safari : impossible programmatiquement → on affiche un
+   tutoriel visuel.
+
+   Persistance localStorage :
+   - cinema_pwa_first_seen     : true après la 1re modale
+   - cinema_pwa_user_installed : true si l'élève a cliqué "j'ai installé"
+   - cinema_pwa_claim_recheck  : timestamp pour relancer la modale 24h
+                                  après un "j'ai installé" non confirmé
+*/
+
+let _pwaDeferredPrompt = null;     // capture du prompt natif (Android/PC)
+let _pwaCheckedThisLoad = false;   // évite la double exécution
+
+// Capture du prompt natif (Android/PC)
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  _pwaDeferredPrompt = e;
+  console.log('[PWA] beforeinstallprompt capturé — installation possible en 1 clic');
+});
+
+// Détection : utilisateur a installé via le navigateur
+window.addEventListener('appinstalled', () => {
+  console.log('[PWA] App installée — événement appinstalled reçu');
+  try { localStorage.setItem('cinema_pwa_user_installed', 'true'); } catch (_) {}
+  _pwaHideBanner();
+  closeModal('modal-pwa-firstlogin');
+  closeModal('modal-pwa-ios-tuto');
+  toast('🎉 App installée avec succès !', 'success');
+});
+
+/** Vrai si l'app tourne actuellement comme PWA installée (standalone). */
+function _pwaIsStandalone() {
+  // iOS spécifique
+  if (window.navigator.standalone === true) return true;
+  // Standard
+  if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return true;
+  return false;
+}
+
+/** Détection du device pour adapter le comportement. */
+function _pwaDetectDevice() {
+  const ua = navigator.userAgent || '';
+  const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+  const isAndroid = /Android/i.test(ua);
+  const isMobile = isIOS || isAndroid;
+  return { isIOS, isAndroid, isMobile };
+}
+
+/** Construit le contenu HTML de la bannière selon le device. */
+function _pwaRenderBanner() {
+  const host = document.getElementById('pwa-install-banner-host');
+  if (!host) return;
+  const { isIOS } = _pwaDetectDevice();
+
+  const titleTxt = isIOS
+    ? "📲 Installe l'app sur ton iPhone"
+    : "📲 Installe l'app pour ne rien manquer";
+
+  const descTxt = isIOS
+    ? "C'est gratuit et ça prend 5 secondes. Tu pourras la lancer comme une vraie application — avec notifications instantanées."
+    : "Notifications instantanées, accès rapide, plein écran. Installation en 1 clic.";
+
+  const btnTxt = isIOS ? "📖 Voir comment faire" : "✨ Installer maintenant";
+
+  host.innerHTML = `
+    <div class="pwa-install-banner">
+      <div class="pwa-install-banner-header">
+        <div class="pwa-install-banner-icon">📲</div>
+        <div class="pwa-install-banner-title">${titleTxt}</div>
+      </div>
+      <div class="pwa-install-banner-text">${descTxt}</div>
+      <button class="pwa-install-banner-btn" onclick="pwaTriggerInstall()">
+        ${btnTxt}
+      </button>
+    </div>
+  `;
+  host.classList.remove('hidden');
+}
+
+function _pwaHideBanner() {
+  const host = document.getElementById('pwa-install-banner-host');
+  if (host) {
+    host.innerHTML = '';
+    host.classList.add('hidden');
+  }
+}
+
+/** Déclenchée par le bouton "Installer maintenant" (bannière OU modale). */
+async function pwaTriggerInstall() {
+  const { isIOS } = _pwaDetectDevice();
+
+  // Cas iOS : pas de prompt programmatique, on ouvre le tutoriel
+  if (isIOS) {
+    closeModal('modal-pwa-firstlogin');
+    openModal('modal-pwa-ios-tuto');
+    return;
+  }
+
+  // Cas Android/PC : on a peut-être un prompt natif capturé
+  if (_pwaDeferredPrompt) {
+    try {
+      _pwaDeferredPrompt.prompt();
+      const result = await _pwaDeferredPrompt.userChoice;
+      console.log('[PWA] userChoice:', result.outcome);
+      _pwaDeferredPrompt = null;
+      // L'événement appinstalled gère la fermeture si accepté.
+      // Si refusé, on garde la bannière visible.
+      if (result.outcome === 'dismissed') {
+        toast("Installation reportée — la bannière reste disponible", 'info');
+      }
+    } catch (e) {
+      console.warn('[PWA] erreur prompt:', e);
+      // Fallback : ouvrir la modale d'instructions générale
+      closeModal('modal-pwa-firstlogin');
+      openModal('modal-add-to-home');
+    }
+    return;
+  }
+
+  // Pas de prompt dispo (élève n'a pas encore réinteragi avec la page) →
+  // on ouvre la modale d'instructions générale en fallback
+  closeModal('modal-pwa-firstlogin');
+  openModal('modal-add-to-home');
+}
+
+/** L'élève déclare avoir installé. On note + relance dans 24h pour vérifier.
+    Si à la prochaine ouverture l'app n'est PAS en standalone, on remontre
+    la bannière. Si elle est en standalone, on confirme l'installation. */
+function pwaUserClaimsInstalled() {
+  try {
+    localStorage.setItem('cinema_pwa_user_installed', 'true');
+    // Programmer une vérification dans 24h : si à ce moment-là l'app n'est
+    // toujours pas en standalone, on remontrera la bannière.
+    const recheckAt = Date.now() + 24 * 60 * 60 * 1000;
+    localStorage.setItem('cinema_pwa_claim_recheck', String(recheckAt));
+  } catch (_) {}
+
+  closeModal('modal-pwa-firstlogin');
+  closeModal('modal-pwa-ios-tuto');
+  _pwaHideBanner();
+  toast("Parfait ! Si jamais l'app n'est pas vraiment installée, on te le rappellera 😉", 'success');
+}
+
+/** Décide quoi afficher après le login d'un élève.
+    À appeler après l'arrivée sur l'accueil élève (loadHome).
+    NE FAIT RIEN pour les comptes admin (S.isAdmin === true). */
+function pwaCheckAndShow() {
+  // Pas pour admin
+  if (S?.isAdmin) {
+    _pwaHideBanner();
+    return;
+  }
+  // Évite double exécution dans le même chargement
+  if (_pwaCheckedThisLoad) return;
+  _pwaCheckedThisLoad = true;
+
+  // Déjà installée → rien à faire
+  if (_pwaIsStandalone()) {
+    _pwaHideBanner();
+    try { localStorage.setItem('cinema_pwa_user_installed', 'true'); } catch (_) {}
+    return;
+  }
+
+  // Lecture localStorage (try/catch au cas où le storage est bloqué)
+  let firstSeen = false;
+  let userClaimsInstalled = false;
+  let recheckTs = 0;
+  try {
+    firstSeen           = localStorage.getItem('cinema_pwa_first_seen') === 'true';
+    userClaimsInstalled = localStorage.getItem('cinema_pwa_user_installed') === 'true';
+    recheckTs           = parseInt(localStorage.getItem('cinema_pwa_claim_recheck') || '0', 10);
+  } catch (_) {}
+
+  // Cas "élève a dit installé mais on est pas en standalone" + délai écoulé
+  // → on annule la déclaration et on re-prompt
+  if (userClaimsInstalled && recheckTs && Date.now() > recheckTs) {
+    try {
+      localStorage.removeItem('cinema_pwa_user_installed');
+      localStorage.removeItem('cinema_pwa_claim_recheck');
+    } catch (_) {}
+    userClaimsInstalled = false;
+  }
+
+  if (userClaimsInstalled) {
+    // L'élève prétend avoir installé → on le croit (recheck pas encore atteint)
+    _pwaHideBanner();
+    return;
+  }
+
+  // Premier login → modale obligatoire
+  if (!firstSeen) {
+    try { localStorage.setItem('cinema_pwa_first_seen', 'true'); } catch (_) {}
+    // Petit délai pour ne pas heurter dès que l'accueil charge
+    setTimeout(() => openModal('modal-pwa-firstlogin'), 700);
+    // Et on prépare aussi la bannière (visible derrière la modale + après fermeture)
+    _pwaRenderBanner();
+    return;
+  }
+
+  // Logins suivants → bannière persistante
+  _pwaRenderBanner();
 }
 
 /* ================================================================
@@ -9579,6 +10040,8 @@ async function loadHome() {
       await loadHomeMessagingBlock();
       // Bloc Nouveautés
       await loadHomeNews();
+      // Vérifier si on doit afficher la bannière / modale d'installation PWA
+      pwaCheckAndShow();
       return;
     }
 
@@ -9699,6 +10162,9 @@ async function loadHome() {
 
   // Bloc Nouveautés
   await loadHomeNews();
+
+  // Vérifier si on doit afficher la bannière / modale d'installation PWA
+  pwaCheckAndShow();
 }
 
 /* Charge le bloc messagerie conditionnel sur l'accueil */
