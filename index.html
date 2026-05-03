@@ -849,6 +849,89 @@ body.theme-halloween .s-header {
     animation: none;
   }
 }
+
+/* ================================================================
+   THÈME NOËL — palette rouge / vert sapin / or chaud
+   Suit la même logique que le thème Halloween mais avec
+   des accents festifs et chaleureux.
+   ================================================================ */
+body.theme-christmas {
+  --gold:        #e8b04b;   /* or chaud légèrement plus orangé */
+  --gold-light:  #f5c772;
+  --gold-dark:   #b88835;
+  --gold-soft:   rgba(232,176,75,0.18);
+  --gold-glow:   rgba(232,176,75,0.40);
+}
+
+/* Fond d'écran Noël pour l'écran de connexion — mobile par défaut */
+body.theme-christmas #screen-login {
+  background-image: url('fond_ecran_noel_mobile.png');
+}
+
+/* Fond desktop Noël — large écran ≥ 900px */
+@media (min-width: 900px) {
+  body.theme-christmas #screen-login {
+    background-image: url('fond_ecran_noel_desktop.png');
+  }
+}
+
+/* Petit sapin animé à côté du logo cinéma sur l'écran de connexion */
+body.theme-christmas .login-cinema-icon::before {
+  content: '🎄';
+  position: absolute;
+  font-size: 0.5em;
+  top: -8%;
+  right: -18%;
+  filter: drop-shadow(0 2px 4px rgba(232,176,75,0.5));
+  animation: xmas-tree-bob 3.5s ease-in-out infinite;
+}
+@keyframes xmas-tree-bob {
+  0%, 100% { transform: translateY(0) rotate(-3deg); }
+  50%      { transform: translateY(-4px) rotate(3deg); }
+}
+
+/* Image héros optionnelle (rendue par JS si URL définie) */
+body.theme-christmas .login-hero-img {
+  display: block;
+  max-width: 220px;
+  width: 60%;
+  margin: 0 auto 18px;
+  filter: drop-shadow(0 8px 16px rgba(232,176,75,0.25));
+  animation: xmas-hero-glow 4s ease-in-out infinite;
+}
+@keyframes xmas-hero-glow {
+  0%, 100% { filter: drop-shadow(0 8px 16px rgba(232,176,75,0.25)); }
+  50%      { filter: drop-shadow(0 12px 24px rgba(232,176,75,0.45)); }
+}
+
+/* Sapin à côté du titre "Bienvenue, Matthias" sur la home admin */
+body.theme-christmas .home-greeting::after {
+  content: ' 🎄';
+  display: inline-block;
+  margin-left: 4px;
+  animation: xmas-tree-bob 3.5s ease-in-out infinite;
+}
+
+/* Bandeau Noël pour la page d'accueil */
+body.theme-christmas .home-hero {
+  background-image:
+    linear-gradient(to bottom, rgba(8,8,15,.15), rgba(8,8,15,.25)),
+    url('bandeau_noel.png');
+}
+
+/* Bandeau Noël pour le header des pages (votes, proposer, séance) */
+body.theme-christmas .s-header {
+  background-image: url('bandeau_noel.png');
+}
+
+/* Préférences d'accessibilité : suspendre les animations Noël */
+@media (prefers-reduced-motion: reduce) {
+  body.theme-christmas .login-cinema-icon::before,
+  body.theme-christmas .login-hero-img,
+  body.theme-christmas .home-greeting::after {
+    animation: none;
+  }
+}
 @keyframes live-dot-pulse-green {
   0%   { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.65); }
   70%  { transform: scale(1);    box-shadow: 0 0 0 7px rgba(34, 197, 94, 0);  }
@@ -7057,6 +7140,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
             <div class="cc-toggle-group" role="group" aria-label="Thème événementiel" style="margin-bottom:4px;flex-wrap:wrap;">
               <button class="cc-toggle active" data-theme-mode="none"      onclick="setEventThemeMode('none')">Aucun</button>
               <button class="cc-toggle"        data-theme-mode="halloween" onclick="setEventThemeMode('halloween')">🎃 Halloween</button>
+              <button class="cc-toggle"        data-theme-mode="christmas" onclick="setEventThemeMode('christmas')">🎄 Noël</button>
             </div>
             <div class="text-sm text-muted" style="margin-top:6px;font-size:11.5px;opacity:.7;">
               Le changement s'applique immédiatement à tous les élèves connectés.
@@ -8179,11 +8263,11 @@ function closeMaintenanceLiveAndLogout() {
 // Tant qu'elles sont vides, le fallback CSS s'applique (citrouille emoji).
 const EVENT_HERO_IMAGES = {
   halloween: '',  // ex: 'https://raw.githubusercontent.com/.../halloween-hero.png'
-  // christmas: '',  // pour la phase 5
+  christmas: '',  // emoji 🎄 utilisé en fallback (cf. CSS body.theme-christmas)
 };
 
 // Liste des thèmes valides (utilisé pour le sélecteur admin et le nettoyage)
-const EVENT_THEMES = ['none', 'halloween'];
+const EVENT_THEMES = ['none', 'halloween', 'christmas'];
 
 /** Charger le thème actif depuis Supabase au démarrage */
 async function loadEventThemeFromDB() {
@@ -8263,7 +8347,7 @@ async function saveEventTheme() {
   }
 
   // Modale de confirmation pour sécurité
-  const labelMap = { none: 'Aucun thème', halloween: '🎃 Halloween' };
+  const labelMap = { none: 'Aucun thème', halloween: '🎃 Halloween', christmas: '🎄 Noël' };
   const newLabel = labelMap[newTheme] || newTheme;
   const confirmMsg = newTheme === 'none'
     ? `Désactiver le thème événementiel ? L'apparence redeviendra normale pour tous les élèves connectés.`
@@ -9449,8 +9533,12 @@ async function loadHome() {
     // - Bandeau spécial "Tous les internes y sont conviés".
     // ============================================================
     if (s.event_tag) {
-      const eventLabel = s.event_tag === 'halloween' ? '🎃 Séance Halloween' : '🎉 Séance événement';
-      const eventBadgeHtml = `<span class="badge" style="background:linear-gradient(135deg,rgba(255,122,0,.30),rgba(255,122,0,.15));color:#ff9d3d;border:1px solid rgba(255,122,0,.5);font-weight:700;">${eventLabel}</span>`;
+      const eventLabel = SESSION_EVENT_LABELS[s.event_tag] || '🎉 Séance événement';
+      // Couleur du badge selon le thème (orange pour Halloween, rouge profond pour Noël)
+      const isHw = s.event_tag === 'halloween';
+      const tagColor = isHw ? '255,122,0' : '193,39,45';
+      const tagText  = isHw ? '#ff9d3d' : '#ff7a6e';
+      const eventBadgeHtml = `<span class="badge" style="background:linear-gradient(135deg,rgba(${tagColor},.30),rgba(${tagColor},.15));color:${tagText};border:1px solid rgba(${tagColor},.5);font-weight:700;">${eventLabel}</span>`;
 
       el.innerHTML = `<div class="session-banner" onclick="openStudentSessionDetail('${s.id}')">
         ${poster ? `<img src="${poster}" class="session-banner-poster" alt="">` : ''}
@@ -9793,7 +9881,7 @@ if (typeof S.filmFilterMode === 'undefined') S.filmFilterMode = 'event';
 /** Libellés affichés sur le toggle selon le thème actif */
 const EVENT_FILTER_LABELS = {
   halloween: '🎃 Halloween',
-  // christmas: '🎄 Noël',
+  christmas: '🎄 Noël',
 };
 
 /** Met à jour la visibilité et les libellés de la barre de toggle */
@@ -10206,16 +10294,20 @@ async function _renderTMDBScreen(detail, credits) {
       <div class="tmdb-cast-chips">${cast.map(a => `<span class="tmdb-cast-chip">${a.name}</span>`).join('')}</div></div>` : ''
   ].filter(Boolean).join('');
 
-  // Bandeau séance événement (Halloween, etc.) — affiché si la fiche
+  // Bandeau séance événement (Halloween, Noël, etc.) — affiché si la fiche
   // est ouverte depuis une séance tagée. Le bouton "Proposer ce film"
   // est masqué dans ce cas (on ne propose pas un film qu'on regarde).
   let eventBannerHtml = '';
   let hideProposeBtn = false;
-  if (_studentSessionEventTag === 'halloween') {
+  if (_studentSessionEventTag) {
     hideProposeBtn = true;
+    const isHw = _studentSessionEventTag === 'halloween';
+    const tagColor = isHw ? '255,122,0' : '193,39,45';   // orange / rouge sapin
+    const tagText  = isHw ? '#ff9d3d'   : '#ff7a6e';
+    const tagLabel = SESSION_EVENT_LABELS[_studentSessionEventTag] || '🎉 Séance événement';
     eventBannerHtml = `
-      <div style="background:linear-gradient(135deg,rgba(255,122,0,.18),rgba(255,122,0,.08));border:1px solid rgba(255,122,0,.45);border-radius:10px;padding:12px 14px;margin-bottom:14px;">
-        <div style="font-size:13.5px;font-weight:700;color:#ff9d3d;margin-bottom:4px;">🎃 Séance Halloween</div>
+      <div style="background:linear-gradient(135deg,rgba(${tagColor},.18),rgba(${tagColor},.08));border:1px solid rgba(${tagColor},.45);border-radius:10px;padding:12px 14px;margin-bottom:14px;">
+        <div style="font-size:13.5px;font-weight:700;color:${tagText};margin-bottom:4px;">${tagLabel}</div>
         <div style="font-size:12.5px;color:var(--text);line-height:1.5;">
           <strong>Tu es automatiquement convié(e).</strong> Aucune inscription nécessaire — viens profiter du film avec tout l'internat !
         </div>
@@ -10452,13 +10544,17 @@ async function confirmAddFilm() {
 
     const eventLabelEl = document.getElementById('afec-event-label');
     if (eventLabelEl) {
-      eventLabelEl.textContent = (theme === 'halloween') ? '🎃 Pour Halloween' : '🎉 Pour l\'événement';
+      eventLabelEl.textContent =
+        (theme === 'halloween') ? '🎃 Pour Halloween'
+      : (theme === 'christmas') ? '🎄 Pour Noël'
+      : '🎉 Pour l\'événement';
     }
     const helpEl = document.getElementById('afec-help-event');
     if (helpEl) {
-      helpEl.textContent = (theme === 'halloween')
-        ? 'Le film sera visible aux élèves uniquement quand le thème Halloween est actif.'
-        : 'Le film sera visible aux élèves uniquement pendant cet événement.';
+      helpEl.textContent =
+        (theme === 'halloween') ? 'Le film sera visible aux élèves uniquement quand le thème Halloween est actif.'
+      : (theme === 'christmas') ? 'Le film sera visible aux élèves uniquement quand le thème Noël est actif.'
+      : 'Le film sera visible aux élèves uniquement pendant cet événement.';
     }
     openModal('modal-add-film-event-choice');
     return;
@@ -10634,11 +10730,11 @@ let _proposalTagMode = 'event';
 
 const PROPOSAL_TAG_LABELS = {
   halloween: '🎃 Pour Halloween',
-  // christmas: '🎄 Pour Noël',
+  christmas: '🎄 Pour Noël',
 };
 const PROPOSAL_TAG_HELP = {
   halloween: 'Ce film sera proposé pour la soirée Halloween.',
-  // christmas: 'Ce film sera proposé pour la soirée de Noël.',
+  christmas: 'Ce film sera proposé pour la soirée de Noël.',
 };
 
 /** Initialise le toggle au moment d'ouvrir la modal de proposition */
@@ -12649,7 +12745,9 @@ async function loadNextSessionCard() {
     const capacity = session.max_capacity || 20;
     const regOpen = session.registrations_open;
     const isEvent = !!session.event_tag;
-    const eventLabel = session.event_tag === 'halloween' ? '🎃 Halloween' : '🎉 Événement';
+    const eventLabel = SESSION_EVENT_BADGES[session.event_tag] || '🎉 Événement';
+    // Couleur de mise en avant selon le thème
+    const eventColor = session.event_tag === 'halloween' ? '#ff9d3d' : '#ff7a6e';
     // Auto-fermeture J - 30 min : pour cohérence visuelle avec la vue élève.
     // L'admin garde son super-pouvoir d'inscrire via "Inscrire à une séance".
     const lockedByTime = _isSessionLocked(session);
@@ -12667,7 +12765,7 @@ async function loadNextSessionCard() {
     const statsHtml = isEvent ? `
       <div class="nsc-stat">
         <span class="nsc-stat-label">Catégorie</span>
-        <span class="nsc-stat-value" style="color:#ff9d3d;font-size:15px;">${eventLabel}</span>
+        <span class="nsc-stat-value" style="color:${eventColor};font-size:15px;">${eventLabel}</span>
       </div>
       <div class="nsc-stat">
         <span class="nsc-stat-label">Public</span>
@@ -16574,14 +16672,18 @@ async function loadAdminSessions() {
     const openSes   = s.registrations_open;
     const cap       = s.max_capacity || 20;
     const isEvent   = !!s.event_tag;
-    const eventLabel = s.event_tag === 'halloween' ? '🎃 Halloween' : '🎉 Événement';
+    const eventLabel = SESSION_EVENT_BADGES[s.event_tag] || '🎉 Événement';
+    // Couleur du badge selon le thème (orange pour Halloween, rouge sapin pour Noël)
+    const isHw = s.event_tag === 'halloween';
+    const tagRgb = isHw ? '255,122,0' : '193,39,45';
+    const tagText = isHw ? '#ff9d3d' : '#ff7a6e';
 
     // Badges et stats : différents pour les séances événement
     // (pas de comptage inscrits, pas de capacité, juste le badge thème + état)
     let badgesHtml;
     if (isEvent) {
       badgesHtml = `
-        <span class="badge" style="background:linear-gradient(135deg,rgba(255,122,0,.30),rgba(255,122,0,.15));color:#ff9d3d;border:1px solid rgba(255,122,0,.5);font-weight:700;">${eventLabel}</span>
+        <span class="badge" style="background:linear-gradient(135deg,rgba(${tagRgb},.30),rgba(${tagRgb},.15));color:${tagText};border:1px solid rgba(${tagRgb},.5);font-weight:700;">${eventLabel}</span>
         <span class="badge ${openSes ? 'badge-green' : 'badge-muted'}">
           ${openSes ? '✅ Annoncée' : '⏸ Non annoncée'}
         </span>
@@ -16703,6 +16805,9 @@ async function toggleSesOpen(id, cur) {
         let pushTitle, pushBody;
         if (data.event_tag === 'halloween') {
           pushTitle = '🎃 Séance Halloween annoncée !';
+          pushBody  = `${filmTitle}${dateFmt ? ' — ' + dateFmt : ''}. Tous les internes y sont conviés.`;
+        } else if (data.event_tag === 'christmas') {
+          pushTitle = '🎄 Séance de Noël annoncée !';
           pushBody  = `${filmTitle}${dateFmt ? ' — ' + dateFmt : ''}. Tous les internes y sont conviés.`;
         } else if (isEvent) {
           pushTitle = '🎉 Séance événement annoncée !';
@@ -17303,7 +17408,13 @@ async function getAvailableFilmsForSession(currentSessionId = null, prefilledFil
 
 const SESSION_EVENT_LABELS = {
   halloween: '🎃 Séance Halloween',
-  // christmas: '🎄 Séance de Noël',
+  christmas: '🎄 Séance de Noël',
+};
+
+/** Libellés courts pour les badges (carte admin, liste sessions, etc.) */
+const SESSION_EVENT_BADGES = {
+  halloween: '🎃 Halloween',
+  christmas: '🎄 Noël',
 };
 
 /** Handler du toggle dans la modale CRÉATION */
@@ -17484,6 +17595,9 @@ if (!filmId) {
       if (eventTag === 'halloween') {
         pushTitle = '🎃 Séance Halloween annoncée !';
         bodyTxt = `${filmTitle} — ${dateFmt}. Tous les internes y sont conviés.`;
+      } else if (eventTag === 'christmas') {
+        pushTitle = '🎄 Séance de Noël annoncée !';
+        bodyTxt = `${filmTitle} — ${dateFmt}. Tous les internes y sont conviés.`;
       } else {
         pushTitle = '🟢 Nouvelle séance ouverte';
         bodyTxt = `${filmTitle} — ${dateFmt}. Réserve ta place dès maintenant.`;
@@ -17500,7 +17614,10 @@ if (!filmId) {
   }
 
   closeModal('modal-create-session');
-  toast(eventTag === 'halloween' ? 'Séance Halloween créée 🎃' : 'Séance créée 🎟️', 'success');
+  const toastMsg = eventTag === 'halloween' ? 'Séance Halloween créée 🎃'
+                : eventTag === 'christmas' ? 'Séance de Noël créée 🎄'
+                : 'Séance créée 🎟️';
+  toast(toastMsg, 'success');
   loadAdminSessions();
   
   // Rafraîchir l'accueil admin si on est sur cet onglet
