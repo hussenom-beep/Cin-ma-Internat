@@ -780,9 +780,16 @@ body.theme-halloween {
   --gold-glow:   rgba(255,122,0,0.40);
 }
 
-/* Fond d'écran Halloween pour l'écran de connexion */
+/* Fond d'écran Halloween pour l'écran de connexion — mobile par défaut */
 body.theme-halloween #screen-login {
-  background-image: url('fond_ecran_halloween.png');
+  background-image: url('fond_ecran_halloween_mobile.png');
+}
+
+/* Fond desktop Halloween — large écran ≥ 900px */
+@media (min-width: 900px) {
+  body.theme-halloween #screen-login {
+    background-image: url('fond_ecran_halloween_desktop.png');
+  }
 }
 
 /* Petite citrouille à côté du logo cinéma sur l'écran de connexion */
@@ -1020,11 +1027,19 @@ body.theme-halloween .s-header {
   padding-bottom: 48px;
   position: relative;
   overflow: hidden;
-  /* Image de fond verticale */
-  background-image: url('Fond_d_ecran_accueil.png');
+  /* Fond classique — version mobile par défaut (portrait 9:16).
+     La version desktop (16:9) est servie via une media query plus bas. */
+  background-image: url('Fond_ecran_mobile.png');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
+}
+
+/* Fond desktop classique — large écran ≥ 900px */
+@media (min-width: 900px) {
+  #screen-login {
+    background-image: url('fond_ecran_desktop.png');
+  }
 }
 
 /* Overlay sombre pour meilleure lisibilité */
