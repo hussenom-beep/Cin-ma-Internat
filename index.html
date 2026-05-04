@@ -2975,7 +2975,13 @@ body.theme-christmas .s-header {
   #modal-student-detail .sd-panel,
   #modal-admin-settings .sd-panel {
     width: 100%;
-    height: auto;
+    /* Hauteur FIXE (et pas 'auto') pour que la modale ne change pas de
+       taille en passant d'un onglet à l'autre. Sans ça, un onglet court
+       (ex: Apparence) raccourcit la modale, ce qui la recentre vertical-
+       ement et crée un effet "yoyo" désagréable lors des changements
+       d'onglets. Le scroll interne du sd-body gère le débordement quand
+       un onglet contient plus de contenu. */
+    height: 88vh;
     max-height: 88vh;
     border: 1px solid var(--border);
     border-left: 1px solid var(--border); /* override side-only border */
