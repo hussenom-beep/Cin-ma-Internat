@@ -10846,6 +10846,36 @@ const EVENT_FILTER_LABELS = {
   christmas: '🎄 Noël',
 };
 
+/** Helper : génère le HTML du badge "événement" pour un film (élève + admin).
+    Utilisé partout où un film événementiel apparaît dans une liste.
+    Retourne '' si f n'a pas d'event_tag. */
+function _filmEventBadgeHtml(eventTag, variant = 'inline') {
+  if (!eventTag) return '';
+  const label = EVENT_FILTER_LABELS[eventTag] || '🎉 Événement';
+  // Couleurs : orange Halloween / rouge sapin Noël
+  const isHw = eventTag === 'halloween';
+  const rgb  = isHw ? '255,122,0' : '193,39,45';
+  const txt  = isHw ? '#ff9d3d'   : '#ff7a6e';
+
+  if (variant === 'inline') {
+    // Petit badge à côté d'un titre
+    return ` <span class="badge-event-inline" style="background:linear-gradient(135deg,rgba(${rgb},.22),rgba(${rgb},.10));color:${txt};border:1px solid rgba(${rgb},.4);">${label}</span>`;
+  }
+  if (variant === 'card') {
+    // Badge en overlay sur une carte film (vote)
+    return `<div class="film-event-badge" style="background:linear-gradient(135deg,rgba(${rgb},.30),rgba(${rgb},.15));color:${txt};border:1px solid rgba(${rgb},.5);">${label}</div>`;
+  }
+  if (variant === 'card-tr') {
+    // Comme 'card' mais positionné top-right (pour les cartes de propositions admin)
+    return `<div class="film-event-badge" style="top:6px;right:6px;left:auto;background:linear-gradient(135deg,rgba(${rgb},.30),rgba(${rgb},.15));color:${txt};border:1px solid rgba(${rgb},.5);">${label}</div>`;
+  }
+  if (variant === 'pill') {
+    // Petite pill sobre dans une liste
+    return `<span class="badge" style="background:linear-gradient(135deg,rgba(${rgb},.25),rgba(${rgb},.12));color:${txt};border:1px solid rgba(${rgb},.4);font-size:11px;">${label}</span>`;
+  }
+  return '';
+}
+
 /** Met à jour la visibilité et les libellés de la barre de toggle */
 function updateFilmEventFilterUI() {
   const bar = document.getElementById('films-event-filter');
@@ -10942,10 +10972,8 @@ function renderFilms() {
     const clickAction = f.tmdb_id 
       ? `openTMDBDetail(${f.tmdb_id}, 'student')` 
       : `openDetail('${f.id}')`;
-    // Badge événement
-    const eventBadge = f.event_tag === 'halloween'
-      ? `<div class="film-event-badge">🎃 Halloween</div>`
-      : '';
+    // Badge événement (Halloween, Noël, etc.) — couleur dynamique via helper
+    const eventBadge = _filmEventBadgeHtml(f.event_tag, 'card');
     return `<div class="film-card" onclick="${clickAction}" style="cursor:pointer;position:relative;">
       ${eventBadge}
       <div class="film-card-poster">
@@ -11898,7 +11926,7 @@ async function loadStudentProposals() {
           <div class="history-film">${p.title}${p.year ? ` <span style="font-weight:400;color:var(--text-3);">(${p.year})</span>` : ''}</div>
           <div style="margin:4px 0;display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
             <span class="badge ${badgeCls[p.status] || 'badge-muted'}">${badgeLbl[p.status] || p.status}</span>
-            ${p.event_tag === 'halloween' ? '<span class="badge" style="background:linear-gradient(135deg,rgba(255,122,0,.25),rgba(255,122,0,.12));color:#ff9d3d;border:1px solid rgba(255,122,0,.4);font-size:11px;">🎃 Halloween</span>' : ''}
+            ${_filmEventBadgeHtml(p.event_tag, 'pill')}
           </div>
           ${reasonsHTML}
           ${commentHTML}
@@ -15494,7 +15522,11 @@ async function loadAdminFilms() {
   // Mise à jour visibilité du toggle event (selon thème actif)
   updateAdminFilmEventFilterUI();
 
-  // Filtrage event_tag selon le mode courant si thème actif
+  // Filtrage event_tag selon le mode courant et le thème actif
+  // - Thème actif + mode 'event' : films du thème courant
+  // - Thème actif + mode 'all'   : films généraux uniquement (sans tag)
+  // - Aucun thème actif          : films généraux uniquement (les films
+  //   événementiels ne doivent pas pollluer la liste hors événement)
   const theme = S.eventTheme || 'none';
   let filtered = data || [];
   if (theme !== 'none') {
@@ -15504,6 +15536,10 @@ async function loadAdminFilms() {
       // 'all' = films généraux uniquement (hors événement)
       filtered = filtered.filter(f => !f.event_tag);
     }
+  } else {
+    // Thème désactivé : on cache les films événementiels (cohérent avec
+    // la vue élève qui les masque déjà)
+    filtered = filtered.filter(f => !f.event_tag);
   }
 
   if (!filtered.length) {
@@ -15597,10 +15633,8 @@ async function loadAdminFilms() {
            onclick="event.stopPropagation(); openEditSession('${sessionInfo.id}','','${f.id}')">📅 ${fmtDateShort(sessionInfo.date)}</span>`
       : '';
 
-    // Badge event si le film est tagué
-    const eventBadge = f.event_tag === 'halloween'
-      ? '<span class="badge-event-inline">🎃 Halloween</span>'
-      : '';
+    // Badge event si le film est tagué (couleur dynamique)
+    const eventBadge = _filmEventBadgeHtml(f.event_tag, 'inline').trim();
 
     return `
     <div class="ai" data-film-id="${f.id}">
@@ -15882,7 +15916,8 @@ async function loadAdminVotes() {
     db.from('votes').select('film_id')
   ]);
 
-  // Filtrage event_tag selon le mode courant si thème actif
+  // Filtrage event_tag selon le mode courant et le thème actif
+  // (cf. loadAdminFilms pour la logique détaillée — même comportement)
   const theme = S.eventTheme || 'none';
   let filteredFilms = films || [];
   if (theme !== 'none') {
@@ -15891,6 +15926,9 @@ async function loadAdminVotes() {
     } else {
       filteredFilms = filteredFilms.filter(f => !f.event_tag);
     }
+  } else {
+    // Thème désactivé : on cache les films événementiels
+    filteredFilms = filteredFilms.filter(f => !f.event_tag);
   }
 
   if (!filteredFilms.length) {
@@ -15919,7 +15957,7 @@ async function loadAdminVotes() {
         ${f.poster_url ? `<img src="${f.poster_url}" alt="" style="width:100%;height:100%;object-fit:cover;">` : '🎬'}
       </div>
       <div class="vbr-info">
-        <div class="vbr-title">${f.title}${f.event_tag === 'halloween' ? ' <span class="badge-event-inline">🎃 Halloween</span>' : ''}</div>
+        <div class="vbr-title">${f.title}${_filmEventBadgeHtml(f.event_tag, 'inline')}</div>
         <div class="vbar-track"><div class="vbar-fill" style="width:${Math.round(f.n / max * 100)}%"></div></div>
         <div class="vbar-count">${f.n} vote${f.n !== 1 ? 's' : ''}</div>
       </div>
@@ -16065,7 +16103,7 @@ if (validDateLabels.length === 1) {
 
     return `
     <div class="ai" style="${cardStyle}position:relative;" ${cardClick}>
-      ${p.event_tag === 'halloween' ? `<div class="film-event-badge" style="top:6px;right:6px;left:auto;">🎃 Halloween</div>` : ''}
+      ${_filmEventBadgeHtml(p.event_tag, 'card-tr')}
       <div style="flex-shrink:0;" onclick="event.stopPropagation()">
         ${p.poster_url
           ? `<img src="${p.poster_url}" class="ai-img" alt="" onclick="openProposalDetail('${p.id}')" style="cursor:pointer;">`
