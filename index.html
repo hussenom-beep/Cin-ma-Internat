@@ -8519,8 +8519,8 @@ async function enablePushNotifications() {
     }
   }
 
-  try {
-    // Subscribe via PushManager
+  // Helper pour faire la subscription (retry possible sur Samsung)
+  async function _trySubscribe() {
     const reg = await navigator.serviceWorker.ready;
     let sub = await reg.pushManager.getSubscription();
     if (!sub) {
@@ -8528,6 +8528,34 @@ async function enablePushNotifications() {
         userVisibleOnly: true,
         applicationServerKey: _urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
       });
+    }
+    return sub;
+  }
+
+  try {
+    // Subscribe via PushManager — avec retry sur NotAllowedError (bug Samsung)
+    let sub;
+    try {
+      sub = await _trySubscribe();
+    } catch (e1) {
+      // Bug connu Samsung Internet / certains Chrome Android :
+      // requestPermission() retourne 'granted' mais subscribe() rejette
+      // immédiatement avec NotAllowedError. Un retry après 500ms suffit
+      // souvent à débloquer (le SW finalise son enregistrement).
+      console.warn('[push] subscribe 1er essai échoué:', e1.name, '|', e1.message);
+      if (e1.name === 'NotAllowedError' || e1.name === 'AbortError') {
+        console.log('[push] retry dans 500ms (bug navigateur connu)');
+        await new Promise(r => setTimeout(r, 500));
+        try {
+          sub = await _trySubscribe();
+          console.log('[push] retry réussi ✓');
+        } catch (e2) {
+          // Le retry a échoué aussi → on relance pour tomber dans le catch global
+          throw e2;
+        }
+      } else {
+        throw e1;
+      }
     }
 
     // Extraire endpoint + clés
@@ -8567,8 +8595,24 @@ async function enablePushNotifications() {
     return { ok: true };
 
   } catch (e) {
-    console.error('[push] enable exception:', e);
-    toast("Erreur lors de l'activation.", 'error');
+    // Log détaillé pour diagnostic (visible dans la console DevTools)
+    console.error('[push] enable exception:', e?.name, '|', e?.message, '|', e);
+
+    // Messages adaptés selon le type d'erreur
+    let userMsg;
+    if (e?.name === 'NotAllowedError') {
+      // Sur Samsung Internet / certaines configs : permission incohérente
+      userMsg = "Le navigateur bloque les notifications. Essaie de fermer et rouvrir l'app, puis réessaie. Si le problème persiste, vérifie les paramètres de notifications dans ton téléphone.";
+    } else if (e?.name === 'AbortError') {
+      userMsg = "L'opération a été annulée. Réessaie dans quelques instants.";
+    } else if (e?.name === 'InvalidStateError') {
+      userMsg = "État invalide. Ferme et rouvre l'app, puis réessaie.";
+    } else if (e?.message?.includes('VAPID') || e?.message?.includes('applicationServerKey')) {
+      userMsg = "Erreur de configuration des notifications (clé serveur). Contacte le surveillant.";
+    } else {
+      userMsg = "Erreur lors de l'activation. Réessaie ou contacte le surveillant.";
+    }
+    toast(userMsg, 'error');
     return { ok: false, reason: 'exception', error: e };
   }
 }
