@@ -9122,6 +9122,41 @@ function startMaintenanceRealtime() {
   _maintRT.active = true;
 }
 
+/* ----------------------------------------------------------------
+   Realtime "léger" maintenance : actif pour TOUT LE MONDE dès le boot
+   (y compris sur l'écran de login, avant toute connexion).
+   Sa seule responsabilité est de réappliquer le thème quand la
+   maintenance bascule ON/OFF. Comme ça, si l'admin active/désactive
+   la maintenance pendant qu'un élève regarde le login, le thème
+   change immédiatement (apparait ou disparait) sans rechargement.
+   ---------------------------------------------------------------- */
+let _maintThemeRT = { channel: null, active: false };
+function startMaintenanceThemeRealtime() {
+  if (_maintThemeRT.active && _maintThemeRT.channel) return;
+
+  if (_maintThemeRT.channel) {
+    try { db.removeChannel(_maintThemeRT.channel); } catch(_) {}
+    _maintThemeRT.channel = null;
+  }
+
+  const ch = db.channel('maint-theme-rt-' + Date.now())
+    .on('postgres_changes',
+      { event: '*', schema: 'public', table: 'app_settings' },
+      async (payload) => {
+        const key = payload?.new?.key || payload?.old?.key;
+        // Seul le mode (on/off) influe sur la visibilité du thème
+        if (key !== 'maintenance_mode') return;
+
+        await loadMaintenanceFromDB();
+        // Re-appliquer le thème selon le nouveau contexte de visibilité
+        applyEventTheme();
+      })
+    .subscribe();
+
+  _maintThemeRT.channel = ch;
+  _maintThemeRT.active = true;
+}
+
 function stopMaintenanceRealtime() {
   if (_maintRT.channel) {
     try { db.removeChannel(_maintRT.channel); } catch(e) { console.warn('[maintRT] removeChannel:', e); }
@@ -9246,9 +9281,67 @@ async function loadEventThemeFromDB() {
   }
 }
 
+/* ----------------------------------------------------------------
+   Visibilité du thème pendant la maintenance
+   ----------------------------------------------------------------
+   Quand la maintenance est active, on cache le thème (force 'none')
+   à tout le monde sur l'écran de connexion — sauf :
+   - L'admin déjà connecté (S.isAdmin = true)
+   - L'élève test autorisé déjà connecté (S.user.id = testStudentId)
+   - Les appareils précédemment marqués "admin" via localStorage
+   - Les URL contenant ?preview=true (mode debug pour appareils non
+     reconnus, par exemple celui d'un collègue)
+*/
+
+const ADMIN_DEVICE_KEY = 'cinema_admin_device';
+
+/** Marque l'appareil courant comme "admin reconnu". Appelé après
+    une connexion admin réussie pour que les futures visites de cet
+    appareil voient le vrai thème même pendant la maintenance. */
+function _markAdminDevice() {
+  try { localStorage.setItem(ADMIN_DEVICE_KEY, 'true'); } catch (_) {}
+}
+
+/** L'appareil courant est-il marqué admin (via localStorage) ? */
+function _isAdminDevice() {
+  try { return localStorage.getItem(ADMIN_DEVICE_KEY) === 'true'; } catch (_) { return false; }
+}
+
+/** Le mode "preview" est-il actif via URL ?preview=true ? */
+function _isThemePreviewMode() {
+  try { return new URLSearchParams(window.location.search).get('preview') === 'true'; } catch (_) { return false; }
+}
+
+/** Décide si l'utilisateur courant peut voir le vrai thème.
+    Appelé par applyEventTheme() pour décider d'appliquer le thème
+    réel ou de forcer 'none' pendant une maintenance. */
+function _canSeeRealTheme() {
+  // Maintenance désactivée → tout le monde voit le vrai thème
+  const maintOn = S.maintenance?.mode === 'on';
+  if (!maintOn) return true;
+
+  // Admin connecté → toujours OK
+  if (S.isAdmin) return true;
+
+  // Élève test connecté autorisé → OK (cohérent avec règle du push test)
+  const testStudentId = S.maintenance?.testStudentId;
+  if (testStudentId && S.user?.id === testStudentId) return true;
+
+  // Appareil marqué admin (localStorage) → OK même sur l'écran login
+  if (_isAdminDevice()) return true;
+
+  // URL ?preview=true → mode debug, OK
+  if (_isThemePreviewMode()) return true;
+
+  // Sinon : on cache le thème
+  return false;
+}
+
 /** Applique le thème courant : ajoute la classe sur <body> et l'image héros si dispo */
 function applyEventTheme() {
-  const theme = S.eventTheme || 'none';
+  const realTheme = S.eventTheme || 'none';
+  // Pendant la maintenance, forcer 'none' pour les non-admin / non-test
+  const theme = _canSeeRealTheme() ? realTheme : 'none';
   const body = document.body;
   if (!body) return;
 
@@ -10115,6 +10208,13 @@ async function handleAdminLogin() {
   S.isAdmin = true;
   S.user = { id: 'admin', firstName: 'Admin', lastName: '', className: '' };
   saveLocal();
+  // Marquer cet appareil comme "admin reconnu" pour que les futures
+  // visites puissent voir le thème même pendant la maintenance.
+  _markAdminDevice();
+  // Re-appliquer le thème : on connait maintenant le rôle, donc le
+  // _canSeeRealTheme() peut donner true et révéler le vrai thème
+  // s'il était caché par la maintenance.
+  applyEventTheme();
   startInactivityTimer();
   navigateTo('admin');
   toast('Espace admin 🔑', 'success');
@@ -10175,6 +10275,10 @@ async function loginAs(student) {
   startStudentRealtime();
   // Démarrer le realtime maintenance (éviction live si maintenance activée pendant la session)
   startMaintenanceRealtime();
+
+  // Re-appliquer le thème : si on est l'élève test pendant la maintenance,
+  // _canSeeRealTheme() bascule maintenant sur true et révèle le thème.
+  applyEventTheme();
 
   navigateTo('home');
 }
@@ -21237,6 +21341,10 @@ async function init() {
   applyEventTheme();
   // Démarrer le realtime thème (concerne tout le monde, dès le boot)
   startEventThemeRealtime();
+  // Démarrer le realtime maintenance "léger" : si l'admin bascule
+  // la maintenance pendant qu'un élève regarde le login, le thème
+  // est masqué/révélé en direct (sans rechargement).
+  startMaintenanceThemeRealtime();
 
   if (S.user) {
     // Session restaurée : si maintenance ON et que l'élève n'est pas autorisé,
