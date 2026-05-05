@@ -10270,23 +10270,22 @@ async function replayHistoricalXP(opts = {}) {
     }
   }
 
-  // Pour les votes : on récupère TOUTES les colonnes pour s'adapter aux différents schémas
-  // (certaines installations ont 'created_at', d'autres 'voted_at', d'autres rien).
-  // On normalise après chargement avec _normalizeVoteTimestamp().
+  // Pour les votes : on charge tout pour s'adapter aux différents schémas (created_at ou voted_at)
   function _normalizeVoteTimestamp(v) {
     return v.created_at || v.voted_at || v.inserted_at || new Date().toISOString();
   }
 
-  const [students, votes, regs, props, logins, sessions] = await Promise.all([
+  const [students, votes, props, logins, sessions, watched, missed] = await Promise.all([
     _loadOrEmpty('students',   () => db.from('students').select('id, first_name, last_name, date_of_birth, created_at')),
     _loadOrEmpty('votes',      () => db.from('votes').select('*')),
-    _loadOrEmpty('regs',       () => db.from('registrations').select('student_id, session_id, attendance_status')),
     _loadOrEmpty('props',      () => db.from('proposals').select('id, student_id, title, status, reviewed_at').eq('status', 'accepted')),
     _loadOrEmpty('logins',     () => db.from('student_logins').select('student_id, logged_at')),
-    _loadOrEmpty('sessions',   () => db.from('cinema_sessions').select('id, event_tag, attendance_done'))
+    _loadOrEmpty('sessions',   () => db.from('cinema_sessions').select('id, event_tag, attendance_done')),
+    _loadOrEmpty('watched',    () => db.from('student_watched_films').select('student_id, session_id, watched_at')),
+    _loadOrEmpty('missed',     () => db.from('student_missed_films').select('student_id, session_id, missed_at'))
   ]);
 
-  // Normaliser les votes : ajoute un champ _ts utilisable pour le tri/séries
+  // Normaliser les votes : ajoute un champ _ts utilisable pour le tri
   votes.forEach(v => { v._ts = _normalizeVoteTimestamp(v); });
 
   const sessionMap = new Map(sessions.map(s => [s.id, s]));
@@ -10342,40 +10341,35 @@ async function replayHistoricalXP(opts = {}) {
     });
   });
 
-  // 2. Présences/absences (toutes les registrations avec attendance_status non null)
-  regs.forEach(r => {
-    if (!r.attendance_status) return;
-    const session = sessionMap.get(r.session_id);
-    if (!session || !session.attendance_done) return;
-    const isEvent = !!session.event_tag;
+  // 2. Présences/absences via student_watched_films (présent) et student_missed_films (absent)
+  //    Ces tables sont la source de vérité historique pour qui était à quelle séance.
+  watched.forEach(w => {
+    const session = sessionMap.get(w.session_id);
+    const isEvent = session ? !!session.event_tag : false;
+    const xp   = isEvent ? XP_AMOUNTS.event_attended : XP_AMOUNTS.session_attended;
+    const type = isEvent ? 'event_attended' : 'session_attended';
+    eventsToInsert.push({
+      student_id:    w.student_id,
+      event_type:    type,
+      xp_amount:     xp,
+      metadata:      { session_id: w.session_id, is_retro: true },
+      scheduled_for: w.watched_at || new Date().toISOString(),
+      created_at:    w.watched_at || new Date().toISOString()
+    });
+    if (isEvent) stats.events++; else stats.sessions++;
+  });
 
-    if (r.attendance_status === 'present') {
-      const xp = isEvent ? XP_AMOUNTS.event_attended : XP_AMOUNTS.session_attended;
-      const type = isEvent ? 'event_attended' : 'session_attended';
-      eventsToInsert.push({
-        student_id:    r.student_id,
-        event_type:    type,
-        xp_amount:     xp,
-        metadata:      { session_id: r.session_id, is_retro: true },
-        scheduled_for: new Date().toISOString(),
-        created_at:    new Date().toISOString()
-      });
-      if (isEvent) stats.events++; else stats.sessions++;
-    } else if (r.attendance_status === 'absent') {
-      // Pénalité fantôme : pas appliquée si niveau < 3, mais on insère un event négatif
-      // (le calcul du plancher se fait à la volée, donc ici on insère juste -20)
-      // → On simplifie : pour le retro, on met -20 brut sans plancher car on n'a pas encore de niveau calculé
-      //   Cas limite : un élève absent 5x avant tout autre XP serait à -100. Plancher 0 à appliquer en lecture.
-      eventsToInsert.push({
-        student_id:    r.student_id,
-        event_type:    'session_absent',
-        xp_amount:     XP_AMOUNTS.session_absent,
-        metadata:      { session_id: r.session_id, is_retro: true },
-        scheduled_for: new Date().toISOString(),
-        created_at:    new Date().toISOString()
-      });
-      stats.absences++;
-    }
+  missed.forEach(m => {
+    // Pénalité fantôme : -20 (le plancher de niveau s'applique à la lecture, pas à l'écriture)
+    eventsToInsert.push({
+      student_id:    m.student_id,
+      event_type:    'session_absent',
+      xp_amount:     XP_AMOUNTS.session_absent,
+      metadata:      { session_id: m.session_id, is_retro: true },
+      scheduled_for: m.missed_at || new Date().toISOString(),
+      created_at:    m.missed_at || new Date().toISOString()
+    });
+    stats.absences++;
   });
 
   // 3. Propositions acceptées : +30 par proposition (sans étalement en retro)
