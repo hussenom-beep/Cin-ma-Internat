@@ -9744,79 +9744,215 @@ async function countTotalStudents() {
   }
 }
 
-/* DEBUG TEMPORAIRE — injecte 3 slides de démo et ouvre la modale.
-   À appeler depuis la console : _whatsNewDebugPreview()
-   Sera SUPPRIMÉE au Patch 3 quand le vrai système de navigation arrivera. */
-function _whatsNewDebugPreview() {
-  const demoSlides = [
-    {
-      title: 'Bienvenue dans la nouveauté',
-      body: 'Voici une slide avec une image. C\'est la première slide du tuto, donc le bouton Précédent est caché. Cliquez sur Suivant pour passer à la slide 2.',
-      image: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=800&h=450&fit=crop'
-    },
-    {
-      title: 'Une slide sans image',
-      body: 'Cette slide n\'a pas d\'image définie : un placeholder doré avec un dégradé subtil prend la place. Le rendu reste premium même sans visuel.',
-      image: null
-    },
-    {
-      title: 'Dernière slide',
-      body: 'Voici la dernière slide. Le bouton Suivant est remplacé par "J\'ai compris", et la checkbox "Ne plus afficher" apparaît au-dessus, décochée par défaut.',
-      image: null
-    }
-  ];
-  
+/* ----------------------------------------------------------------
+   What's New — Système de carrousel élève
+   ----------------------------------------------------------------
+   Etat partagé pour la modale en cours d'affichage.
+   La queue permet d'enchaîner plusieurs tutos d'affilée si l'élève
+   en a plusieurs non vus à sa connexion. */
+const _whatsNewState = {
+  queue: [],          // tutoriels restants à afficher (FIFO)
+  current: null,      // tuto actuellement affiché
+  slideIdx: 0,        // index slide courante
+  studentId: null,    // élève cible (null en mode preview)
+  previewMode: false  // si true, n'écrit pas en BDD
+};
+
+/* Ouvre la modale et démarre l'affichage d'une liste de tutoriels.
+   En mode preview (admin / debug), aucune écriture en BDD. */
+function whatsNewOpen(tutorials, studentId, previewMode = false) {
+  if (!Array.isArray(tutorials) || tutorials.length === 0) return;
+  _whatsNewState.queue       = [...tutorials];
+  _whatsNewState.current     = _whatsNewState.queue.shift();
+  _whatsNewState.slideIdx    = 0;
+  _whatsNewState.studentId   = studentId;
+  _whatsNewState.previewMode = previewMode;
+  _whatsNewRender();
+  document.getElementById('modal-whatsnew').classList.remove('hidden');
+}
+
+/* Construit (re-construit) le DOM des slides + dots du tuto courant */
+function _whatsNewRender() {
+  const tuto = _whatsNewState.current;
+  if (!tuto) { whatsNewClose(); return; }
+
   const track = document.getElementById('whatsnew-track');
   const dots  = document.getElementById('whatsnew-dots');
-  if (!track || !dots) { console.warn('[whatsnew debug] modale introuvable'); return; }
-  
-  // Construire les slides
-  track.innerHTML = demoSlides.map(s => `
-    <div class="whatsnew-slide">
-      ${s.image
-        ? `<img class="whatsnew-image" src="${s.image}" alt="">`
-        : `<div class="whatsnew-image-placeholder">🎬</div>`}
-      <h2 class="whatsnew-slide-title">${s.title}</h2>
-      <p class="whatsnew-slide-body">${s.body}</p>
-    </div>
-  `).join('');
-  
-  // Construire les dots
-  dots.innerHTML = demoSlides.map((_, i) => `<div class="whatsnew-dot${i === 0 ? ' active' : ''}"></div>`).join('');
-  
-  // État initial : on est sur la slide 0
-  let currentIdx = 0;
-  const total = demoSlides.length;
-  const trackEl  = track;
-  const prevBtn  = document.getElementById('whatsnew-prev');
-  const nextBtn  = document.getElementById('whatsnew-next');
-  const finishBtn= document.getElementById('whatsnew-finish');
-  const cbRow    = document.getElementById('whatsnew-checkbox-row');
-  
-  function update() {
-    trackEl.style.transform = `translateX(-${currentIdx * 100}%)`;
-    document.querySelectorAll('#whatsnew-dots .whatsnew-dot').forEach((d, i) => {
-      d.classList.toggle('active', i === currentIdx);
-    });
-    prevBtn.classList.toggle('hidden', currentIdx === 0);
-    const isLast = currentIdx === total - 1;
-    nextBtn.classList.toggle('hidden', isLast);
-    finishBtn.classList.toggle('hidden', !isLast);
-    cbRow.classList.toggle('hidden', !isLast);
+  const cb    = document.getElementById('whatsnew-dontshow');
+  if (!track || !dots) return;
+
+  track.innerHTML = (tuto.slides || []).map((s, i) => {
+    const isLast = (i === tuto.slides.length - 1);
+    const ctaHtml = (isLast && tuto.cta && tuto.cta.label && tuto.cta.target)
+      ? `<button class="whatsnew-cta-btn" onclick="whatsNewCtaClick()">${_escapeHtml(tuto.cta.label)}</button>`
+      : '';
+    const imgHtml = s.image
+      ? `<img class="whatsnew-image" src="${s.image}" alt="">`
+      : `<div class="whatsnew-image-placeholder">🎬</div>`;
+    return `
+      <div class="whatsnew-slide">
+        ${imgHtml}
+        <h2 class="whatsnew-slide-title">${_escapeHtml(s.title || '')}</h2>
+        <p class="whatsnew-slide-body">${_escapeHtml(s.body || '')}</p>
+        ${ctaHtml}
+      </div>
+    `;
+  }).join('');
+
+  dots.innerHTML = (tuto.slides || []).map(
+    (_, i) => `<div class="whatsnew-dot${i === _whatsNewState.slideIdx ? ' active' : ''}"></div>`
+  ).join('');
+
+  if (cb) cb.checked = false;
+  _whatsNewUpdateUI();
+}
+
+/* Met à jour transform + dots + visibilité boutons selon la slide courante */
+function _whatsNewUpdateUI() {
+  const tuto = _whatsNewState.current;
+  if (!tuto) return;
+  const idx = _whatsNewState.slideIdx;
+  const total = tuto.slides.length;
+  const isLast = (idx === total - 1);
+
+  const track = document.getElementById('whatsnew-track');
+  if (track) track.style.transform = `translateX(-${idx * 100}%)`;
+
+  document.querySelectorAll('#whatsnew-dots .whatsnew-dot').forEach((d, i) => {
+    d.classList.toggle('active', i === idx);
+  });
+
+  document.getElementById('whatsnew-prev').classList.toggle('hidden', idx === 0);
+  document.getElementById('whatsnew-next').classList.toggle('hidden', isLast);
+  document.getElementById('whatsnew-finish').classList.toggle('hidden', !isLast);
+  document.getElementById('whatsnew-checkbox-row').classList.toggle('hidden', !isLast);
+}
+
+/* Helper d'échappement HTML pour éviter les injections via le contenu des tutos */
+function _escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/* Slide précédente (caché sur slide 0) */
+function whatsNewPrev() {
+  if (_whatsNewState.slideIdx > 0) {
+    _whatsNewState.slideIdx--;
+    _whatsNewUpdateUI();
   }
-  
-  // Surcharge temporaire des handlers (Patch 3 fournira les vrais)
-  window.whatsNewPrev   = () => { if (currentIdx > 0) { currentIdx--; update(); } };
-  window.whatsNewNext   = () => { if (currentIdx < total - 1) { currentIdx++; update(); } };
-  window.whatsNewFinish = () => {
-    const dontShow = document.getElementById('whatsnew-dontshow').checked;
-    document.getElementById('modal-whatsnew').classList.add('hidden');
-    console.log('[whatsnew debug] terminé, dontShow =', dontShow);
+}
+
+/* Slide suivante (remplacé par "J'ai compris" sur la dernière) */
+function whatsNewNext() {
+  const tuto = _whatsNewState.current;
+  if (!tuto) return;
+  if (_whatsNewState.slideIdx < tuto.slides.length - 1) {
+    _whatsNewState.slideIdx++;
+    _whatsNewUpdateUI();
+  }
+}
+
+/* Clic sur "J'ai compris" : dismiss si checkbox cochée, puis tuto suivant ou ferme */
+async function whatsNewFinish() {
+  const tuto = _whatsNewState.current;
+  if (!tuto) return;
+  const cb = document.getElementById('whatsnew-dontshow');
+  const dontShowAgain = cb ? cb.checked : false;
+
+  if (dontShowAgain && _whatsNewState.studentId && !_whatsNewState.previewMode) {
+    await dismissTutorialForStudent(_whatsNewState.studentId, tuto.slug);
+  }
+
+  if (_whatsNewState.queue.length > 0) {
+    _whatsNewState.current  = _whatsNewState.queue.shift();
+    _whatsNewState.slideIdx = 0;
+    _whatsNewRender();
+  } else {
+    whatsNewClose();
+  }
+}
+
+/* Clic sur le CTA optionnel de la dernière slide :
+   dismiss si coché, ferme tout (pas d'enchaînement), navigue vers target */
+async function whatsNewCtaClick() {
+  const tuto = _whatsNewState.current;
+  if (!tuto) return;
+  const cb = document.getElementById('whatsnew-dontshow');
+  const dontShowAgain = cb ? cb.checked : false;
+  const cta = tuto.cta;
+
+  if (dontShowAgain && _whatsNewState.studentId && !_whatsNewState.previewMode) {
+    await dismissTutorialForStudent(_whatsNewState.studentId, tuto.slug);
+  }
+
+  // Le CTA prend le pas sur la queue : on ferme et on navigue
+  _whatsNewState.queue = [];
+  whatsNewClose();
+
+  if (cta && cta.target && typeof navigateTo === 'function') {
+    navigateTo(cta.target);
+  }
+}
+
+/* Ferme la modale et reset complet de l'état */
+function whatsNewClose() {
+  const m = document.getElementById('modal-whatsnew');
+  if (m) m.classList.add('hidden');
+  _whatsNewState.queue       = [];
+  _whatsNewState.current     = null;
+  _whatsNewState.slideIdx    = 0;
+  _whatsNewState.studentId   = null;
+  _whatsNewState.previewMode = false;
+}
+
+/* Vérifie si l'élève a des tutos non vus, et les affiche le cas échéant.
+   Appelée dans loginAs() après navigateTo('home').
+   Silencieuse en cas d'erreur réseau (l'app reste utilisable). */
+async function checkAndShowWhatsNew() {
+  if (S.isAdmin) return;
+  if (!S.user || !S.user.id) return;
+  try {
+    const tutos = await getTutorialsToShowForStudent(S.user.id);
+    if (tutos.length > 0) {
+      whatsNewOpen(tutos, S.user.id, false);
+    }
+  } catch (e) {
+    console.warn('[whatsnew] checkAndShowWhatsNew exception:', e);
+  }
+}
+
+/* DEBUG / PREVIEW — tuto factice avec 3 slides, sans écriture BDD.
+   Utilisable depuis la console : _whatsNewDebugPreview()
+   Sera réutilisée par le bouton "Prévisualiser" du panneau admin (Patch 4). */
+function _whatsNewDebugPreview() {
+  const demoTuto = {
+    slug: '__debug__',
+    category: 'features',
+    title: 'Tuto démo',
+    createdAt: '2026-01-01',
+    slides: [
+      {
+        title: 'Bienvenue dans la nouveauté',
+        body: 'Voici une slide avec une image. C\'est la première slide du tuto, donc le bouton Précédent est caché. Cliquez sur Suivant pour passer à la slide 2.',
+        image: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=800&h=450&fit=crop'
+      },
+      {
+        title: 'Une slide sans image',
+        body: 'Cette slide n\'a pas d\'image définie : un placeholder doré avec un dégradé subtil prend la place. Le rendu reste premium même sans visuel.',
+        image: null
+      },
+      {
+        title: 'Dernière slide',
+        body: 'Voici la dernière slide. Le bouton Suivant est remplacé par "J\'ai compris", et la checkbox "Ne plus afficher" apparaît au-dessus, décochée par défaut.',
+        image: null
+      }
+    ]
   };
-  
-  document.getElementById('whatsnew-dontshow').checked = false;
-  document.getElementById('modal-whatsnew').classList.remove('hidden');
-  update();
+  whatsNewOpen([demoTuto], null, true);
 }
 
 // Liste des thèmes valides (utilisé pour le sélecteur admin et le nettoyage)
@@ -10842,6 +10978,9 @@ async function loginAs(student) {
   applyEventTheme();
 
   navigateTo('home');
+
+  // Affichage des tutoriels What's New non vus (silencieux si aucun)
+  checkAndShowWhatsNew();
 }
 
 function openAddToHome() {
