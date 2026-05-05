@@ -10031,14 +10031,16 @@ async function _hookXpOnVote(studentId, filmId) {
     if (activePriorVotes.length > 0) return; // déjà gagné XP pour ce film (et pas remboursé)
 
     // 2. Cap quotidien : combien de votes déjà comptés aujourd'hui ?
-    const { count: votesToday, error: errCount } = await db
+    //    On exclut les events remboursés (sinon un vote/retrait/revote consomme le cap pour rien)
+    const { data: todayVoteEvents, error: errCount } = await db
       .from('xp_events')
-      .select('id', { count: 'exact', head: true })
+      .select('id, metadata')
       .eq('student_id', studentId)
       .eq('event_type', 'vote')
       .gte('created_at', todayStart.toISOString());
     if (errCount) { console.warn('[xp hook vote] count error:', errCount); return; }
-    if ((votesToday || 0) >= XP_DAILY_VOTE_CAP) return; // cap atteint
+    const activeVotesToday = (todayVoteEvents || []).filter(e => !(e.metadata && e.metadata.refunded));
+    if (activeVotesToday.length >= XP_DAILY_VOTE_CAP) return; // cap atteint
 
     // 3. Insère l'event vote
     await addXpEvent(studentId, 'vote', XP_AMOUNTS.vote, { film_id: filmId });
