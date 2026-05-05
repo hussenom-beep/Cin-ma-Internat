@@ -9805,6 +9805,626 @@ const EVENT_HERO_IMAGES = {
   christmas: '',  // emoji 🎄 utilisé en fallback (cf. CSS body.theme-christmas)
 };
 
+/* ================================================================
+   XP & LEVELS SYSTEM — Batch C1 (Fondations)
+   ================================================================
+   Architecture :
+   - Toutes les actions XP s'enregistrent dans la table xp_events
+   - Le niveau se calcule à la volée (somme des xp_events où scheduled_for <= NOW)
+   - Pas de cache : la source de vérité est toujours la BDD
+   - Aucune écriture côté UI dans ce batch (totalement invisible pour l'élève)
+
+   Barème (cf. discussion + récap) :
+     Présence séance normale       : +50
+     Présence séance event         : +250
+     Absence à séance inscrite     : -20  (avec plancher = seuil niveau actuel, pas appliqué niv 1-2)
+     Modif présent → absent        : -40  (parti pendant film, perd la récompense partielle)
+     1ère connexion du jour        : +10
+     Connexions suivantes (max 2)  : +1
+     Vote (max 3 comptés/jour)     : +3
+     1er vote du mois              : +15
+     Proposition acceptée          : +30  (étalée 5j si plusieurs)
+     Anniversaire                  : +50
+     Ancienneté                    : +10/mois (auto)
+
+   Niveaux :
+     Formule : XP_cumulé(N) = round(40*(N-1) + 5.5*(N-1)^2.3)
+     Max     : niveau 25 ≈ 7836 XP
+*/
+
+const XP_AMOUNTS = {
+  vote:                  3,
+  vote_first_of_month:  15,
+  session_attended:     50,
+  event_attended:      250,
+  session_absent:      -20,   // pénalité absence à séance inscrite
+  session_left:        -40,   // pénalité présent → absent (parti pendant film)
+  login_first_daily:    10,
+  login_extra_daily:     1,
+  proposal_accepted:    30,
+  birthday:             50,
+  monthly_loyalty:      10,
+};
+
+// Cap quotidien sur les votes : 3 votes maximum comptés pour XP par jour
+const XP_DAILY_VOTE_CAP = 3;
+// Connexions supplémentaires comptées par jour (en plus de la 1ère qui donne +10)
+const XP_DAILY_LOGIN_EXTRA_CAP = 2;
+// Étalement des propositions acceptées (jours)
+const XP_PROPOSAL_SPREAD_DAYS = 5;
+// Niveau max
+const XP_MAX_LEVEL = 25;
+// En dessous de ce niveau, pas de pénalité d'absence (épargne en début d'aventure)
+const XP_PENALTY_MIN_LEVEL = 3;
+
+/* ----------------------------------------------------------------
+   COURBE DES NIVEAUX
+   ---------------------------------------------------------------- */
+
+/* Retourne le seuil XP cumulé pour atteindre le niveau N (1..25). */
+function xpThresholdForLevel(level) {
+  if (level <= 1) return 0;
+  if (level > XP_MAX_LEVEL) level = XP_MAX_LEVEL;
+  const n = level - 1;
+  return Math.round(40 * n + 5.5 * Math.pow(n, 2.3));
+}
+
+/* Retourne le niveau (1..25) correspondant à un XP total cumulé. */
+function levelFromXp(totalXp) {
+  if (totalXp < 0) totalXp = 0;
+  for (let lvl = XP_MAX_LEVEL; lvl >= 1; lvl--) {
+    if (totalXp >= xpThresholdForLevel(lvl)) return lvl;
+  }
+  return 1;
+}
+
+/* Calcule la progression vers le niveau suivant.
+   Retourne : { level, xpInLevel, xpNeededForNext, percent (0-100), isMax } */
+function computeXpProgress(totalXp) {
+  const level = levelFromXp(totalXp);
+  if (level >= XP_MAX_LEVEL) {
+    return { level: XP_MAX_LEVEL, xpInLevel: 0, xpNeededForNext: 0, percent: 100, isMax: true };
+  }
+  const cur  = xpThresholdForLevel(level);
+  const next = xpThresholdForLevel(level + 1);
+  const range = next - cur;
+  const inLvl = Math.max(0, totalXp - cur);
+  const pct = range > 0 ? Math.round((inLvl / range) * 100) : 0;
+  return { level, xpInLevel: inLvl, xpNeededForNext: range, percent: Math.min(100, pct), isMax: false };
+}
+
+/* ----------------------------------------------------------------
+   HELPERS BDD — lecture
+   ---------------------------------------------------------------- */
+
+/* Total XP cumulé d'un élève (somme des events dont scheduled_for <= NOW).
+   Retourne 0 en cas d'erreur réseau ou si élève introuvable. */
+async function getStudentTotalXp(studentId) {
+  if (!studentId) return 0;
+  try {
+    const { data, error } = await db
+      .from('xp_events')
+      .select('xp_amount')
+      .eq('student_id', studentId)
+      .lte('scheduled_for', new Date().toISOString());
+    if (error) {
+      console.warn('[xp] getStudentTotalXp error:', error);
+      return 0;
+    }
+    return (data || []).reduce((sum, r) => sum + (r.xp_amount || 0), 0);
+  } catch (e) {
+    console.warn('[xp] getStudentTotalXp exception:', e);
+    return 0;
+  }
+}
+
+/* Renvoie tous les events XP d'un élève, du plus récent au plus ancien.
+   Limité à 100 par défaut (pour la page "Mon parcours" au C2). */
+async function getStudentXpHistory(studentId, limit = 100) {
+  if (!studentId) return [];
+  try {
+    const { data, error } = await db
+      .from('xp_events')
+      .select('*')
+      .eq('student_id', studentId)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    if (error) { console.warn('[xp] getStudentXpHistory error:', error); return []; }
+    return data || [];
+  } catch (e) {
+    console.warn('[xp] getStudentXpHistory exception:', e);
+    return [];
+  }
+}
+
+/* ----------------------------------------------------------------
+   HELPERS BDD — écriture (cœur du système)
+   ---------------------------------------------------------------- */
+
+/* Insère un xp_event. C'est la seule façon de gagner ou perdre de l'XP.
+   Options :
+     - metadata    : objet libre stocké en JSONB (film_id, session_id, is_retro, etc.)
+     - scheduledFor: Date ISO pour l'étalement (par défaut = maintenant)
+   Retourne l'event créé ou null en cas d'erreur. */
+async function addXpEvent(studentId, eventType, xpAmount, metadata = {}, scheduledFor = null) {
+  if (!studentId || !eventType || typeof xpAmount !== 'number') return null;
+  const payload = {
+    student_id:    studentId,
+    event_type:    eventType,
+    xp_amount:     xpAmount,
+    metadata:      metadata || {},
+    scheduled_for: scheduledFor || new Date().toISOString()
+  };
+  try {
+    const { data, error } = await db.from('xp_events').insert(payload).select().single();
+    if (error) {
+      console.warn('[xp] addXpEvent error:', error, payload);
+      return null;
+    }
+    return data;
+  } catch (e) {
+    console.warn('[xp] addXpEvent exception:', e);
+    return null;
+  }
+}
+
+/* Applique une pénalité XP à un élève en respectant le plancher de niveau.
+   - Calcule l'XP actuel
+   - Détermine le niveau actuel
+   - Si niveau < XP_PENALTY_MIN_LEVEL : aucune pénalité (silencieux)
+   - Sinon, calcule le seuil du niveau actuel et limite la pénalité réelle
+     pour que l'élève ne redescende JAMAIS de niveau.
+   Retourne l'event créé (avec xp_amount = pénalité réelle appliquée) ou null. */
+async function applyXpPenalty(studentId, eventType, requestedAmount, metadata = {}) {
+  if (!studentId || requestedAmount >= 0) return null;  // sécurité : seules les valeurs négatives passent
+  const currentXp = await getStudentTotalXp(studentId);
+  const currentLevel = levelFromXp(currentXp);
+
+  // Épargne en début d'aventure
+  if (currentLevel < XP_PENALTY_MIN_LEVEL) {
+    console.log(`[xp] penalty skipped (level ${currentLevel} < ${XP_PENALTY_MIN_LEVEL}) for student ${studentId}`);
+    return null;
+  }
+
+  // Calcul du plancher : seuil XP du niveau actuel
+  const floor = xpThresholdForLevel(currentLevel);
+  const maxLoss = currentXp - floor;     // ce qu'on peut au max retirer sans changer de niveau
+  const realLoss = Math.min(Math.abs(requestedAmount), maxLoss);
+
+  if (realLoss <= 0) {
+    console.log(`[xp] penalty fully absorbed (already at floor ${floor}) for student ${studentId}`);
+    return null;  // pas d'event créé : rien à retirer
+  }
+
+  return addXpEvent(studentId, eventType, -realLoss, {
+    ...metadata,
+    requested_penalty: requestedAmount,
+    floor_threshold: floor,
+    level_at_penalty: currentLevel
+  });
+}
+
+/* ----------------------------------------------------------------
+   HOOKS XP — déclenchés automatiquement aux actions existantes
+   ---------------------------------------------------------------- */
+
+/* Hook : vote pour un film.
+   - Vérifie le cap quotidien (XP_DAILY_VOTE_CAP)
+   - Vérifie qu'on n'a pas déjà donné XP pour ce film à cet élève (anti-revote)
+   - Vérifie le bonus 1er vote du mois */
+async function _hookXpOnVote(studentId, filmId) {
+  if (!studentId || !filmId) return;
+  try {
+    const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+
+    // 1. A-t-on déjà donné XP pour ce film à cet élève ? (anti-revote)
+    const { count: priorVoteCount, error: errPrior } = await db
+      .from('xp_events')
+      .select('id', { count: 'exact', head: true })
+      .eq('student_id', studentId)
+      .eq('event_type', 'vote')
+      .filter('metadata->>film_id', 'eq', String(filmId));
+    if (errPrior) console.warn('[xp hook vote] prior check error:', errPrior);
+    if ((priorVoteCount || 0) > 0) return; // déjà gagné XP pour ce film
+
+    // 2. Cap quotidien : combien de votes déjà comptés aujourd'hui ?
+    const { count: votesToday, error: errCount } = await db
+      .from('xp_events')
+      .select('id', { count: 'exact', head: true })
+      .eq('student_id', studentId)
+      .eq('event_type', 'vote')
+      .gte('created_at', todayStart.toISOString());
+    if (errCount) { console.warn('[xp hook vote] count error:', errCount); return; }
+    if ((votesToday || 0) >= XP_DAILY_VOTE_CAP) return; // cap atteint
+
+    // 3. Insère l'event vote
+    await addXpEvent(studentId, 'vote', XP_AMOUNTS.vote, { film_id: filmId });
+
+    // 4. Bonus 1er vote du mois ?
+    const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
+    const { count: monthVoteCount, error: errMonth } = await db
+      .from('xp_events')
+      .select('id', { count: 'exact', head: true })
+      .eq('student_id', studentId)
+      .eq('event_type', 'vote_first_of_month')
+      .gte('created_at', monthStart.toISOString());
+    if (!errMonth && (monthVoteCount || 0) === 0) {
+      await addXpEvent(studentId, 'vote_first_of_month', XP_AMOUNTS.vote_first_of_month, {
+        month: monthStart.toISOString().slice(0, 7)
+      });
+    }
+  } catch (e) {
+    console.warn('[xp hook vote] exception:', e);
+  }
+}
+
+/* Hook : sauvegarde d'appel (présence) — appelé pour CHAQUE élève à la fin de saveAttendance.
+   - status = 'present' | 'absent'
+   - prevStatus = état précédent (null si 1ère sauvegarde)
+   - sessionId, isEvent : contexte */
+async function _hookXpOnAttendance(studentId, status, prevStatus, sessionId, isEvent) {
+  if (!studentId || !sessionId) return;
+  const presentXp = isEvent ? XP_AMOUNTS.event_attended : XP_AMOUNTS.session_attended;
+  const presentType = isEvent ? 'event_attended' : 'session_attended';
+
+  try {
+    // Cas 1 : 1ère sauvegarde, élève présent → +XP
+    if (!prevStatus && status === 'present') {
+      await addXpEvent(studentId, presentType, presentXp, { session_id: sessionId });
+      return;
+    }
+    // Cas 2 : 1ère sauvegarde, élève absent → pénalité fantôme
+    if (!prevStatus && status === 'absent') {
+      await applyXpPenalty(studentId, 'session_absent', XP_AMOUNTS.session_absent, { session_id: sessionId });
+      return;
+    }
+    // Cas 3 : modif après coup, présent → absent (parti pendant film)
+    if (prevStatus === 'present' && status === 'absent') {
+      await applyXpPenalty(studentId, 'session_left', XP_AMOUNTS.session_left, { session_id: sessionId });
+      return;
+    }
+    // Cas 4 : modif après coup, absent → présent (oups il était là)
+    if (prevStatus === 'absent' && status === 'present') {
+      await addXpEvent(studentId, presentType, presentXp, { session_id: sessionId, fixed_from_absent: true });
+      // Note : on ne rembourse pas la pénalité fantôme (audit trail propre)
+      return;
+    }
+    // Cas 5 : statut identique → no-op
+  } catch (e) {
+    console.warn('[xp hook attendance] exception:', e);
+  }
+}
+
+/* Hook : proposition acceptée par l'admin.
+   Étalement sur XP_PROPOSAL_SPREAD_DAYS jours.
+   Si plusieurs propositions sont déjà en attente d'étalement, on continue après. */
+async function _hookXpOnProposalAccepted(studentId, proposalId, filmTitle) {
+  if (!studentId || !proposalId) return;
+  try {
+    // Cherche la dernière proposition étalée pour cet élève dont scheduled_for est dans le futur.
+    // On insère la nouvelle juste après pour respecter la file d'attente.
+    const { data: pending, error: errPending } = await db
+      .from('xp_events')
+      .select('scheduled_for')
+      .eq('student_id', studentId)
+      .eq('event_type', 'proposal_accepted')
+      .gt('scheduled_for', new Date().toISOString())
+      .order('scheduled_for', { ascending: false })
+      .limit(1);
+    if (errPending) console.warn('[xp hook prop] pending check error:', errPending);
+
+    let scheduledFor;
+    if (pending && pending.length > 0) {
+      // Il y a déjà une proposition en attente : on planifie 1 jour après
+      const last = new Date(pending[0].scheduled_for);
+      last.setDate(last.getDate() + 1);
+      scheduledFor = last;
+    } else {
+      // Première proposition : XP immédiat (jour 0)
+      scheduledFor = new Date();
+    }
+
+    await addXpEvent(
+      studentId,
+      'proposal_accepted',
+      XP_AMOUNTS.proposal_accepted,
+      { proposal_id: proposalId, film_title: filmTitle || null },
+      scheduledFor.toISOString()
+    );
+  } catch (e) {
+    console.warn('[xp hook prop] exception:', e);
+  }
+}
+
+/* Hook : connexion d'un élève.
+   - 1ère connexion du jour : +10 XP
+   - Connexions suivantes (max 2) : +1 XP chacune
+   - Vérifie aussi anniversaire si date_of_birth remplie */
+async function _hookXpOnLogin(studentId, dateOfBirth) {
+  if (!studentId) return;
+  try {
+    const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+
+    // Compter les connexions XP du jour
+    const { count: loginCount, error: errCount } = await db
+      .from('xp_events')
+      .select('id', { count: 'exact', head: true })
+      .eq('student_id', studentId)
+      .in('event_type', ['login_first_daily', 'login_extra_daily'])
+      .gte('created_at', todayStart.toISOString());
+    if (errCount) { console.warn('[xp hook login] count error:', errCount); return; }
+    const loginsToday = loginCount || 0;
+
+    if (loginsToday === 0) {
+      // 1ère connexion du jour
+      await addXpEvent(studentId, 'login_first_daily', XP_AMOUNTS.login_first_daily, {});
+    } else if (loginsToday <= XP_DAILY_LOGIN_EXTRA_CAP) {
+      // 2ème ou 3ème connexion : +1 chacune
+      await addXpEvent(studentId, 'login_extra_daily', XP_AMOUNTS.login_extra_daily, {});
+    }
+    // > XP_DAILY_LOGIN_EXTRA_CAP : plus rien
+
+    // Anniversaire ?
+    if (dateOfBirth) {
+      const today = new Date();
+      const dob = new Date(dateOfBirth);
+      if (dob.getMonth() === today.getMonth() && dob.getDate() === today.getDate()) {
+        // Vérifier qu'on n'a pas déjà donné le bonus cette année
+        const yearStart = new Date(today.getFullYear(), 0, 1);
+        const { count: bdayCount } = await db
+          .from('xp_events')
+          .select('id', { count: 'exact', head: true })
+          .eq('student_id', studentId)
+          .eq('event_type', 'birthday')
+          .gte('created_at', yearStart.toISOString());
+        if ((bdayCount || 0) === 0) {
+          await addXpEvent(studentId, 'birthday', XP_AMOUNTS.birthday, { year: today.getFullYear() });
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('[xp hook login] exception:', e);
+  }
+}
+
+/* ----------------------------------------------------------------
+   FONCTION RÉTROACTIVE — à lancer 1 fois manuellement après déploiement
+   ----------------------------------------------------------------
+   Usage console :
+     await replayHistoricalXP({ dryRun: true });   // simulation, log seulement
+     await replayHistoricalXP({ dryRun: false });  // applique en BDD
+   Idempotent : purge tous les events marqués is_retro avant de rejouer.
+*/
+async function replayHistoricalXP(opts = {}) {
+  const dryRun = opts.dryRun !== false; // par défaut dry-run pour sécurité
+  console.log(`[xp retro] === DÉBUT ${dryRun ? 'DRY-RUN' : 'APPLY'} ===`);
+
+  if (!dryRun) {
+    // Purge des events rétro existants pour idempotence
+    const { error: errPurge } = await db
+      .from('xp_events')
+      .delete()
+      .filter('metadata->>is_retro', 'eq', 'true');
+    if (errPurge) {
+      console.error('[xp retro] purge error:', errPurge);
+      return { ok: false };
+    }
+    console.log('[xp retro] purged old retro events');
+  }
+
+  // Charger toutes les sources
+  const [students, votes, regs, props, logins, sessions] = await Promise.all([
+    db.from('students').select('id, first_name, last_name, date_of_birth, created_at').then(r => r.data || []),
+    db.from('votes').select('student_id, film_id, created_at').then(r => r.data || []),
+    db.from('registrations').select('student_id, session_id, attendance_status').then(r => r.data || []),
+    db.from('proposals').select('id, student_id, title, status, reviewed_at').eq('status', 'accepted').then(r => r.data || []),
+    db.from('student_logins').select('student_id, created_at').then(r => r.data || []),
+    db.from('cinema_sessions').select('id, event_tag, attendance_done').then(r => r.data || [])
+  ]);
+
+  const sessionMap = new Map(sessions.map(s => [s.id, s]));
+  const eventsToInsert = [];
+  const stats = { votes: 0, sessions: 0, events: 0, absences: 0, proposals: 0, logins: 0, birthdays: 0 };
+
+  // 1. Votes : +3 par vote unique (par film par élève), cap 3/jour, +15 1er du mois
+  // On regroupe par élève puis par jour pour gérer le cap
+  const votesByStudent = new Map();
+  votes.forEach(v => {
+    if (!votesByStudent.has(v.student_id)) votesByStudent.set(v.student_id, []);
+    votesByStudent.get(v.student_id).push(v);
+  });
+
+  votesByStudent.forEach((studentVotes, studentId) => {
+    studentVotes.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    const seenFilms = new Set();
+    const dailyCounts = new Map();   // 'YYYY-MM-DD' -> count
+    const monthSeen = new Set();     // 'YYYY-MM'
+
+    studentVotes.forEach(v => {
+      if (seenFilms.has(v.film_id)) return; // anti-revote
+      seenFilms.add(v.film_id);
+
+      const day   = (v.created_at || '').slice(0, 10);
+      const month = (v.created_at || '').slice(0, 7);
+      const dayCount = dailyCounts.get(day) || 0;
+      if (dayCount >= XP_DAILY_VOTE_CAP) return;
+      dailyCounts.set(day, dayCount + 1);
+
+      eventsToInsert.push({
+        student_id:    studentId,
+        event_type:    'vote',
+        xp_amount:     XP_AMOUNTS.vote,
+        metadata:      { film_id: v.film_id, is_retro: true },
+        scheduled_for: v.created_at,
+        created_at:    v.created_at
+      });
+      stats.votes++;
+
+      // Bonus 1er vote du mois
+      if (!monthSeen.has(month)) {
+        monthSeen.add(month);
+        eventsToInsert.push({
+          student_id:    studentId,
+          event_type:    'vote_first_of_month',
+          xp_amount:     XP_AMOUNTS.vote_first_of_month,
+          metadata:      { month, is_retro: true },
+          scheduled_for: v.created_at,
+          created_at:    v.created_at
+        });
+      }
+    });
+  });
+
+  // 2. Présences/absences (toutes les registrations avec attendance_status non null)
+  regs.forEach(r => {
+    if (!r.attendance_status) return;
+    const session = sessionMap.get(r.session_id);
+    if (!session || !session.attendance_done) return;
+    const isEvent = !!session.event_tag;
+
+    if (r.attendance_status === 'present') {
+      const xp = isEvent ? XP_AMOUNTS.event_attended : XP_AMOUNTS.session_attended;
+      const type = isEvent ? 'event_attended' : 'session_attended';
+      eventsToInsert.push({
+        student_id:    r.student_id,
+        event_type:    type,
+        xp_amount:     xp,
+        metadata:      { session_id: r.session_id, is_retro: true },
+        scheduled_for: new Date().toISOString(),
+        created_at:    new Date().toISOString()
+      });
+      if (isEvent) stats.events++; else stats.sessions++;
+    } else if (r.attendance_status === 'absent') {
+      // Pénalité fantôme : pas appliquée si niveau < 3, mais on insère un event négatif
+      // (le calcul du plancher se fait à la volée, donc ici on insère juste -20)
+      // → On simplifie : pour le retro, on met -20 brut sans plancher car on n'a pas encore de niveau calculé
+      //   Cas limite : un élève absent 5x avant tout autre XP serait à -100. Plancher 0 à appliquer en lecture.
+      eventsToInsert.push({
+        student_id:    r.student_id,
+        event_type:    'session_absent',
+        xp_amount:     XP_AMOUNTS.session_absent,
+        metadata:      { session_id: r.session_id, is_retro: true },
+        scheduled_for: new Date().toISOString(),
+        created_at:    new Date().toISOString()
+      });
+      stats.absences++;
+    }
+  });
+
+  // 3. Propositions acceptées : +30 par proposition (sans étalement en retro)
+  props.forEach(p => {
+    eventsToInsert.push({
+      student_id:    p.student_id,
+      event_type:    'proposal_accepted',
+      xp_amount:     XP_AMOUNTS.proposal_accepted,
+      metadata:      { proposal_id: p.id, film_title: p.title, is_retro: true },
+      scheduled_for: p.reviewed_at || new Date().toISOString(),
+      created_at:    p.reviewed_at || new Date().toISOString()
+    });
+    stats.proposals++;
+  });
+
+  // 4. Connexions : 1ère du jour +10, suivantes +1 (max 2)
+  const loginsByStudent = new Map();
+  logins.forEach(l => {
+    if (!loginsByStudent.has(l.student_id)) loginsByStudent.set(l.student_id, []);
+    loginsByStudent.get(l.student_id).push(l);
+  });
+  loginsByStudent.forEach((studentLogins, studentId) => {
+    studentLogins.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    const dailyCounts = new Map();
+    studentLogins.forEach(l => {
+      const day = (l.created_at || '').slice(0, 10);
+      const count = dailyCounts.get(day) || 0;
+      if (count === 0) {
+        eventsToInsert.push({
+          student_id:    studentId,
+          event_type:    'login_first_daily',
+          xp_amount:     XP_AMOUNTS.login_first_daily,
+          metadata:      { is_retro: true },
+          scheduled_for: l.created_at,
+          created_at:    l.created_at
+        });
+        stats.logins++;
+      } else if (count <= XP_DAILY_LOGIN_EXTRA_CAP) {
+        eventsToInsert.push({
+          student_id:    studentId,
+          event_type:    'login_extra_daily',
+          xp_amount:     XP_AMOUNTS.login_extra_daily,
+          metadata:      { is_retro: true },
+          scheduled_for: l.created_at,
+          created_at:    l.created_at
+        });
+      }
+      dailyCounts.set(day, count + 1);
+    });
+  });
+
+  // 5. Anniversaires : pour chaque élève avec date_of_birth, vérifier si on est passé par cette date
+  // → Trop complexe à reconstituer (faut connaître les jours où il s'est connecté son jour d'anniv).
+  //    On laisse ça pour les anniversaires futurs uniquement (post-déploiement).
+
+  // 6. Ancienneté : +10/mois écoulé depuis created_at de l'élève
+  students.forEach(s => {
+    if (!s.created_at) return;
+    const start = new Date(s.created_at);
+    const now = new Date();
+    const monthsElapsed = Math.floor((now - start) / (1000 * 60 * 60 * 24 * 30));
+    for (let i = 1; i <= monthsElapsed; i++) {
+      const eventDate = new Date(start);
+      eventDate.setMonth(eventDate.getMonth() + i);
+      eventsToInsert.push({
+        student_id:    s.id,
+        event_type:    'monthly_loyalty',
+        xp_amount:     XP_AMOUNTS.monthly_loyalty,
+        metadata:      { month_number: i, is_retro: true },
+        scheduled_for: eventDate.toISOString(),
+        created_at:    eventDate.toISOString()
+      });
+    }
+  });
+
+  console.log('[xp retro] stats:', stats);
+  console.log('[xp retro] total events à insérer:', eventsToInsert.length);
+
+  if (dryRun) {
+    console.log('[xp retro] === DRY-RUN ENDED — aucune écriture BDD ===');
+    console.log('[xp retro] Pour appliquer pour de vrai : await replayHistoricalXP({ dryRun: false })');
+    // Recap par élève (top 10 plus actifs)
+    const xpByStudent = new Map();
+    eventsToInsert.forEach(e => {
+      xpByStudent.set(e.student_id, (xpByStudent.get(e.student_id) || 0) + e.xp_amount);
+    });
+    const sorted = [...xpByStudent.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10);
+    console.log('[xp retro] TOP 10 élèves XP simulé :');
+    sorted.forEach(([sid, xp]) => {
+      const s = students.find(x => x.id === sid);
+      const name = s ? `${s.first_name} ${s.last_name}` : sid;
+      console.log(`  ${name} → ${xp} XP (niveau ${levelFromXp(xp)})`);
+    });
+    return { ok: true, dryRun: true, stats, totalEvents: eventsToInsert.length };
+  }
+
+  // Insertion par batch de 500 pour ne pas surcharger Supabase
+  const BATCH_SIZE = 500;
+  for (let i = 0; i < eventsToInsert.length; i += BATCH_SIZE) {
+    const batch = eventsToInsert.slice(i, i + BATCH_SIZE);
+    const { error } = await db.from('xp_events').insert(batch);
+    if (error) {
+      console.error(`[xp retro] insert batch ${i} error:`, error);
+      return { ok: false, inserted: i };
+    }
+    console.log(`[xp retro] inserted batch ${i / BATCH_SIZE + 1} (${batch.length} events)`);
+  }
+
+  console.log(`[xp retro] === DONE — ${eventsToInsert.length} events insérés ===`);
+  return { ok: true, dryRun: false, stats, totalEvents: eventsToInsert.length };
+}
+
+/* ================================================================
+   FIN — XP & LEVELS SYSTEM (Batch C1)
+   ================================================================ */
+
 /* ----------------------------------------------------------------
    What's New — tutoriels élèves pour les nouveautés
    ----------------------------------------------------------------
@@ -11408,6 +12028,9 @@ async function loginAs(student) {
     if (error) console.warn('[loginAs] student_logins insert error:', error);
   });
 
+  // Hook XP : 1ère connexion du jour +10, suivantes +1 (cap 2 supp), + bonus anniv
+  _hookXpOnLogin(student.id, student.date_of_birth);
+
   // Démarrer le realtime élève
   startStudentRealtime();
   // Démarrer le realtime maintenance (éviction live si maintenance activée pendant la session)
@@ -12261,6 +12884,8 @@ async function toggleVote(filmId) {
     if (!error) {
       S.votes.add(filmId);
       toast('Vote enregistré 🗳️', 'success');
+      // Hook XP : +3 si éligible (cap 3/jour, anti-revote, +15 si 1er du mois)
+      _hookXpOnVote(S.user.id, filmId);
     }
   }
 
@@ -16063,6 +16688,22 @@ async function saveAttendance() {
       return;
     }
 
+    // Capture des états précédents (avant update) pour le hook XP.
+    // On charge en une seule requête : id → { student_id, prev_status }
+    const _xpHookRegIds = updates.map(u => u.id);
+    const prevStateMap = new Map();
+    try {
+      const { data: prevRows } = await db
+        .from('registrations')
+        .select('id, student_id, attendance_status')
+        .in('id', _xpHookRegIds);
+      (prevRows || []).forEach(r => {
+        prevStateMap.set(r.id, { studentId: r.student_id, prevStatus: r.attendance_status || null });
+      });
+    } catch (e) {
+      console.warn('[xp hook] prevState fetch error:', e);
+    }
+
     console.log('[saveAttendance]', updates.length, 'présences à enregistrer');
     console.log('[saveAttendance] Détail des updates:', updates);
 
@@ -16153,6 +16794,15 @@ async function saveAttendance() {
 
     const syncResult = await syncSessionAttendanceHistory(session.id);
     console.log('[saveAttendance] syncSessionAttendanceHistory result =', syncResult);
+
+    // Hooks XP : pour chaque inscription mise à jour, +50 / -20 / -40 selon transition
+    // Fire-and-forget : on ne bloque pas l'UI, les hooks gèrent leurs erreurs silencieusement
+    const isEvent = !!session.event_tag;
+    for (const update of updates) {
+      const prev = prevStateMap.get(update.id);
+      if (!prev || !prev.studentId) continue;
+      _hookXpOnAttendance(prev.studentId, update.attendance_status, prev.prevStatus, session.id, isEvent);
+    }
 
     toast(`Appel enregistré (${presentCount} présent${presentCount > 1 ? 's' : ''}, ${absentCount} absent${absentCount > 1 ? 's' : ''})`, 'success');
 
@@ -18782,6 +19432,11 @@ async function acceptProposal(id) {
   }
 
   await db.from('proposals').update({ status: 'accepted', reviewed_at: new Date().toISOString() }).eq('id', id);
+
+  // Hook XP : +30 par proposition acceptée (étalée sur 5j si plusieurs en file)
+  if (p.student_id) {
+    _hookXpOnProposalAccepted(p.student_id, id, p.title);
+  }
 
   // Push à l'élève proposeur
   if (p.student_id) {
