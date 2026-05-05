@@ -5285,6 +5285,290 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
   color: #fff;
 }
 
+/* ================================================================
+   WHATSNEW — Carrousel de tutoriels élèves
+   ----------------------------------------------------------------
+   Modale plein écran sur mobile, fixe 620x600 sur desktop.
+   Slides en transition horizontale via translate3d.
+   Image 16:9 en haut + texte dessous, footer fixe avec dots + boutons.
+   ================================================================ */
+
+#modal-whatsnew {
+  align-items: stretch;
+  justify-content: stretch;
+  padding: 0;
+}
+
+.whatsnew-modal {
+  background: var(--surface);
+  border: none;
+  border-radius: 0;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Liseré doré subtil en haut, signature visuelle premium */
+.whatsnew-modal::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.whatsnew-track-wrap {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+.whatsnew-track {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.whatsnew-slide {
+  flex: 0 0 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 22px 22px 8px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  box-sizing: border-box;
+}
+
+.whatsnew-image {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-lg);
+  margin-bottom: 22px;
+  object-fit: cover;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+  background: var(--surface-2);
+}
+
+.whatsnew-image-placeholder {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.18), rgba(212, 175, 55, 0.04));
+  border: 1px solid var(--gold-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 72px;
+  margin-bottom: 22px;
+  flex-shrink: 0;
+  color: var(--gold);
+  position: relative;
+  overflow: hidden;
+}
+
+.whatsnew-image-placeholder::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 30% 20%, rgba(212, 175, 55, 0.12), transparent 60%);
+  pointer-events: none;
+}
+
+.whatsnew-slide-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--gold);
+  margin: 0 0 12px;
+  line-height: 1.25;
+}
+
+.whatsnew-slide-body {
+  font-size: 14.5px;
+  line-height: 1.65;
+  color: var(--text);
+  margin: 0 0 4px;
+}
+
+.whatsnew-cta-btn {
+  background: transparent;
+  border: 1.5px solid var(--gold);
+  color: var(--gold);
+  padding: 11px 18px;
+  border-radius: var(--radius);
+  margin-top: 16px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  align-self: stretch;
+}
+
+.whatsnew-cta-btn:hover,
+.whatsnew-cta-btn:focus {
+  background: var(--gold-dim);
+  outline: none;
+}
+
+/* Footer fixe : dots + checkbox (last slide) + boutons */
+.whatsnew-footer {
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  padding: 14px 22px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.whatsnew-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.whatsnew-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--surface-3);
+  transition: all 0.3s ease;
+}
+
+.whatsnew-dot.active {
+  background: var(--gold);
+  width: 26px;
+  border-radius: 4px;
+}
+
+.whatsnew-checkbox-row {
+  display: flex;
+  justify-content: center;
+  padding: 2px 0;
+}
+
+.whatsnew-checkbox-row.hidden {
+  display: none;
+}
+
+.whatsnew-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13.5px;
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+}
+
+.whatsnew-checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--gold);
+  cursor: pointer;
+  margin: 0;
+}
+
+.whatsnew-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.whatsnew-actions .btn {
+  flex: 1;
+}
+
+.whatsnew-actions .btn.hidden {
+  display: none;
+}
+
+/* Desktop ≥ 900px : modale centrée 620 × 600 */
+@media (min-width: 900px) {
+  #modal-whatsnew {
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(0, 0, 0, 0.78);
+  }
+  
+  .whatsnew-modal {
+    width: 620px;
+    height: 600px;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(212, 175, 55, 0.1);
+  }
+  
+  .whatsnew-modal::before {
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
+  
+  .whatsnew-slide {
+    padding: 32px 40px 12px;
+  }
+  
+  .whatsnew-slide-title {
+    font-size: 26px;
+    margin-bottom: 14px;
+  }
+  
+  .whatsnew-slide-body {
+    font-size: 15.5px;
+    line-height: 1.7;
+  }
+  
+  .whatsnew-image,
+  .whatsnew-image-placeholder {
+    margin-bottom: 26px;
+  }
+  
+  .whatsnew-image-placeholder {
+    font-size: 88px;
+  }
+  
+  .whatsnew-footer {
+    padding: 18px 40px 22px;
+  }
+}
+
+/* Mobile petit ≤ 380px : compactage */
+@media (max-width: 380px) {
+  .whatsnew-slide {
+    padding: 18px 18px 6px;
+  }
+  
+  .whatsnew-slide-title {
+    font-size: 19px;
+  }
+  
+  .whatsnew-slide-body {
+    font-size: 14px;
+  }
+  
+  .whatsnew-image,
+  .whatsnew-image-placeholder {
+    margin-bottom: 16px;
+  }
+  
+  .whatsnew-footer {
+    padding: 12px 18px 16px;
+  }
+  
+  .whatsnew-actions .btn {
+    padding: 11px 12px;
+    font-size: 13.5px;
+  }
+}
+
   </style>
 <body>
 <div id="app">
@@ -6885,6 +7169,36 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     
     <div style="padding:12px 0 0;border-top:1px solid var(--border);margin-top:12px;">
       <button class="btn btn-ghost w-full" onclick="closeModal('modal-student-faq')">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     MODAL: What's New — carrousel de tutoriels élèves
+     ----------------------------------------------------------------
+     Modale obligatoire (pas de croix) affichée au login si tutos non vus.
+     Logique d'ouverture/navigation : Patch 3 (JS).
+     ================================================================ -->
+<div class="overlay whatsnew-overlay hidden" id="modal-whatsnew">
+  <div class="whatsnew-modal">
+    <div class="whatsnew-track-wrap">
+      <div class="whatsnew-track" id="whatsnew-track">
+        <!-- Slides injectées dynamiquement par renderWhatsNewSlides() -->
+      </div>
+    </div>
+    <div class="whatsnew-footer">
+      <div class="whatsnew-dots" id="whatsnew-dots"></div>
+      <div class="whatsnew-checkbox-row hidden" id="whatsnew-checkbox-row">
+        <label class="whatsnew-checkbox-label">
+          <input type="checkbox" id="whatsnew-dontshow">
+          <span>Ne plus afficher ce tutoriel</span>
+        </label>
+      </div>
+      <div class="whatsnew-actions">
+        <button class="btn btn-ghost hidden" id="whatsnew-prev" onclick="whatsNewPrev()">← Précédent</button>
+        <button class="btn btn-gold" id="whatsnew-next" onclick="whatsNewNext()">Suivant →</button>
+        <button class="btn btn-gold hidden" id="whatsnew-finish" onclick="whatsNewFinish()">J'ai compris</button>
+      </div>
     </div>
   </div>
 </div>
@@ -9422,6 +9736,81 @@ async function countTotalStudents() {
     console.warn('[whatsnew] countTotalStudents exception:', e);
     return 0;
   }
+}
+
+/* DEBUG TEMPORAIRE — injecte 3 slides de démo et ouvre la modale.
+   À appeler depuis la console : _whatsNewDebugPreview()
+   Sera SUPPRIMÉE au Patch 3 quand le vrai système de navigation arrivera. */
+function _whatsNewDebugPreview() {
+  const demoSlides = [
+    {
+      title: 'Bienvenue dans la nouveauté',
+      body: 'Voici une slide avec une image. C\'est la première slide du tuto, donc le bouton Précédent est caché. Cliquez sur Suivant pour passer à la slide 2.',
+      image: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=800&h=450&fit=crop'
+    },
+    {
+      title: 'Une slide sans image',
+      body: 'Cette slide n\'a pas d\'image définie : un placeholder doré avec un dégradé subtil prend la place. Le rendu reste premium même sans visuel.',
+      image: null
+    },
+    {
+      title: 'Dernière slide',
+      body: 'Voici la dernière slide. Le bouton Suivant est remplacé par "J\'ai compris", et la checkbox "Ne plus afficher" apparaît au-dessus, décochée par défaut.',
+      image: null
+    }
+  ];
+  
+  const track = document.getElementById('whatsnew-track');
+  const dots  = document.getElementById('whatsnew-dots');
+  if (!track || !dots) { console.warn('[whatsnew debug] modale introuvable'); return; }
+  
+  // Construire les slides
+  track.innerHTML = demoSlides.map(s => `
+    <div class="whatsnew-slide">
+      ${s.image
+        ? `<img class="whatsnew-image" src="${s.image}" alt="">`
+        : `<div class="whatsnew-image-placeholder">🎬</div>`}
+      <h2 class="whatsnew-slide-title">${s.title}</h2>
+      <p class="whatsnew-slide-body">${s.body}</p>
+    </div>
+  `).join('');
+  
+  // Construire les dots
+  dots.innerHTML = demoSlides.map((_, i) => `<div class="whatsnew-dot${i === 0 ? ' active' : ''}"></div>`).join('');
+  
+  // État initial : on est sur la slide 0
+  let currentIdx = 0;
+  const total = demoSlides.length;
+  const trackEl  = track;
+  const prevBtn  = document.getElementById('whatsnew-prev');
+  const nextBtn  = document.getElementById('whatsnew-next');
+  const finishBtn= document.getElementById('whatsnew-finish');
+  const cbRow    = document.getElementById('whatsnew-checkbox-row');
+  
+  function update() {
+    trackEl.style.transform = `translateX(-${currentIdx * 100}%)`;
+    document.querySelectorAll('#whatsnew-dots .whatsnew-dot').forEach((d, i) => {
+      d.classList.toggle('active', i === currentIdx);
+    });
+    prevBtn.classList.toggle('hidden', currentIdx === 0);
+    const isLast = currentIdx === total - 1;
+    nextBtn.classList.toggle('hidden', isLast);
+    finishBtn.classList.toggle('hidden', !isLast);
+    cbRow.classList.toggle('hidden', !isLast);
+  }
+  
+  // Surcharge temporaire des handlers (Patch 3 fournira les vrais)
+  window.whatsNewPrev   = () => { if (currentIdx > 0) { currentIdx--; update(); } };
+  window.whatsNewNext   = () => { if (currentIdx < total - 1) { currentIdx++; update(); } };
+  window.whatsNewFinish = () => {
+    const dontShow = document.getElementById('whatsnew-dontshow').checked;
+    document.getElementById('modal-whatsnew').classList.add('hidden');
+    console.log('[whatsnew debug] terminé, dontShow =', dontShow);
+  };
+  
+  document.getElementById('whatsnew-dontshow').checked = false;
+  document.getElementById('modal-whatsnew').classList.remove('hidden');
+  update();
 }
 
 // Liste des thèmes valides (utilisé pour le sélecteur admin et le nettoyage)
