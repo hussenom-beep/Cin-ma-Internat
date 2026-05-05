@@ -9830,7 +9830,43 @@ const EVENT_HERO_IMAGES = {
 //   cta: { label: 'Voir mon profil', target: 'profile' }  // facultatif, sur dernière slide
 // }
 const WHATSNEW_TUTORIALS = [
-  // Vide pour l'instant — sera rempli aux prochains batchs (XP/Levels, etc.)
+  {
+    slug: 'halloween_2026',
+    category: 'events',
+    title: '🎃 Halloween 2026',
+    createdAt: '2026-10-01',
+    slides: [
+      {
+        title: '🎃 Halloween arrive au cinéma',
+        body: "Une soirée spéciale se prépare ce mois-ci. Un film d'horreur sera projeté — et c'est toi qui vas aider à choisir lequel.",
+        image: 'bandeau_halloween.png'
+      },
+      {
+        title: '🗳️ Deux espaces de vote',
+        body: "Pendant Halloween, les votes sont séparés en deux. D'un côté les films classiques pour les séances habituelles, de l'autre les films d'Halloween. Bascule entre les deux dans l'onglet Votes avec le toggle en haut.",
+        image: 'whatsnew_halloween_01_votes.png'
+      },
+      {
+        title: '🎬 Un seul film projeté',
+        body: "Une seule séance Halloween, donc un seul film d'horreur sera vu. Vote pour celui que tu veux vraiment voir — chaque voix compte.",
+        image: null
+      },
+      {
+        title: "💡 Propose ton film d'horreur",
+        body: "Tu connais un film d'horreur qui doit absolument passer ? Va dans Proposer et coche \"🎃 Pour Halloween\" au moment de l'envoyer. Si l'admin valide, il rejoint les votes Halloween.",
+        image: 'whatsnew_halloween_02_propose.png'
+      },
+      {
+        title: "🦇 Reste à l'affût",
+        body: "La date et le film gagnant seront annoncés sur l'accueil et par notification. Surveille ton appli — l'annonce peut tomber à tout moment.",
+        image: 'bandeau_halloween.png'
+      }
+    ],
+    cta: {
+      label: '🗳️ Voir les votes Halloween',
+      action: 'goToVotesEvent'
+    }
+  }
 ];
 
 const WHATSNEW_CATEGORY_LABELS = {
@@ -10098,7 +10134,9 @@ async function whatsNewFinish() {
 }
 
 /* Clic sur le CTA optionnel de la dernière slide :
-   dismiss si coché, ferme tout (pas d'enchaînement), navigue vers target */
+   dismiss si coché, ferme tout (pas d'enchaînement), exécute l'action.
+   - cta.action : nom d'une fonction globale (priorité sur target, ex: 'goToVotesEvent')
+   - cta.target : ID d'écran pour navigateTo (fallback simple) */
 async function whatsNewCtaClick() {
   const tuto = _whatsNewState.current;
   if (!tuto) return;
@@ -10110,13 +10148,23 @@ async function whatsNewCtaClick() {
     await dismissTutorialForStudent(_whatsNewState.studentId, tuto.slug);
   }
 
-  // Le CTA prend le pas sur la queue : on ferme et on navigue
+  // Le CTA prend le pas sur la queue : on ferme avant d'exécuter
   _whatsNewState.queue = [];
   whatsNewClose();
 
-  if (cta && cta.target && typeof navigateTo === 'function') {
+  if (!cta) return;
+  if (cta.action && typeof window[cta.action] === 'function') {
+    try { window[cta.action](); } catch (e) { console.warn('[whatsnew] cta.action error:', e); }
+  } else if (cta.target && typeof navigateTo === 'function') {
     navigateTo(cta.target);
   }
+}
+
+/* Helper CTA : bascule le filtre Votes sur le mode événement et navigue vers Votes.
+   Utilisé par les tutos d'événements (Halloween, Noël, etc.). */
+function goToVotesEvent() {
+  if (typeof setFilmFilterMode === 'function') setFilmFilterMode('event');
+  if (typeof navigateTo === 'function') navigateTo('films');
 }
 
 /* Ferme la modale et reset complet de l'état */
