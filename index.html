@@ -10137,6 +10137,45 @@ async function _hookXpOnAttendance(studentId, status, prevStatus, sessionId, isE
   }
 }
 
+/* Hook : enregistrement automatique H+4 d'une présence/absence (recordWatchedForSession).
+   Idempotent : ne crée pas de doublons si la fonction est rappelée pour la même séance.
+   - status : 'present' | 'absent'
+   - sessionId, isEvent : contexte
+   On checke l'existence d'un xp_event sur le même (student_id, session_id) avant d'insérer. */
+async function _hookXpOnRecordedAttendance(studentId, status, sessionId, isEvent) {
+  if (!studentId || !sessionId || (status !== 'present' && status !== 'absent')) return;
+  try {
+    // Vérifier qu'aucun event XP n'existe déjà pour ce couple (élève, séance)
+    // (couvre les 3 types : session_attended, event_attended, session_absent, et même session_left)
+    const { data: existing, error: errCheck } = await db
+      .from('xp_events')
+      .select('id, event_type')
+      .eq('student_id', studentId)
+      .filter('metadata->>session_id', 'eq', String(sessionId))
+      .in('event_type', ['session_attended', 'event_attended', 'session_absent', 'session_left'])
+      .limit(1);
+    if (errCheck) { console.warn('[xp hook recorded] check error:', errCheck); return; }
+    if ((existing || []).length > 0) {
+      // Déjà traité (par saveAttendance manuel ou par un précédent passage H+4)
+      return;
+    }
+
+    if (status === 'present') {
+      const xp   = isEvent ? XP_AMOUNTS.event_attended : XP_AMOUNTS.session_attended;
+      const type = isEvent ? 'event_attended' : 'session_attended';
+      await addXpEvent(studentId, type, xp, { session_id: sessionId, source: 'h_plus_4' });
+    } else {
+      // 'absent' : pénalité fantôme avec plancher de niveau
+      await applyXpPenalty(studentId, 'session_absent', XP_AMOUNTS.session_absent, {
+        session_id: sessionId,
+        source: 'h_plus_4'
+      });
+    }
+  } catch (e) {
+    console.warn('[xp hook recorded] exception:', e);
+  }
+}
+
 /* Hook : proposition acceptée par l'admin.
    Étalement sur XP_PROPOSAL_SPREAD_DAYS jours.
    Si plusieurs propositions sont déjà en attente d'étalement, on continue après. */
@@ -17120,10 +17159,25 @@ async function recordWatchedForSession(session) {
   finalDate.setHours(finalDate.getHours() + 4);
   const finalAt = finalDate.toISOString();
 
+  // Récupérer event_tag (pour le hook XP : +250 si event, +50 sinon)
+  // Si déjà dans l'objet session passé, on l'utilise. Sinon on le fetch.
+  let isEvent = false;
+  if (session.event_tag !== undefined) {
+    isEvent = !!session.event_tag;
+  } else {
+    try {
+      const { data: ses } = await db.from('cinema_sessions').select('event_tag').eq('id', session.id).maybeSingle();
+      isEvent = !!(ses && ses.event_tag);
+    } catch (e) {
+      console.warn('[recordWatchedForSession] event_tag fetch error:', e);
+    }
+  }
+
   console.log('[recordWatchedForSession] Traitement final H+4 pour séance:', {
     session_id: session.id,
     film_id: session.film_id,
     attendance_done: session.attendance_done,
+    isEvent,
     finalAt
   });
 
@@ -17178,6 +17232,8 @@ async function recordWatchedForSession(session) {
           console.error('[recordWatchedForSession] Erreur record_watched_film (présent):', error);
         } else {
           watchedCount++;
+          // Hook XP idempotent : +50 ou +250 si event
+          _hookXpOnRecordedAttendance(reg.student_id, 'present', session.id, isEvent);
         }
       } else if (reg.attendance_status === 'absent') {
         console.log(`[recordWatchedForSession] Élève ${reg.student_id}: ABSENT → film loupé`);
@@ -17193,6 +17249,8 @@ async function recordWatchedForSession(session) {
           console.error('[recordWatchedForSession] Erreur record_missed_film (absent):', error);
         } else {
           missedCount++;
+          // Hook XP idempotent : -20 (avec plancher de niveau)
+          _hookXpOnRecordedAttendance(reg.student_id, 'absent', session.id, isEvent);
         }
       } else {
         // PROBLÈME: attendance_done = true mais attendance_status = NULL
@@ -17216,6 +17274,8 @@ async function recordWatchedForSession(session) {
         console.error('[recordWatchedForSession] Erreur record_watched_film (sans appel):', error);
       } else {
         watchedCount++;
+        // Hook XP idempotent : +50 ou +250 si event
+        _hookXpOnRecordedAttendance(reg.student_id, 'present', session.id, isEvent);
       }
     }
   }
