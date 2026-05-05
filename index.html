@@ -10270,14 +10270,24 @@ async function replayHistoricalXP(opts = {}) {
     }
   }
 
+  // Pour les votes : on récupère TOUTES les colonnes pour s'adapter aux différents schémas
+  // (certaines installations ont 'created_at', d'autres 'voted_at', d'autres rien).
+  // On normalise après chargement avec _normalizeVoteTimestamp().
+  function _normalizeVoteTimestamp(v) {
+    return v.created_at || v.voted_at || v.inserted_at || new Date().toISOString();
+  }
+
   const [students, votes, regs, props, logins, sessions] = await Promise.all([
     _loadOrEmpty('students',   () => db.from('students').select('id, first_name, last_name, date_of_birth, created_at')),
-    _loadOrEmpty('votes',      () => db.from('votes').select('student_id, film_id, created_at')),
+    _loadOrEmpty('votes',      () => db.from('votes').select('*')),
     _loadOrEmpty('regs',       () => db.from('registrations').select('student_id, session_id, attendance_status')),
     _loadOrEmpty('props',      () => db.from('proposals').select('id, student_id, title, status, reviewed_at').eq('status', 'accepted')),
     _loadOrEmpty('logins',     () => db.from('student_logins').select('student_id, logged_at')),
     _loadOrEmpty('sessions',   () => db.from('cinema_sessions').select('id, event_tag, attendance_done'))
   ]);
+
+  // Normaliser les votes : ajoute un champ _ts utilisable pour le tri/séries
+  votes.forEach(v => { v._ts = _normalizeVoteTimestamp(v); });
 
   const sessionMap = new Map(sessions.map(s => [s.id, s]));
   const eventsToInsert = [];
@@ -10292,7 +10302,7 @@ async function replayHistoricalXP(opts = {}) {
   });
 
   votesByStudent.forEach((studentVotes, studentId) => {
-    studentVotes.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    studentVotes.sort((a, b) => new Date(a._ts) - new Date(b._ts));
     const seenFilms = new Set();
     const dailyCounts = new Map();   // 'YYYY-MM-DD' -> count
     const monthSeen = new Set();     // 'YYYY-MM'
@@ -10301,8 +10311,8 @@ async function replayHistoricalXP(opts = {}) {
       if (seenFilms.has(v.film_id)) return; // anti-revote
       seenFilms.add(v.film_id);
 
-      const day   = (v.created_at || '').slice(0, 10);
-      const month = (v.created_at || '').slice(0, 7);
+      const day   = (v._ts || '').slice(0, 10);
+      const month = (v._ts || '').slice(0, 7);
       const dayCount = dailyCounts.get(day) || 0;
       if (dayCount >= XP_DAILY_VOTE_CAP) return;
       dailyCounts.set(day, dayCount + 1);
@@ -10312,8 +10322,8 @@ async function replayHistoricalXP(opts = {}) {
         event_type:    'vote',
         xp_amount:     XP_AMOUNTS.vote,
         metadata:      { film_id: v.film_id, is_retro: true },
-        scheduled_for: v.created_at,
-        created_at:    v.created_at
+        scheduled_for: v._ts,
+        created_at:    v._ts
       });
       stats.votes++;
 
@@ -10325,8 +10335,8 @@ async function replayHistoricalXP(opts = {}) {
           event_type:    'vote_first_of_month',
           xp_amount:     XP_AMOUNTS.vote_first_of_month,
           metadata:      { month, is_retro: true },
-          scheduled_for: v.created_at,
-          created_at:    v.created_at
+          scheduled_for: v._ts,
+          created_at:    v._ts
         });
       }
     });
