@@ -5294,22 +5294,23 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
    ================================================================ */
 
 #modal-whatsnew {
-  align-items: stretch;
-  justify-content: stretch;
-  padding: 0;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.78);
 }
 
 .whatsnew-modal {
   background: var(--surface);
-  border: none;
-  border-radius: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
   width: 100%;
-  height: 100vh;
-  height: 100dvh;
+  height: 100%;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   position: relative;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
 }
 
 /* Liseré doré subtil en haut, signature visuelle premium */
@@ -5321,6 +5322,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
   background: linear-gradient(90deg, transparent, var(--gold), transparent);
   z-index: 2;
   pointer-events: none;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
 }
 
 .whatsnew-track-wrap {
@@ -5542,6 +5544,10 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 
 /* Mobile petit ≤ 380px : compactage */
 @media (max-width: 380px) {
+  #modal-whatsnew {
+    padding: 14px;
+  }
+  
   .whatsnew-slide {
     padding: 18px 18px 6px;
   }
