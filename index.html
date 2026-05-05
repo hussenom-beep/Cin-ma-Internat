@@ -5575,6 +5575,204 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
   }
 }
 
+/* ================================================================
+   ADMIN — Panneau Tutoriels (liste accordion + filtres + actions)
+   ================================================================ */
+
+.tut-filter-chips {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.tut-chip {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.tut-chip:hover {
+  border-color: var(--gold-dim);
+  color: var(--text);
+}
+
+.tut-chip.active {
+  background: var(--gold-dim);
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.tut-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tut-empty {
+  padding: 32px 20px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 14px;
+  background: var(--surface-2);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+}
+
+/* Carte d'un tuto (accordion) */
+.tut-card {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+
+.tut-card:hover {
+  border-color: var(--border-2);
+}
+
+.tut-card.expanded {
+  border-color: var(--gold-dim);
+}
+
+.tut-card.disabled {
+  opacity: 0.65;
+}
+
+/* En-tête cliquable (replié par défaut) */
+.tut-card-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.tut-card-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.tut-card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tut-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tut-card-cat-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: var(--surface-3);
+  color: var(--text-muted);
+}
+
+.tut-card-status {
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 500;
+}
+
+.tut-card-status.active   { color: var(--gold); }
+.tut-card-status.inactive { color: var(--text-3); }
+
+.tut-card-status::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+.tut-card-arrow {
+  font-size: 18px;
+  color: var(--text-muted);
+  transition: transform 0.25s;
+  flex-shrink: 0;
+}
+
+.tut-card.expanded .tut-card-arrow {
+  transform: rotate(90deg);
+  color: var(--gold);
+}
+
+/* Corps déplié */
+.tut-card-body {
+  display: none;
+  border-top: 1px solid var(--border);
+  padding: 14px 16px 16px;
+  background: var(--bg);
+}
+
+.tut-card.expanded .tut-card-body {
+  display: block;
+}
+
+.tut-counter {
+  font-size: 13.5px;
+  color: var(--text-muted);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tut-counter-value {
+  color: var(--gold);
+  font-weight: 600;
+}
+
+.tut-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tut-actions .btn {
+  width: 100%;
+  justify-content: center;
+}
+
+/* Sur desktop, on peut mettre les actions en ligne pour gagner de la place */
+@media (min-width: 768px) {
+  .tut-actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .tut-actions .btn {
+    width: auto;
+    flex: 1 1 auto;
+    min-width: 160px;
+  }
+}
+
   </style>
 <body>
 <div id="app">
@@ -5883,6 +6081,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     </div>
     <button class="admin-tab" onclick="aTab('sessions')">🎟️ Séances</button>
     <button class="admin-tab" onclick="aTab('students')">👥 Élèves</button>
+    <button class="admin-tab" onclick="aTab('tutorials')">📚 Tutoriels</button>
   </div>
 
   <div class="admin-panels-container">
@@ -6096,6 +6295,28 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
             <tr><td colspan="7" style="text-align:center;color:var(--text-3);padding:20px;">Chargement...</td></tr>
           </tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- Tutorials panel -->
+    <div class="admin-panel hidden" id="ap-tutorials">
+      <div class="admin-panel-title">📚 Tutoriels élèves</div>
+
+      <p class="text-sm text-muted" style="margin:-6px 0 16px;">
+        Tutoriels affichés aux élèves à leur connexion pour leur présenter les nouveautés. Tu peux activer/désactiver, prévisualiser, ou forcer la re-affichage à tous.
+      </p>
+
+      <!-- Chips de filtre par catégorie -->
+      <div class="tut-filter-chips" id="tut-filter-chips">
+        <button class="tut-chip active" data-cat="all"      onclick="_filterTutorialsCategory('all')">Toutes</button>
+        <button class="tut-chip"        data-cat="features" onclick="_filterTutorialsCategory('features')">✨ Fonctionnalités</button>
+        <button class="tut-chip"        data-cat="events"   onclick="_filterTutorialsCategory('events')">🎉 Événements</button>
+        <button class="tut-chip"        data-cat="comm"     onclick="_filterTutorialsCategory('comm')">📢 Communication</button>
+      </div>
+
+      <!-- Liste accordion -->
+      <div class="tut-list" id="tut-list">
+        <div class="tut-empty">Chargement…</div>
       </div>
     </div>
 
@@ -9955,6 +10176,177 @@ function _whatsNewDebugPreview() {
   whatsNewOpen([demoTuto], null, true);
 }
 
+/* ----------------------------------------------------------------
+   What's New — Panneau admin Tutoriels
+   ---------------------------------------------------------------- */
+
+// Filtre catégorie courant ('all' | 'features' | 'events' | 'comm')
+let _tutAdminFilter = 'all';
+// Slug du tuto actuellement déplié dans la liste (un seul à la fois)
+let _tutAdminExpanded = null;
+// Cache des données enrichies (statut + compteurs) pour render rapide
+let _tutAdminEnriched = [];
+
+/* Charge les tutos + leur statut (disabled? + count dismissals) et rend la liste */
+async function loadTutorialsAdminPanel() {
+  const list = document.getElementById('tut-list');
+  if (!list) return;
+
+  list.innerHTML = '<div class="tut-empty">Chargement…</div>';
+
+  // Cas vide : pas de tutos définis dans la constante
+  if (!Array.isArray(WHATSNEW_TUTORIALS) || WHATSNEW_TUTORIALS.length === 0) {
+    list.innerHTML = `
+      <div class="tut-empty">
+        Aucun tuto défini pour l'instant.<br>
+        Les nouveaux tutos arrivent avec les nouvelles versions de l'app.
+      </div>`;
+    return;
+  }
+
+  try {
+    const [disabledSet, totalStudents] = await Promise.all([
+      getDisabledTutorialSlugs(),
+      countTotalStudents()
+    ]);
+
+    // Charger les compteurs en parallèle (un par tuto)
+    const counts = await Promise.all(
+      WHATSNEW_TUTORIALS.map(t => countTutorialDismissals(t.slug))
+    );
+
+    _tutAdminEnriched = WHATSNEW_TUTORIALS.map((t, i) => ({
+      ...t,
+      _disabled: disabledSet.has(t.slug),
+      _count: counts[i],
+      _total: totalStudents
+    }));
+
+    _renderTutorialsList();
+  } catch (e) {
+    console.warn('[whatsnew admin] loadTutorialsAdminPanel error:', e);
+    list.innerHTML = `<div class="tut-empty">Erreur de chargement. Réessaie.</div>`;
+  }
+}
+
+/* Re-render la liste à partir du cache enrichi */
+function _renderTutorialsList() {
+  const list = document.getElementById('tut-list');
+  if (!list) return;
+
+  const filtered = _tutAdminFilter === 'all'
+    ? _tutAdminEnriched
+    : _tutAdminEnriched.filter(t => t.category === _tutAdminFilter);
+
+  if (filtered.length === 0) {
+    list.innerHTML = `<div class="tut-empty">Aucun tuto dans cette catégorie.</div>`;
+    return;
+  }
+
+  list.innerHTML = filtered.map(t => {
+    const isExpanded = (_tutAdminExpanded === t.slug);
+    const isDisabled = t._disabled;
+    const catLabel = WHATSNEW_CATEGORY_LABELS[t.category] || t.category;
+    const statusClass = isDisabled ? 'inactive' : 'active';
+    const statusLabel = isDisabled ? 'Inactif' : 'Actif';
+
+    return `
+      <div class="tut-card ${isExpanded ? 'expanded' : ''} ${isDisabled ? 'disabled' : ''}">
+        <div class="tut-card-head" onclick="_toggleTutorialExpand('${t.slug}')">
+          <div class="tut-card-info">
+            <div class="tut-card-title">${_escapeHtml(t.title)}</div>
+            <div class="tut-card-meta">
+              <span class="tut-card-cat-badge">${catLabel}</span>
+              <span class="tut-card-status ${statusClass}">${statusLabel}</span>
+            </div>
+          </div>
+          <span class="tut-card-arrow">›</span>
+        </div>
+        <div class="tut-card-body">
+          <div class="tut-counter">
+            Vu par <span class="tut-counter-value">${t._count} / ${t._total}</span> élèves
+          </div>
+          <div class="tut-actions">
+            <button class="btn btn-ghost btn-sm" onclick="adminPreviewTutorial('${t.slug}')">👁 Prévisualiser</button>
+            <button class="btn ${isDisabled ? 'btn-gold' : 'btn-ghost'} btn-sm" onclick="adminToggleTutorial('${t.slug}', ${isDisabled})">
+              ${isDisabled ? '▶ Activer' : '⏸ Désactiver'}
+            </button>
+            <button class="btn btn-ghost btn-sm" onclick="adminForceReshow('${t.slug}')">🔄 Forcer le re-affichage</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+/* Change la catégorie filtrée (clic sur une chip) */
+function _filterTutorialsCategory(cat) {
+  _tutAdminFilter = cat;
+  document.querySelectorAll('#tut-filter-chips .tut-chip').forEach(chip => {
+    chip.classList.toggle('active', chip.dataset.cat === cat);
+  });
+  _renderTutorialsList();
+}
+
+/* Replie/déplie une carte (un seul ouvert à la fois) */
+function _toggleTutorialExpand(slug) {
+  _tutAdminExpanded = (_tutAdminExpanded === slug) ? null : slug;
+  _renderTutorialsList();
+}
+
+/* Toggle activation côté admin */
+async function adminToggleTutorial(slug, currentlyDisabled) {
+  const newDisabled = !currentlyDisabled;
+  const ok = await setTutorialDisabled(slug, newDisabled);
+  if (!ok) {
+    toast('Erreur lors du changement de statut', 'error');
+    return;
+  }
+  toast(newDisabled ? 'Tuto désactivé' : 'Tuto réactivé', 'success');
+  // Mise à jour locale du cache + render
+  const t = _tutAdminEnriched.find(x => x.slug === slug);
+  if (t) t._disabled = newDisabled;
+  _renderTutorialsList();
+}
+
+/* Prévisualise le tuto en mode admin (aucune écriture BDD) */
+function adminPreviewTutorial(slug) {
+  const tuto = WHATSNEW_TUTORIALS.find(t => t.slug === slug);
+  if (!tuto) {
+    toast('Tuto introuvable', 'error');
+    return;
+  }
+  whatsNewOpen([tuto], null, true);
+}
+
+/* Force le re-affichage à TOUS les élèves (purge des dismissals).
+   Confirmation native pour éviter les fausses manips. */
+async function adminForceReshow(slug) {
+  const tuto = WHATSNEW_TUTORIALS.find(t => t.slug === slug);
+  if (!tuto) return;
+  const ok = confirm(
+    `Forcer le re-affichage du tuto "${tuto.title}" à tous les élèves ?\n\n` +
+    `Tous ceux qui l'ont déjà coché "Ne plus afficher" le reverront à leur prochaine connexion. Action irréversible.`
+  );
+  if (!ok) return;
+
+  const success = await forceReshowTutorial(slug);
+  if (!success) {
+    toast('Erreur lors du re-affichage', 'error');
+    return;
+  }
+  toast('Tuto remis à zéro pour tous', 'success');
+  // Reset compteur local + render
+  const t = _tutAdminEnriched.find(x => x.slug === slug);
+  if (t) t._count = 0;
+  _renderTutorialsList();
+}
+
+// TODO (futur) : adminListUnseenStudents(slug)
+//   - Charge la liste des élèves qui n'ont PAS encore dismiss un tuto
+//   - Sous-écran avec la liste + recherche
+//   - Pas implémenté pour ne pas surcharger ce patch
+
 // Liste des thèmes valides (utilisé pour le sélecteur admin et le nettoyage)
 const EVENT_THEMES = ['none', 'halloween', 'christmas'];
 
@@ -13698,7 +14090,7 @@ async function openStudentSessionDetail(sessionId) {
 /* ================================================================
    ADMIN — TAB SWITCHING
    ================================================================ */
-const PANELS = ['dashboard','films','votes','proposals','requests','sessions','students'];
+const PANELS = ['dashboard','films','votes','proposals','requests','sessions','students','tutorials'];
 
 // État courant des sous-onglets
 let _filmFilter     = 'active';
@@ -14131,6 +14523,7 @@ function aTab(tab) {
     case 'requests':  loadAdminRequests();  break;
     case 'sessions':  loadAdminSessions();  break;
     case 'students':  loadAdminStudents();  break;
+    case 'tutorials': loadTutorialsAdminPanel(); break;
   }
 }
 
