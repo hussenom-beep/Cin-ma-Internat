@@ -9264,6 +9264,166 @@ const EVENT_HERO_IMAGES = {
   christmas: '',  // emoji 🎄 utilisé en fallback (cf. CSS body.theme-christmas)
 };
 
+/* ----------------------------------------------------------------
+   What's New — tutoriels élèves pour les nouveautés
+   ----------------------------------------------------------------
+   Architecture :
+   - Tutos définis en dur dans WHATSNEW_TUTORIALS ci-dessous
+   - Activation/désactivation par admin via table whatsnew_disabled
+   - Dismiss individuel par élève via table whatsnew_dismissals
+   - Affichage : carrousel modal au login si tutos non vus restants
+   - Compteur admin : X dismiss / Y total élèves
+*/
+
+// Liste des tutoriels. Pour ajouter un nouveau tuto, ajoute un objet ici.
+// Format :
+// {
+//   slug: 'identifiant_unique',           // jamais réutilisé, jamais modifié
+//   category: 'features',                  // 'features' | 'events' | 'comm' (admin only)
+//   title: 'Titre admin du tuto',          // affiché côté admin uniquement
+//   createdAt: '2026-05-15',               // pour le tri (plus ancien d'abord)
+//   slides: [
+//     { title: 'Titre slide', body: 'Texte explicatif...', image: 'https://raw.githubusercontent.com/.../whatsnew_xx_01.png' },
+//     { title: 'Slide 2', body: '...', image: null }   // image facultative
+//   ],
+//   cta: { label: 'Voir mon profil', target: 'profile' }  // facultatif, sur dernière slide
+// }
+const WHATSNEW_TUTORIALS = [
+  // Vide pour l'instant — sera rempli aux prochains batchs (XP/Levels, etc.)
+];
+
+const WHATSNEW_CATEGORY_LABELS = {
+  features: '✨ Fonctionnalité',
+  events:   '🎉 Événement',
+  comm:     '📢 Communication'
+};
+
+/* Récupère la liste des slugs désactivés par l'admin (table whatsnew_disabled) */
+async function getDisabledTutorialSlugs() {
+  try {
+    const { data, error } = await db
+      .from('whatsnew_disabled')
+      .select('whatsnew_slug');
+    if (error) {
+      console.warn('[whatsnew] getDisabledTutorialSlugs error:', error);
+      return new Set();
+    }
+    return new Set((data || []).map(r => r.whatsnew_slug));
+  } catch (e) {
+    console.warn('[whatsnew] getDisabledTutorialSlugs exception:', e);
+    return new Set();
+  }
+}
+
+/* Récupère les slugs déjà dismiss par un élève donné */
+async function getDismissedTutorialSlugs(studentId) {
+  try {
+    const { data, error } = await db
+      .from('whatsnew_dismissals')
+      .select('whatsnew_slug')
+      .eq('student_id', studentId);
+    if (error) {
+      console.warn('[whatsnew] getDismissedTutorialSlugs error:', error);
+      return new Set();
+    }
+    return new Set((data || []).map(r => r.whatsnew_slug));
+  } catch (e) {
+    console.warn('[whatsnew] getDismissedTutorialSlugs exception:', e);
+    return new Set();
+  }
+}
+
+/* Renvoie la liste des tutoriels à afficher à un élève, triés par date de création (plus ancien d'abord) */
+async function getTutorialsToShowForStudent(studentId) {
+  if (!studentId || WHATSNEW_TUTORIALS.length === 0) return [];
+  const [disabled, dismissed] = await Promise.all([
+    getDisabledTutorialSlugs(),
+    getDismissedTutorialSlugs(studentId)
+  ]);
+  return WHATSNEW_TUTORIALS
+    .filter(t => !disabled.has(t.slug) && !dismissed.has(t.slug))
+    .sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''));
+}
+
+/* Marque un tuto comme dismiss pour un élève (appelé sur "J'ai compris" avec checkbox cochée) */
+async function dismissTutorialForStudent(studentId, slug) {
+  if (!studentId || !slug) return;
+  try {
+    const { error } = await db
+      .from('whatsnew_dismissals')
+      .upsert({ student_id: studentId, whatsnew_slug: slug }, { onConflict: 'student_id,whatsnew_slug' });
+    if (error) console.warn('[whatsnew] dismissTutorialForStudent error:', error);
+  } catch (e) {
+    console.warn('[whatsnew] dismissTutorialForStudent exception:', e);
+  }
+}
+
+/* Active ou désactive un tuto côté admin (toggle dans whatsnew_disabled) */
+async function setTutorialDisabled(slug, disabled) {
+  try {
+    if (disabled) {
+      const { error } = await db
+        .from('whatsnew_disabled')
+        .upsert({ whatsnew_slug: slug }, { onConflict: 'whatsnew_slug' });
+      if (error) throw error;
+    } else {
+      const { error } = await db
+        .from('whatsnew_disabled')
+        .delete()
+        .eq('whatsnew_slug', slug);
+      if (error) throw error;
+    }
+    return true;
+  } catch (e) {
+    console.warn('[whatsnew] setTutorialDisabled exception:', e);
+    return false;
+  }
+}
+
+/* Force le ré-affichage d'un tuto pour TOUS les élèves (purge des dismissals pour ce slug) */
+async function forceReshowTutorial(slug) {
+  try {
+    const { error } = await db
+      .from('whatsnew_dismissals')
+      .delete()
+      .eq('whatsnew_slug', slug);
+    if (error) throw error;
+    return true;
+  } catch (e) {
+    console.warn('[whatsnew] forceReshowTutorial exception:', e);
+    return false;
+  }
+}
+
+/* Compte combien d'élèves ont dismiss un tuto */
+async function countTutorialDismissals(slug) {
+  try {
+    const { count, error } = await db
+      .from('whatsnew_dismissals')
+      .select('*', { count: 'exact', head: true })
+      .eq('whatsnew_slug', slug);
+    if (error) throw error;
+    return count || 0;
+  } catch (e) {
+    console.warn('[whatsnew] countTutorialDismissals exception:', e);
+    return 0;
+  }
+}
+
+/* Compte le nombre total d'élèves (utilisé pour le ratio "X / Y vu") */
+async function countTotalStudents() {
+  try {
+    const { count, error } = await db
+      .from('students')
+      .select('*', { count: 'exact', head: true });
+    if (error) throw error;
+    return count || 0;
+  } catch (e) {
+    console.warn('[whatsnew] countTotalStudents exception:', e);
+    return 0;
+  }
+}
+
 // Liste des thèmes valides (utilisé pour le sélecteur admin et le nettoyage)
 const EVENT_THEMES = ['none', 'halloween', 'christmas'];
 
