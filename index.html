@@ -10018,14 +10018,17 @@ async function _hookXpOnVote(studentId, filmId) {
     const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
 
     // 1. A-t-on déjà donné XP pour ce film à cet élève ? (anti-revote)
-    const { count: priorVoteCount, error: errPrior } = await db
+    //    On ignore les events remboursés (metadata.refunded = true) pour permettre un re-gain
+    //    après un retrait de vote.
+    const { data: priorVoteEvents, error: errPrior } = await db
       .from('xp_events')
-      .select('id', { count: 'exact', head: true })
+      .select('id, metadata')
       .eq('student_id', studentId)
       .eq('event_type', 'vote')
       .filter('metadata->>film_id', 'eq', String(filmId));
     if (errPrior) console.warn('[xp hook vote] prior check error:', errPrior);
-    if ((priorVoteCount || 0) > 0) return; // déjà gagné XP pour ce film
+    const activePriorVotes = (priorVoteEvents || []).filter(e => !(e.metadata && e.metadata.refunded));
+    if (activePriorVotes.length > 0) return; // déjà gagné XP pour ce film (et pas remboursé)
 
     // 2. Cap quotidien : combien de votes déjà comptés aujourd'hui ?
     const { count: votesToday, error: errCount } = await db
@@ -10055,6 +10058,43 @@ async function _hookXpOnVote(studentId, filmId) {
     }
   } catch (e) {
     console.warn('[xp hook vote] exception:', e);
+  }
+}
+
+/* Hook : retrait de vote.
+   Insère un event négatif compensant le gain initial (si gain il y avait eu).
+   N'insère rien si l'élève n'avait pas gagné d'XP pour ce vote (cap atteint, etc.). */
+async function _hookXpOnUnvote(studentId, filmId) {
+  if (!studentId || !filmId) return;
+  try {
+    // Cherche le gain XP initial pour ce vote (event_type='vote' avec film_id correspondant)
+    const { data: priorEvents, error } = await db
+      .from('xp_events')
+      .select('id, xp_amount, created_at, metadata')
+      .eq('student_id', studentId)
+      .eq('event_type', 'vote')
+      .filter('metadata->>film_id', 'eq', String(filmId))
+      .order('created_at', { ascending: false })
+      .limit(1);
+    if (error) { console.warn('[xp hook unvote] check error:', error); return; }
+    if (!priorEvents || priorEvents.length === 0) return; // pas de gain à compenser
+
+    const prior = priorEvents[0];
+    if (prior.metadata && prior.metadata.refunded) return; // déjà remboursé (sécurité)
+
+    // Insère un event négatif (−3) pour neutraliser le gain
+    await addXpEvent(studentId, 'vote_refund', -prior.xp_amount, {
+      film_id: filmId,
+      original_event_id: prior.id
+    });
+
+    // Marquer l'event original comme remboursé (anti-double-refund si retoggle)
+    await db
+      .from('xp_events')
+      .update({ metadata: { ...(prior.metadata || {}), refunded: true } })
+      .eq('id', prior.id);
+  } catch (e) {
+    console.warn('[xp hook unvote] exception:', e);
   }
 }
 
@@ -10212,14 +10252,29 @@ async function replayHistoricalXP(opts = {}) {
     console.log('[xp retro] purged old retro events');
   }
 
-  // Charger toutes les sources
+  // Charger toutes les sources, indépendamment (si une plante on continue avec les autres)
+  async function _loadOrEmpty(label, queryFn) {
+    try {
+      const { data, error } = await queryFn();
+      if (error) {
+        console.error(`[xp retro] ${label} error:`, error);
+        return [];
+      }
+      console.log(`[xp retro] ${label}: ${(data || []).length} rows`);
+      return data || [];
+    } catch (e) {
+      console.error(`[xp retro] ${label} exception:`, e);
+      return [];
+    }
+  }
+
   const [students, votes, regs, props, logins, sessions] = await Promise.all([
-    db.from('students').select('id, first_name, last_name, date_of_birth, created_at').then(r => r.data || []),
-    db.from('votes').select('student_id, film_id, created_at').then(r => r.data || []),
-    db.from('registrations').select('student_id, session_id, attendance_status').then(r => r.data || []),
-    db.from('proposals').select('id, student_id, title, status, reviewed_at').eq('status', 'accepted').then(r => r.data || []),
-    db.from('student_logins').select('student_id, created_at').then(r => r.data || []),
-    db.from('cinema_sessions').select('id, event_tag, attendance_done').then(r => r.data || [])
+    _loadOrEmpty('students',   () => db.from('students').select('id, first_name, last_name, date_of_birth, created_at')),
+    _loadOrEmpty('votes',      () => db.from('votes').select('student_id, film_id, created_at')),
+    _loadOrEmpty('regs',       () => db.from('registrations').select('student_id, session_id, attendance_status')),
+    _loadOrEmpty('props',      () => db.from('proposals').select('id, student_id, title, status, reviewed_at').eq('status', 'accepted')),
+    _loadOrEmpty('logins',     () => db.from('student_logins').select('student_id, logged_at')),
+    _loadOrEmpty('sessions',   () => db.from('cinema_sessions').select('id, event_tag, attendance_done'))
   ]);
 
   const sessionMap = new Map(sessions.map(s => [s.id, s]));
@@ -10331,10 +10386,10 @@ async function replayHistoricalXP(opts = {}) {
     loginsByStudent.get(l.student_id).push(l);
   });
   loginsByStudent.forEach((studentLogins, studentId) => {
-    studentLogins.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    studentLogins.sort((a, b) => new Date(a.logged_at) - new Date(b.logged_at));
     const dailyCounts = new Map();
     studentLogins.forEach(l => {
-      const day = (l.created_at || '').slice(0, 10);
+      const day = (l.logged_at || '').slice(0, 10);
       const count = dailyCounts.get(day) || 0;
       if (count === 0) {
         eventsToInsert.push({
@@ -10342,8 +10397,8 @@ async function replayHistoricalXP(opts = {}) {
           event_type:    'login_first_daily',
           xp_amount:     XP_AMOUNTS.login_first_daily,
           metadata:      { is_retro: true },
-          scheduled_for: l.created_at,
-          created_at:    l.created_at
+          scheduled_for: l.logged_at,
+          created_at:    l.logged_at
         });
         stats.logins++;
       } else if (count <= XP_DAILY_LOGIN_EXTRA_CAP) {
@@ -10352,8 +10407,8 @@ async function replayHistoricalXP(opts = {}) {
           event_type:    'login_extra_daily',
           xp_amount:     XP_AMOUNTS.login_extra_daily,
           metadata:      { is_retro: true },
-          scheduled_for: l.created_at,
-          created_at:    l.created_at
+          scheduled_for: l.logged_at,
+          created_at:    l.logged_at
         });
       }
       dailyCounts.set(day, count + 1);
@@ -12879,6 +12934,8 @@ async function toggleVote(filmId) {
       .eq('student_id', S.user.id).eq('film_id', filmId);
     S.votes.delete(filmId);
     toast('Vote retiré');
+    // Hook XP : retirer l'XP gagné précédemment pour ce vote (si appliqué)
+    _hookXpOnUnvote(S.user.id, filmId);
   } else {
     const { error } = await db.from('votes').insert({ student_id: S.user.id, film_id: filmId });
     if (!error) {
