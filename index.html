@@ -1446,6 +1446,94 @@ body.theme-christmas .s-header {
   box-shadow: 0 2px 8px rgba(240,165,0,.25);
   overflow: visible;
 }
+
+/* ----------------------------------------------------------------
+   CARD PROFIL HOME — rectangle sombre liseré doré + ring + nom
+   ---------------------------------------------------------------- */
+.home-profile-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px 8px 8px;
+  background: linear-gradient(135deg, #2A1B12 0%, #1A0F09 100%);
+  border: 1.5px solid var(--gold);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: transform .18s, box-shadow .18s, border-color .18s;
+  flex-shrink: 0;
+  margin-top: 2px;
+  font-family: inherit;
+  text-align: left;
+  box-shadow:
+    0 2px 10px rgba(240,165,0,.22),
+    inset 0 1px 0 rgba(240,165,0,.08);
+}
+.home-profile-card:hover {
+  box-shadow:
+    0 3px 14px rgba(240,165,0,.40),
+    inset 0 1px 0 rgba(240,165,0,.14);
+  transform: translateY(-1px);
+}
+/* Le ring à l'intérieur de la card : un peu plus grand, sans son ombre propre,
+   et neutre pour les events (hover/clic captés par la card) */
+.home-profile-card .home-profile-btn {
+  width: 50px; height: 50px;
+  margin-top: 0;
+  box-shadow: none;
+  cursor: inherit;
+  pointer-events: none;
+}
+.home-profile-card .home-profile-btn .xp-ring-level {
+  font-size: 18px;
+}
+/* Bloc texte à droite du ring */
+.home-profile-card-name {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+  min-width: 0;
+}
+.home-profile-card-firstname {
+  font-family: 'Playfair Display', serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
+}
+.home-profile-card-lastname {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--gold);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
+}
+
+/* Très petits écrans : on raccourcit les noms et on resserre la card */
+@media (max-width: 380px) {
+  .home-profile-card {
+    gap: 10px;
+    padding: 6px 12px 6px 6px;
+    border-radius: 12px;
+  }
+  .home-profile-card .home-profile-btn {
+    width: 46px; height: 46px;
+  }
+  .home-profile-card .home-profile-btn .xp-ring-level {
+    font-size: 17px;
+  }
+  .home-profile-card-firstname { font-size: 14px; max-width: 110px; }
+  .home-profile-card-lastname  { font-size: 11px;   max-width: 110px; }
+}
+
 .home-profile-btn:hover {
   box-shadow: 0 3px 14px rgba(240,165,0,.45);
   transform: translateY(-1px);
@@ -6084,8 +6172,14 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       <div class="home-greeting">Bienvenue, <span id="home-uname">toi</span></div>
       <div class="home-sub">Ton espace cinéma du mercredi soir</div>
     </div>
-    <!-- Bouton profil — initiales générées par JS dans renderHome() -->
-    <button class="home-profile-btn" id="home-profile-btn" onclick="openModal('modal-profile')" title="Mon profil">?</button>
+    <!-- Bouton profil — card avec anneau XP + Prénom Nom (Batch C2a v2) -->
+    <button class="home-profile-card" id="home-profile-card" onclick="openModal('modal-profile')" title="Mon profil">
+      <span class="home-profile-btn" id="home-profile-btn"></span>
+      <span class="home-profile-card-name">
+        <span class="home-profile-card-firstname" id="home-card-firstname">—</span>
+        <span class="home-profile-card-lastname"  id="home-card-lastname">—</span>
+      </span>
+    </button>
   </div>
 
   <!-- Prochaine séance : une seule fois, en haut -->
@@ -12688,11 +12782,19 @@ async function renderXpRingHomeButtons(forceAnimate = false) {
   _lastXpRingState = { level, percent, totalXp };
 }
 
-/* Conservée pour rétro-compat : on remplace le contenu par l'anneau XP */
+/* Conservée pour rétro-compat : on remplace le contenu par l'anneau XP
+   + on remplit le Prénom/Nom dans la card profil de la home (Batch C2a v2) */
 function updateProfileBtn() {
   if (!S.user) return;
-  // Délégué à renderXpRingHomeButtons (sans forcer l'animation : elle ne joue
-  // qu'au 1er appel via le flag _xpRingAnimatedThisSession)
+
+  // Card home : Prénom + Nom (uniquement présent sur l'écran home)
+  const elFirst = document.getElementById('home-card-firstname');
+  const elLast  = document.getElementById('home-card-lastname');
+  if (elFirst) elFirst.textContent = S.user.firstName || '—';
+  if (elLast)  elLast.textContent  = (S.user.lastName || '').toUpperCase() || '—';
+
+  // Délégué à renderXpRingHomeButtons (l'animation ne joue qu'au 1er appel
+  // via le flag _xpRingAnimatedThisSession)
   renderXpRingHomeButtons(false);
 }
 
