@@ -2675,6 +2675,154 @@ body.theme-christmas .s-header {
   .badge-card-name { font-size: 11px; }
 }
 
+/* ================================================================
+   BATCH C3 PHASE 2B — Modale "Mon titre"
+   ================================================================ */
+.title-sheet {
+  max-width: 460px;
+  margin: 0 auto;
+  padding: 12px 22px 22px;
+}
+.title-sheet-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 22px;
+  font-weight: 700;
+  text-align: center;
+  margin: 4px 0 4px;
+  color: var(--text);
+}
+.title-sheet-subtitle {
+  font-size: 13px;
+  color: var(--text-2);
+  text-align: center;
+  margin: 0 0 18px;
+  line-height: 1.4;
+}
+.title-options-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.title-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--surface-3);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all .15s;
+  position: relative;
+}
+.title-option:hover {
+  border-color: rgba(240,165,0,.4);
+}
+.title-option.unlocked.active {
+  border-color: var(--gold);
+  background: rgba(240,165,0,.10);
+  box-shadow: 0 2px 12px rgba(240,165,0,.25);
+}
+.title-option.locked {
+  opacity: .55;
+  cursor: not-allowed;
+  border-style: dashed;
+  background: rgba(0,0,0,.15);
+}
+.title-option.locked:hover {
+  border-color: var(--border);
+}
+.title-option-emoji {
+  font-size: 28px;
+  flex-shrink: 0;
+  width: 36px;
+  text-align: center;
+  line-height: 1;
+}
+.title-option-info {
+  flex: 1;
+  min-width: 0;
+}
+.title-option-name {
+  font-family: 'Playfair Display', serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.15;
+}
+.title-option.locked .title-option-name {
+  color: var(--text-2);
+}
+.title-option-condition {
+  font-size: 11.5px;
+  color: var(--text-3);
+  margin-top: 2px;
+  font-weight: 500;
+}
+.title-option-condition.unlocked {
+  color: #4ADE80;
+}
+.title-option-condition.locked {
+  color: var(--text-3);
+  font-style: italic;
+}
+.title-option-radio {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  flex-shrink: 0;
+  position: relative;
+  transition: all .15s;
+}
+.title-option.unlocked .title-option-radio {
+  border-color: rgba(240,165,0,.5);
+}
+.title-option.unlocked.active .title-option-radio {
+  border-color: var(--gold);
+  background: var(--gold);
+  box-shadow: 0 0 0 3px rgba(240,165,0,.15);
+}
+.title-option.unlocked.active .title-option-radio::after {
+  content: '✓';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1A0F09;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1;
+}
+.title-option.locked .title-option-radio {
+  border-style: dashed;
+  border-color: rgba(180,180,180,.30);
+}
+.title-option.locked .title-option-radio::after {
+  content: '🔒';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  line-height: 1;
+}
+.title-sheet-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+@media (max-width: 380px) {
+  .title-sheet { padding: 10px 18px 18px; }
+  .title-option { padding: 10px 12px; gap: 10px; }
+  .title-option-emoji { font-size: 24px; width: 30px; }
+  .title-option-name { font-size: 15px; }
+}
+
 .profile-avatar {
   width: 64px; height: 64px;
   border-radius: 50%;
@@ -7968,6 +8116,11 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
           <span class="pa-text">Mes badges</span>
           <span class="pa-arrow">›</span>
         </button>
+        <button class="profile-action-btn" onclick="openStudentTitleModal()">
+          <span class="pa-icon">🎭</span>
+          <span class="pa-text">Mon titre</span>
+          <span class="pa-arrow">›</span>
+        </button>
         <button class="profile-action-btn" onclick="openStudentWatchedFilms()">
           <span class="pa-icon">🎞</span>
           <span class="pa-text">Mes films vus</span>
@@ -8196,6 +8349,30 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     <div class="badge-detail-desc" id="badge-detail-desc">—</div>
     <div class="badge-detail-status" id="badge-detail-status"></div>
     <button class="btn btn-ghost btn-full" onclick="closeModal('modal-badge-detail')">Fermer</button>
+  </div>
+</div>
+
+<!-- ================================================================
+     MODAL: Mon titre (Batch C3 — Phase 2B)
+     Compacte. Liste des 5 paliers avec leur statut. Tap sur un palier
+     débloqué = devient le titre actif.
+     ================================================================ -->
+<div class="overlay hidden" id="modal-student-title">
+  <div class="sheet sheet-compact title-sheet">
+    <div class="sheet-handle"></div>
+    <h2 class="title-sheet-title">Mon titre</h2>
+    <p class="title-sheet-subtitle">Choisis le titre que les autres verront à côté de ton nom.</p>
+
+    <div class="title-options-list" id="title-options-list">
+      <!-- Options générées en JS -->
+    </div>
+
+    <div class="title-sheet-footer">
+      <button class="btn btn-ghost btn-full" id="title-restore-btn" onclick="restoreDefaultTitle()">
+        Restaurer le titre par défaut (le plus haut atteint)
+      </button>
+      <button class="btn btn-gold btn-full" onclick="closeModal('modal-student-title')">Fermer</button>
+    </div>
   </div>
 </div>
 
@@ -11264,12 +11441,13 @@ const XP_PENALTY_MIN_LEVEL = 3;
    ---------------------------------------------------------------- */
 // Modifiable librement : les `min` sont les seuils de niveau pour atteindre le titre.
 // Garder la liste triée par `min` croissant. Le palier max (level >= 21) doit toujours exister.
+// Le `slug` sert de clé stable pour la persistance en BDD (colonne pinned_title_slug).
 const LEVEL_TITLES = [
-  { min: 1,  emoji: '🎟',  label: 'Spectateur'  },
-  { min: 6,  emoji: '🎬',  label: 'Cinéphile'   },
-  { min: 11, emoji: '🎭',  label: 'Critique'    },
-  { min: 16, emoji: '🏆',  label: 'Connaisseur' },
-  { min: 21, emoji: '🌟',  label: 'Expert'      }
+  { slug: 'spectateur',  min: 1,  emoji: '🎟',  label: 'Spectateur'  },
+  { slug: 'cinephile',   min: 6,  emoji: '🎬',  label: 'Cinéphile'   },
+  { slug: 'critique',    min: 11, emoji: '🎭',  label: 'Critique'    },
+  { slug: 'connaisseur', min: 16, emoji: '🏆',  label: 'Connaisseur' },
+  { slug: 'expert',      min: 21, emoji: '🌟',  label: 'Expert'      }
 ];
 
 /* Renvoie le palier (titre) correspondant à un niveau donné. */
@@ -11288,6 +11466,23 @@ function getNextTitleForLevel(level) {
     if (t.min > level) return t;
   }
   return null;
+}
+
+/* Récupère un titre par son slug. */
+function getTitleBySlug(slug) {
+  return LEVEL_TITLES.find(t => t.slug === slug) || null;
+}
+
+/* Renvoie le titre actuellement "actif" pour l'affichage :
+   - Si l'élève a épinglé un titre ET qu'il l'a débloqué → ce titre
+   - Sinon → le plus haut atteint (par défaut)
+   `pinnedSlug` peut être null/undefined. */
+function getEffectiveTitle(level, pinnedSlug) {
+  if (pinnedSlug) {
+    const pinned = getTitleBySlug(pinnedSlug);
+    if (pinned && level >= pinned.min) return pinned;
+  }
+  return getTitleForLevel(level);
 }
 
 /* ----------------------------------------------------------------
@@ -12531,6 +12726,131 @@ function showBadgeDetailPopup(badge) {
   }
 
   openModal('modal-badge-detail');
+}
+
+/* ================================================================
+   BATCH C3 — Phase 2B : Modale "Mon titre"
+   ================================================================
+   - Liste les 5 paliers de LEVEL_TITLES avec leur statut
+   - Tap sur un titre débloqué → devient le titre actif (persisté en BDD)
+   - "Restaurer par défaut" → enlève l'épinglage (= utilise le plus haut atteint) */
+
+// État de la modale
+let _titleModalState = {
+  currentLevel: 1,
+  pinnedSlug: null  // null = pas d'épinglage = utilise getTitleForLevel
+};
+
+/* Ouvre la modale "Mon titre". */
+async function openStudentTitleModal() {
+  if (!S.user) return;
+  closeModal('modal-profile');
+  openModal('modal-student-title');
+
+  // Charge le niveau actuel + le titre épinglé
+  try {
+    const [totalXp, pinnedSlug] = await Promise.all([
+      getStudentTotalXp(S.user.id),
+      getStudentPinnedTitle(S.user.id)
+    ]);
+    _titleModalState.currentLevel = levelFromXp(totalXp || 0);
+    _titleModalState.pinnedSlug = pinnedSlug;
+  } catch (e) {
+    console.warn('[title] open error:', e);
+    _titleModalState.currentLevel = 1;
+    _titleModalState.pinnedSlug = null;
+  }
+
+  _renderTitleOptions();
+}
+
+/* Rend la liste des 5 titres avec leur statut. */
+function _renderTitleOptions() {
+  const list = document.getElementById('title-options-list');
+  if (!list) return;
+
+  const level = _titleModalState.currentLevel;
+  const pinned = _titleModalState.pinnedSlug;
+  const effective = getEffectiveTitle(level, pinned);
+
+  list.innerHTML = LEVEL_TITLES.map(t => {
+    const unlocked = level >= t.min;
+    const isActive = (effective.slug === t.slug);
+
+    let conditionTxt, conditionCls;
+    if (unlocked) {
+      conditionTxt = `✓ Débloqué (niveau ${t.min})`;
+      conditionCls = 'unlocked';
+    } else {
+      const remaining = t.min - level;
+      conditionTxt = `🔒 Atteins le niveau ${t.min} (encore ${remaining} niveau${remaining > 1 ? 'x' : ''})`;
+      conditionCls = 'locked';
+    }
+
+    const classes = [
+      'title-option',
+      unlocked ? 'unlocked' : 'locked',
+      isActive ? 'active' : ''
+    ].filter(Boolean).join(' ');
+
+    return `
+      <div class="${classes}" onclick="onTitleOptionClick('${t.slug}', ${unlocked})">
+        <span class="title-option-emoji">${t.emoji}</span>
+        <div class="title-option-info">
+          <div class="title-option-name">${_escapeHtml(t.label)}</div>
+          <div class="title-option-condition ${conditionCls}">${conditionTxt}</div>
+        </div>
+        <div class="title-option-radio"></div>
+      </div>
+    `;
+  }).join('');
+
+  // Affiche/masque le bouton "Restaurer par défaut" selon si un titre est épinglé
+  const restoreBtn = document.getElementById('title-restore-btn');
+  if (restoreBtn) restoreBtn.style.display = pinned ? '' : 'none';
+}
+
+/* Tap sur une option de titre. */
+async function onTitleOptionClick(slug, unlocked) {
+  if (!unlocked) {
+    toast('🔒 Tu dois d\'abord atteindre ce niveau', 'error', 2000);
+    return;
+  }
+  if (!S.user) return;
+
+  const level = _titleModalState.currentLevel;
+  const isHighestAchieved = (getTitleForLevel(level).slug === slug);
+
+  // Si c'est le titre par défaut (= plus haut atteint), on enlève l'épinglage
+  // pour que le système suive automatiquement les futures montées de niveau.
+  // Sinon, on épingle explicitement le slug choisi.
+  const newPinned = isHighestAchieved ? null : slug;
+
+  _titleModalState.pinnedSlug = newPinned;
+  _renderTitleOptions();
+
+  // Persiste en BDD
+  await setStudentPinnedTitle(S.user.id, newPinned);
+
+  // Refresh visuel : titre du bloc XP profil (si déjà rendu)
+  if (typeof renderProfileXpBlock === 'function') {
+    renderProfileXpBlock();
+  }
+
+  toast('🎭 Titre mis à jour', 'success', 1500);
+}
+
+/* "Restaurer par défaut" : enlève l'épinglage → le titre suivra automatiquement
+   le plus haut atteint à chaque montée de niveau. */
+async function restoreDefaultTitle() {
+  if (!S.user) return;
+  _titleModalState.pinnedSlug = null;
+  _renderTitleOptions();
+  await setStudentPinnedTitle(S.user.id, null);
+  if (typeof renderProfileXpBlock === 'function') {
+    renderProfileXpBlock();
+  }
+  toast('🎭 Titre par défaut restauré', 'success', 1500);
 }
 
 /* ================================================================
@@ -15372,11 +15692,18 @@ async function renderProfileXpBlock() {
   if (!S.user) return;
 
   let totalXp = 0;
-  try { totalXp = await getStudentTotalXp(S.user.id); } catch (e) { /* silencieux */ }
+  let pinnedTitleSlug = null;
+  try {
+    [totalXp, pinnedTitleSlug] = await Promise.all([
+      getStudentTotalXp(S.user.id),
+      getStudentPinnedTitle(S.user.id)
+    ]);
+  } catch (e) { /* silencieux */ }
 
-  const progress = computeXpProgress(totalXp);
+  const progress = computeXpProgress(totalXp || 0);
   const { level, xpInLevel, xpNeededForNext, percent, isMax } = progress;
-  const title = getTitleForLevel(level);
+  // Titre effectif : épinglé (si débloqué) sinon le plus haut atteint
+  const title = getEffectiveTitle(level, pinnedTitleSlug);
   const next  = getNextTitleForLevel(level);
 
   // Anneau (r=36, circ ≈ 226.19)
