@@ -11619,11 +11619,11 @@ function checkAndShowBirthdayPrompt() {
   if (inp) inp.value = '';
   if (err) err.classList.add('hidden');
 
-  // Bornes : aucune date dans le futur, et pas plus vieux que 30 ans
+  // Bornes : aucune date dans le futur, et pas plus vieux que 100 ans
   if (inp) {
     const today = new Date();
     const maxDate = today.toISOString().split('T')[0];
-    const min = new Date(today.getFullYear() - 30, today.getMonth(), today.getDate());
+    const min = new Date(today.getFullYear() - 100, today.getMonth(), today.getDate());
     inp.max = maxDate;
     inp.min = min.toISOString().split('T')[0];
   }
@@ -11653,7 +11653,7 @@ async function saveBirthday() {
     return;
   }
 
-  // Validation côté JS : entre il y a 30 ans et aujourd'hui
+  // Validation côté JS : entre il y a 100 ans et aujourd'hui
   const today = new Date();
   const dob = new Date(val);
   if (isNaN(dob.getTime())) {
@@ -11665,7 +11665,7 @@ async function saveBirthday() {
     if (err) { err.textContent = 'Date dans le futur — impossible.'; err.classList.remove('hidden'); }
     return;
   }
-  if (diffYears > 30) {
+  if (diffYears > 100) {
     if (err) { err.textContent = 'Date trop ancienne. Vérifie l\'année.'; err.classList.remove('hidden'); }
     return;
   }
