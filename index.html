@@ -10469,6 +10469,7 @@ const XP_AMOUNTS = {
   proposal_accepted:    30,
   birthday:             50,
   monthly_loyalty:      10,
+  profile_birthday_set: 10,   // bonus 1ère saisie de la date de naissance (Batch C2b)
 };
 
 // Cap quotidien sur les votes : 3 votes maximum comptés pour XP par jour
@@ -11690,6 +11691,25 @@ async function saveBirthday() {
   document.getElementById('modal-birthday-prompt').classList.add('hidden');
   toast('🎂 Date enregistrée — bon anniversaire d\'avance !', 'success');
 
+  // Bonus +10 XP "Profil complété" — idempotent : on n'en donne qu'un seul à vie
+  // (vérification basée sur l'existence d'un event de ce type pour cet élève)
+  try {
+    const { count: alreadyGiven } = await db
+      .from('xp_events')
+      .select('id', { count: 'exact', head: true })
+      .eq('student_id', S.user.id)
+      .eq('event_type', 'profile_birthday_set');
+    if ((alreadyGiven || 0) === 0) {
+      const inserted = await addXpEvent(S.user.id, 'profile_birthday_set', XP_AMOUNTS.profile_birthday_set, {});
+      if (inserted) {
+        setTimeout(() => toast(`🎁 +${XP_AMOUNTS.profile_birthday_set} XP — profil complété !`, 'success', 4000), 700);
+        if (typeof renderXpRingHomeButtons === 'function') renderXpRingHomeButtons(true);
+      } else {
+        console.warn('[bday] profile_birthday_set insert returned null — check Supabase RLS/policies on xp_events');
+      }
+    }
+  } catch (e) { console.warn('[bday] profile bonus exception:', e); }
+
   // Si c'est aujourd'hui : déclenche le bonus +50 XP immédiatement
   if (dob.getMonth() === today.getMonth() && dob.getDate() === today.getDate()) {
     try {
@@ -11737,7 +11757,8 @@ const XP_EVENT_LABELS = {
   login_first_daily:     { icon: '🌅', label: '1ère connexion du jour' },
   login_extra_daily:     { icon: '🌅', label: 'Connexion supplémentaire' },
   birthday:              { icon: '🎂', label: 'Bonus anniversaire' },
-  monthly_loyalty:       { icon: '🎖️', label: 'Fidélité mensuelle' }
+  monthly_loyalty:       { icon: '🎖️', label: 'Fidélité mensuelle' },
+  profile_birthday_set:  { icon: '🎂', label: 'Date de naissance renseignée' }
 };
 
 /* Date relative simple : "aujourd'hui", "hier", "il y a 3 jours", "il y a 2 sem.", "le DD/MM/YYYY" */
