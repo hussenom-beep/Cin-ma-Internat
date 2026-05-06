@@ -2016,6 +2016,147 @@ body.theme-christmas .s-header {
   .journey-row-xp { font-size: 13px; padding: 3px 7px; }
 }
 
+/* ================================================================
+   BATCH C2c — Animation level-up
+   ================================================================ */
+.levelup-overlay {
+  background: rgba(8, 8, 15, .82);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+.levelup-overlay.hidden {
+  display: none;
+}
+.levelup-card {
+  position: relative;
+  text-align: center;
+  padding: 36px 44px;
+  background: radial-gradient(ellipse at center, rgba(58,39,27,.85) 0%, rgba(20,12,8,.95) 100%);
+  border: 1.5px solid var(--gold);
+  border-radius: 22px;
+  box-shadow:
+    0 8px 40px rgba(240,165,0,.35),
+    inset 0 1px 0 rgba(240,165,0,.15);
+  animation: levelupPop .55s cubic-bezier(.34, 1.56, .64, 1) forwards;
+  z-index: 2;
+}
+@keyframes levelupPop {
+  0%   { transform: scale(.4) rotate(-4deg); opacity: 0; }
+  60%  { transform: scale(1.08) rotate(2deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+.levelup-banner {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--gold);
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+  opacity: .9;
+}
+.levelup-level {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 92px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--gold);
+  letter-spacing: -.04em;
+  text-shadow:
+    0 2px 12px rgba(240,165,0,.6),
+    0 0 30px rgba(240,165,0,.3);
+  margin: 4px 0 6px;
+  animation: levelupPulse 1.6s ease-in-out infinite;
+}
+@keyframes levelupPulse {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 8px rgba(240,165,0,.5)); }
+  50%      { transform: scale(1.04); filter: drop-shadow(0 0 16px rgba(240,165,0,.8)); }
+}
+.levelup-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  margin-top: 6px;
+  letter-spacing: .01em;
+  text-shadow: 0 1px 4px rgba(0,0,0,.5);
+}
+.levelup-tier {
+  margin-top: 14px;
+  display: inline-block;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--gold);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  background: rgba(240,165,0,.12);
+  border: 1px solid rgba(240,165,0,.4);
+  padding: 5px 14px;
+  border-radius: 999px;
+  animation: levelupTierShine 2.2s ease-in-out infinite;
+}
+.levelup-tier.hidden { display: none; }
+@keyframes levelupTierShine {
+  0%, 100% { box-shadow: 0 0 6px rgba(240,165,0,.25); }
+  50%      { box-shadow: 0 0 20px rgba(240,165,0,.55); }
+}
+
+/* Confettis dorés CSS-only — 16 spans, animations décalées */
+.levelup-confetti {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 1;
+}
+.levelup-confetti span {
+  position: absolute;
+  top: -20px;
+  width: 8px;
+  height: 14px;
+  border-radius: 2px;
+  opacity: 0;
+  animation: confettiFall 2.4s ease-in forwards;
+}
+.levelup-confetti span:nth-child(odd)  { background: #F0A500; }
+.levelup-confetti span:nth-child(even) { background: #FFC857; }
+.levelup-confetti span:nth-child(3n)   { background: #D4AF37; }
+.levelup-confetti span:nth-child(5n)   { background: #FFE0A3; width: 6px; height: 6px; border-radius: 50%; }
+/* Positions horizontales et délais variés */
+.levelup-confetti span:nth-child(1)  { left:  6%; animation-delay: .05s; }
+.levelup-confetti span:nth-child(2)  { left: 14%; animation-delay: .35s; }
+.levelup-confetti span:nth-child(3)  { left: 22%; animation-delay: .15s; }
+.levelup-confetti span:nth-child(4)  { left: 30%; animation-delay: .50s; }
+.levelup-confetti span:nth-child(5)  { left: 38%; animation-delay: .10s; }
+.levelup-confetti span:nth-child(6)  { left: 46%; animation-delay: .60s; }
+.levelup-confetti span:nth-child(7)  { left: 54%; animation-delay: .25s; }
+.levelup-confetti span:nth-child(8)  { left: 62%; animation-delay: .45s; }
+.levelup-confetti span:nth-child(9)  { left: 70%; animation-delay: .15s; }
+.levelup-confetti span:nth-child(10) { left: 78%; animation-delay: .55s; }
+.levelup-confetti span:nth-child(11) { left: 86%; animation-delay: .30s; }
+.levelup-confetti span:nth-child(12) { left: 94%; animation-delay: .40s; }
+.levelup-confetti span:nth-child(13) { left: 18%; animation-delay: .80s; }
+.levelup-confetti span:nth-child(14) { left: 42%; animation-delay: .90s; }
+.levelup-confetti span:nth-child(15) { left: 66%; animation-delay: .85s; }
+.levelup-confetti span:nth-child(16) { left: 82%; animation-delay: 1.0s; }
+@keyframes confettiFall {
+  0%   { transform: translateY(0) rotate(0deg);     opacity: 0; }
+  10%  { opacity: 1; }
+  100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+}
+
+/* iPhone SE et compagnons : on resserre */
+@media (max-width: 380px) {
+  .levelup-card { padding: 28px 30px; }
+  .levelup-level { font-size: 76px; }
+  .levelup-title { font-size: 19px; }
+  .levelup-banner { font-size: 11px; }
+}
+
 .profile-avatar {
   width: 64px; height: 64px;
   border-radius: 50%;
@@ -7424,6 +7565,28 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 </div>
 
 <!-- ================================================================
+     MODAL: Animation level-up (Batch C2c)
+     Affichée brièvement (2.4s, auto-close) quand l'élève monte de niveau.
+     ESC ferme aussi. Pas dans le système openModal/closeModal pour éviter
+     toute interaction parasite.
+     ================================================================ -->
+<div class="overlay hidden levelup-overlay" id="modal-levelup">
+  <!-- Confettis dorés générés en CSS pur (16 éléments, animations décalées) -->
+  <div class="levelup-confetti" aria-hidden="true">
+    <span></span><span></span><span></span><span></span>
+    <span></span><span></span><span></span><span></span>
+    <span></span><span></span><span></span><span></span>
+    <span></span><span></span><span></span><span></span>
+  </div>
+  <div class="levelup-card">
+    <div class="levelup-banner" id="levelup-banner">Niveau supérieur</div>
+    <div class="levelup-level" id="levelup-level">1</div>
+    <div class="levelup-title" id="levelup-title">🎟 Spectateur</div>
+    <div class="levelup-tier hidden" id="levelup-tier">Nouveau palier débloqué</div>
+  </div>
+</div>
+
+<!-- ================================================================
      MODAL: Fiche Séance Admin
      ================================================================ -->
 <div class="overlay hidden" id="modal-session-sheet">
@@ -10625,6 +10788,131 @@ async function addXpEvent(studentId, eventType, xpAmount, metadata = {}, schedul
   }
 }
 
+/* ================================================================
+   BATCH C2c — Wrapper avec feedback (toast XP + animation level-up)
+   ================================================================
+   À utiliser pour les events "temps réel" déclenchés par l'élève lui-même
+   pendant qu'il est connecté (vote, profile_birthday_set, birthday détecté
+   en direct). Les events offline (login, session côté admin, etc.) restent
+   sur addXpEvent brut pour ne pas spammer.
+
+   Comportement :
+   - Calcule le niveau AVANT l'insert
+   - Insère via addXpEvent
+   - Si succès : recalcule le niveau APRÈS, déclenche toast et/ou level-up
+   - Refresh le ring avec animation forcée (pour que l'évolution soit visible)
+   - Retourne l'event inséré (ou null en cas d'échec)
+*/
+async function addXpEventWithFeedback(studentId, eventType, xpAmount, metadata = {}) {
+  if (!studentId || !eventType || typeof xpAmount !== 'number') return null;
+
+  // Niveau avant
+  const xpBefore = await getStudentTotalXp(studentId);
+  const levelBefore = levelFromXp(xpBefore);
+
+  // Insert
+  const inserted = await addXpEvent(studentId, eventType, xpAmount, metadata);
+  if (!inserted) {
+    console.warn('[xp feedback] insert returned null for', eventType);
+    return null;
+  }
+
+  // Niveau après (lit la valeur fraîche en BDD pour être sûr)
+  const xpAfter = await getStudentTotalXp(studentId);
+  const levelAfter = levelFromXp(xpAfter);
+  const leveledUp = (levelAfter > levelBefore);
+
+  // Toast XP gagné — uniquement pour les valeurs positives, sinon silence
+  if (xpAmount > 0) {
+    const map = (typeof XP_EVENT_LABELS !== 'undefined' && XP_EVENT_LABELS[eventType]) || { icon: '🎁', label: 'XP gagnés' };
+    const sign = '+';
+    setTimeout(() => {
+      toast(`${map.icon} ${sign}${xpAmount} XP — ${map.label}`, 'success', 3000);
+    }, 200);
+  }
+
+  // Refresh ring (animation forcée pour que la progression soit visible)
+  if (typeof renderXpRingHomeButtons === 'function') {
+    renderXpRingHomeButtons(true);
+  }
+
+  // Animation level-up — déclenchée si le niveau a augmenté
+  if (leveledUp) {
+    // On laisse le toast XP s'afficher d'abord (200ms), puis l'animation
+    // par dessus (qui aura un overlay opaque, masquant le toast — c'est voulu)
+    setTimeout(() => showLevelUpAnimation(levelBefore, levelAfter), 600);
+  }
+
+  return inserted;
+}
+
+/* Affiche la modale level-up. Auto-close après 2.4s. ESC ferme aussi.
+   Si fromLevel et toLevel franchissent un palier (ex: 5→6 = Cinéphile débloqué),
+   on affiche le badge "Nouveau palier débloqué". */
+function showLevelUpAnimation(fromLevel, toLevel) {
+  const overlay = document.getElementById('modal-levelup');
+  const elLevel = document.getElementById('levelup-level');
+  const elTitle = document.getElementById('levelup-title');
+  const elTier  = document.getElementById('levelup-tier');
+  if (!overlay || !elLevel || !elTitle) return;
+
+  const titleNew = (typeof getTitleForLevel === 'function') ? getTitleForLevel(toLevel) : { emoji: '✨', label: '' };
+  const titleOld = (typeof getTitleForLevel === 'function') ? getTitleForLevel(fromLevel) : { emoji: '', label: '' };
+  const isNewTier = (titleNew.label !== titleOld.label);
+
+  elLevel.textContent = toLevel;
+  elTitle.textContent = `${titleNew.emoji} ${titleNew.label}`;
+  if (elTier) {
+    if (isNewTier) {
+      elTier.textContent = 'Nouveau palier débloqué !';
+      elTier.classList.remove('hidden');
+    } else {
+      elTier.classList.add('hidden');
+    }
+  }
+
+  // Si niveau max atteint, on adapte le bandeau
+  const banner = document.getElementById('levelup-banner');
+  if (banner) {
+    if (toLevel >= XP_MAX_LEVEL) {
+      banner.textContent = 'Niveau max atteint';
+    } else {
+      banner.textContent = 'Niveau supérieur';
+    }
+  }
+
+  // Affiche
+  overlay.classList.remove('hidden');
+
+  // Auto-close après 2.4s (durée des confettis)
+  if (overlay._levelupTimer) clearTimeout(overlay._levelupTimer);
+  overlay._levelupTimer = setTimeout(() => {
+    overlay.classList.add('hidden');
+  }, 2400);
+
+  // ESC pour fermer manuellement
+  const escHandler = (e) => {
+    if (e.key === 'Escape') {
+      overlay.classList.add('hidden');
+      if (overlay._levelupTimer) clearTimeout(overlay._levelupTimer);
+      document.removeEventListener('keydown', escHandler);
+    }
+  };
+  document.addEventListener('keydown', escHandler);
+  // Clic sur le fond ferme aussi
+  overlay.onclick = (e) => {
+    if (e.target === overlay) {
+      overlay.classList.add('hidden');
+      if (overlay._levelupTimer) clearTimeout(overlay._levelupTimer);
+    }
+  };
+}
+
+/* DEBUG : depuis la console, joue l'animation pour tester sans gagner d'XP */
+function _debugLevelUp(toLevel = 5) {
+  showLevelUpAnimation(toLevel - 1, toLevel);
+}
+
 /* Applique une pénalité XP à un élève en respectant le plancher de niveau.
    - Calcule l'XP actuel
    - Détermine le niveau actuel
@@ -10699,8 +10987,8 @@ async function _hookXpOnVote(studentId, filmId) {
     const activeVotesToday = (todayVoteEvents || []).filter(e => !(e.metadata && e.metadata.refunded));
     if (activeVotesToday.length >= XP_DAILY_VOTE_CAP) return; // cap atteint
 
-    // 3. Insère l'event vote
-    await addXpEvent(studentId, 'vote', XP_AMOUNTS.vote, { film_id: filmId });
+    // 3. Insère l'event vote (avec feedback : toast + ring + level-up éventuel)
+    await addXpEventWithFeedback(studentId, 'vote', XP_AMOUNTS.vote, { film_id: filmId });
 
     // 4. Bonus 1er vote du mois ?
     const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
@@ -10711,7 +10999,7 @@ async function _hookXpOnVote(studentId, filmId) {
       .eq('event_type', 'vote_first_of_month')
       .gte('created_at', monthStart.toISOString());
     if (!errMonth && (monthVoteCount || 0) === 0) {
-      await addXpEvent(studentId, 'vote_first_of_month', XP_AMOUNTS.vote_first_of_month, {
+      await addXpEventWithFeedback(studentId, 'vote_first_of_month', XP_AMOUNTS.vote_first_of_month, {
         month: monthStart.toISOString().slice(0, 7)
       });
     }
@@ -10916,7 +11204,8 @@ async function _hookXpOnLogin(studentId, dateOfBirth) {
           .eq('event_type', 'birthday')
           .gte('created_at', yearStart.toISOString());
         if ((bdayCount || 0) === 0) {
-          await addXpEvent(studentId, 'birthday', XP_AMOUNTS.birthday, { year: today.getFullYear() });
+          // Birthday detecté pile aujourd'hui au login → toast + level-up éventuel
+          await addXpEventWithFeedback(studentId, 'birthday', XP_AMOUNTS.birthday, { year: today.getFullYear() });
         }
       }
     }
@@ -11700,12 +11989,11 @@ async function saveBirthday() {
       .eq('student_id', S.user.id)
       .eq('event_type', 'profile_birthday_set');
     if ((alreadyGiven || 0) === 0) {
-      const inserted = await addXpEvent(S.user.id, 'profile_birthday_set', XP_AMOUNTS.profile_birthday_set, {});
-      if (inserted) {
-        setTimeout(() => toast(`🎁 +${XP_AMOUNTS.profile_birthday_set} XP — profil complété !`, 'success', 4000), 700);
-        if (typeof renderXpRingHomeButtons === 'function') renderXpRingHomeButtons(true);
-      } else {
-        console.warn('[bday] profile_birthday_set insert returned null — check Supabase RLS/policies on xp_events');
+      // Wrapper avec feedback : toast XP, ring animé, level-up éventuel
+      const ok = await addXpEventWithFeedback(S.user.id, 'profile_birthday_set', XP_AMOUNTS.profile_birthday_set, {});
+      if (!ok) {
+        // Échec silencieux (RLS, contrainte BDD...) : warning console + toast d'erreur
+        setTimeout(() => toast('⚠️ Bonus +10 XP non appliqué — voir console', 'error', 4000), 200);
       }
     }
   } catch (e) { console.warn('[bday] profile bonus exception:', e); }
@@ -11721,20 +12009,11 @@ async function saveBirthday() {
         .eq('event_type', 'birthday')
         .gte('created_at', yearStart.toISOString());
       if ((bdayCount || 0) === 0) {
-        const inserted = await addXpEvent(S.user.id, 'birthday', XP_AMOUNTS.birthday, { year: today.getFullYear() });
-        if (inserted) {
-          // Succès : toast bonus + refresh ring avec animation forcée pour que ce soit bien visible
-          setTimeout(() => toast(`🎁 +${XP_AMOUNTS.birthday} XP — bon anniversaire !`, 'success', 5000), 700);
-          if (typeof renderXpRingHomeButtons === 'function') {
-            // forceAnimate = true → on rejoue l'animation de remplissage, sinon le changement
-            // serait instantané et imperceptible
-            renderXpRingHomeButtons(true);
-          }
-        } else {
-          // L'insert a échoué silencieusement (RLS, contrainte BDD, réseau...)
-          // Le warning détaillé est dans la console via addXpEvent
-          console.warn('[bday] +50 XP insert returned null — check Supabase RLS/policies on xp_events');
-          setTimeout(() => toast('⚠️ Bonus +50 XP non appliqué — voir console', 'error', 5000), 700);
+        // Wrapper avec feedback : toast XP, ring animé, level-up éventuel
+        // (cumule avec le +10 du profil complété si même seuil franchi)
+        const ok = await addXpEventWithFeedback(S.user.id, 'birthday', XP_AMOUNTS.birthday, { year: today.getFullYear() });
+        if (!ok) {
+          setTimeout(() => toast('⚠️ Bonus +50 XP non appliqué — voir console', 'error', 4000), 200);
         }
       }
     } catch (e) { console.warn('[bday] check today exception:', e); }
