@@ -11701,10 +11701,21 @@ async function saveBirthday() {
         .eq('event_type', 'birthday')
         .gte('created_at', yearStart.toISOString());
       if ((bdayCount || 0) === 0) {
-        await addXpEvent(S.user.id, 'birthday', XP_AMOUNTS.birthday, { year: today.getFullYear() });
-        setTimeout(() => toast(`🎁 +${XP_AMOUNTS.birthday} XP — bon anniversaire !`, 'success', 5000), 700);
-        // Refresh ring
-        if (typeof renderXpRingHomeButtons === 'function') renderXpRingHomeButtons(false);
+        const inserted = await addXpEvent(S.user.id, 'birthday', XP_AMOUNTS.birthday, { year: today.getFullYear() });
+        if (inserted) {
+          // Succès : toast bonus + refresh ring avec animation forcée pour que ce soit bien visible
+          setTimeout(() => toast(`🎁 +${XP_AMOUNTS.birthday} XP — bon anniversaire !`, 'success', 5000), 700);
+          if (typeof renderXpRingHomeButtons === 'function') {
+            // forceAnimate = true → on rejoue l'animation de remplissage, sinon le changement
+            // serait instantané et imperceptible
+            renderXpRingHomeButtons(true);
+          }
+        } else {
+          // L'insert a échoué silencieusement (RLS, contrainte BDD, réseau...)
+          // Le warning détaillé est dans la console via addXpEvent
+          console.warn('[bday] +50 XP insert returned null — check Supabase RLS/policies on xp_events');
+          setTimeout(() => toast('⚠️ Bonus +50 XP non appliqué — voir console', 'error', 5000), 700);
+        }
       }
     } catch (e) { console.warn('[bday] check today exception:', e); }
   }
