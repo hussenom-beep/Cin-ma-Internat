@@ -2823,6 +2823,123 @@ body.theme-christmas .s-header {
   .title-option-name { font-size: 15px; }
 }
 
+/* ================================================================
+   BATCH C3 PHASE 2C — Carte de visite (titre + 3 badges épinglés)
+   Affiché à côté du nom dans les listes (inscrits séance, fiche élève, profil)
+   ================================================================ */
+.student-deco {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  vertical-align: middle;
+}
+/* Chip de titre */
+.student-deco-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(240,165,0,.10);
+  border: 1px solid rgba(240,165,0,.30);
+  color: var(--gold);
+  font-size: 10.5px;
+  font-weight: 700;
+  font-family: 'DM Sans', sans-serif;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all .15s;
+}
+.student-deco-title:hover {
+  background: rgba(240,165,0,.18);
+  border-color: var(--gold);
+}
+.student-deco-title-emoji {
+  font-size: 12px;
+  line-height: 1;
+}
+/* Liste de mini-badges */
+.student-deco-badges {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.student-deco-badge {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: transform .15s;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,.4));
+}
+.student-deco-badge:hover {
+  transform: scale(1.15);
+}
+.student-deco-badge-emoji {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  width: 22px;
+  height: 22px;
+  background: rgba(0,0,0,.25);
+  border-radius: 50%;
+  border: 1px solid rgba(240,165,0,.30);
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: transform .15s;
+}
+.student-deco-badge-emoji:hover {
+  transform: scale(1.15);
+}
+
+/* Variante "compact" pour les listes denses (24→20px, gap réduit) */
+.student-deco.compact .student-deco-title {
+  font-size: 10px;
+  padding: 1px 7px;
+}
+.student-deco.compact .student-deco-badge,
+.student-deco.compact .student-deco-badge-emoji {
+  width: 20px;
+  height: 20px;
+}
+
+/* Dans le profil propre : la carte est sous le nom, plus grande */
+.profile-deco-row {
+  display: flex;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+/* ================================================================
+   Popup détail "Mon titre" (au tap sur le chip de titre)
+   ================================================================ */
+.title-detail-card {
+  text-align: center;
+  padding: 20px 26px 22px;
+}
+.title-detail-emoji {
+  font-size: 56px;
+  line-height: 1;
+  margin: 6px 0 8px;
+  filter: drop-shadow(0 2px 8px rgba(240,165,0,.3));
+}
+.title-detail-name {
+  font-family: 'Playfair Display', serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--gold);
+  margin-bottom: 6px;
+}
+.title-detail-meta {
+  font-size: 13px;
+  color: var(--text-2);
+  margin-bottom: 16px;
+  line-height: 1.4;
+}
+
 .profile-avatar {
   width: 64px; height: 64px;
   border-radius: 50%;
@@ -8068,6 +8185,8 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       <div class="profile-name" id="prof-fullname">—</div>
       <div class="profile-class" id="prof-class">—</div>
       <div class="profile-identifier" id="prof-identifier"></div>
+      <!-- Carte de visite (titre + 3 badges épinglés) — Batch C3 Phase 2C -->
+      <div class="profile-deco-row" id="profile-deco-row"></div>
     </div>
 
     <!-- Carte installation mise en avant -->
@@ -8373,6 +8492,19 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       </button>
       <button class="btn btn-gold btn-full" onclick="closeModal('modal-student-title')">Fermer</button>
     </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     MODAL: Détail d'un titre (popup au tap sur un chip de titre dans une carte de visite)
+     ================================================================ -->
+<div class="overlay hidden" id="modal-title-detail">
+  <div class="sheet sheet-compact title-detail-card">
+    <div class="sheet-handle"></div>
+    <div class="title-detail-emoji" id="title-detail-emoji">🎭</div>
+    <div class="title-detail-name" id="title-detail-name">—</div>
+    <div class="title-detail-meta" id="title-detail-meta">—</div>
+    <button class="btn btn-ghost btn-full" onclick="closeModal('modal-title-detail')">Fermer</button>
   </div>
 </div>
 
@@ -11443,11 +11575,12 @@ const XP_PENALTY_MIN_LEVEL = 3;
 // Garder la liste triée par `min` croissant. Le palier max (level >= 21) doit toujours exister.
 // Le `slug` sert de clé stable pour la persistance en BDD (colonne pinned_title_slug).
 const LEVEL_TITLES = [
-  { slug: 'spectateur',  min: 1,  emoji: '🎟',  label: 'Spectateur'  },
-  { slug: 'cinephile',   min: 6,  emoji: '🎬',  label: 'Cinéphile'   },
-  { slug: 'critique',    min: 11, emoji: '🎭',  label: 'Critique'    },
-  { slug: 'connaisseur', min: 16, emoji: '🏆',  label: 'Connaisseur' },
-  { slug: 'expert',      min: 21, emoji: '🌟',  label: 'Expert'      }
+  { slug: 'spectateur',    min: 1,  emoji: '🎟',  label: 'Spectateur'         },
+  { slug: 'cinephile',     min: 6,  emoji: '🎬',  label: 'Cinéphile'          },
+  { slug: 'critique',      min: 11, emoji: '🎭',  label: 'Critique'           },
+  { slug: 'connaisseur',   min: 16, emoji: '🏆',  label: 'Connaisseur'        },
+  { slug: 'expert',        min: 21, emoji: '🌟',  label: 'Expert'             },
+  { slug: 'maitre-7e-art', min: 25, emoji: '👑',  label: 'Maître du 7ᵉ Art'   }
 ];
 
 /* Renvoie le palier (titre) correspondant à un niveau donné. */
@@ -12852,6 +12985,238 @@ async function restoreDefaultTitle() {
   }
   toast('🎭 Titre par défaut restauré', 'success', 1500);
 }
+
+/* ================================================================
+   BATCH C3 — Phase 2C : Carte de visite (titre + 3 badges épinglés)
+   ================================================================
+   Composant réutilisable pour afficher la "décoration" d'un élève à côté
+   de son nom dans n'importe quelle liste (inscrits séance, fiche admin, etc.).
+
+   Usage :
+   1. const decoMap = await loadStudentsBusinessCards([id1, id2, ...]);
+   2. const html = renderStudentDecorationHTML(decoMap.get(studentId));
+   3. injecter `html` à côté du nom
+
+   Cache mémoire pour éviter les requêtes répétées sur la même session.
+*/
+
+// Cache : Map<studentId, { pinnedBadges, pinnedTitleSlug, level, totalXp }>
+const _studentDecoCache = new Map();
+// TTL court (60s) : pour rester relativement à jour mais éviter de re-fetch en boucle
+let _studentDecoCacheTime = 0;
+const _STUDENT_DECO_CACHE_TTL = 60000;
+
+/* Charge la déco (titre épinglé + badges épinglés + niveau) pour un lot d'élèves.
+   Renvoie une Map<studentId, decoObject>. */
+async function loadStudentsBusinessCards(studentIds) {
+  if (!Array.isArray(studentIds) || studentIds.length === 0) return new Map();
+
+  // Filtrer les ids déjà en cache et frais
+  const now = Date.now();
+  const cacheValid = (now - _studentDecoCacheTime) < _STUDENT_DECO_CACHE_TTL;
+  const toFetch = cacheValid
+    ? studentIds.filter(id => !_studentDecoCache.has(id))
+    : studentIds.slice();
+
+  if (toFetch.length > 0) {
+    if (!cacheValid) _studentDecoCache.clear();
+    try {
+      // 1. pinned_* depuis students
+      const { data: students, error: studErr } = await db
+        .from('students')
+        .select('id, pinned_badges, pinned_title_slug')
+        .in('id', toFetch);
+      if (studErr) throw studErr;
+
+      // 2. xp_events agrégé pour ces élèves (uniquement events arrivés)
+      const nowIso = new Date().toISOString();
+      const { data: events, error: evErr } = await db
+        .from('xp_events')
+        .select('student_id, xp_amount')
+        .in('student_id', toFetch)
+        .lte('scheduled_for', nowIso);
+      if (evErr) throw evErr;
+
+      const xpByStudent = new Map();
+      for (const e of (events || [])) {
+        xpByStudent.set(e.student_id, (xpByStudent.get(e.student_id) || 0) + (e.xp_amount || 0));
+      }
+
+      for (const s of (students || [])) {
+        const xp = xpByStudent.get(s.id) || 0;
+        _studentDecoCache.set(s.id, {
+          pinnedBadges:    Array.isArray(s.pinned_badges) ? s.pinned_badges : [],
+          pinnedTitleSlug: s.pinned_title_slug || null,
+          level:           levelFromXp(xp),
+          totalXp:         xp
+        });
+      }
+      _studentDecoCacheTime = now;
+    } catch (e) {
+      console.warn('[deco] loadStudentsBusinessCards error:', e);
+    }
+  }
+
+  // Construire le résultat
+  const result = new Map();
+  for (const id of studentIds) {
+    if (_studentDecoCache.has(id)) result.set(id, _studentDecoCache.get(id));
+  }
+  return result;
+}
+
+/* Invalide le cache (à appeler après que l'élève change ses badges/titre). */
+function invalidateStudentDecoCache(studentId) {
+  if (studentId) _studentDecoCache.delete(studentId);
+  else _studentDecoCache.clear();
+  _studentDecoCacheTime = 0;
+}
+
+/* Renvoie le HTML de la déco (titre + badges) pour un élève donné.
+   Si `deco` est null/vide, renvoie chaîne vide.
+   Options :
+   - compact : true → variante plus petite pour les listes denses
+   - showTitle : true (défaut) → affiche le chip de titre
+   - showBadges : true (défaut) → affiche les mini-badges */
+function renderStudentDecorationHTML(deco, options = {}) {
+  if (!deco) return '';
+  const { compact = false, showTitle = true, showBadges = true } = options;
+
+  const parts = [];
+
+  // Titre effectif
+  if (showTitle) {
+    const title = getEffectiveTitle(deco.level || 1, deco.pinnedTitleSlug);
+    if (title) {
+      // data attr permet à un handler global de récupérer le slug au clic
+      parts.push(`
+        <span class="student-deco-title"
+              data-title-slug="${title.slug}"
+              data-title-level="${deco.level || 1}"
+              onclick="event.stopPropagation(); _onDecoTitleClick('${title.slug}', ${deco.level || 1})">
+          <span class="student-deco-title-emoji">${title.emoji}</span>${_escapeHtml(title.label)}
+        </span>
+      `);
+    }
+  }
+
+  // 3 badges épinglés (max)
+  if (showBadges && Array.isArray(deco.pinnedBadges) && deco.pinnedBadges.length > 0) {
+    const badgesHtml = deco.pinnedBadges.slice(0, 3).map(slug => {
+      const badge = BADGES_CATALOG.find(b => b.slug === slug);
+      if (!badge) return '';
+      const url = getBadgeImageUrl(slug);
+      const safeName = _escapeHtml(badge.name);
+      if (url) {
+        return `<img class="student-deco-badge" src="${url}" alt="${safeName}" title="${safeName}"
+                  onclick="event.stopPropagation(); _onDecoBadgeClick('${slug}')"
+                  onerror="this.outerHTML='<span class=&quot;student-deco-badge-emoji&quot; title=&quot;${safeName}&quot; onclick=&quot;event.stopPropagation(); _onDecoBadgeClick(\\'${slug}\\')&quot;>${badge.emoji || '🏅'}</span>'" />`;
+      }
+      return `<span class="student-deco-badge-emoji" title="${safeName}"
+                onclick="event.stopPropagation(); _onDecoBadgeClick('${slug}')">${badge.emoji || '🏅'}</span>`;
+    }).filter(Boolean).join('');
+    if (badgesHtml) {
+      parts.push(`<span class="student-deco-badges">${badgesHtml}</span>`);
+    }
+  }
+
+  if (parts.length === 0) return '';
+  return `<span class="student-deco${compact ? ' compact' : ''}">${parts.join('')}</span>`;
+}
+
+/* Handler de clic sur un badge dans une carte de visite : popup détail
+   (réutilise showBadgeDetailPopup mais sans le contexte "Mes badges" — on
+   simule juste l'état) */
+function _onDecoBadgeClick(slug) {
+  const badge = BADGES_CATALOG.find(b => b.slug === slug);
+  if (!badge) return;
+  // Si on n'est pas en train de regarder ses propres badges, on n'a pas la date
+  // d'unlock. On affiche quand même les infos statiques.
+  const cfg = BADGES_RARITY_CONFIG[badge.rarity] || BADGES_RARITY_CONFIG.bronze;
+
+  const card  = document.querySelector('#modal-badge-detail .badge-detail-card');
+  const wrap  = document.getElementById('badge-detail-image-wrap');
+  const elImg = document.getElementById('badge-detail-img');
+  const elEmo = document.getElementById('badge-detail-emoji');
+  const elName = document.getElementById('badge-detail-name');
+  const elDesc = document.getElementById('badge-detail-desc');
+  const elRar  = document.getElementById('badge-detail-rarity');
+  const elSta  = document.getElementById('badge-detail-status');
+
+  if (card) card.style.setProperty('--badge-rarity-color', cfg.color);
+  if (elName) elName.textContent = badge.name;
+  if (elRar)  elRar.textContent  = cfg.label;
+  if (elDesc) elDesc.textContent = badge.description;
+
+  const url = getBadgeImageUrl(badge.slug);
+  if (elImg && elEmo && wrap) {
+    if (url) {
+      elImg.src = url;
+      elImg.style.display = 'block';
+      elEmo.style.display = 'none';
+      wrap.classList.remove('fallback-emoji');
+      elImg.onerror = () => {
+        elImg.style.display = 'none';
+        elEmo.style.display = 'block';
+        elEmo.textContent = badge.emoji || '🏅';
+        wrap.classList.add('fallback-emoji');
+      };
+    } else {
+      elImg.style.display = 'none';
+      elEmo.style.display = 'block';
+      elEmo.textContent = badge.emoji || '🏅';
+      wrap.classList.add('fallback-emoji');
+    }
+  }
+
+  // Statut générique (pas la date personnelle, vu qu'on regarde la carte
+  // d'un autre élève — on indique juste "Débloqué")
+  if (elSta) {
+    elSta.classList.remove('unlocked', 'locked');
+    elSta.textContent = '✓ Badge épinglé';
+    elSta.classList.add('unlocked');
+  }
+
+  openModal('modal-badge-detail');
+}
+
+/* Handler de clic sur le chip de titre d'une carte de visite : popup détail. */
+function _onDecoTitleClick(slug, level) {
+  const title = getTitleBySlug(slug);
+  if (!title) return;
+  const elEmoji = document.getElementById('title-detail-emoji');
+  const elName  = document.getElementById('title-detail-name');
+  const elMeta  = document.getElementById('title-detail-meta');
+  if (elEmoji) elEmoji.textContent = title.emoji;
+  if (elName)  elName.textContent  = title.label;
+  if (elMeta)  elMeta.textContent  = `Titre débloqué au niveau ${title.min}`;
+  openModal('modal-title-detail');
+}
+
+/* ----------------------------------------------------------------
+   Invalidation auto du cache après changement de badges/titre épinglés
+   ---------------------------------------------------------------- */
+// On wrappe les setters existants pour qu'ils invalident automatiquement le cache.
+// (La déclaration ci-dessous est exécutée au load — les fonctions originales
+//  doivent déjà exister à ce stade ; sinon on défère.)
+(function _wrapPinnedSetters() {
+  if (typeof setStudentPinnedBadges === 'function') {
+    const orig = setStudentPinnedBadges;
+    window.setStudentPinnedBadges = async function(studentId, slugs) {
+      const r = await orig(studentId, slugs);
+      invalidateStudentDecoCache(studentId);
+      return r;
+    };
+  }
+  if (typeof setStudentPinnedTitle === 'function') {
+    const orig = setStudentPinnedTitle;
+    window.setStudentPinnedTitle = async function(studentId, slug) {
+      const r = await orig(studentId, slug);
+      invalidateStudentDecoCache(studentId);
+      return r;
+    };
+  }
+})();
 
 /* ================================================================
    FIN — SYSTÈME DE BADGES (Phase 1)
@@ -18115,15 +18480,25 @@ async function viewStudentRegistrants(sesId, date) {
     
     const registered = enrichedRegistrations.filter(r => r.status === 'registered');
     const waitlist = enrichedRegistrations.filter(r => r.status === 'waitlist');
-    
+
+    // Charger les décorations (titre + badges épinglés) en batch pour tous les élèves
+    let decoMap = new Map();
+    try {
+      decoMap = await loadStudentsBusinessCards(studentIds);
+    } catch (e) { console.warn('[viewStudentRegistrants] deco load:', e); }
+
     const rowHtml = arr => arr.map(r => {
       const firstName = r.students?.first_name || 'Élève';
       const lastName = r.students?.last_name || 'introuvable';
       const className = r.students?.class_name || '—';
-      
+      const decoHtml = renderStudentDecorationHTML(decoMap.get(r.student_id), { compact: true });
+
       return `
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--surface-2);border-radius:8px;">
-          <span style="font-weight:600;font-size:14px;">${firstName} ${lastName}</span>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--surface-2);border-radius:8px;gap:10px;flex-wrap:wrap;">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0;flex:1;">
+            <span style="font-weight:600;font-size:14px;">${firstName} ${lastName}</span>
+            ${decoHtml}
+          </div>
           <span class="badge badge-muted">${className}</span>
         </div>
       `;
@@ -23314,6 +23689,14 @@ async function viewRegistrants(sesId, date) {
   ].filter(Boolean);
   const _viewRiskMap = await _fetchRiskCounts(_allIds);
 
+  // Pré-calcul batch des décorations (titre + badges épinglés) — Batch C3 Phase 2C
+  let _viewDecoMap = new Map();
+  try {
+    if (typeof loadStudentsBusinessCards === 'function' && _allIds.length) {
+      _viewDecoMap = await loadStudentsBusinessCards(_allIds);
+    }
+  } catch (e) { console.warn('[viewRegistrants] deco load:', e); }
+
   // === SECTION 1: INSCRITS CONFIRMÉS ===
   html += '<div style="margin-bottom: 24px;">';
   html += '<h3 style="font-size: 15px; font-weight: 700; color: var(--text-1); margin-bottom: 12px;">✅ Inscrits confirmés</h3>';
@@ -23326,6 +23709,8 @@ async function viewRegistrants(sesId, date) {
     const regRow = r => {
       const risk = _viewRiskMap.get(r.studentId) || { lateCount: 0, absenceCount: 0 };
       const riskHtml = _renderRiskBadges(risk, { compact: true });
+      const decoHtml = (typeof renderStudentDecorationHTML === 'function')
+        ? renderStudentDecorationHTML(_viewDecoMap.get(r.studentId), { compact: true }) : '';
       return `
       <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--surface-2);border-radius:8px;gap:8px;">
         <div style="flex:1;min-width:0;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
@@ -23333,6 +23718,7 @@ async function viewRegistrants(sesId, date) {
             ${r.firstName || ''} ${r.lastName || ''}
           </button>
           <span class="badge badge-muted">${r.className || '—'}</span>
+          ${decoHtml}
           ${riskHtml}
         </div>
         <button class="btn btn-sm btn-red" onclick="openBanStudent('${sesId}','${r.studentId}')">Retirer</button>
@@ -26280,6 +26666,15 @@ function openModal(id) {
     // Bloc XP : grand anneau + niveau + titre + barre (Batch C2a)
     if (typeof renderProfileXpBlock === 'function') {
       renderProfileXpBlock();
+    }
+
+    // Carte de visite (titre + badges épinglés) sous le nom (Batch C3 Phase 2C)
+    if (typeof loadStudentsBusinessCards === 'function') {
+      loadStudentsBusinessCards([S.user.id]).then(map => {
+        const deco = map.get(S.user.id);
+        const el = document.getElementById('profile-deco-row');
+        if (el) el.innerHTML = renderStudentDecorationHTML(deco, { compact: false });
+      }).catch(() => {});
     }
 
     // Afficher l'identifiant si disponible
