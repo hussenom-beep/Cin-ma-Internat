@@ -1429,29 +1429,82 @@ body.theme-christmas .s-header {
   opacity: .92;
 }
 
-/* Bouton profil — initiales dans un cercle premium noir/doré */
+/* Bouton profil — anneau XP doré avec niveau au centre (Batch C2a)
+   On garde la classe .home-profile-btn pour ne pas casser le HTML existant. */
 .home-profile-btn {
   width: 46px; height: 46px;
   border-radius: 50%;
   background: linear-gradient(135deg, #3A271B 0%, #241811 100%);
-  border: 2px solid var(--gold);
-  color: var(--gold);
-  font-size: 14px;
-  font-weight: 800;
-  letter-spacing: .02em;
+  border: none;
+  padding: 0;
   display: flex; align-items: center; justify-content: center;
   cursor: pointer;
-  transition: all .18s;
+  transition: transform .18s, box-shadow .18s;
   flex-shrink: 0;
   margin-top: 2px;
-  font-family: 'DM Sans', sans-serif;
+  position: relative;
   box-shadow: 0 2px 8px rgba(240,165,0,.25);
+  overflow: visible;
 }
-.home-profile-btn:hover { 
-  background: rgba(240,165,0,.15); 
-  border-color: var(--gold);
-  box-shadow: 0 3px 12px rgba(240,165,0,.4);
+.home-profile-btn:hover {
+  box-shadow: 0 3px 14px rgba(240,165,0,.45);
   transform: translateY(-1px);
+}
+/* SVG anneau qui occupe tout le bouton */
+.home-profile-btn .xp-ring-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  /* On part du haut et on tourne dans le sens horaire */
+  transform: rotate(-90deg);
+  pointer-events: none;
+}
+.home-profile-btn .xp-ring-track {
+  fill: none;
+  stroke: rgba(240,165,0,.18);
+  stroke-width: 3;
+}
+.home-profile-btn .xp-ring-progress {
+  fill: none;
+  stroke: var(--gold);
+  stroke-width: 3;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 3px rgba(240,165,0,.45));
+  transition: stroke-dashoffset .25s ease-out;
+}
+/* Numéro de niveau au centre */
+.home-profile-btn .xp-ring-level {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--gold);
+  letter-spacing: -.01em;
+  line-height: 1;
+  position: relative; /* au-dessus du SVG */
+  text-shadow: 0 1px 3px rgba(0,0,0,.4);
+}
+/* Variante "max level" — anneau plein, glow plus marqué */
+.home-profile-btn.xp-max .xp-ring-progress {
+  filter: drop-shadow(0 0 5px rgba(240,165,0,.7));
+}
+/* Animation au premier chargement de la session : remplissage 0 → X% */
+@keyframes xpRingFill {
+  from { stroke-dashoffset: var(--xp-ring-circ); }
+  to   { stroke-dashoffset: var(--xp-ring-target); }
+}
+.home-profile-btn.xp-animate .xp-ring-progress {
+  animation: xpRingFill .8s cubic-bezier(.4, .15, .2, 1) forwards;
+}
+
+/* iPhone SE et autres très petits écrans : on garde la lisibilité */
+@media (max-width: 360px) {
+  .home-profile-btn {
+    width: 42px; height: 42px;
+  }
+  .home-profile-btn .xp-ring-level {
+    font-size: 15px;
+  }
 }
 
 .home-section { padding: 20px 18px 0; }
@@ -1492,6 +1545,127 @@ body.theme-christmas .s-header {
   border-bottom: 1px solid var(--border);
   margin-bottom: 18px;
 }
+
+/* ----------------------------------------------------------------
+   PROFIL — Bloc XP (Batch C2a)
+   Conteneur global qui remplace l'ancien .profile-avatar
+   ---------------------------------------------------------------- */
+.profile-xp-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 4px 6px 0;
+}
+.profile-xp-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  max-width: 320px;
+  justify-content: center;
+}
+/* Grand anneau — 80px sur desktop/normal, 70px sur petit écran */
+.profile-xp-ring {
+  position: relative;
+  width: 80px; height: 80px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3A271B 0%, #241811 100%);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 3px 14px rgba(240,165,0,.30);
+}
+.profile-xp-ring .xp-ring-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%; height: 100%;
+  transform: rotate(-90deg);
+  pointer-events: none;
+}
+.profile-xp-ring .xp-ring-track {
+  fill: none;
+  stroke: rgba(240,165,0,.18);
+  stroke-width: 4;
+}
+.profile-xp-ring .xp-ring-progress {
+  fill: none;
+  stroke: var(--gold);
+  stroke-width: 4;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 4px rgba(240,165,0,.5));
+}
+.profile-xp-ring .xp-ring-level {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--gold);
+  line-height: 1;
+  letter-spacing: -.02em;
+  text-shadow: 0 1px 3px rgba(0,0,0,.4);
+  position: relative;
+}
+/* Bloc texte à côté du ring : titre + barre + ratio XP */
+.profile-xp-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.profile-xp-level-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--text-3);
+  font-weight: 700;
+}
+.profile-xp-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.15;
+}
+.profile-xp-bar {
+  height: 6px;
+  width: 100%;
+  background: rgba(240,165,0,.15);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 2px;
+}
+.profile-xp-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--gold) 0%, #FFC857 100%);
+  border-radius: 999px;
+  transition: width .6s cubic-bezier(.4, .15, .2, 1);
+  box-shadow: 0 0 6px rgba(240,165,0,.5);
+}
+.profile-xp-progress-text {
+  font-size: 11.5px;
+  color: var(--text-2);
+  margin-top: 2px;
+  font-weight: 500;
+}
+/* Ligne "Plus que X XP avant le palier 🏆 Connaisseur" sous le bloc */
+.profile-xp-milestone {
+  font-size: 12px;
+  color: var(--gold);
+  text-align: center;
+  font-weight: 600;
+  opacity: .9;
+  margin-top: 2px;
+}
+.profile-xp-milestone.hidden { display: none; }
+
+@media (max-width: 380px) {
+  .profile-xp-ring { width: 70px; height: 70px; }
+  .profile-xp-ring .xp-ring-level { font-size: 24px; }
+  .profile-xp-title { font-size: 16px; }
+  .profile-xp-row { gap: 12px; }
+}
+
 .profile-avatar {
   width: 64px; height: 64px;
   border-radius: 50%;
@@ -6704,9 +6878,30 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
   <div class="sheet">
     <div class="sheet-handle"></div>
 
-    <!-- En-tête : avatar + nom + classe + identifiant -->
+    <!-- En-tête : bloc XP + nom + classe + identifiant (Batch C2a) -->
     <div class="profile-header">
-      <div class="profile-avatar" id="prof-avatar">?</div>
+      <!-- Bloc XP : grand anneau + niveau + titre + barre de progression -->
+      <div class="profile-xp-block" id="prof-xp-block">
+        <div class="profile-xp-row">
+          <div class="profile-xp-ring" id="prof-xp-ring">
+            <svg class="xp-ring-svg" viewBox="0 0 80 80">
+              <circle class="xp-ring-track" cx="40" cy="40" r="36"></circle>
+              <circle class="xp-ring-progress" id="prof-xp-ring-progress" cx="40" cy="40" r="36"
+                stroke-dasharray="226.2" stroke-dashoffset="226.2"></circle>
+            </svg>
+            <span class="xp-ring-level" id="prof-xp-ring-level">1</span>
+          </div>
+          <div class="profile-xp-info">
+            <div class="profile-xp-level-label">Niveau</div>
+            <div class="profile-xp-title" id="prof-xp-title">🎟 Spectateur</div>
+            <div class="profile-xp-bar">
+              <div class="profile-xp-bar-fill" id="prof-xp-bar-fill" style="width:0%;"></div>
+            </div>
+            <div class="profile-xp-progress-text" id="prof-xp-progress-text">0 / 0 XP</div>
+          </div>
+        </div>
+        <div class="profile-xp-milestone hidden" id="prof-xp-milestone"></div>
+      </div>
       <div class="profile-name" id="prof-fullname">—</div>
       <div class="profile-class" id="prof-class">—</div>
       <div class="profile-identifier" id="prof-identifier"></div>
@@ -9858,6 +10053,37 @@ const XP_MAX_LEVEL = 25;
 const XP_PENALTY_MIN_LEVEL = 3;
 
 /* ----------------------------------------------------------------
+   TITRES PAR PALIER (5 paliers de 5 niveaux)
+   ---------------------------------------------------------------- */
+// Modifiable librement : les `min` sont les seuils de niveau pour atteindre le titre.
+// Garder la liste triée par `min` croissant. Le palier max (level >= 21) doit toujours exister.
+const LEVEL_TITLES = [
+  { min: 1,  emoji: '🎟',  label: 'Spectateur'  },
+  { min: 6,  emoji: '🎬',  label: 'Cinéphile'   },
+  { min: 11, emoji: '🎭',  label: 'Critique'    },
+  { min: 16, emoji: '🏆',  label: 'Connaisseur' },
+  { min: 21, emoji: '🌟',  label: 'Expert'      }
+];
+
+/* Renvoie le palier (titre) correspondant à un niveau donné. */
+function getTitleForLevel(level) {
+  let current = LEVEL_TITLES[0];
+  for (const t of LEVEL_TITLES) {
+    if (level >= t.min) current = t;
+    else break;
+  }
+  return current;
+}
+
+/* Renvoie le prochain palier au-delà du niveau courant (ou null si c'est déjà le dernier). */
+function getNextTitleForLevel(level) {
+  for (const t of LEVEL_TITLES) {
+    if (t.min > level) return t;
+  }
+  return null;
+}
+
+/* ----------------------------------------------------------------
    COURBE DES NIVEAUX
    ---------------------------------------------------------------- */
 
@@ -12389,14 +12615,147 @@ async function submitSupervisorMessage() {
   document.getElementById('txt-contact-message').value = '';
 }
 
+/* ----------------------------------------------------------------
+   XP RING — rendu de l'anneau XP sur les boutons de header (Batch C2a)
+   ----------------------------------------------------------------
+   Remplace les anciennes initiales par un SVG anneau + niveau au centre.
+   - 4 boutons partagent la classe .home-profile-btn (home, films, propose, session)
+   - On lit le total XP de l'élève en BDD
+   - Animation au 1er rendu de la session uniquement (flag _xpRingAnimatedThisSession) */
+let _xpRingAnimatedThisSession = false;
+
+// Cache du dernier état pour éviter les re-render inutiles entre navigations
+let _lastXpRingState = null;
+
+/* Rend l'anneau XP sur tous les boutons header.
+   Si forceAnimate=true, force l'animation même si elle a déjà tourné cette session
+   (utilisé pour le 1er rendu après login). */
+async function renderXpRingHomeButtons(forceAnimate = false) {
+  if (!S.user || S.isAdmin) return;
+
+  const btns = document.querySelectorAll('.home-profile-btn');
+  if (!btns.length) return;
+
+  // Récup du total XP — silencieux en cas d'erreur (l'UI garde l'état précédent)
+  let totalXp = 0;
+  try {
+    totalXp = await getStudentTotalXp(S.user.id);
+  } catch (e) {
+    console.warn('[xp ring] getStudentTotalXp exception:', e);
+  }
+
+  const progress = computeXpProgress(totalXp);
+  const { level, percent, isMax } = progress;
+
+  // Géométrie de l'anneau (r=20 → circonférence ≈ 125.66)
+  const RADIUS = 20;
+  const CIRC = 2 * Math.PI * RADIUS;
+  const targetOffset = CIRC * (1 - (percent / 100));
+
+  // Première fois cette session ? On déclenche l'animation
+  const shouldAnimate = forceAnimate || !_xpRingAnimatedThisSession;
+
+  btns.forEach(btn => {
+    btn.classList.toggle('xp-max', isMax);
+    btn.title = `Niveau ${level}${isMax ? ' (max)' : ''}`;
+
+    btn.innerHTML = `
+      <svg class="xp-ring-svg" viewBox="0 0 46 46">
+        <circle class="xp-ring-track" cx="23" cy="23" r="${RADIUS}"></circle>
+        <circle class="xp-ring-progress" cx="23" cy="23" r="${RADIUS}"
+          stroke-dasharray="${CIRC.toFixed(2)}"
+          stroke-dashoffset="${shouldAnimate ? CIRC.toFixed(2) : targetOffset.toFixed(2)}"
+          style="--xp-ring-circ:${CIRC.toFixed(2)};--xp-ring-target:${targetOffset.toFixed(2)};"></circle>
+      </svg>
+      <span class="xp-ring-level">${level}</span>
+    `;
+
+    if (shouldAnimate) {
+      // Reflow puis animation
+      btn.classList.remove('xp-animate');
+      void btn.offsetWidth;
+      btn.classList.add('xp-animate');
+      // Après l'animation, on fixe le offset final pour que ça reste visible
+      setTimeout(() => {
+        const prog = btn.querySelector('.xp-ring-progress');
+        if (prog) prog.setAttribute('stroke-dashoffset', targetOffset.toFixed(2));
+        btn.classList.remove('xp-animate');
+      }, 850);
+    }
+  });
+
+  if (shouldAnimate) _xpRingAnimatedThisSession = true;
+  _lastXpRingState = { level, percent, totalXp };
+}
+
+/* Conservée pour rétro-compat : on remplace le contenu par l'anneau XP */
 function updateProfileBtn() {
   if (!S.user) return;
-  const fn = S.user.firstName || '';
-  const ln = S.user.lastName  || '';
-  const initials = ((fn[0] || '') + (ln[0] || '')).toUpperCase() || '?';
-  document.querySelectorAll('.home-profile-btn').forEach(btn => {
-    btn.textContent = initials;
-  });
+  // Délégué à renderXpRingHomeButtons (sans forcer l'animation : elle ne joue
+  // qu'au 1er appel via le flag _xpRingAnimatedThisSession)
+  renderXpRingHomeButtons(false);
+}
+
+/* Rend le bloc XP du modal profil (gros anneau + titre + barre).
+   Appelé à l'ouverture du modal-profile. */
+async function renderProfileXpBlock() {
+  if (!S.user) return;
+
+  let totalXp = 0;
+  try { totalXp = await getStudentTotalXp(S.user.id); } catch (e) { /* silencieux */ }
+
+  const progress = computeXpProgress(totalXp);
+  const { level, xpInLevel, xpNeededForNext, percent, isMax } = progress;
+  const title = getTitleForLevel(level);
+  const next  = getNextTitleForLevel(level);
+
+  // Anneau (r=36, circ ≈ 226.19)
+  const RADIUS = 36;
+  const CIRC = 2 * Math.PI * RADIUS;
+  const offset = CIRC * (1 - (percent / 100));
+
+  const elLevel = document.getElementById('prof-xp-ring-level');
+  const elProg  = document.getElementById('prof-xp-ring-progress');
+  const elTitle = document.getElementById('prof-xp-title');
+  const elBar   = document.getElementById('prof-xp-bar-fill');
+  const elTxt   = document.getElementById('prof-xp-progress-text');
+  const elMile  = document.getElementById('prof-xp-milestone');
+  const ring    = document.getElementById('prof-xp-ring');
+
+  if (elLevel) elLevel.textContent = level;
+  if (elProg) {
+    elProg.setAttribute('stroke-dasharray', CIRC.toFixed(2));
+    // On part vide puis on remplit (effet d'arrivée à chaque ouverture)
+    elProg.setAttribute('stroke-dashoffset', CIRC.toFixed(2));
+    void elProg.getBoundingClientRect();
+    elProg.style.transition = 'stroke-dashoffset .8s cubic-bezier(.4,.15,.2,1)';
+    setTimeout(() => elProg.setAttribute('stroke-dashoffset', offset.toFixed(2)), 30);
+  }
+  if (elTitle) elTitle.textContent = `${title.emoji} ${title.label}`;
+  if (ring) ring.classList.toggle('xp-max', isMax);
+
+  if (elBar) {
+    elBar.style.width = '0%';
+    void elBar.getBoundingClientRect();
+    setTimeout(() => { elBar.style.width = percent + '%'; }, 30);
+  }
+  if (elTxt) {
+    if (isMax) {
+      elTxt.textContent = `Niveau max atteint — ${totalXp} XP`;
+    } else {
+      const remain = Math.max(0, xpNeededForNext - xpInLevel);
+      elTxt.textContent = `${xpInLevel} / ${xpNeededForNext} XP — encore ${remain} XP avant le niveau ${level + 1}`;
+    }
+  }
+  if (elMile) {
+    if (next && !isMax) {
+      const lvlsToGo = next.min - level;
+      elMile.classList.remove('hidden');
+      elMile.textContent = `Plus que ${lvlsToGo} niveau${lvlsToGo > 1 ? 'x' : ''} avant le palier ${next.emoji} ${next.label}`;
+    } else {
+      elMile.classList.add('hidden');
+    }
+  }
 }
 
 function logout(reason) {
@@ -12408,6 +12767,8 @@ function logout(reason) {
   clearSession();
   _tmpStudent = null;
   _initialPinVerified = false; // Reset état activation
+  _xpRingAnimatedThisSession = false; // Reset anim XP ring (relance au prochain login)
+  _lastXpRingState = null;
   showLS('code');
   document.getElementById('inp-code').value = '';
   document.getElementById('inp-adminpwd').value = '';
@@ -22915,10 +23276,13 @@ function openModal(id) {
   if (id === 'modal-profile' && S.user) {
     const fn = S.user.firstName || '';
     const ln = S.user.lastName  || '';
-    const initials = ((fn[0] || '') + (ln[0] || '')).toUpperCase() || '?';
-    document.getElementById('prof-avatar').textContent   = initials;
     document.getElementById('prof-fullname').textContent = [fn, ln].filter(Boolean).join(' ') || '—';
     document.getElementById('prof-class').textContent    = S.user.className || '—';
+
+    // Bloc XP : grand anneau + niveau + titre + barre (Batch C2a)
+    if (typeof renderProfileXpBlock === 'function') {
+      renderProfileXpBlock();
+    }
 
     // Afficher l'identifiant si disponible
     const identEl = document.getElementById('prof-identifier');
