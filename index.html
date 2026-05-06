@@ -11601,13 +11601,13 @@ async function checkAndUnlockBadges(studentId) {
 
     // 3. Notifier l'élève (uniquement si c'est lui qui est connecté)
     if (newlyUnlocked.length > 0 && S.user && S.user.id === studentId) {
-      // Petit délai pour laisser respirer entre les éventuelles autres animations (toast XP, level-up)
+      // Petit délai initial pour laisser respirer entre les éventuelles autres
+      // animations (toast XP, level-up). Ensuite, la file d'attente des notifs
+      // badges enchaîne TOUT proprement : chaque badge attend que le précédent
+      // soit fermé (Continuer / ESC / clic-fond pour les modales, fin du toast
+      // pour les bronze/argent).
       setTimeout(() => {
-        for (let i = 0; i < newlyUnlocked.length; i++) {
-          const b = newlyUnlocked[i];
-          // On échelonne pour pas tout faire péter en même temps si plusieurs débloqués d'un coup
-          setTimeout(() => notifyBadgeUnlocked(b), i * 1800);
-        }
+        for (const b of newlyUnlocked) notifyBadgeUnlocked(b);
       }, 1200);
     }
 
@@ -11619,29 +11619,54 @@ async function checkAndUnlockBadges(studentId) {
 }
 
 /* ================================================================
-   NOTIFICATION DE DÉBLOCAGE
-   ================================================================ */
+   NOTIFICATION DE DÉBLOCAGE — file d'attente
+   ================================================================
+   Les notifications de badges s'enchaînent une par une :
+   - Bronze/Argent : toast (3s) → la suivante part à la fin du toast
+   - Or/Émeraude/Diamant : modale → la suivante part quand l'utilisateur
+     clique Continuer (ou ESC, ou clic-fond)
+   Plusieurs déblocages en cascade (par ex. au login après une longue absence)
+   sont donc traités proprement, sans écraser l'affichage. */
+let _badgeNotifQueue = [];
+let _badgeNotifProcessing = false;
 
-/* Affiche le déblocage : toast pour bronze/argent, modale célébration pour or/emeraude/diamant. */
+/* Pousse un badge dans la file et lance le processing si pas déjà en cours. */
 function notifyBadgeUnlocked(badge) {
   if (!badge) return;
+  _badgeNotifQueue.push(badge);
+  if (!_badgeNotifProcessing) _processBadgeNotifQueue();
+}
+
+/* Traite le badge suivant dans la file. Récursif via callback de fermeture. */
+function _processBadgeNotifQueue() {
+  if (_badgeNotifQueue.length === 0) {
+    _badgeNotifProcessing = false;
+    return;
+  }
+  _badgeNotifProcessing = true;
+  const badge = _badgeNotifQueue.shift();
   const cfg = BADGES_RARITY_CONFIG[badge.rarity] || BADGES_RARITY_CONFIG.bronze;
+
   if (cfg.notif === 'modal') {
-    showBadgeUnlockModal(badge);
+    // Modale : on passe le callback qui sera appelé à la fermeture
+    showBadgeUnlockModal(badge, _processBadgeNotifQueue);
   } else {
-    // Toast simple
-    toast(`🏅 Badge débloqué : ${badge.name}`, 'success', 3500);
+    // Toast : on attend la fin (3s) puis on dépile
+    toast(`🏅 Badge débloqué : ${badge.name}`, 'success', 3000);
+    setTimeout(_processBadgeNotifQueue, 3200);
   }
 }
 
 /* Affiche la modale célébration de déblocage de badge.
    Réutilise la structure du level-up : confettis + bouton Continuer.
-   Fermeture : bouton, ESC, ou clic-fond. */
-function showBadgeUnlockModal(badge) {
+   Fermeture : bouton, ESC, ou clic-fond.
+   onClose (optionnel) : callback appelé à la fermeture (pour la file d'attente). */
+function showBadgeUnlockModal(badge, onClose) {
   const overlay = document.getElementById('modal-badge-unlocked');
   if (!overlay) {
     // Fallback en toast si la modale n'existe pas dans le DOM
     toast(`🏅 ${BADGES_RARITY_CONFIG[badge.rarity]?.label || ''} débloqué : ${badge.name}`, 'success', 4000);
+    if (typeof onClose === 'function') setTimeout(onClose, 4000);
     return;
   }
 
@@ -11681,17 +11706,28 @@ function showBadgeUnlockModal(badge) {
   if (elCard) {
     elCard.style.setProperty('--badge-rarity-color', cfg.color);
     elCard.style.setProperty('--badge-rarity-bg', cfg.bg);
+    // Re-déclenche l'animation pop (utile quand plusieurs badges s'enchaînent)
+    elCard.style.animation = 'none';
+    void elCard.offsetWidth;
+    elCard.style.animation = '';
   }
 
   overlay.classList.remove('hidden');
 
   // Cleanup commun à toutes les voies de fermeture
+  let closed = false;
   const close = () => {
+    if (closed) return;
+    closed = true;
     overlay.classList.add('hidden');
     document.removeEventListener('keydown', escHandler);
     overlay.onclick = null;
     const btn = document.getElementById('badge-unlocked-continue');
     if (btn) btn.onclick = null;
+    if (typeof onClose === 'function') {
+      // Petit délai pour laisser respirer entre 2 modales successives
+      setTimeout(onClose, 350);
+    }
   };
 
   const btn = document.getElementById('badge-unlocked-continue');
@@ -14186,6 +14222,29 @@ async function loginAs(student) {
   // Délai pour laisser le What's New s'ouvrir d'abord ; checkAndShowBirthdayPrompt
   // attend la fermeture de la modale What's New si elle est encore visible.
   setTimeout(checkAndShowBirthdayPrompt, 1200);
+
+  // Batch C3 — Check rétroactif des badges à chaque login : débloque ceux que
+  // l'élève "mérite" déjà mais qu'il n'a jamais reçus (ex. système activé après
+  // qu'il ait déjà voté plein de fois). Attend que les modales prioritaires
+  // soient fermées avant de lancer ses propres notifications.
+  setTimeout(_checkBadgesAfterLogin, 2500);
+}
+
+/* Vérifie les badges après login, en attendant que les modales What's New
+   et Birthday soient fermées pour ne pas chevaucher leurs animations. */
+function _checkBadgesAfterLogin() {
+  if (!S.user || S.isAdmin) return;
+  const wn = document.getElementById('modal-whatsnew');
+  const bd = document.getElementById('modal-birthday-prompt');
+  const wnOpen = wn && !wn.classList.contains('hidden');
+  const bdOpen = bd && !bd.classList.contains('hidden');
+  if (wnOpen || bdOpen) {
+    setTimeout(_checkBadgesAfterLogin, 1500);
+    return;
+  }
+  if (typeof checkAndUnlockBadges === 'function') {
+    checkAndUnlockBadges(S.user.id).catch(e => console.warn('[badges] login check:', e));
+  }
 }
 
 function openAddToHome() {
