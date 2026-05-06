@@ -1754,6 +1754,268 @@ body.theme-christmas .s-header {
   .profile-xp-row { gap: 12px; }
 }
 
+/* ================================================================
+   BATCH C2b — Modale rappel anniversaire
+   ================================================================ */
+.sheet-compact {
+  max-width: 420px;
+  margin: 0 auto;
+  text-align: center;
+  padding: 18px 24px 28px;
+}
+.bday-prompt-icon {
+  font-size: 44px;
+  text-align: center;
+  margin: 4px 0 8px;
+  filter: drop-shadow(0 2px 6px rgba(240,165,0,.3));
+}
+.bday-prompt-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 22px;
+  font-weight: 700;
+  text-align: center;
+  margin: 0 0 10px;
+  color: var(--text);
+}
+.bday-prompt-text {
+  font-size: 14px;
+  color: var(--text-2);
+  line-height: 1.5;
+  margin: 0 0 20px;
+  text-align: center;
+}
+.bday-prompt-text strong { color: var(--gold); font-weight: 700; }
+.bday-input-row {
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: center;
+}
+.bday-input {
+  width: 100%;
+  max-width: 240px;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+}
+/* Le picker natif du input[type=date] : on tente d'inverser un peu pour notre fond sombre */
+.bday-input::-webkit-calendar-picker-indicator {
+  filter: invert(.7) sepia(1) saturate(5) hue-rotate(0deg);
+  cursor: pointer;
+}
+.bday-error {
+  color: var(--red);
+  font-size: 12.5px;
+  text-align: center;
+  margin: -2px 0 12px;
+  font-weight: 600;
+}
+.bday-error.hidden { display: none; }
+.bday-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+/* ================================================================
+   BATCH C2b — Modale Mon parcours
+   ================================================================ */
+.sheet-fullscreen {
+  max-height: 92vh;
+  height: 92vh;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.sheet-header-back {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 14px 14px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+.back-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--gold);
+  font-size: 22px;
+  font-weight: 700;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  padding: 0 0 3px 0;
+  transition: background .15s, border-color .15s;
+}
+.back-btn:hover {
+  background: rgba(240,165,0,.10);
+  border-color: var(--gold);
+}
+.sheet-back-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 0 6px;
+}
+.journey-sheet {
+  overflow: hidden; /* le scroll est porté par les enfants */
+}
+.journey-sheet > .sheet-header-back ~ * {
+  /* le contenu sous le header scroll */
+}
+.journey-stats-card {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1px;
+  margin: 16px 16px 12px;
+  background: var(--border);
+  border: 1px solid rgba(240,165,0,.25);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0,0,0,.25);
+}
+.journey-stat {
+  background: linear-gradient(135deg, #2A1B12 0%, #1A0F09 100%);
+  padding: 14px 8px;
+  text-align: center;
+}
+.journey-stat-mid {
+  background: linear-gradient(135deg, #3A271B 0%, #241811 100%);
+}
+.journey-stat-value {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--gold);
+  line-height: 1;
+  letter-spacing: -.01em;
+  text-shadow: 0 1px 3px rgba(0,0,0,.4);
+}
+.journey-stat-label {
+  font-size: 11px;
+  color: var(--text-2);
+  margin-top: 6px;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  font-weight: 600;
+}
+.journey-counters {
+  display: flex;
+  gap: 8px;
+  padding: 0 16px 14px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.journey-counter {
+  font-size: 12px;
+  color: var(--text-2);
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-weight: 500;
+}
+.journey-counter span {
+  color: var(--gold);
+  font-weight: 700;
+}
+.journey-list-section {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 16px 24px;
+  -webkit-overflow-scrolling: touch;
+}
+.journey-list-title {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  margin: 4px 0 10px;
+}
+.journey-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.journey-empty {
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--text-3);
+  font-size: 13px;
+}
+.journey-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 12px;
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  transition: border-color .15s;
+}
+.journey-row:hover {
+  border-color: rgba(240,165,0,.30);
+}
+.journey-row-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+  width: 28px;
+  text-align: center;
+}
+.journey-row-info {
+  flex: 1;
+  min-width: 0;
+}
+.journey-row-label {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.journey-row-date {
+  font-size: 11.5px;
+  color: var(--text-3);
+  margin-top: 2px;
+}
+.journey-row-xp {
+  font-size: 14px;
+  font-weight: 800;
+  flex-shrink: 0;
+  font-family: 'DM Sans', sans-serif;
+  letter-spacing: -.01em;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(34, 197, 94, .12);
+  color: #4ADE80;
+  border: 1px solid rgba(34, 197, 94, .25);
+}
+.journey-row-xp.negative {
+  background: rgba(239, 68, 68, .10);
+  color: var(--red);
+  border-color: rgba(239, 68, 68, .25);
+}
+@media (max-width: 380px) {
+  .journey-stat-value { font-size: 21px; }
+  .journey-stat-label { font-size: 10.5px; }
+  .journey-counter { font-size: 11.5px; padding: 3px 10px; }
+  .journey-row-label { font-size: 13px; }
+  .journey-row-xp { font-size: 13px; padding: 3px 7px; }
+}
+
 .profile-avatar {
   width: 64px; height: 64px;
   border-radius: 50%;
@@ -7037,6 +7299,11 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       <!-- Section Mon cinéma -->
       <div class="profile-section">
         <div class="profile-section-title">MON CINÉMA</div>
+        <button class="profile-action-btn" onclick="openStudentJourney()">
+          <span class="pa-icon">📜</span>
+          <span class="pa-text">Mon parcours</span>
+          <span class="pa-arrow">›</span>
+        </button>
         <button class="profile-action-btn" onclick="openStudentWatchedFilms()">
           <span class="pa-icon">🎞</span>
           <span class="pa-text">Mes films vus</span>
@@ -7083,6 +7350,75 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 
     <div class="profile-close-row">
       <button class="profile-close-link" onclick="closeModal('modal-profile')">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     MODAL: Rappel date de naissance (Batch C2b)
+     Modale "rappel" non bloquante : 1 fois par session avec bouton "Plus tard"
+     qui décale le rappel de 3 jours via localStorage.
+     ================================================================ -->
+<div class="overlay hidden" id="modal-birthday-prompt">
+  <div class="sheet sheet-compact">
+    <div class="sheet-handle"></div>
+    <div class="bday-prompt-icon">🎂</div>
+    <h2 class="bday-prompt-title">Renseigne ta date de naissance</h2>
+    <p class="bday-prompt-text">
+      Pour qu'on puisse te souhaiter ton anniversaire et te faire gagner
+      <strong>+50 XP</strong> bonus le jour J ! 🎁
+    </p>
+    <div class="bday-input-row">
+      <input type="date" class="finput bday-input" id="bday-input" autocomplete="off">
+    </div>
+    <div class="bday-error hidden" id="bday-error">Date invalide</div>
+    <div class="bday-actions">
+      <button class="btn btn-gold btn-full btn-lg" onclick="saveBirthday()">Enregistrer</button>
+      <button class="btn btn-ghost btn-full btn-sm" onclick="dismissBirthdayPrompt()">Plus tard</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     MODAL: Mon parcours — historique XP (Batch C2b)
+     Plein écran avec carte stats + liste des events XP
+     ================================================================ -->
+<div class="overlay hidden" id="modal-student-journey">
+  <div class="sheet sheet-fullscreen journey-sheet">
+    <div class="sheet-header-back">
+      <button class="back-btn" onclick="closeModal('modal-student-journey')" title="Retour">‹</button>
+      <h2 class="sheet-back-title">Mon parcours</h2>
+    </div>
+
+    <!-- Carte stats récap -->
+    <div class="journey-stats-card" id="journey-stats-card">
+      <div class="journey-stat">
+        <div class="journey-stat-value" id="jrn-total-xp">—</div>
+        <div class="journey-stat-label">XP cumulés</div>
+      </div>
+      <div class="journey-stat journey-stat-mid">
+        <div class="journey-stat-value" id="jrn-level">—</div>
+        <div class="journey-stat-label" id="jrn-title">—</div>
+      </div>
+      <div class="journey-stat">
+        <div class="journey-stat-value" id="jrn-month-xp">—</div>
+        <div class="journey-stat-label">Ce mois-ci</div>
+      </div>
+    </div>
+
+    <!-- Sous-stats : compteurs d'événements -->
+    <div class="journey-counters" id="journey-counters">
+      <div class="journey-counter"><span id="jrn-c-sessions">0</span> séances</div>
+      <div class="journey-counter"><span id="jrn-c-votes">0</span> votes</div>
+      <div class="journey-counter"><span id="jrn-c-proposals">0</span> propositions</div>
+    </div>
+
+    <!-- Liste -->
+    <div class="journey-list-section">
+      <div class="journey-list-title">📜 Historique</div>
+      <div class="journey-list" id="journey-list">
+        <div class="journey-empty">Chargement…</div>
+      </div>
     </div>
   </div>
 </div>
@@ -11234,6 +11570,274 @@ async function checkAndShowWhatsNew() {
   }
 }
 
+/* ================================================================
+   BATCH C2b — RAPPEL DATE DE NAISSANCE
+   ================================================================
+   - Modale "rappel" non bloquante : 1 fois par session si pas renseignée
+   - Bouton "Plus tard" → décale de 3 jours via localStorage
+   - Si la date est renseignée : skip définitif (vérifié à chaque login)
+*/
+const BIRTHDAY_REMIND_DAYS = 3;
+let _birthdayPromptShownThisSession = false;
+
+/* Clé localStorage pour le report "Plus tard" (par élève) */
+function _bdayRemindKey(studentId) {
+  return `ci_bday_remind_after_${studentId}`;
+}
+
+/* Doit-on afficher le rappel ? */
+function _shouldShowBirthdayPrompt() {
+  if (S.isAdmin || !S.user || !S.user.id) return false;
+  if (_birthdayPromptShownThisSession) return false;
+  if (S.user.dateOfBirth) return false; // déjà renseignée
+
+  // Reporté ?
+  try {
+    const remindAfter = parseInt(localStorage.getItem(_bdayRemindKey(S.user.id)) || '0', 10);
+    if (remindAfter && Date.now() < remindAfter) return false;
+  } catch (e) { /* localStorage indispo : on affiche quand même */ }
+
+  return true;
+}
+
+/* Appelé après login (et après fermeture du What's New) */
+function checkAndShowBirthdayPrompt() {
+  if (!_shouldShowBirthdayPrompt()) return;
+
+  // Si la modale What's New est encore visible, on attend qu'elle se ferme
+  const wn = document.getElementById('modal-whatsnew');
+  if (wn && !wn.classList.contains('hidden')) {
+    setTimeout(checkAndShowBirthdayPrompt, 1500);
+    return;
+  }
+
+  _birthdayPromptShownThisSession = true;
+
+  // Reset champ + erreur
+  const inp = document.getElementById('bday-input');
+  const err = document.getElementById('bday-error');
+  if (inp) inp.value = '';
+  if (err) err.classList.add('hidden');
+
+  // Bornes : aucune date dans le futur, et pas plus vieux que 30 ans
+  if (inp) {
+    const today = new Date();
+    const maxDate = today.toISOString().split('T')[0];
+    const min = new Date(today.getFullYear() - 30, today.getMonth(), today.getDate());
+    inp.max = maxDate;
+    inp.min = min.toISOString().split('T')[0];
+  }
+
+  document.getElementById('modal-birthday-prompt').classList.remove('hidden');
+}
+
+/* Bouton "Plus tard" : reporte de 3 jours et ferme */
+function dismissBirthdayPrompt() {
+  if (S.user?.id) {
+    try {
+      const remindAt = Date.now() + (BIRTHDAY_REMIND_DAYS * 86400 * 1000);
+      localStorage.setItem(_bdayRemindKey(S.user.id), String(remindAt));
+    } catch (e) { /* silencieux */ }
+  }
+  document.getElementById('modal-birthday-prompt').classList.add('hidden');
+}
+
+/* Bouton "Enregistrer" : valide, persiste en BDD, met à jour S.user, vérifie l'anniv */
+async function saveBirthday() {
+  const inp = document.getElementById('bday-input');
+  const err = document.getElementById('bday-error');
+  const val = inp?.value || '';
+
+  if (!val) {
+    if (err) { err.textContent = 'Entre une date pour continuer.'; err.classList.remove('hidden'); }
+    return;
+  }
+
+  // Validation côté JS : entre il y a 30 ans et aujourd'hui
+  const today = new Date();
+  const dob = new Date(val);
+  if (isNaN(dob.getTime())) {
+    if (err) { err.textContent = 'Date invalide.'; err.classList.remove('hidden'); }
+    return;
+  }
+  const diffYears = (today - dob) / (365.25 * 86400 * 1000);
+  if (diffYears < 0) {
+    if (err) { err.textContent = 'Date dans le futur — impossible.'; err.classList.remove('hidden'); }
+    return;
+  }
+  if (diffYears > 30) {
+    if (err) { err.textContent = 'Date trop ancienne. Vérifie l\'année.'; err.classList.remove('hidden'); }
+    return;
+  }
+
+  // Persiste en BDD
+  try {
+    const { error } = await db.from('students')
+      .update({ date_of_birth: val })
+      .eq('id', S.user.id);
+    if (error) throw error;
+  } catch (e) {
+    console.warn('[bday] save error:', e);
+    if (err) { err.textContent = 'Erreur réseau. Réessaie.'; err.classList.remove('hidden'); }
+    return;
+  }
+
+  // Cache local
+  S.user.dateOfBirth = val;
+  // Nettoie le report "Plus tard" si présent
+  try { localStorage.removeItem(_bdayRemindKey(S.user.id)); } catch (e) {}
+
+  document.getElementById('modal-birthday-prompt').classList.add('hidden');
+  toast('🎂 Date enregistrée — bon anniversaire d\'avance !', 'success');
+
+  // Si c'est aujourd'hui : déclenche le bonus +50 XP immédiatement
+  if (dob.getMonth() === today.getMonth() && dob.getDate() === today.getDate()) {
+    try {
+      const yearStart = new Date(today.getFullYear(), 0, 1);
+      const { count: bdayCount } = await db
+        .from('xp_events')
+        .select('id', { count: 'exact', head: true })
+        .eq('student_id', S.user.id)
+        .eq('event_type', 'birthday')
+        .gte('created_at', yearStart.toISOString());
+      if ((bdayCount || 0) === 0) {
+        await addXpEvent(S.user.id, 'birthday', XP_AMOUNTS.birthday, { year: today.getFullYear() });
+        setTimeout(() => toast(`🎁 +${XP_AMOUNTS.birthday} XP — bon anniversaire !`, 'success', 5000), 700);
+        // Refresh ring
+        if (typeof renderXpRingHomeButtons === 'function') renderXpRingHomeButtons(false);
+      }
+    } catch (e) { console.warn('[bday] check today exception:', e); }
+  }
+}
+
+/* ================================================================
+   BATCH C2b — MON PARCOURS (historique XP)
+   ================================================================ */
+
+/* Mapping event_type → icône + libellé court côté élève */
+const XP_EVENT_LABELS = {
+  vote:                  { icon: '🗳️', label: 'Vote pour un film' },
+  vote_first_of_month:   { icon: '🗳️', label: '1er vote du mois (bonus)' },
+  session_attended:      { icon: '🎬', label: 'Présence à la séance' },
+  event_attended:        { icon: '🎉', label: 'Présence à l\'événement spécial' },
+  session_absent:        { icon: '❌', label: 'Absence à la séance' },
+  session_left:          { icon: '🚪', label: 'Départ avant la fin' },
+  proposal_accepted:     { icon: '💡', label: 'Proposition acceptée' },
+  login_first_daily:     { icon: '🌅', label: '1ère connexion du jour' },
+  login_extra_daily:     { icon: '🌅', label: 'Connexion supplémentaire' },
+  birthday:              { icon: '🎂', label: 'Bonus anniversaire' },
+  monthly_loyalty:       { icon: '🎖️', label: 'Fidélité mensuelle' }
+};
+
+/* Date relative simple : "aujourd'hui", "hier", "il y a 3 jours", "il y a 2 sem.", "le DD/MM/YYYY" */
+function _xpRelativeDate(isoStr) {
+  if (!isoStr) return '—';
+  const d = new Date(isoStr);
+  if (isNaN(d.getTime())) return '—';
+  const now = new Date();
+  const diffMs = now - d;
+  const diffDays = Math.floor(diffMs / 86400000);
+  if (diffDays < 0) return 'à venir';
+  if (diffDays === 0) {
+    const diffH = Math.floor(diffMs / 3600000);
+    if (diffH < 1) return 'à l\'instant';
+    return `il y a ${diffH}h`;
+  }
+  if (diffDays === 1) return 'hier';
+  if (diffDays < 7) return `il y a ${diffDays} jours`;
+  if (diffDays < 30) {
+    const w = Math.floor(diffDays / 7);
+    return `il y a ${w} sem.`;
+  }
+  if (diffDays < 365) {
+    const m = Math.floor(diffDays / 30);
+    return `il y a ${m} mois`;
+  }
+  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+/* Ouvre la modale Mon parcours */
+async function openStudentJourney() {
+  if (!S.user) return;
+  closeModal('modal-profile');
+  openModal('modal-student-journey');
+
+  const list = document.getElementById('journey-list');
+  list.innerHTML = '<div class="journey-empty">Chargement…</div>';
+
+  try {
+    // 1. Stats
+    const totalXp = await getStudentTotalXp(S.user.id);
+    const progress = computeXpProgress(totalXp);
+    const title = getTitleForLevel(progress.level);
+
+    document.getElementById('jrn-total-xp').textContent = totalXp;
+    document.getElementById('jrn-level').textContent    = progress.level;
+    document.getElementById('jrn-title').textContent    = `${title.emoji} ${title.label}`;
+
+    // 2. XP du mois en cours
+    const monthStart = new Date();
+    monthStart.setDate(1);
+    monthStart.setHours(0, 0, 0, 0);
+    const { data: monthEvents } = await db
+      .from('xp_events')
+      .select('xp_amount')
+      .eq('student_id', S.user.id)
+      .gte('created_at', monthStart.toISOString())
+      .lte('scheduled_for', new Date().toISOString());
+    const monthXp = (monthEvents || []).reduce((s, r) => s + (r.xp_amount || 0), 0);
+    const monthEl = document.getElementById('jrn-month-xp');
+    monthEl.textContent = (monthXp >= 0 ? '+' : '') + monthXp;
+    monthEl.style.color = monthXp < 0 ? 'var(--red)' : 'var(--gold)';
+
+    // 3. Compteurs (sessions, votes, propositions)
+    const events = await getStudentXpHistory(S.user.id, 500);
+    const cSessions  = events.filter(e => e.event_type === 'session_attended' || e.event_type === 'event_attended').length;
+    const cVotes     = events.filter(e => e.event_type === 'vote' || e.event_type === 'vote_first_of_month').length;
+    const cProposals = events.filter(e => e.event_type === 'proposal_accepted').length;
+    document.getElementById('jrn-c-sessions').textContent  = cSessions;
+    document.getElementById('jrn-c-votes').textContent     = cVotes;
+    document.getElementById('jrn-c-proposals').textContent = cProposals;
+
+    // 4. Liste — on n'affiche que les events déjà arrivés (scheduled_for <= now)
+    const now = new Date();
+    const visible = events.filter(e => {
+      if (!e.scheduled_for) return true;
+      return new Date(e.scheduled_for) <= now;
+    });
+
+    if (!visible.length) {
+      list.innerHTML = `
+        <div class="journey-empty">
+          Aucun événement pour l'instant.<br>
+          Connecte-toi régulièrement, vote pour des films, viens aux séances pour gagner de l'XP !
+        </div>`;
+      return;
+    }
+
+    list.innerHTML = visible.map(e => {
+      const map = XP_EVENT_LABELS[e.event_type] || { icon: '✨', label: e.event_type };
+      const xp = e.xp_amount || 0;
+      const xpStr = (xp >= 0 ? '+' : '') + xp + ' XP';
+      const cls = xp < 0 ? 'journey-row-xp negative' : 'journey-row-xp';
+      const date = _xpRelativeDate(e.created_at);
+      return `
+        <div class="journey-row">
+          <div class="journey-row-icon">${map.icon}</div>
+          <div class="journey-row-info">
+            <div class="journey-row-label">${_escapeHtml(map.label)}</div>
+            <div class="journey-row-date">${_escapeHtml(date)}</div>
+          </div>
+          <div class="${cls}">${xpStr}</div>
+        </div>
+      `;
+    }).join('');
+  } catch (e) {
+    console.warn('[journey] error:', e);
+    list.innerHTML = '<div class="journey-empty">Erreur de chargement. Réessaie.</div>';
+  }
+}
+
 /* DEBUG / PREVIEW — tuto factice avec 3 slides, sans écriture BDD.
    Utilisable depuis la console : _whatsNewDebugPreview()
    Sera réutilisée par le bouton "Prévisualiser" du panneau admin (Patch 4). */
@@ -12429,6 +13033,7 @@ async function loginAs(student) {
     firstName:    student.first_name,
     lastName:     student.last_name,
     className:    student.class_name,
+    dateOfBirth:  student.date_of_birth || null,  // Batch C2b — utilisé par le rappel anniv et l'affichage profil
     lastNewsSeen: prevSeen     // repère "dernière connexion" pour loadHomeNews
   };
   S.currentStudent = student;  // Pour le realtime et la messagerie
@@ -12464,6 +13069,11 @@ async function loginAs(student) {
 
   // Affichage des tutoriels What's New non vus (silencieux si aucun)
   checkAndShowWhatsNew();
+
+  // Rappel date de naissance (Batch C2b) : 1x par session si pas renseignée.
+  // Délai pour laisser le What's New s'ouvrir d'abord ; checkAndShowBirthdayPrompt
+  // attend la fermeture de la modale What's New si elle est encore visible.
+  setTimeout(checkAndShowBirthdayPrompt, 1200);
 }
 
 function openAddToHome() {
@@ -12871,6 +13481,7 @@ function logout(reason) {
   _initialPinVerified = false; // Reset état activation
   _xpRingAnimatedThisSession = false; // Reset anim XP ring (relance au prochain login)
   _lastXpRingState = null;
+  _birthdayPromptShownThisSession = false; // Reset rappel anniv (Batch C2b)
   showLS('code');
   document.getElementById('inp-code').value = '';
   document.getElementById('inp-adminpwd').value = '';
