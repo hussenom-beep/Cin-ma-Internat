@@ -2191,6 +2191,107 @@ body.theme-christmas .s-header {
   .levelup-banner { font-size: 11px; }
 }
 
+/* ================================================================
+   BATCH C3 — Modale de déblocage de badge
+   ================================================================ */
+.badge-unlock-overlay {
+  background: rgba(8, 8, 15, .82);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+.badge-unlock-overlay.hidden { display: none; }
+
+.badge-unlock-card {
+  --badge-rarity-color: #D4A537;  /* défaut, override en JS */
+  --badge-rarity-bg:    #3A2D08;
+  position: relative;
+  text-align: center;
+  padding: 28px 36px 32px;
+  background: radial-gradient(ellipse at center, var(--badge-rarity-bg) 0%, rgba(8,8,15,.95) 100%);
+  border: 2px solid var(--badge-rarity-color);
+  border-radius: 22px;
+  box-shadow:
+    0 8px 40px color-mix(in srgb, var(--badge-rarity-color) 35%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--badge-rarity-color) 20%, transparent);
+  animation: levelupPop .55s cubic-bezier(.34, 1.56, .64, 1) forwards;
+  max-width: 360px;
+  z-index: 2;
+}
+.badge-unlock-banner {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--badge-rarity-color);
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+  opacity: .9;
+}
+.badge-unlock-rarity {
+  font-family: 'Playfair Display', serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--badge-rarity-color);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  margin-bottom: 18px;
+}
+.badge-unlock-image-wrap {
+  width: 140px;
+  height: 140px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  background: rgba(0,0,0,.25);
+  border: 3px solid var(--badge-rarity-color);
+  box-shadow:
+    0 0 30px color-mix(in srgb, var(--badge-rarity-color) 50%, transparent),
+    inset 0 0 12px color-mix(in srgb, var(--badge-rarity-color) 25%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  animation: badgeUnlockPulse 1.8s ease-in-out infinite;
+}
+@keyframes badgeUnlockPulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.04); }
+}
+.badge-unlock-img {
+  width: 80%;
+  height: 80%;
+  object-fit: contain;
+}
+.badge-unlock-emoji {
+  font-size: 72px;
+  line-height: 1;
+}
+.badge-unlock-name {
+  font-family: 'Playfair Display', serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.15;
+  margin-bottom: 6px;
+  text-shadow: 0 1px 4px rgba(0,0,0,.5);
+}
+.badge-unlock-desc {
+  font-size: 13px;
+  color: var(--text-2);
+  font-style: italic;
+  margin-bottom: 18px;
+  line-height: 1.4;
+}
+@media (max-width: 380px) {
+  .badge-unlock-card { padding: 22px 24px 26px; max-width: 92vw; }
+  .badge-unlock-image-wrap { width: 120px; height: 120px; }
+  .badge-unlock-emoji { font-size: 60px; }
+  .badge-unlock-name { font-size: 19px; }
+}
+
 .profile-avatar {
   width: 64px; height: 64px;
   border-radius: 50%;
@@ -7600,9 +7701,8 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 
 <!-- ================================================================
      MODAL: Animation level-up (Batch C2c)
-     Affichée brièvement (2.4s, auto-close) quand l'élève monte de niveau.
-     ESC ferme aussi. Pas dans le système openModal/closeModal pour éviter
-     toute interaction parasite.
+     Affichée brièvement quand l'élève monte de niveau.
+     Bouton Continuer pour fermer manuellement.
      ================================================================ -->
 <div class="overlay hidden levelup-overlay" id="modal-levelup">
   <!-- Confettis dorés générés en CSS pur (16 éléments, animations décalées) -->
@@ -7618,6 +7718,31 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     <div class="levelup-title" id="levelup-title">🎟 Spectateur</div>
     <div class="levelup-tier hidden" id="levelup-tier">Nouveau palier débloqué</div>
     <button class="levelup-continue-btn" id="levelup-continue-btn" type="button">Continuer</button>
+  </div>
+</div>
+
+<!-- ================================================================
+     MODAL: Déblocage de badge (Batch C3 — Phase 1)
+     Affichée pour les badges Or/Émeraude/Diamant. Toast simple pour Bronze/Argent.
+     Réutilise les confettis dorés et le bouton Continuer.
+     ================================================================ -->
+<div class="overlay hidden badge-unlock-overlay" id="modal-badge-unlocked">
+  <div class="levelup-confetti" aria-hidden="true">
+    <span></span><span></span><span></span><span></span>
+    <span></span><span></span><span></span><span></span>
+    <span></span><span></span><span></span><span></span>
+    <span></span><span></span><span></span><span></span>
+  </div>
+  <div class="badge-unlock-card">
+    <div class="badge-unlock-banner">Badge débloqué</div>
+    <div class="badge-unlock-rarity" id="badge-unlocked-rarity">—</div>
+    <div class="badge-unlock-image-wrap">
+      <img class="badge-unlock-img" id="badge-unlocked-img" alt="" />
+      <div class="badge-unlock-emoji" id="badge-unlocked-emoji" style="display:none;">🏅</div>
+    </div>
+    <div class="badge-unlock-name" id="badge-unlocked-name">—</div>
+    <div class="badge-unlock-desc" id="badge-unlocked-desc">—</div>
+    <button class="levelup-continue-btn" id="badge-unlocked-continue" type="button">Continuer</button>
   </div>
 </div>
 
@@ -10878,6 +11003,14 @@ async function addXpEventWithFeedback(studentId, eventType, xpAmount, metadata =
     setTimeout(() => showLevelUpAnimation(levelBefore, levelAfter), 600);
   }
 
+  // Batch C3 — Vérification des badges potentiellement débloqués par cet event.
+  // Async fire-and-forget : le wrapper XP ne bloque pas dessus.
+  // Les notifications de badges sont auto-séquencées dans checkAndUnlockBadges
+  // pour éviter de chevaucher avec le toast XP / level-up.
+  if (typeof checkAndUnlockBadges === 'function') {
+    checkAndUnlockBadges(studentId).catch(e => console.warn('[badges] check after XP event:', e));
+  }
+
   return inserted;
 }
 
@@ -10948,6 +11081,638 @@ function showLevelUpAnimation(fromLevel, toLevel) {
 function _debugLevelUp(toLevel = 5) {
   showLevelUpAnimation(toLevel - 1, toLevel);
 }
+
+/* ================================================================
+   BATCH C3 — SYSTÈME DE BADGES (Phase 1 : fondations)
+   ================================================================
+   - 44 badges en 10 catégories, 5 raretés (bronze/argent/or/emeraude/diamant)
+   - Conditions évaluables : level, xp_total, event_count, proposals_*, custom
+   - Auto-déblocage après chaque event XP via checkAndUnlockBadges()
+   - Notifications : toast pour bronze/argent, modale célébration pour or/emeraude/diamant
+   - Phase 2 (à venir) : grille profil + sélection 3 badges épinglés + carte de visite
+*/
+
+/* URL de base pour les images de badges sur GitHub.
+   À REMPLACER par l'URL raw de ton repo après upload du dossier /badges/.
+   Format attendu : https://raw.githubusercontent.com/<user>/<repo>/<branch>/badges/
+   Si l'URL n'est pas configurée ou si l'image ne charge pas, un emoji
+   fallback s'affiche à la place. */
+const GITHUB_BADGES_BASE = 'https://raw.githubusercontent.com/__SET_USER__/__SET_REPO__/main/badges/';
+
+/* Configuration visuelle par rareté */
+const BADGES_RARITY_CONFIG = {
+  bronze:   { label: 'Bronze',   color: '#CD7F32', bg: '#3A2818', notif: 'toast' },
+  argent:   { label: 'Argent',   color: '#C0C0C0', bg: '#2A2A2A', notif: 'toast' },
+  or:       { label: 'Or',       color: '#FFD700', bg: '#3A2D08', notif: 'modal' },
+  emeraude: { label: 'Émeraude', color: '#50C878', bg: '#0F2E1F', notif: 'modal' },
+  diamant:  { label: 'Diamant',  color: '#B9F2FF', bg: '#0E2A35', notif: 'modal' }
+};
+
+/* Labels lisibles des catégories */
+const BADGES_CATEGORY_LABELS = {
+  decouverte:    'Découverte',
+  votes:         'Votes',
+  seances:       'Séances',
+  affilee:       "Séances d'affilée",
+  propositions:  'Propositions',
+  paliers:       'Paliers de niveau',
+  xp:            'Cumul XP',
+  regularite:    'Régularité',
+  saisonnier:    'Saisonnier',
+  cache:         'Cachés'
+};
+
+/* CATALOGUE DES 44 BADGES
+   ----------------------------------------------------------------
+   Chaque badge a :
+   - slug : nom de fichier (sans .png) — utilisé comme clé en BDD
+   - name : libellé affiché
+   - description : condition lisible
+   - category : clé de BADGES_CATEGORY_LABELS
+   - rarity : clé de BADGES_RARITY_CONFIG
+   - hidden : true si badge caché (condition non affichée tant que pas débloqué)
+   - emoji : fallback si l'image PNG n'est pas dispo
+   - condition : objet décrivant la condition de déblocage. Types supportés :
+     - { type: 'level', min: N }
+     - { type: 'xp_total', min: N }
+     - { type: 'event_exists', event_type: 'X' [, scope: 'this_year' | 'this_month'] }
+     - { type: 'event_count', event_type: 'X', count: N }
+     - { type: 'votes_count', count: N }            (count d'events 'vote')
+     - { type: 'sessions_count', count: N }         (events session_attended + event_attended)
+     - { type: 'proposals_sent', count: N }         (table proposals)
+     - { type: 'proposals_accepted', count: N }     (events 'proposal_accepted')
+     - { type: 'login_before_hour', hour: N }       (login_first_daily avant hh)
+     - { type: 'login_after_hour', hour: N }        (login_first_daily après hh ou avant 5h le lendemain)
+     - { type: 'no_penalty_days', days: N }         (aucune pénalité sur N jours)
+     - { type: 'votes_in_one_day', count: N }       (X votes dans un même jour)
+     - { type: 'todo' }                             (placeholder pour conditions complexes — jamais débloqué)
+*/
+const BADGES_CATALOG = [
+  // ===== DÉCOUVERTE =====
+  { slug: 'premier-pas',            name: 'Premier pas',            description: '1ère connexion',
+    category: 'decouverte', rarity: 'bronze', hidden: false, emoji: '🎬',
+    condition: { type: 'event_exists', event_type: 'login_first_daily' } },
+
+  { slug: 'profil-complet',         name: 'Profil complet',         description: 'Date de naissance renseignée',
+    category: 'decouverte', rarity: 'bronze', hidden: false, emoji: '🎂',
+    condition: { type: 'event_exists', event_type: 'profile_birthday_set' } },
+
+  { slug: 'premiere-conversation',  name: 'Première conversation', description: '1er message au surveillant',
+    category: 'decouverte', rarity: 'bronze', hidden: false, emoji: '💬',
+    condition: { type: 'todo' } },  // Nécessite hook côté messagerie élève (à câbler en Phase 2)
+
+  // ===== VOTES =====
+  { slug: 'premier-vote',           name: 'Premier vote',           description: '1er vote pour un film',
+    category: 'votes', rarity: 'bronze', hidden: false, emoji: '🗳️',
+    condition: { type: 'votes_count', count: 1 } },
+
+  { slug: 'voteur-novice',          name: 'Voteur novice',          description: '10 votes',
+    category: 'votes', rarity: 'argent', hidden: false, emoji: '🗳️',
+    condition: { type: 'votes_count', count: 10 } },
+
+  { slug: 'voteur-engage',          name: 'Voteur engagé',          description: '50 votes',
+    category: 'votes', rarity: 'or', hidden: false, emoji: '🗳️',
+    condition: { type: 'votes_count', count: 50 } },
+
+  { slug: 'voteur-emerite',         name: 'Voteur émérite',         description: '100 votes',
+    category: 'votes', rarity: 'emeraude', hidden: false, emoji: '🗳️',
+    condition: { type: 'votes_count', count: 100 } },
+
+  { slug: 'voteur-legendaire',      name: 'Voteur légendaire',      description: '200 votes',
+    category: 'votes', rarity: 'diamant', hidden: false, emoji: '🗳️',
+    condition: { type: 'votes_count', count: 200 } },
+
+  // ===== SÉANCES =====
+  { slug: 'premier-rang',           name: 'Premier rang',           description: '1ère présence à une séance',
+    category: 'seances', rarity: 'bronze', hidden: false, emoji: '🎟️',
+    condition: { type: 'sessions_count', count: 1 } },
+
+  { slug: 'spectateur-fidele',      name: 'Spectateur fidèle',      description: '5 séances',
+    category: 'seances', rarity: 'argent', hidden: false, emoji: '🎟️',
+    condition: { type: 'sessions_count', count: 5 } },
+
+  { slug: 'cinephile-assidu',       name: 'Cinéphile assidu',       description: '15 séances',
+    category: 'seances', rarity: 'or', hidden: false, emoji: '🎟️',
+    condition: { type: 'sessions_count', count: 15 } },
+
+  { slug: 'habitue-grand-ecran',    name: 'Habitué du grand écran', description: '30 séances',
+    category: 'seances', rarity: 'emeraude', hidden: false, emoji: '🎟️',
+    condition: { type: 'sessions_count', count: 30 } },
+
+  { slug: 'pilier-cine-club',       name: 'Pilier du ciné-club',    description: '50 séances',
+    category: 'seances', rarity: 'diamant', hidden: false, emoji: '🏛️',
+    condition: { type: 'sessions_count', count: 50 } },
+
+  // ===== SÉANCES D'AFFILÉE =====
+  // (logique de streak complexe à implémenter en Phase 2 — TODO)
+  { slug: 'affilee-court-metrage',  name: 'Court-métrage',          description: "3 séances d'affilée",
+    category: 'affilee', rarity: 'bronze', hidden: false, emoji: '🎞️',
+    condition: { type: 'todo' } },
+
+  { slug: 'affilee-moyen-metrage',  name: 'Moyen-métrage',          description: "5 séances d'affilée",
+    category: 'affilee', rarity: 'argent', hidden: false, emoji: '🎞️',
+    condition: { type: 'todo' } },
+
+  { slug: 'affilee-long-metrage',   name: 'Long-métrage',           description: "8 séances d'affilée",
+    category: 'affilee', rarity: 'or', hidden: false, emoji: '🎞️',
+    condition: { type: 'todo' } },
+
+  { slug: 'affilee-saga',           name: 'Saga',                   description: "11 séances d'affilée",
+    category: 'affilee', rarity: 'emeraude', hidden: false, emoji: '🎞️',
+    condition: { type: 'todo' } },
+
+  { slug: 'affilee-cycle-complet',  name: 'Cycle complet',          description: "15 séances d'affilée",
+    category: 'affilee', rarity: 'diamant', hidden: false, emoji: '🎞️',
+    condition: { type: 'todo' } },
+
+  // ===== PROPOSITIONS =====
+  { slug: 'premier-reveur',         name: 'Premier rêveur',         description: '1ère proposition envoyée',
+    category: 'propositions', rarity: 'bronze', hidden: false, emoji: '💡',
+    condition: { type: 'proposals_sent', count: 1 } },
+
+  { slug: 'idee-acceptee',          name: 'Idée acceptée',          description: '1ère proposition acceptée',
+    category: 'propositions', rarity: 'argent', hidden: false, emoji: '💡',
+    condition: { type: 'proposals_accepted', count: 1 } },
+
+  { slug: 'decouvreur-talents',     name: 'Découvreur de talents',  description: '5 propositions acceptées',
+    category: 'propositions', rarity: 'or', hidden: false, emoji: '🔍',
+    condition: { type: 'proposals_accepted', count: 5 } },
+
+  { slug: 'programmateur-herbe',    name: 'Programmateur en herbe', description: '10 propositions acceptées',
+    category: 'propositions', rarity: 'emeraude', hidden: false, emoji: '📋',
+    condition: { type: 'proposals_accepted', count: 10 } },
+
+  { slug: 'directeur-artistique',   name: 'Directeur artistique',   description: '20 propositions acceptées',
+    category: 'propositions', rarity: 'diamant', hidden: false, emoji: '🎬',
+    condition: { type: 'proposals_accepted', count: 20 } },
+
+  // ===== PALIERS DE NIVEAU =====
+  { slug: 'palier-spectateur',      name: 'Spectateur',             description: 'Niveau 1',
+    category: 'paliers', rarity: 'bronze', hidden: false, emoji: '🎟️',
+    condition: { type: 'level', min: 1 } },
+
+  { slug: 'palier-cinephile',       name: 'Cinéphile',              description: 'Niveau 6',
+    category: 'paliers', rarity: 'argent', hidden: false, emoji: '🎬',
+    condition: { type: 'level', min: 6 } },
+
+  { slug: 'palier-critique',        name: 'Critique',               description: 'Niveau 11',
+    category: 'paliers', rarity: 'or', hidden: false, emoji: '🎭',
+    condition: { type: 'level', min: 11 } },
+
+  { slug: 'palier-connaisseur',     name: 'Connaisseur',            description: 'Niveau 16',
+    category: 'paliers', rarity: 'emeraude', hidden: false, emoji: '🏆',
+    condition: { type: 'level', min: 16 } },
+
+  { slug: 'palier-expert',          name: 'Expert',                 description: 'Niveau 21',
+    category: 'paliers', rarity: 'diamant', hidden: false, emoji: '🌟',
+    condition: { type: 'level', min: 21 } },
+
+  { slug: 'palier-maitre',          name: 'Maître du 7ᵉ Art',       description: 'Niveau 25 (max)',
+    category: 'paliers', rarity: 'diamant', hidden: false, emoji: '👑',
+    condition: { type: 'level', min: 25 } },
+
+  // ===== CUMUL XP =====
+  { slug: 'xp-1000',                name: '1 000 XP',               description: '1 000 XP cumulés',
+    category: 'xp', rarity: 'argent', hidden: false, emoji: '✨',
+    condition: { type: 'xp_total', min: 1000 } },
+
+  { slug: 'xp-3000',                name: '3 000 XP',               description: '3 000 XP cumulés',
+    category: 'xp', rarity: 'or', hidden: false, emoji: '💫',
+    condition: { type: 'xp_total', min: 3000 } },
+
+  { slug: 'xp-6000',                name: '6 000 XP',               description: '6 000 XP cumulés',
+    category: 'xp', rarity: 'emeraude', hidden: false, emoji: '💚',
+    condition: { type: 'xp_total', min: 6000 } },
+
+  { slug: 'xp-10000',               name: '10 000 XP',              description: '10 000 XP cumulés',
+    category: 'xp', rarity: 'diamant', hidden: false, emoji: '💎',
+    condition: { type: 'xp_total', min: 10000 } },
+
+  // ===== RÉGULARITÉ (TODO — logique calendaire complexe) =====
+  { slug: 'mois-parfait',           name: 'Mois parfait',           description: "Présent à toutes les séances d'un mois",
+    category: 'regularite', rarity: 'or', hidden: false, emoji: '📅',
+    condition: { type: 'todo' } },
+
+  { slug: 'trimestre-engage',       name: 'Trimestre engagé',       description: "Au moins 2 séances/mois pendant 3 mois consécutifs",
+    category: 'regularite', rarity: 'emeraude', hidden: false, emoji: '🔁',
+    condition: { type: 'todo' } },
+
+  { slug: 'annee-cinema',           name: 'Année cinéma',           description: "Actif au moins 9 mois sur l'année scolaire",
+    category: 'regularite', rarity: 'diamant', hidden: false, emoji: '⭐',
+    condition: { type: 'todo' } },
+
+  // ===== SAISONNIER (cachés à la demande de Matthias) =====
+  { slug: 'survivant-halloween',    name: 'Survivant Halloween',    description: 'Présent à la séance Halloween',
+    category: 'saisonnier', rarity: 'argent', hidden: true, emoji: '🎃',
+    condition: { type: 'todo' } },  // Nécessite tag séance "halloween" — Phase 2
+
+  { slug: 'esprit-noel',            name: 'Esprit de Noël',         description: 'Présent à la séance Noël',
+    category: 'saisonnier', rarity: 'argent', hidden: true, emoji: '🎄',
+    condition: { type: 'todo' } },  // Idem
+
+  { slug: 'anniversaire-cinema',    name: 'Anniversaire au cinéma', description: "Anniversaire fêté via l'app",
+    category: 'saisonnier', rarity: 'or', hidden: true, emoji: '🎂',
+    condition: { type: 'event_exists', event_type: 'birthday' } },
+
+  // ===== CACHÉS (secrets) =====
+  { slug: 'cache-leve-tot',         name: 'Lève-tôt',               description: 'Connexion avant 7h du matin',
+    category: 'cache', rarity: 'or', hidden: true, emoji: '🌅',
+    condition: { type: 'login_before_hour', hour: 7 } },
+
+  { slug: 'cache-marathon-votes',   name: 'Marathon de votes',      description: '5 votes en une journée',
+    category: 'cache', rarity: 'emeraude', hidden: true, emoji: '🏃',
+    condition: { type: 'votes_in_one_day', count: 5 } },
+
+  { slug: 'cache-mois-irreprochable', name: 'Mois irréprochable',   description: '30 jours sans aucune pénalité',
+    category: 'cache', rarity: 'diamant', hidden: true, emoji: '💯',
+    condition: { type: 'no_penalty_days', days: 30 } },
+
+  { slug: 'cache-couche-tard',      name: 'Couche-tard',            description: 'Connexion après minuit',
+    category: 'cache', rarity: 'diamant', hidden: true, emoji: '🌙',
+    condition: { type: 'login_after_hour', hour: 0 } },
+
+  { slug: 'cache-chanceux',         name: 'Chanceux',               description: 'Proposition acceptée du 1er coup',
+    category: 'cache', rarity: 'diamant', hidden: true, emoji: '🍀',
+    condition: { type: 'todo' } },  // Logique trop spécifique — Phase 2
+];
+
+/* Renvoie l'URL d'une image de badge (avec fallback emoji si placeholder non remplacé) */
+function getBadgeImageUrl(slug) {
+  if (GITHUB_BADGES_BASE.includes('__SET_')) return null;  // URL pas encore configurée
+  return GITHUB_BADGES_BASE + slug + '.png';
+}
+
+/* ================================================================
+   HELPERS BDD — student_badges + colonnes pinned
+   ================================================================ */
+
+/* Récupère la liste des slugs de badges débloqués pour un élève. */
+async function getStudentBadges(studentId) {
+  if (!studentId) return [];
+  try {
+    const { data, error } = await db.from('student_badges')
+      .select('badge_slug, unlocked_at')
+      .eq('student_id', studentId);
+    if (error) { console.warn('[badges] getStudentBadges error:', error); return []; }
+    return data || [];
+  } catch (e) {
+    console.warn('[badges] getStudentBadges exception:', e);
+    return [];
+  }
+}
+
+/* Débloque un badge (idempotent grâce à la PRIMARY KEY composite).
+   Retourne true si nouveau déblocage, false si déjà débloqué ou erreur. */
+async function unlockBadge(studentId, badgeSlug) {
+  if (!studentId || !badgeSlug) return false;
+  try {
+    const { error } = await db.from('student_badges')
+      .insert({ student_id: studentId, badge_slug: badgeSlug });
+    if (error) {
+      // Code 23505 = duplicate key (déjà débloqué) → silencieux
+      if (error.code === '23505') return false;
+      console.warn('[badges] unlockBadge error:', error);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.warn('[badges] unlockBadge exception:', e);
+    return false;
+  }
+}
+
+/* Récupère la liste (ordonnée) des slugs de badges épinglés (max 3). */
+async function getStudentPinnedBadges(studentId) {
+  if (!studentId) return [];
+  try {
+    const { data, error } = await db.from('students')
+      .select('pinned_badges')
+      .eq('id', studentId)
+      .maybeSingle();
+    if (error) { console.warn('[badges] getStudentPinnedBadges error:', error); return []; }
+    return Array.isArray(data?.pinned_badges) ? data.pinned_badges : [];
+  } catch (e) {
+    console.warn('[badges] getStudentPinnedBadges exception:', e);
+    return [];
+  }
+}
+
+/* Met à jour la liste des badges épinglés (max 3 slugs). */
+async function setStudentPinnedBadges(studentId, slugs) {
+  if (!studentId) return false;
+  const cleaned = (slugs || []).filter(s => typeof s === 'string').slice(0, 3);
+  try {
+    const { error } = await db.from('students')
+      .update({ pinned_badges: cleaned })
+      .eq('id', studentId);
+    if (error) { console.warn('[badges] setStudentPinnedBadges error:', error); return false; }
+    return true;
+  } catch (e) {
+    console.warn('[badges] setStudentPinnedBadges exception:', e);
+    return false;
+  }
+}
+
+/* Récupère le slug du titre actif de l'élève (null = utilise par défaut le plus haut atteint). */
+async function getStudentPinnedTitle(studentId) {
+  if (!studentId) return null;
+  try {
+    const { data, error } = await db.from('students')
+      .select('pinned_title_slug')
+      .eq('id', studentId)
+      .maybeSingle();
+    if (error) { console.warn('[badges] getStudentPinnedTitle error:', error); return null; }
+    return data?.pinned_title_slug || null;
+  } catch (e) {
+    console.warn('[badges] getStudentPinnedTitle exception:', e);
+    return null;
+  }
+}
+
+/* Met à jour le titre actif (slug du titre choisi parmi LEVEL_TITLES). */
+async function setStudentPinnedTitle(studentId, titleSlug) {
+  if (!studentId) return false;
+  try {
+    const { error } = await db.from('students')
+      .update({ pinned_title_slug: titleSlug || null })
+      .eq('id', studentId);
+    if (error) { console.warn('[badges] setStudentPinnedTitle error:', error); return false; }
+    return true;
+  } catch (e) {
+    console.warn('[badges] setStudentPinnedTitle exception:', e);
+    return false;
+  }
+}
+
+/* ================================================================
+   ÉVALUATION DES CONDITIONS
+   ================================================================ */
+
+/* Charge un objet de stats utilisable par evaluateBadgeCondition pour un élève donné.
+   Fait toutes les requêtes nécessaires en parallèle. */
+async function loadStudentBadgeStats(studentId) {
+  if (!studentId) return null;
+  const [
+    totalXp,
+    eventsAll,
+    proposalsSent,
+    proposalsAccepted
+  ] = await Promise.all([
+    getStudentTotalXp(studentId).catch(() => 0),
+    getStudentXpHistory(studentId, 1000).catch(() => []),
+    db.from('proposals').select('id', { count: 'exact', head: true }).eq('student_id', studentId)
+      .then(r => r.count || 0).catch(() => 0),
+    db.from('xp_events').select('id', { count: 'exact', head: true })
+      .eq('student_id', studentId).eq('event_type', 'proposal_accepted')
+      .then(r => r.count || 0).catch(() => 0)
+  ]);
+
+  // Compteurs dérivés des events
+  const eventCounts = {};
+  const eventsByDay = {};   // pour votes_in_one_day
+  for (const ev of eventsAll) {
+    const t = ev.event_type;
+    eventCounts[t] = (eventCounts[t] || 0) + 1;
+    if (t === 'vote') {
+      const day = (ev.created_at || '').slice(0, 10);
+      if (day) eventsByDay[day] = (eventsByDay[day] || 0) + 1;
+    }
+  }
+  const maxVotesInOneDay = Math.max(0, ...Object.values(eventsByDay));
+
+  return {
+    totalXp,
+    level: levelFromXp(totalXp),
+    eventsAll,
+    eventCounts,
+    proposalsSent,
+    proposalsAccepted,
+    maxVotesInOneDay,
+    votesCount: eventCounts.vote || 0,
+    sessionsCount: (eventCounts.session_attended || 0) + (eventCounts.event_attended || 0)
+  };
+}
+
+/* Évalue si la condition d'un badge est satisfaite. Renvoie true/false. */
+function evaluateBadgeCondition(condition, stats) {
+  if (!condition || !stats) return false;
+  switch (condition.type) {
+    case 'level':
+      return stats.level >= (condition.min || 1);
+
+    case 'xp_total':
+      return stats.totalXp >= (condition.min || 0);
+
+    case 'event_exists': {
+      const list = stats.eventsAll.filter(e => e.event_type === condition.event_type);
+      if (condition.scope === 'this_year') {
+        const yearStart = new Date(new Date().getFullYear(), 0, 1).toISOString();
+        return list.some(e => e.created_at >= yearStart);
+      }
+      return list.length > 0;
+    }
+
+    case 'event_count':
+      return (stats.eventCounts[condition.event_type] || 0) >= (condition.count || 1);
+
+    case 'votes_count':
+      return stats.votesCount >= (condition.count || 1);
+
+    case 'sessions_count':
+      return stats.sessionsCount >= (condition.count || 1);
+
+    case 'proposals_sent':
+      return stats.proposalsSent >= (condition.count || 1);
+
+    case 'proposals_accepted':
+      return stats.proposalsAccepted >= (condition.count || 1);
+
+    case 'login_before_hour': {
+      const h = condition.hour || 7;
+      return stats.eventsAll.some(e => {
+        if (e.event_type !== 'login_first_daily' || !e.created_at) return false;
+        const d = new Date(e.created_at);
+        return d.getHours() < h;
+      });
+    }
+
+    case 'login_after_hour': {
+      // "Après minuit" = entre 0h et 5h du matin (sinon trop facile : 23h passe aussi)
+      return stats.eventsAll.some(e => {
+        if (e.event_type !== 'login_first_daily' || !e.created_at) return false;
+        const d = new Date(e.created_at);
+        const h = d.getHours();
+        return h >= 0 && h < 5;
+      });
+    }
+
+    case 'votes_in_one_day':
+      return stats.maxVotesInOneDay >= (condition.count || 5);
+
+    case 'no_penalty_days': {
+      // Dans les N derniers jours, aucun event session_absent ni session_left
+      // ET au moins 1 event positif (sinon trop facile : un élève qui ne fait rien valide)
+      const days = condition.days || 30;
+      const since = new Date(Date.now() - days * 86400000).toISOString();
+      const recent = stats.eventsAll.filter(e => e.created_at >= since);
+      const hasPenalty = recent.some(e => e.event_type === 'session_absent' || e.event_type === 'session_left');
+      const hasPositive = recent.some(e => (e.xp_amount || 0) > 0);
+      return !hasPenalty && hasPositive;
+    }
+
+    case 'todo':
+      // Conditions complexes à implémenter en Phase 2 — jamais débloqué automatiquement
+      return false;
+
+    default:
+      console.warn('[badges] type de condition inconnu:', condition.type);
+      return false;
+  }
+}
+
+/* ================================================================
+   CHECK + DÉBLOCAGE AUTOMATIQUE
+   ================================================================ */
+
+/* Pour un élève donné, vérifie tous les badges, débloque ceux qui sont
+   nouvellement éligibles, et déclenche les notifications appropriées.
+   À appeler après chaque event XP susceptible de débloquer un badge.
+   Silencieuse en cas d'erreur — ne bloque jamais le flux. */
+async function checkAndUnlockBadges(studentId) {
+  if (!studentId) return [];
+  try {
+    // 1. Charger les stats + les badges déjà débloqués
+    const [stats, alreadyUnlocked] = await Promise.all([
+      loadStudentBadgeStats(studentId),
+      getStudentBadges(studentId)
+    ]);
+    if (!stats) return [];
+    const alreadySet = new Set(alreadyUnlocked.map(b => b.badge_slug));
+
+    // 2. Pour chaque badge non débloqué, évaluer la condition
+    const newlyUnlocked = [];
+    for (const badge of BADGES_CATALOG) {
+      if (alreadySet.has(badge.slug)) continue;
+      if (evaluateBadgeCondition(badge.condition, stats)) {
+        const ok = await unlockBadge(studentId, badge.slug);
+        if (ok) newlyUnlocked.push(badge);
+      }
+    }
+
+    // 3. Notifier l'élève (uniquement si c'est lui qui est connecté)
+    if (newlyUnlocked.length > 0 && S.user && S.user.id === studentId) {
+      // Petit délai pour laisser respirer entre les éventuelles autres animations (toast XP, level-up)
+      setTimeout(() => {
+        for (let i = 0; i < newlyUnlocked.length; i++) {
+          const b = newlyUnlocked[i];
+          // On échelonne pour pas tout faire péter en même temps si plusieurs débloqués d'un coup
+          setTimeout(() => notifyBadgeUnlocked(b), i * 1800);
+        }
+      }, 1200);
+    }
+
+    return newlyUnlocked;
+  } catch (e) {
+    console.warn('[badges] checkAndUnlockBadges exception:', e);
+    return [];
+  }
+}
+
+/* ================================================================
+   NOTIFICATION DE DÉBLOCAGE
+   ================================================================ */
+
+/* Affiche le déblocage : toast pour bronze/argent, modale célébration pour or/emeraude/diamant. */
+function notifyBadgeUnlocked(badge) {
+  if (!badge) return;
+  const cfg = BADGES_RARITY_CONFIG[badge.rarity] || BADGES_RARITY_CONFIG.bronze;
+  if (cfg.notif === 'modal') {
+    showBadgeUnlockModal(badge);
+  } else {
+    // Toast simple
+    toast(`🏅 Badge débloqué : ${badge.name}`, 'success', 3500);
+  }
+}
+
+/* Affiche la modale célébration de déblocage de badge.
+   Réutilise la structure du level-up : confettis + bouton Continuer.
+   Fermeture : bouton, ESC, ou clic-fond. */
+function showBadgeUnlockModal(badge) {
+  const overlay = document.getElementById('modal-badge-unlocked');
+  if (!overlay) {
+    // Fallback en toast si la modale n'existe pas dans le DOM
+    toast(`🏅 ${BADGES_RARITY_CONFIG[badge.rarity]?.label || ''} débloqué : ${badge.name}`, 'success', 4000);
+    return;
+  }
+
+  const cfg = BADGES_RARITY_CONFIG[badge.rarity] || BADGES_RARITY_CONFIG.bronze;
+  const elName    = document.getElementById('badge-unlocked-name');
+  const elRarity  = document.getElementById('badge-unlocked-rarity');
+  const elDesc    = document.getElementById('badge-unlocked-desc');
+  const elImg     = document.getElementById('badge-unlocked-img');
+  const elEmoji   = document.getElementById('badge-unlocked-emoji');
+  const elCard    = overlay.querySelector('.badge-unlock-card');
+
+  if (elName)   elName.textContent   = badge.name;
+  if (elRarity) elRarity.textContent = cfg.label;
+  if (elDesc)   elDesc.textContent   = badge.description;
+
+  // Image (avec fallback emoji)
+  const url = getBadgeImageUrl(badge.slug);
+  if (elImg && elEmoji) {
+    if (url) {
+      elImg.src = url;
+      elImg.style.display = 'block';
+      elEmoji.style.display = 'none';
+      // Si l'image n'existe pas, fallback à l'emoji
+      elImg.onerror = () => {
+        elImg.style.display = 'none';
+        elEmoji.style.display = 'block';
+        elEmoji.textContent = badge.emoji || '🏅';
+      };
+    } else {
+      elImg.style.display = 'none';
+      elEmoji.style.display = 'block';
+      elEmoji.textContent = badge.emoji || '🏅';
+    }
+  }
+
+  // Couleur du cadre selon rareté (CSS variable)
+  if (elCard) {
+    elCard.style.setProperty('--badge-rarity-color', cfg.color);
+    elCard.style.setProperty('--badge-rarity-bg', cfg.bg);
+  }
+
+  overlay.classList.remove('hidden');
+
+  // Cleanup commun à toutes les voies de fermeture
+  const close = () => {
+    overlay.classList.add('hidden');
+    document.removeEventListener('keydown', escHandler);
+    overlay.onclick = null;
+    const btn = document.getElementById('badge-unlocked-continue');
+    if (btn) btn.onclick = null;
+  };
+
+  const btn = document.getElementById('badge-unlocked-continue');
+  if (btn) btn.onclick = close;
+
+  const escHandler = (e) => { if (e.key === 'Escape') close(); };
+  document.addEventListener('keydown', escHandler);
+
+  overlay.onclick = (e) => { if (e.target === overlay) close(); };
+}
+
+/* DEBUG : depuis la console, joue la modale de déblocage pour un badge donné. */
+function _debugBadge(slug = 'palier-cinephile') {
+  const b = BADGES_CATALOG.find(x => x.slug === slug);
+  if (b) showBadgeUnlockModal(b);
+  else console.warn('Badge introuvable :', slug);
+}
+
+/* ================================================================
+   FIN — SYSTÈME DE BADGES (Phase 1)
+   ================================================================ */
 
 /* Applique une pénalité XP à un élève en respectant le plancher de niveau.
    - Calcule l'XP actuel
