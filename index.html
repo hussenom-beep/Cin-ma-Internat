@@ -2830,7 +2830,7 @@ body.theme-christmas .s-header {
 .student-deco {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   flex-wrap: wrap;
   vertical-align: middle;
 }
@@ -2838,13 +2838,13 @@ body.theme-christmas .s-header {
 .student-deco-title {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  padding: 2px 8px;
+  gap: 4px;
+  padding: 3px 10px;
   border-radius: 999px;
   background: rgba(240,165,0,.10);
   border: 1px solid rgba(240,165,0,.30);
   color: var(--gold);
-  font-size: 10.5px;
+  font-size: 12px;
   font-weight: 700;
   font-family: 'DM Sans', sans-serif;
   white-space: nowrap;
@@ -2856,23 +2856,23 @@ body.theme-christmas .s-header {
   border-color: var(--gold);
 }
 .student-deco-title-emoji {
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1;
 }
 /* Liste de mini-badges */
 .student-deco-badges {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
 }
 .student-deco-badge {
-  width: 22px;
-  height: 22px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   flex-shrink: 0;
   cursor: pointer;
   transition: transform .15s;
-  filter: drop-shadow(0 1px 2px rgba(0,0,0,.4));
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,.5));
 }
 .student-deco-badge:hover {
   transform: scale(1.15);
@@ -2881,9 +2881,9 @@ body.theme-christmas .s-header {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
-  width: 22px;
-  height: 22px;
+  font-size: 18px;
+  width: 32px;
+  height: 32px;
   background: rgba(0,0,0,.25);
   border-radius: 50%;
   border: 1px solid rgba(240,165,0,.30);
@@ -2895,15 +2895,21 @@ body.theme-christmas .s-header {
   transform: scale(1.15);
 }
 
-/* Variante "compact" pour les listes denses (24→20px, gap réduit) */
+/* Variante "compact" pour les listes denses (un peu plus petit mais reste lisible) */
+.student-deco.compact {
+  gap: 6px;
+}
 .student-deco.compact .student-deco-title {
-  font-size: 10px;
-  padding: 1px 7px;
+  font-size: 11px;
+  padding: 2px 8px;
 }
 .student-deco.compact .student-deco-badge,
 .student-deco.compact .student-deco-badge-emoji {
-  width: 20px;
-  height: 20px;
+  width: 26px;
+  height: 26px;
+}
+.student-deco.compact .student-deco-badge-emoji {
+  font-size: 15px;
 }
 
 /* Dans le profil propre : la carte est sous le nom, plus grande */
@@ -6866,6 +6872,96 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 .whatsnew-cta-btn:focus {
   background: var(--gold-dim);
   outline: none;
+}
+
+/* ================================================================
+   BATCH C4 — Previews dans les slides du tuto XP & Badges
+   (utilisés sur les slides sans image fournie)
+   ================================================================ */
+
+/* Slide 1 — emoji hero */
+.tuto-emoji-hero {
+  font-size: 56px;
+  text-align: center;
+  margin: 14px 0 6px;
+  letter-spacing: 6px;
+  filter: drop-shadow(0 2px 8px rgba(240,165,0,.35));
+}
+
+/* Slide 2 — liste XP par action */
+.tuto-xp-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 10px auto 4px;
+  max-width: 320px;
+}
+.tuto-xp-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: rgba(240,165,0,.06);
+  border: 1px solid rgba(240,165,0,.18);
+  border-radius: 10px;
+}
+.tuto-xp-icon {
+  font-size: 18px;
+  width: 24px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.tuto-xp-label {
+  flex: 1;
+  font-size: 13px;
+  color: var(--text);
+  font-weight: 600;
+}
+.tuto-xp-value {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--gold);
+  font-family: 'DM Sans', sans-serif;
+  flex-shrink: 0;
+}
+
+/* Slide 7 — profil hint */
+.tuto-profile-hint {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  background: linear-gradient(135deg, rgba(240,165,0,.10) 0%, rgba(240,165,0,.04) 100%);
+  border: 1.5px solid rgba(240,165,0,.30);
+  border-radius: 14px;
+  margin: 14px auto 0;
+  max-width: 320px;
+}
+.tuto-profile-icon {
+  font-size: 36px;
+  flex-shrink: 0;
+  filter: drop-shadow(0 2px 4px rgba(240,165,0,.3));
+}
+.tuto-profile-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.tuto-profile-line {
+  font-size: 13px;
+  color: var(--text);
+  font-weight: 600;
+}
+
+@media (max-width: 380px) {
+  .tuto-emoji-hero { font-size: 44px; letter-spacing: 4px; }
+  .tuto-xp-item { padding: 7px 10px; }
+  .tuto-xp-label { font-size: 12px; }
+  .tuto-xp-value { font-size: 12px; }
+  .tuto-profile-hint { padding: 12px 14px; gap: 10px; }
+  .tuto-profile-icon { font-size: 30px; }
+  .tuto-profile-line { font-size: 12px; }
 }
 
 /* Footer fixe : dots + checkbox (last slide) + boutons */
@@ -11555,6 +11651,7 @@ const XP_AMOUNTS = {
   birthday:             50,
   monthly_loyalty:      10,
   profile_birthday_set: 10,   // bonus 1ère saisie de la date de naissance (Batch C2b)
+  tutorial_xp_completed: 10,  // bonus de bienvenue à la fin du tuto XP & Badges (Batch C4)
 };
 
 // Cap quotidien sur les votes : 3 votes maximum comptés pour XP par jour
@@ -12424,6 +12521,16 @@ function _processBadgeNotifQueue() {
     _badgeNotifProcessing = false;
     return;
   }
+
+  // Batch C4 — Garde-fou : tant que la modale What's New est visible,
+  // on diffère le pop pour ne pas chevaucher (re-poll dans 1.5s).
+  const wn = document.getElementById('modal-whatsnew');
+  if (wn && !wn.classList.contains('hidden')) {
+    _badgeNotifProcessing = true;
+    setTimeout(_processBadgeNotifQueue, 1500);
+    return;
+  }
+
   _badgeNotifProcessing = true;
   const badge = _badgeNotifQueue.shift();
   const cfg = BADGES_RARITY_CONFIG[badge.rarity] || BADGES_RARITY_CONFIG.bronze;
@@ -13806,6 +13913,80 @@ async function replayHistoricalXP(opts = {}) {
 // }
 const WHATSNEW_TUTORIALS = [
   {
+    slug: 'xp_and_badges_2026',
+    category: 'features',
+    title: '🎬 Système XP & Badges',
+    createdAt: '2026-05-06',
+    slides: [
+      {
+        title: '✨ Une nouvelle aventure commence !',
+        bodyHtml: `
+          <p class="whatsnew-slide-body">
+            On vient d'ajouter un système de progression à l'app : tu vas gagner de l'XP, monter en niveau, débloquer des titres et collectionner des badges.
+            Tout est fait pour récompenser ta participation au cinéma club.
+          </p>
+          <div class="tuto-emoji-hero">🎬⭐🏆</div>
+        `
+      },
+      {
+        title: '⭐ Tu gagnes de l\'XP en participant',
+        bodyHtml: `
+          <p class="whatsnew-slide-body">
+            Chaque action te rapporte de l'XP. Plus tu participes, plus tu progresses.
+          </p>
+          <div class="tuto-xp-list">
+            <div class="tuto-xp-item"><span class="tuto-xp-icon">🌅</span><span class="tuto-xp-label">Connexion quotidienne</span><span class="tuto-xp-value">+10 XP</span></div>
+            <div class="tuto-xp-item"><span class="tuto-xp-icon">🗳️</span><span class="tuto-xp-label">Vote pour un film</span><span class="tuto-xp-value">+3 XP</span></div>
+            <div class="tuto-xp-item"><span class="tuto-xp-icon">🎬</span><span class="tuto-xp-label">Présence à une séance</span><span class="tuto-xp-value">+50 XP</span></div>
+            <div class="tuto-xp-item"><span class="tuto-xp-icon">💡</span><span class="tuto-xp-label">Proposition acceptée</span><span class="tuto-xp-value">+30 XP</span></div>
+            <div class="tuto-xp-item"><span class="tuto-xp-icon">🎉</span><span class="tuto-xp-label">Événement spécial</span><span class="tuto-xp-value">+250 XP</span></div>
+          </div>
+        `
+      },
+      {
+        title: '📈 Monte du niveau 1 au niveau 25',
+        body: "Plus tu gagnes d'XP, plus tu débloques de niveaux. Chaque palier rapproche du sommet : Maître du 7ᵉ Art. Ton anneau XP se remplit à mesure que tu progresses.",
+        image: 'niveau.png'
+      },
+      {
+        title: '🎭 6 titres prestigieux',
+        body: "De Spectateur à Maître du 7ᵉ Art, choisis le titre que les autres verront à côté de ton nom. Tu peux toujours basculer entre les titres que tu as débloqués.",
+        image: 'titres.png'
+      },
+      {
+        title: '🏅 44 badges à collectionner',
+        body: "5 raretés (Bronze, Argent, Or, Émeraude, Diamant) sur 10 catégories : votes, séances, propositions, séances d'affilée, paliers, cumul XP, régularité, saisonnier… Certains sont cachés et se révèlent au déblocage.",
+        image: 'badges.png'
+      },
+      {
+        title: '📌 Personnalise ta carte de visite',
+        body: "Épingle 3 badges et choisis ton titre. Ils s'afficheront partout à côté de ton nom — listes d'inscrits aux séances, profil, etc.",
+        image: 'personnalise.png'
+      },
+      {
+        title: '🚀 Tout est dans ton profil',
+        bodyHtml: `
+          <p class="whatsnew-slide-body">
+            Retrouve ton anneau XP, tes badges, tes titres et ton historique dans <strong>Mon profil</strong>.
+            Reçois <strong>+10 XP de bienvenue</strong> dès maintenant en cliquant sur le bouton ci-dessous, et découvre les badges que tu as déjà mérités !
+          </p>
+          <div class="tuto-profile-hint">
+            <span class="tuto-profile-icon">👤</span>
+            <div class="tuto-profile-text">
+              <div class="tuto-profile-line">📜 Mon parcours</div>
+              <div class="tuto-profile-line">🏅 Mes badges</div>
+              <div class="tuto-profile-line">🎭 Mon titre</div>
+            </div>
+          </div>
+        `
+      }
+    ],
+    cta: {
+      label: '🎁 C\'est parti, +10 XP !',
+      action: 'whatsNewXpAndBadgesComplete'
+    }
+  },
+  {
     slug: 'halloween_2026',
     category: 'events',
     title: '🎃 Halloween 2026',
@@ -14015,17 +14196,22 @@ function _whatsNewRender() {
 
   track.innerHTML = (tuto.slides || []).map((s, i) => {
     const isLast = (i === tuto.slides.length - 1);
-    const ctaHtml = (isLast && tuto.cta && tuto.cta.label && tuto.cta.target)
+    const ctaHtml = (isLast && tuto.cta && tuto.cta.label && (tuto.cta.target || tuto.cta.action))
       ? `<button class="whatsnew-cta-btn" onclick="whatsNewCtaClick()">${_escapeHtml(tuto.cta.label)}</button>`
       : '';
     const imgHtml = s.image
       ? `<img class="whatsnew-image" src="${s.image}" alt="">`
-      : `<div class="whatsnew-image-placeholder">🎬</div>`;
+      : (s.bodyHtml ? '' : `<div class="whatsnew-image-placeholder">🎬</div>`);
+    // bodyHtml prend la priorité sur body (texte simple). Le HTML est défini en
+    // dur dans WHATSNEW_TUTORIALS, donc pas de risque XSS.
+    const bodyContent = s.bodyHtml
+      ? s.bodyHtml
+      : `<p class="whatsnew-slide-body">${_escapeHtml(s.body || '')}</p>`;
     return `
       <div class="whatsnew-slide">
         ${imgHtml}
         <h2 class="whatsnew-slide-title">${_escapeHtml(s.title || '')}</h2>
-        <p class="whatsnew-slide-body">${_escapeHtml(s.body || '')}</p>
+        ${bodyContent}
         ${ctaHtml}
       </div>
     `;
@@ -14142,6 +14328,34 @@ function goToVotesEvent() {
   if (typeof navigateTo === 'function') navigateTo('films');
 }
 
+/* CTA du tuto XP & Badges (Batch C4) :
+   - Donne +10 XP de bienvenue (idempotent : 1 fois à vie)
+   - Le wrapper feedback déclenche automatiquement :
+     • Le toast "+10 XP — Tutoriel découvert"
+     • Le refresh de l'anneau XP
+     • checkAndUnlockBadges qui débloque en cascade tous les badges déjà mérités
+       (premier-pas, profil-complet, premier-vote, premier-rang, etc.)
+   La file _badgeNotifQueue gère l'enchaînement des notifs sans chevauchement. */
+async function whatsNewXpAndBadgesComplete() {
+  if (!S.user || !S.user.id) return;
+  try {
+    // Vérifier qu'on n'a pas déjà donné le bonus (idempotence à vie)
+    const { count } = await db
+      .from('xp_events')
+      .select('id', { count: 'exact', head: true })
+      .eq('student_id', S.user.id)
+      .eq('event_type', 'tutorial_xp_completed');
+    if ((count || 0) > 0) {
+      // Déjà donné : ne rien faire (l'élève re-lance le tuto via admin tutos preview)
+      return;
+    }
+    // Le wrapper feedback gère tout : toast XP, refresh ring, cascade badges
+    await addXpEventWithFeedback(S.user.id, 'tutorial_xp_completed', XP_AMOUNTS.tutorial_xp_completed, {});
+  } catch (e) {
+    console.warn('[whatsnew] xpAndBadgesComplete error:', e);
+  }
+}
+
 /* Ferme la modale et reset complet de l'état */
 function whatsNewClose() {
   const m = document.getElementById('modal-whatsnew');
@@ -14151,6 +14365,17 @@ function whatsNewClose() {
   _whatsNewState.slideIdx    = 0;
   _whatsNewState.studentId   = null;
   _whatsNewState.previewMode = false;
+
+  // Batch C4 — Si la file de notifs badges contient des éléments en attente
+  // (badges débloqués pendant que le What's New était visible), on relance le
+  // processing maintenant que la modale est fermée.
+  if (typeof _badgeNotifQueue !== 'undefined' && _badgeNotifQueue.length > 0
+      && typeof _processBadgeNotifQueue === 'function') {
+    setTimeout(() => {
+      _badgeNotifProcessing = false;
+      _processBadgeNotifQueue();
+    }, 400);
+  }
 }
 
 /* Vérifie si l'élève a des tutos non vus, et les affiche le cas échéant.
@@ -14346,7 +14571,8 @@ const XP_EVENT_LABELS = {
   login_extra_daily:     { icon: '🌅', label: 'Connexion supplémentaire' },
   birthday:              { icon: '🎂', label: 'Bonus anniversaire' },
   monthly_loyalty:       { icon: '🎖️', label: 'Fidélité mensuelle' },
-  profile_birthday_set:  { icon: '🎂', label: 'Date de naissance renseignée' }
+  profile_birthday_set:  { icon: '🎂', label: 'Date de naissance renseignée' },
+  tutorial_xp_completed: { icon: '🎁', label: 'Tutoriel découvert' }
 };
 
 /* Date relative simple : "aujourd'hui", "hier", "il y a 3 jours", "il y a 2 sem.", "le DD/MM/YYYY" */
