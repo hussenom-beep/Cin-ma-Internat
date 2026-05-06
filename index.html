@@ -2306,6 +2306,375 @@ body.theme-christmas .s-header {
   .badge-unlock-name { font-size: 19px; }
 }
 
+/* ================================================================
+   BATCH C3 PHASE 2A — Modale "Mes badges" + grille
+   ================================================================ */
+
+/* Header — counter à droite du titre */
+.badges-sheet .sheet-header-back {
+  justify-content: flex-start;
+}
+.badges-counter {
+  margin-left: auto;
+  margin-right: 4px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--gold);
+  background: rgba(240,165,0,.10);
+  border: 1px solid rgba(240,165,0,.25);
+  border-radius: 999px;
+  padding: 4px 12px;
+  letter-spacing: .02em;
+  font-family: 'DM Sans', sans-serif;
+}
+
+/* Section slots épinglés */
+.pinned-slots-section {
+  padding: 16px 16px 8px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(135deg, #2A1B12 0%, #1A0F09 100%);
+}
+.pinned-slots-title {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  margin-bottom: 10px;
+  text-align: center;
+}
+.pinned-slots-hint {
+  color: var(--text-3);
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 10.5px;
+  font-style: italic;
+}
+.pinned-slots-row {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+}
+.pinned-slot {
+  width: 86px;
+  height: 86px;
+  border-radius: 18px;
+  background: rgba(0,0,0,.35);
+  border: 2px dashed rgba(240,165,0,.30);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all .18s;
+  position: relative;
+  overflow: visible;
+}
+.pinned-slot:hover {
+  border-color: var(--gold);
+  background: rgba(240,165,0,.06);
+}
+.pinned-slot.active {
+  border-style: solid;
+  border-color: var(--gold);
+  background: rgba(240,165,0,.12);
+  box-shadow: 0 0 0 4px rgba(240,165,0,.18), 0 4px 14px rgba(240,165,0,.30);
+  transform: translateY(-2px);
+  animation: pinnedSlotPulse 1.6s ease-in-out infinite;
+}
+@keyframes pinnedSlotPulse {
+  0%, 100% { box-shadow: 0 0 0 4px rgba(240,165,0,.18), 0 4px 14px rgba(240,165,0,.30); }
+  50%      { box-shadow: 0 0 0 6px rgba(240,165,0,.28), 0 4px 18px rgba(240,165,0,.45); }
+}
+.pinned-slot.filled {
+  border-style: solid;
+  border-color: rgba(240,165,0,.40);
+  background: rgba(0,0,0,.20);
+}
+.pinned-slot-empty {
+  font-size: 32px;
+  font-weight: 300;
+  color: rgba(240,165,0,.5);
+  line-height: 1;
+}
+.pinned-slot-img {
+  width: 90%;
+  height: 90%;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,.5));
+}
+.pinned-slot-emoji {
+  font-size: 40px;
+  line-height: 1;
+}
+/* Petit X pour retirer */
+.pinned-slot-remove {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--red);
+  color: white;
+  border: 2px solid var(--bg);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 18px;
+  text-align: center;
+  cursor: pointer;
+  z-index: 2;
+  display: none;
+  padding: 0;
+}
+.pinned-slot.filled .pinned-slot-remove,
+.pinned-slot.active .pinned-slot-remove {
+  display: block;
+}
+.pinned-slots-helper {
+  margin-top: 10px;
+  font-size: 11.5px;
+  color: var(--gold);
+  text-align: center;
+  font-style: italic;
+  font-weight: 600;
+  animation: helperFadeIn .3s ease-out;
+}
+.pinned-slots-helper.hidden { display: none; }
+@keyframes helperFadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Section filtres */
+.badges-filters-section {
+  padding: 10px 0 6px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  position: sticky;
+  top: 65px;  /* sous le header sticky */
+  z-index: 4;
+}
+.badges-filters-row {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 0 16px 4px;
+  scrollbar-width: none;
+}
+.badges-filters-row::-webkit-scrollbar { display: none; }
+.badges-filter-chip {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  color: var(--text-2);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+  white-space: nowrap;
+  font-family: 'DM Sans', sans-serif;
+}
+.badges-filter-chip:hover {
+  border-color: rgba(240,165,0,.4);
+  color: var(--text);
+}
+.badges-filter-chip.active {
+  background: var(--gold);
+  color: #1A0F09;
+  border-color: var(--gold);
+  box-shadow: 0 2px 8px rgba(240,165,0,.35);
+}
+
+/* Grille de badges */
+.badges-grid-section {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 12px 24px;
+  -webkit-overflow-scrolling: touch;
+}
+.badges-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
+  gap: 10px;
+}
+.badges-empty {
+  grid-column: 1 / -1;
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--text-3);
+  font-size: 13px;
+}
+.badge-card {
+  --badge-rarity-color: #888;
+  background: var(--surface-3);
+  border: 1.5px solid var(--badge-rarity-color);
+  border-radius: 14px;
+  padding: 10px 6px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: transform .15s, box-shadow .15s;
+  position: relative;
+  min-height: 130px;
+}
+.badge-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--badge-rarity-color) 30%, transparent);
+}
+.badge-card.locked {
+  opacity: .42;
+  filter: grayscale(.7);
+  border-style: dashed;
+  border-color: rgba(180,180,180,.35);
+}
+.badge-card.locked:hover {
+  opacity: .55;
+}
+.badge-card.hidden-locked {
+  opacity: .35;
+  filter: blur(.5px) grayscale(1);
+  border-style: dashed;
+  border-color: rgba(120,120,120,.30);
+}
+.badge-card-img-wrap {
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,.45));
+}
+.badge-card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.badge-card-emoji {
+  font-size: 40px;
+  line-height: 1;
+}
+.badge-card-name {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--text);
+  line-height: 1.15;
+  margin-top: 4px;
+  word-break: break-word;
+}
+.badge-card.locked .badge-card-name {
+  color: var(--text-2);
+  font-weight: 600;
+}
+.badge-card-rarity-pill {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--badge-rarity-color);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--badge-rarity-color) 60%, transparent);
+}
+/* Indicateur "épinglé" */
+.badge-card.is-pinned::after {
+  content: '📌';
+  position: absolute;
+  top: 2px;
+  left: 4px;
+  font-size: 11px;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,.6));
+}
+
+/* Popup détail */
+.badge-detail-card {
+  text-align: center;
+  padding: 18px 24px 22px;
+  --badge-rarity-color: #D4A537;
+}
+.badge-detail-image-wrap {
+  width: 110px;
+  height: 110px;
+  margin: 6px auto 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 0 14px color-mix(in srgb, var(--badge-rarity-color) 50%, transparent));
+}
+.badge-detail-image-wrap.fallback-emoji {
+  background: rgba(0,0,0,.25);
+  border: 2px solid var(--badge-rarity-color);
+  border-radius: 50%;
+  filter: none;
+}
+.badge-detail-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.badge-detail-emoji {
+  font-size: 56px;
+  line-height: 1;
+}
+.badge-detail-rarity {
+  font-family: 'Playfair Display', serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--badge-rarity-color);
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  margin-bottom: 4px;
+}
+.badge-detail-name {
+  font-family: 'Playfair Display', serif;
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 6px;
+  line-height: 1.2;
+}
+.badge-detail-desc {
+  font-size: 13px;
+  color: var(--text-2);
+  font-style: italic;
+  margin-bottom: 12px;
+  line-height: 1.4;
+}
+.badge-detail-status {
+  font-size: 12.5px;
+  margin-bottom: 16px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  display: inline-block;
+}
+.badge-detail-status.unlocked {
+  background: rgba(34,197,94,.12);
+  color: #4ADE80;
+  border: 1px solid rgba(34,197,94,.30);
+}
+.badge-detail-status.locked {
+  background: rgba(180,180,180,.10);
+  color: var(--text-3);
+  border: 1px solid var(--border);
+}
+
+/* Petits écrans */
+@media (max-width: 380px) {
+  .pinned-slot { width: 76px; height: 76px; border-radius: 16px; }
+  .pinned-slot-empty { font-size: 28px; }
+  .pinned-slot-emoji { font-size: 34px; }
+  .badges-grid { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+  .badge-card { min-height: 116px; padding: 8px 4px 6px; }
+  .badge-card-img-wrap { width: 54px; height: 54px; }
+  .badge-card-emoji { font-size: 34px; }
+  .badge-card-name { font-size: 11px; }
+}
+
 .profile-avatar {
   width: 64px; height: 64px;
   border-radius: 50%;
@@ -7594,6 +7963,11 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
           <span class="pa-text">Mon parcours</span>
           <span class="pa-arrow">›</span>
         </button>
+        <button class="profile-action-btn" onclick="openStudentBadges()">
+          <span class="pa-icon">🏅</span>
+          <span class="pa-text">Mes badges</span>
+          <span class="pa-arrow">›</span>
+        </button>
         <button class="profile-action-btn" onclick="openStudentWatchedFilms()">
           <span class="pa-icon">🎞</span>
           <span class="pa-text">Mes films vus</span>
@@ -7757,6 +8131,71 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     <div class="badge-unlock-name" id="badge-unlocked-name">—</div>
     <div class="badge-unlock-desc" id="badge-unlocked-desc">—</div>
     <button class="levelup-continue-btn" id="badge-unlocked-continue" type="button">Continuer</button>
+  </div>
+</div>
+
+<!-- ================================================================
+     MODAL: Mes badges (Batch C3 — Phase 2A)
+     Plein écran avec : 3 slots épinglés + filtres catégorie + grille 44 badges
+     ================================================================ -->
+<div class="overlay hidden" id="modal-student-badges">
+  <div class="sheet sheet-fullscreen badges-sheet">
+    <div class="sheet-header-back">
+      <button class="back-btn" onclick="closeBadgesModal()" title="Retour">‹</button>
+      <h2 class="sheet-back-title">Mes badges</h2>
+      <div class="badges-counter" id="badges-counter">— / 44</div>
+    </div>
+
+    <!-- Slots épinglés (3 max) -->
+    <div class="pinned-slots-section">
+      <div class="pinned-slots-title">Mes badges épinglés <span class="pinned-slots-hint">(tap pour modifier)</span></div>
+      <div class="pinned-slots-row" id="pinned-slots-row">
+        <div class="pinned-slot" data-slot="0" onclick="onPinnedSlotClick(0)">
+          <div class="pinned-slot-empty">+</div>
+        </div>
+        <div class="pinned-slot" data-slot="1" onclick="onPinnedSlotClick(1)">
+          <div class="pinned-slot-empty">+</div>
+        </div>
+        <div class="pinned-slot" data-slot="2" onclick="onPinnedSlotClick(2)">
+          <div class="pinned-slot-empty">+</div>
+        </div>
+      </div>
+      <div class="pinned-slots-helper hidden" id="pinned-slots-helper">
+        Sélectionne un badge dans la grille pour le placer dans l'emplacement actif
+      </div>
+    </div>
+
+    <!-- Filtres catégorie (chips) -->
+    <div class="badges-filters-section">
+      <div class="badges-filters-row" id="badges-filters-row">
+        <!-- Chips générées en JS -->
+      </div>
+    </div>
+
+    <!-- Grille des badges -->
+    <div class="badges-grid-section">
+      <div class="badges-grid" id="badges-grid">
+        <div class="badges-empty">Chargement…</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     MODAL: Détail d'un badge (popup au tap dans la grille)
+     ================================================================ -->
+<div class="overlay hidden badge-detail-overlay" id="modal-badge-detail">
+  <div class="sheet sheet-compact badge-detail-card">
+    <div class="sheet-handle"></div>
+    <div class="badge-detail-image-wrap" id="badge-detail-image-wrap">
+      <img class="badge-detail-img" id="badge-detail-img" alt="" />
+      <div class="badge-detail-emoji" id="badge-detail-emoji" style="display:none;">🏅</div>
+    </div>
+    <div class="badge-detail-rarity" id="badge-detail-rarity">—</div>
+    <div class="badge-detail-name" id="badge-detail-name">—</div>
+    <div class="badge-detail-desc" id="badge-detail-desc">—</div>
+    <div class="badge-detail-status" id="badge-detail-status"></div>
+    <button class="btn btn-ghost btn-full" onclick="closeModal('modal-badge-detail')">Fermer</button>
   </div>
 </div>
 
@@ -11763,6 +12202,335 @@ function _debugBadge(slug = 'palier-cinephile') {
   const b = BADGES_CATALOG.find(x => x.slug === slug);
   if (b) showBadgeUnlockModal(b);
   else console.warn('Badge introuvable :', slug);
+}
+
+/* ================================================================
+   BATCH C3 — Phase 2A : Modale "Mes badges" + grille + slots épinglés
+   ================================================================ */
+
+// État de la modale (réinitialisé à chaque ouverture)
+let _badgesModalState = {
+  unlockedSet: new Set(),     // slugs débloqués
+  unlockedDates: {},          // slug → ISO date de déblocage
+  pinnedSlugs: ['', '', ''],  // 3 slots (vide = '')
+  activeSlot: -1,             // -1 = aucun, 0/1/2 = slot actif
+  filterCategory: 'all'       // 'all' ou clé de catégorie
+};
+
+/* Ouvre la modale "Mes badges" — charge les données puis render. */
+async function openStudentBadges() {
+  if (!S.user) return;
+  closeModal('modal-profile');
+  openModal('modal-student-badges');
+
+  // Reset visuel pendant le chargement
+  document.getElementById('badges-grid').innerHTML = '<div class="badges-empty">Chargement…</div>';
+  document.getElementById('badges-counter').textContent = '— / 44';
+
+  try {
+    const [unlocked, pinned] = await Promise.all([
+      getStudentBadges(S.user.id),
+      getStudentPinnedBadges(S.user.id)
+    ]);
+
+    _badgesModalState.unlockedSet = new Set(unlocked.map(b => b.badge_slug));
+    _badgesModalState.unlockedDates = {};
+    for (const b of unlocked) _badgesModalState.unlockedDates[b.badge_slug] = b.unlocked_at;
+    _badgesModalState.pinnedSlugs = [
+      pinned[0] || '', pinned[1] || '', pinned[2] || ''
+    ];
+    _badgesModalState.activeSlot = -1;
+    _badgesModalState.filterCategory = 'all';
+
+    _renderPinnedSlots();
+    _renderBadgesFilters();
+    _renderBadgesGrid();
+    _updateBadgesCounter();
+  } catch (e) {
+    console.warn('[badges] openStudentBadges error:', e);
+    document.getElementById('badges-grid').innerHTML = '<div class="badges-empty">Erreur de chargement.</div>';
+  }
+}
+
+/* Ferme la modale et désactive le slot actif s'il y en a un. */
+function closeBadgesModal() {
+  _badgesModalState.activeSlot = -1;
+  closeModal('modal-student-badges');
+}
+
+/* Met à jour le compteur "X / 44 badges débloqués". */
+function _updateBadgesCounter() {
+  const el = document.getElementById('badges-counter');
+  if (el) el.textContent = `${_badgesModalState.unlockedSet.size} / ${BADGES_CATALOG.length}`;
+}
+
+/* Rend les 3 slots épinglés en haut. */
+function _renderPinnedSlots() {
+  const row = document.getElementById('pinned-slots-row');
+  if (!row) return;
+  const slots = row.querySelectorAll('.pinned-slot');
+  slots.forEach((slotEl, i) => {
+    const slug = _badgesModalState.pinnedSlugs[i];
+    slotEl.classList.toggle('active', _badgesModalState.activeSlot === i);
+    slotEl.classList.toggle('filled', !!slug);
+    if (slug) {
+      const badge = BADGES_CATALOG.find(b => b.slug === slug);
+      if (badge) {
+        const url = getBadgeImageUrl(slug);
+        slotEl.innerHTML = `
+          ${url ? `<img class="pinned-slot-img" src="${url}" alt="${_escapeHtml(badge.name)}" onerror="this.outerHTML='<span class=&quot;pinned-slot-emoji&quot;>${badge.emoji || '🏅'}</span>'" />` : `<span class="pinned-slot-emoji">${badge.emoji || '🏅'}</span>`}
+          <button class="pinned-slot-remove" onclick="event.stopPropagation(); removePinnedBadge(${i})" title="Retirer">×</button>
+        `;
+      } else {
+        slotEl.innerHTML = '<div class="pinned-slot-empty">+</div>';
+      }
+    } else {
+      slotEl.innerHTML = '<div class="pinned-slot-empty">+</div>';
+    }
+  });
+
+  // Helper texte (visible quand un slot est actif)
+  const helper = document.getElementById('pinned-slots-helper');
+  if (helper) helper.classList.toggle('hidden', _badgesModalState.activeSlot < 0);
+}
+
+/* Tap sur un slot : (1) si vide ou rempli — l'active pour remplacement.
+   Tap sur le X : retire le badge. */
+function onPinnedSlotClick(slotIdx) {
+  if (_badgesModalState.activeSlot === slotIdx) {
+    // Re-tap sur le slot déjà actif = désactive
+    _badgesModalState.activeSlot = -1;
+  } else {
+    _badgesModalState.activeSlot = slotIdx;
+  }
+  _renderPinnedSlots();
+  _renderBadgesGrid();  // rerender pour mettre à jour les 'is-pinned'
+}
+
+/* Retire le badge épinglé du slot et persiste. */
+async function removePinnedBadge(slotIdx) {
+  _badgesModalState.pinnedSlugs[slotIdx] = '';
+  _renderPinnedSlots();
+  _renderBadgesGrid();
+  await _persistPinnedBadges();
+}
+
+/* Rend les chips de filtre (Tous + 10 catégories). */
+function _renderBadgesFilters() {
+  const row = document.getElementById('badges-filters-row');
+  if (!row) return;
+
+  // Compter combien de badges visibles dans chaque catégorie
+  // (un badge "caché-non-débloqué" reste compté pour pas spoiler le catalogue)
+  const countByCategory = { all: BADGES_CATALOG.length };
+  for (const b of BADGES_CATALOG) {
+    countByCategory[b.category] = (countByCategory[b.category] || 0) + 1;
+  }
+
+  const chips = [];
+  chips.push({ key: 'all', label: `Tous (${countByCategory.all})` });
+  for (const [key, label] of Object.entries(BADGES_CATEGORY_LABELS)) {
+    if (countByCategory[key]) chips.push({ key, label: `${label} (${countByCategory[key]})` });
+  }
+
+  row.innerHTML = chips.map(c => `
+    <button class="badges-filter-chip ${_badgesModalState.filterCategory === c.key ? 'active' : ''}"
+            onclick="_setBadgesFilter('${c.key}')">${_escapeHtml(c.label)}</button>
+  `).join('');
+}
+
+/* Change le filtre catégorie et re-render la grille. */
+function _setBadgesFilter(key) {
+  _badgesModalState.filterCategory = key;
+  _renderBadgesFilters();
+  _renderBadgesGrid();
+}
+
+/* Rend la grille des badges selon le filtre courant. */
+function _renderBadgesGrid() {
+  const grid = document.getElementById('badges-grid');
+  if (!grid) return;
+
+  const filter = _badgesModalState.filterCategory;
+  let badges = filter === 'all'
+    ? BADGES_CATALOG.slice()
+    : BADGES_CATALOG.filter(b => b.category === filter);
+
+  // Tri : débloqués d'abord (par rareté), puis non débloqués (par rareté), cachés non débloqués à la fin
+  const rarityOrder = { bronze: 1, argent: 2, or: 3, emeraude: 4, diamant: 5 };
+  badges.sort((a, b) => {
+    const aUnlocked = _badgesModalState.unlockedSet.has(a.slug);
+    const bUnlocked = _badgesModalState.unlockedSet.has(b.slug);
+    const aHiddenLocked = a.hidden && !aUnlocked;
+    const bHiddenLocked = b.hidden && !bUnlocked;
+
+    // Cachés non débloqués à la toute fin
+    if (aHiddenLocked && !bHiddenLocked) return 1;
+    if (!aHiddenLocked && bHiddenLocked) return -1;
+
+    // Débloqués avant les non débloqués
+    if (aUnlocked && !bUnlocked) return -1;
+    if (!aUnlocked && bUnlocked) return 1;
+
+    // Tri secondaire par rareté
+    return (rarityOrder[a.rarity] || 99) - (rarityOrder[b.rarity] || 99);
+  });
+
+  if (!badges.length) {
+    grid.innerHTML = '<div class="badges-empty">Aucun badge dans cette catégorie.</div>';
+    return;
+  }
+
+  const pinnedSet = new Set(_badgesModalState.pinnedSlugs.filter(Boolean));
+
+  grid.innerHTML = badges.map(b => {
+    const unlocked = _badgesModalState.unlockedSet.has(b.slug);
+    const hiddenLocked = b.hidden && !unlocked;
+    const isPinned = pinnedSet.has(b.slug);
+    const cfg = BADGES_RARITY_CONFIG[b.rarity] || BADGES_RARITY_CONFIG.bronze;
+
+    let displayName, displayImg;
+    if (hiddenLocked) {
+      displayName = 'Badge caché';
+      displayImg = '<span class="badge-card-emoji">❓</span>';
+    } else {
+      displayName = b.name;
+      const url = getBadgeImageUrl(b.slug);
+      if (url) {
+        displayImg = `<img class="badge-card-img" src="${url}" alt="${_escapeHtml(b.name)}" onerror="this.outerHTML='<span class=&quot;badge-card-emoji&quot;>${b.emoji || '🏅'}</span>'" />`;
+      } else {
+        displayImg = `<span class="badge-card-emoji">${b.emoji || '🏅'}</span>`;
+      }
+    }
+
+    const classes = [
+      'badge-card',
+      !unlocked && !hiddenLocked ? 'locked' : '',
+      hiddenLocked ? 'hidden-locked' : '',
+      isPinned ? 'is-pinned' : ''
+    ].filter(Boolean).join(' ');
+
+    return `
+      <div class="${classes}"
+           style="--badge-rarity-color:${cfg.color};"
+           onclick="onBadgeCardClick('${b.slug}')">
+        <span class="badge-card-rarity-pill" title="${cfg.label}"></span>
+        <div class="badge-card-img-wrap">${displayImg}</div>
+        <div class="badge-card-name">${_escapeHtml(displayName)}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+/* Tap sur une carte de badge :
+   - Si un slot est actif ET le badge est débloqué : assigner au slot
+   - Si un slot est actif MAIS le badge n'est pas débloqué : popup info "Tu dois d'abord débloquer ce badge"
+   - Sinon : popup détail */
+function onBadgeCardClick(slug) {
+  const badge = BADGES_CATALOG.find(b => b.slug === slug);
+  if (!badge) return;
+  const unlocked = _badgesModalState.unlockedSet.has(slug);
+  const hiddenLocked = badge.hidden && !unlocked;
+
+  if (_badgesModalState.activeSlot >= 0) {
+    if (!unlocked) {
+      toast(hiddenLocked
+        ? '🔒 Ce badge n\'est pas encore débloqué'
+        : '🔒 Tu dois débloquer ce badge avant de l\'épingler', 'error', 2500);
+      return;
+    }
+    // Assigner au slot actif (en évitant les doublons)
+    const otherIdx = _badgesModalState.pinnedSlugs.findIndex((s, i) => s === slug && i !== _badgesModalState.activeSlot);
+    if (otherIdx >= 0) {
+      // Le badge était déjà épinglé ailleurs → on swap
+      _badgesModalState.pinnedSlugs[otherIdx] = _badgesModalState.pinnedSlugs[_badgesModalState.activeSlot];
+    }
+    _badgesModalState.pinnedSlugs[_badgesModalState.activeSlot] = slug;
+    _badgesModalState.activeSlot = -1;
+    _renderPinnedSlots();
+    _renderBadgesGrid();
+    _persistPinnedBadges();
+    toast('📌 Badge épinglé', 'success', 1500);
+  } else {
+    // Pas de slot actif → popup détail
+    if (hiddenLocked) {
+      toast('🔒 Badge caché — débloque-le pour révéler ses détails', 'info', 2500);
+      return;
+    }
+    showBadgeDetailPopup(badge);
+  }
+}
+
+/* Persiste les badges épinglés en BDD. */
+async function _persistPinnedBadges() {
+  if (!S.user) return;
+  const slugs = _badgesModalState.pinnedSlugs.filter(Boolean);
+  await setStudentPinnedBadges(S.user.id, slugs);
+}
+
+/* Affiche la popup de détail d'un badge (au tap dans la grille, sans slot actif). */
+function showBadgeDetailPopup(badge) {
+  if (!badge) return;
+  const cfg = BADGES_RARITY_CONFIG[badge.rarity] || BADGES_RARITY_CONFIG.bronze;
+  const unlocked = _badgesModalState.unlockedSet.has(badge.slug);
+
+  const card  = document.querySelector('#modal-badge-detail .badge-detail-card');
+  const wrap  = document.getElementById('badge-detail-image-wrap');
+  const elImg = document.getElementById('badge-detail-img');
+  const elEmo = document.getElementById('badge-detail-emoji');
+  const elName = document.getElementById('badge-detail-name');
+  const elDesc = document.getElementById('badge-detail-desc');
+  const elRar  = document.getElementById('badge-detail-rarity');
+  const elSta  = document.getElementById('badge-detail-status');
+
+  if (card) card.style.setProperty('--badge-rarity-color', cfg.color);
+  if (elName) elName.textContent = badge.name;
+  if (elRar)  elRar.textContent  = cfg.label;
+  if (elDesc) elDesc.textContent = badge.description;
+
+  // Image / emoji
+  const url = getBadgeImageUrl(badge.slug);
+  if (elImg && elEmo && wrap) {
+    if (url) {
+      elImg.src = url;
+      elImg.style.display = 'block';
+      elEmo.style.display = 'none';
+      wrap.classList.remove('fallback-emoji');
+      elImg.onerror = () => {
+        elImg.style.display = 'none';
+        elEmo.style.display = 'block';
+        elEmo.textContent = badge.emoji || '🏅';
+        wrap.classList.add('fallback-emoji');
+      };
+    } else {
+      elImg.style.display = 'none';
+      elEmo.style.display = 'block';
+      elEmo.textContent = badge.emoji || '🏅';
+      wrap.classList.add('fallback-emoji');
+    }
+  }
+
+  // Statut
+  if (elSta) {
+    elSta.classList.remove('unlocked', 'locked');
+    if (unlocked) {
+      const date = _badgesModalState.unlockedDates[badge.slug];
+      let dateTxt = '';
+      if (date) {
+        try {
+          const d = new Date(date);
+          dateTxt = ` le ${d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })}`;
+        } catch (e) {}
+      }
+      elSta.textContent = `✓ Débloqué${dateTxt}`;
+      elSta.classList.add('unlocked');
+    } else {
+      elSta.textContent = '🔒 Pas encore débloqué';
+      elSta.classList.add('locked');
+    }
+  }
+
+  openModal('modal-badge-detail');
 }
 
 /* ================================================================
