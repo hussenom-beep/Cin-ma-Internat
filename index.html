@@ -2241,29 +2241,43 @@ body.theme-christmas .s-header {
   margin-bottom: 18px;
 }
 .badge-unlock-image-wrap {
-  width: 140px;
-  height: 140px;
+  width: 156px;
+  height: 156px;
   margin: 0 auto 14px;
-  border-radius: 50%;
-  background: rgba(0,0,0,.25);
-  border: 3px solid var(--badge-rarity-color);
-  box-shadow:
-    0 0 30px color-mix(in srgb, var(--badge-rarity-color) 50%, transparent),
-    inset 0 0 12px color-mix(in srgb, var(--badge-rarity-color) 25%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
+  background: transparent;
+  border: none;
+  /* Halo coloré selon la rareté qui suit la forme RÉELLE de l'image PNG.
+     Pas de cadre superflu : le badge porte déjà son propre cadre métallique. */
+  filter:
+    drop-shadow(0 0 18px color-mix(in srgb, var(--badge-rarity-color) 60%, transparent))
+    drop-shadow(0 0 6px  color-mix(in srgb, var(--badge-rarity-color) 30%, transparent));
   animation: badgeUnlockPulse 1.8s ease-in-out infinite;
 }
 @keyframes badgeUnlockPulse {
   0%, 100% { transform: scale(1); }
-  50%      { transform: scale(1.04); }
+  50%      { transform: scale(1.05); }
 }
 .badge-unlock-img {
-  width: 80%;
-  height: 80%;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
+  display: block;
+}
+/* Fallback emoji : on remet le cadre doré classique (sans visuel propre,
+   il faut bien quelque chose autour de l'emoji).
+   Classe ajoutée dynamiquement en JS quand l'image rate ou n'est pas dispo. */
+.badge-unlock-image-wrap.fallback-emoji {
+  background: rgba(0,0,0,.25);
+  border: 3px solid var(--badge-rarity-color);
+  border-radius: 50%;
+  box-shadow:
+    0 0 30px color-mix(in srgb, var(--badge-rarity-color) 50%, transparent),
+    inset 0 0 12px color-mix(in srgb, var(--badge-rarity-color) 25%, transparent);
+  filter: none;
+  overflow: hidden;
 }
 .badge-unlock-emoji {
   font-size: 72px;
@@ -2287,7 +2301,7 @@ body.theme-christmas .s-header {
 }
 @media (max-width: 380px) {
   .badge-unlock-card { padding: 22px 24px 26px; max-width: 92vw; }
-  .badge-unlock-image-wrap { width: 120px; height: 120px; }
+  .badge-unlock-image-wrap { width: 132px; height: 132px; }
   .badge-unlock-emoji { font-size: 60px; }
   .badge-unlock-name { font-size: 19px; }
 }
@@ -11684,21 +11698,26 @@ function showBadgeUnlockModal(badge, onClose) {
 
   // Image (avec fallback emoji)
   const url = getBadgeImageUrl(badge.slug);
+  const wrap = overlay.querySelector('.badge-unlock-image-wrap');
   if (elImg && elEmoji) {
     if (url) {
       elImg.src = url;
       elImg.style.display = 'block';
       elEmoji.style.display = 'none';
-      // Si l'image n'existe pas, fallback à l'emoji
+      if (wrap) wrap.classList.remove('fallback-emoji');
+      // Si l'image n'existe pas, fallback à l'emoji + on remet le cadre doré classique
       elImg.onerror = () => {
         elImg.style.display = 'none';
         elEmoji.style.display = 'block';
         elEmoji.textContent = badge.emoji || '🏅';
+        if (wrap) wrap.classList.add('fallback-emoji');
       };
     } else {
+      // URL non configurée : on affiche l'emoji directement
       elImg.style.display = 'none';
       elEmoji.style.display = 'block';
       elEmoji.textContent = badge.emoji || '🏅';
+      if (wrap) wrap.classList.add('fallback-emoji');
     }
   }
 
