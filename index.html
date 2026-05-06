@@ -2120,7 +2120,7 @@ body.theme-christmas .s-header {
   height: 14px;
   border-radius: 2px;
   opacity: 0;
-  animation: confettiFall 2.4s ease-in forwards;
+  animation: confettiFall 2.6s ease-in infinite;
 }
 .levelup-confetti span:nth-child(odd)  { background: #F0A500; }
 .levelup-confetti span:nth-child(even) { background: #FFC857; }
@@ -2147,6 +2147,40 @@ body.theme-christmas .s-header {
   0%   { transform: translateY(0) rotate(0deg);     opacity: 0; }
   10%  { opacity: 1; }
   100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+}
+
+/* Bouton Continuer — apparaît avec délai pour laisser admirer l'anim d'abord */
+.levelup-continue-btn {
+  margin-top: 22px;
+  background: linear-gradient(135deg, var(--gold) 0%, #FFC857 100%);
+  color: #1A0F09;
+  border: none;
+  border-radius: 999px;
+  padding: 11px 32px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  cursor: pointer;
+  box-shadow:
+    0 4px 14px rgba(240,165,0,.45),
+    inset 0 1px 0 rgba(255,255,255,.25);
+  transition: transform .15s, box-shadow .15s;
+  opacity: 0;
+  animation: levelupBtnIn .4s ease-out .8s forwards;
+}
+.levelup-continue-btn:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 6px 18px rgba(240,165,0,.6),
+    inset 0 1px 0 rgba(255,255,255,.3);
+}
+.levelup-continue-btn:active {
+  transform: translateY(0);
+}
+@keyframes levelupBtnIn {
+  0%   { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
 }
 
 /* iPhone SE et compagnons : on resserre */
@@ -7583,6 +7617,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     <div class="levelup-level" id="levelup-level">1</div>
     <div class="levelup-title" id="levelup-title">🎟 Spectateur</div>
     <div class="levelup-tier hidden" id="levelup-tier">Nouveau palier débloqué</div>
+    <button class="levelup-continue-btn" id="levelup-continue-btn" type="button">Continuer</button>
   </div>
 </div>
 
@@ -10884,27 +10919,28 @@ function showLevelUpAnimation(fromLevel, toLevel) {
   // Affiche
   overlay.classList.remove('hidden');
 
-  // Auto-close après 2.4s (durée des confettis)
-  if (overlay._levelupTimer) clearTimeout(overlay._levelupTimer);
-  overlay._levelupTimer = setTimeout(() => {
+  // Fermeture (utilisée par le bouton, ESC, et clic-fond)
+  const close = () => {
     overlay.classList.add('hidden');
-  }, 2400);
+    document.removeEventListener('keydown', escHandler);
+    overlay.onclick = null;
+    const btn = document.getElementById('levelup-continue-btn');
+    if (btn) btn.onclick = null;
+  };
 
-  // ESC pour fermer manuellement
+  // Bouton "Continuer"
+  const btn = document.getElementById('levelup-continue-btn');
+  if (btn) btn.onclick = close;
+
+  // ESC pour fermer
   const escHandler = (e) => {
-    if (e.key === 'Escape') {
-      overlay.classList.add('hidden');
-      if (overlay._levelupTimer) clearTimeout(overlay._levelupTimer);
-      document.removeEventListener('keydown', escHandler);
-    }
+    if (e.key === 'Escape') close();
   };
   document.addEventListener('keydown', escHandler);
+
   // Clic sur le fond ferme aussi
   overlay.onclick = (e) => {
-    if (e.target === overlay) {
-      overlay.classList.add('hidden');
-      if (overlay._levelupTimer) clearTimeout(overlay._levelupTimer);
-    }
+    if (e.target === overlay) close();
   };
 }
 
