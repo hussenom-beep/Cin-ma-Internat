@@ -14600,12 +14600,34 @@ function whatsNewClose() {
   }
 }
 
+/* Vrai si une modale d'onboarding bloquante est ouverte (installation PWA,
+   tuto iOS d'installation, ou demande d'activation push). Le tuto What's New,
+   le rappel de date de naissance et le check de badges après login attendent
+   tous que ces modales soient fermées avant de s'afficher. */
+function _isOnboardingModalOpen() {
+  const ids = ['modal-pwa-firstlogin', 'modal-pwa-ios-tuto', 'modal-push-firstlogin'];
+  for (const id of ids) {
+    const el = document.getElementById(id);
+    if (el && !el.classList.contains('hidden')) return true;
+  }
+  return false;
+}
+
 /* Vérifie si l'élève a des tutos non vus, et les affiche le cas échéant.
    Appelée dans loginAs() après navigateTo('home').
+   Attend la fermeture des modales d'onboarding (PWA install, push) avant de
+   s'ouvrir, pour ne pas couper la séquence d'installation/notifications.
    Silencieuse en cas d'erreur réseau (l'app reste utilisable). */
 async function checkAndShowWhatsNew() {
   if (S.isAdmin) return;
   if (!S.user || !S.user.id) return;
+
+  // Attendre la fermeture des modales d'onboarding
+  if (_isOnboardingModalOpen()) {
+    setTimeout(checkAndShowWhatsNew, 1500);
+    return;
+  }
+
   try {
     const tutos = await getTutorialsToShowForStudent(S.user.id);
     if (tutos.length > 0) {
@@ -14646,9 +14668,15 @@ function _shouldShowBirthdayPrompt() {
   return true;
 }
 
-/* Appelé après login (et après fermeture du What's New) */
+/* Appelé après login (et après fermeture des modales onboarding et What's New) */
 function checkAndShowBirthdayPrompt() {
   if (!_shouldShowBirthdayPrompt()) return;
+
+  // Attendre la fermeture des modales d'onboarding (PWA install, push)
+  if (typeof _isOnboardingModalOpen === 'function' && _isOnboardingModalOpen()) {
+    setTimeout(checkAndShowBirthdayPrompt, 1500);
+    return;
+  }
 
   // Si la modale What's New est encore visible, on attend qu'elle se ferme
   const wn = document.getElementById('modal-whatsnew');
@@ -16150,10 +16178,16 @@ async function loginAs(student) {
   setTimeout(_checkBadgesAfterLogin, 2500);
 }
 
-/* Vérifie les badges après login, en attendant que les modales What's New
-   et Birthday soient fermées pour ne pas chevaucher leurs animations. */
+/* Vérifie les badges après login, en attendant que les modales d'onboarding
+   (PWA install, push), What's New et Birthday soient fermées pour ne pas
+   chevaucher leurs animations. */
 function _checkBadgesAfterLogin() {
   if (!S.user || S.isAdmin) return;
+  // Attendre la fermeture des modales d'onboarding (PWA install, push)
+  if (typeof _isOnboardingModalOpen === 'function' && _isOnboardingModalOpen()) {
+    setTimeout(_checkBadgesAfterLogin, 1500);
+    return;
+  }
   const wn = document.getElementById('modal-whatsnew');
   const bd = document.getElementById('modal-birthday-prompt');
   const wnOpen = wn && !wn.classList.contains('hidden');
