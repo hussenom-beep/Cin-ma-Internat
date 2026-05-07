@@ -8285,34 +8285,14 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       <div class="profile-deco-row" id="profile-deco-row"></div>
     </div>
 
-    <!-- Carte installation mise en avant -->
-    <div class="profile-install-card" onclick="openAddToHome()">
+    <!-- Carte installation mise en avant — masquée automatiquement si déjà en PWA -->
+    <div class="profile-install-card" id="profile-install-card" onclick="openAddToHome()">
       <div class="profile-install-icon">📲</div>
       <div class="profile-install-content">
         <div class="profile-install-title">Installer l'application</div>
         <div class="profile-install-text">Ajoute Cinéma Internat sur ton écran d'accueil pour l'ouvrir facilement.</div>
       </div>
       <div class="profile-install-arrow">›</div>
-    </div>
-
-    <!-- Carte notifications push -->
-    <button class="profile-install-card profile-push-card" data-push-toggle onclick="togglePushNotifications()" style="border:none;width:100%;text-align:left;font-family:inherit;cursor:pointer;">
-      <div class="profile-install-icon" data-push-icon>🔕</div>
-      <div class="profile-install-content">
-        <div class="profile-install-title" data-push-label>Activer les notifications</div>
-        <div class="profile-install-text" data-push-sub>Sois prévenu des nouvelles séances</div>
-      </div>
-      <div class="profile-install-arrow">›</div>
-    </button>
-
-    <!-- Encart d'aide : visible uniquement si needs_pwa (géré par _refreshPushButtons) -->
-    <div class="push-help-box hidden" data-push-help>
-      <div class="push-help-box-icon">💡</div>
-      <div>
-        <div class="push-help-box-title">Comment activer les notifications ?</div>
-        1. Installe l'application en suivant le tuto <strong>📲 Installer l'application</strong> ci-dessus.<br>
-        2. Une fois l'app ouverte depuis l'icône sur ton écran d'accueil, reviens ici et appuie sur <strong>🔕 Activer les notifications</strong>.
-      </div>
     </div>
 
     <!-- Actions organisées par sections -->
@@ -8351,6 +8331,21 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
           <span class="pa-text">Changer mon code secret</span>
           <span class="pa-arrow">›</span>
         </button>
+        <!-- Notifications push : déplacé du haut du profil vers ici (Bug C5) -->
+        <button class="profile-action-btn profile-push-btn" data-push-toggle onclick="togglePushNotifications()">
+          <span class="pa-icon" data-push-icon>🔕</span>
+          <span class="pa-text" data-push-label>Activer les notifications</span>
+          <span class="pa-arrow">›</span>
+        </button>
+        <!-- Encart d'aide : visible si needs_pwa (géré par _refreshPushButtons) -->
+        <div class="push-help-box hidden" data-push-help style="margin:8px 0 0;">
+          <div class="push-help-box-icon">💡</div>
+          <div>
+            <div class="push-help-box-title">Comment activer les notifications ?</div>
+            1. Installe l'application en suivant <strong>📲 Installer l'application</strong> en haut du profil.<br>
+            2. Une fois l'app ouverte depuis l'icône sur ton écran d'accueil, reviens ici et appuie sur <strong>🔕 Activer les notifications</strong>.
+          </div>
+        </div>
       </div>
 
       <!-- Section Besoin d'aide -->
@@ -12037,7 +12032,7 @@ const BADGES_CATALOG = [
 
   { slug: 'premiere-conversation',  name: 'Première conversation', description: '1er message au surveillant',
     category: 'decouverte', rarity: 'bronze', hidden: false, emoji: '💬',
-    condition: { type: 'todo' } },  // Nécessite hook côté messagerie élève (à câbler en Phase 2)
+    condition: { type: 'messages_sent', count: 1 } },
 
   // ===== VOTES =====
   { slug: 'premier-vote',           name: 'Premier vote',           description: '1er vote pour un film',
@@ -12334,7 +12329,8 @@ async function loadStudentBadgeStats(studentId) {
     totalXp,
     eventsAll,
     proposalsSent,
-    proposalsAccepted
+    proposalsAccepted,
+    messagesSentCount
   ] = await Promise.all([
     getStudentTotalXp(studentId).catch(() => 0),
     getStudentXpHistory(studentId, 1000).catch(() => []),
@@ -12342,7 +12338,22 @@ async function loadStudentBadgeStats(studentId) {
       .then(r => r.count || 0).catch(() => 0),
     db.from('xp_events').select('id', { count: 'exact', head: true })
       .eq('student_id', studentId).eq('event_type', 'proposal_accepted')
-      .then(r => r.count || 0).catch(() => 0)
+      .then(r => r.count || 0).catch(() => 0),
+    // Messages envoyés par l'élève (badge Première conversation, Bug C5)
+    // 2 étapes : 1) récupérer les conv_id de l'élève 2) compter les messages 'student' dedans
+    (async () => {
+      try {
+        const { data: convs } = await db.from('conversations')
+          .select('id').eq('student_id', studentId);
+        const ids = (convs || []).map(c => c.id);
+        if (ids.length === 0) return 0;
+        const { count } = await db.from('conversation_messages')
+          .select('id', { count: 'exact', head: true })
+          .in('conversation_id', ids)
+          .eq('sender_type', 'student');
+        return count || 0;
+      } catch (e) { return 0; }
+    })()
   ]);
 
   // Compteurs dérivés des events
@@ -12365,6 +12376,7 @@ async function loadStudentBadgeStats(studentId) {
     eventCounts,
     proposalsSent,
     proposalsAccepted,
+    messagesSentCount,
     maxVotesInOneDay,
     votesCount: eventCounts.vote || 0,
     sessionsCount: (eventCounts.session_attended || 0) + (eventCounts.event_attended || 0)
@@ -12404,6 +12416,9 @@ function evaluateBadgeCondition(condition, stats) {
 
     case 'proposals_accepted':
       return stats.proposalsAccepted >= (condition.count || 1);
+
+    case 'messages_sent':
+      return (stats.messagesSentCount || 0) >= (condition.count || 1);
 
     case 'login_before_hour': {
       const h = condition.hour || 7;
@@ -23256,6 +23271,11 @@ async function sendStudentMessage() {
   const excerpt = content.length > 50 ? content.slice(0, 47) + '…' : content;
   _invokeSendPush('all_admins', '💬 Nouveau message', `${studentName} : ${excerpt}`, '/');
 
+  // Bug C5 — Vérifier les badges après envoi de message (déclenche "Première conversation")
+  if (typeof checkAndUnlockBadges === 'function' && S.user?.id) {
+    checkAndUnlockBadges(S.user.id).catch(e => console.warn('[badges] after message:', e));
+  }
+
   // Recharger les messages
   const { data: messages } = await db.from('conversation_messages')
     .select('*')
@@ -26902,6 +26922,18 @@ function openModal(id) {
         if (el) el.innerHTML = renderStudentDecorationHTML(deco, { compact: false });
       }).catch(() => {});
     }
+
+    // Bug C5 — Cacher la carte "Installer l'application" si on est déjà en PWA.
+    // Détection : display-mode standalone (Chrome/Edge/etc) ou navigator.standalone (iOS).
+    try {
+      const installCard = document.getElementById('profile-install-card');
+      if (installCard) {
+        const isPwa =
+          (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
+          (window.navigator && window.navigator.standalone === true);
+        installCard.classList.toggle('hidden', !!isPwa);
+      }
+    } catch (e) { /* fallback : on laisse la carte visible */ }
 
     // Afficher l'identifiant si disponible
     const identEl = document.getElementById('prof-identifier');
