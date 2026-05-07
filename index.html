@@ -2920,6 +2920,96 @@ body.theme-christmas .s-header {
 }
 
 /* ================================================================
+   Petit rond doré avec le niveau (à gauche du nom dans les listes)
+   ================================================================ */
+.level-rond {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  min-width: 26px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #ffd97a 0%, var(--gold, #f0a500) 60%, #b87a00 100%);
+  color: #2a1a05;
+  font-family: 'Playfair Display', serif;
+  font-weight: 800;
+  font-size: 12px;
+  line-height: 1;
+  border: 1.5px solid rgba(0, 0, 0, 0.4);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  flex-shrink: 0;
+  letter-spacing: -0.5px;
+}
+/* Variante grosse pour la fiche admin */
+.level-rond.level-rond-lg {
+  width: 56px;
+  height: 56px;
+  min-width: 56px;
+  font-size: 24px;
+  border-width: 2px;
+  letter-spacing: -1px;
+}
+
+/* ================================================================
+   Bloc "Profil cinéma" dans la fiche élève admin
+   ================================================================ */
+.admin-cinema-block {
+  background: linear-gradient(135deg, rgba(240, 165, 0, 0.08), rgba(240, 165, 0, 0.02));
+  border: 1px solid rgba(240, 165, 0, 0.2);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin: 10px 0 16px;
+}
+.admin-cinema-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.admin-cinema-info {
+  flex: 1;
+  min-width: 0;
+}
+.admin-cinema-title-line {
+  font-size: 13px;
+  color: var(--text-2);
+  margin-bottom: 4px;
+}
+.admin-cinema-xp-bar {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 999px;
+  overflow: hidden;
+  position: relative;
+}
+.admin-cinema-xp-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--gold, #f0a500), #ffd97a);
+  border-radius: 999px;
+  transition: width 0.5s ease-out;
+}
+.admin-cinema-xp-text {
+  font-size: 11px;
+  color: var(--text-2);
+  margin-top: 4px;
+}
+.admin-cinema-badges-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed rgba(240, 165, 0, 0.15);
+}
+.admin-cinema-badges-count {
+  font-size: 12px;
+  color: var(--text-2);
+  margin-left: auto;
+  font-weight: 600;
+}
+
+/* ================================================================
    Popup détail "Mon titre" (au tap sur le chip de titre)
    ================================================================ */
 .title-detail-card {
@@ -9766,6 +9856,12 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 
       <!-- ---- ONGLET : Vue d'ensemble ---- -->
       <div id="sd-pane-overview">
+        <div class="sd-section" id="sd-cinema-section" style="display:none;">
+          <div class="sd-section-title">🎬 Profil cinéma</div>
+          <div id="sd-cinema-block">
+            <div class="loader" style="padding:14px;"><div class="spinner"></div></div>
+          </div>
+        </div>
         <div class="sd-section">
           <div class="sd-section-title">Repères</div>
           <div style="display:flex;flex-direction:column;gap:7px;" id="sd-account-info"></div>
@@ -11975,7 +12071,7 @@ const GITHUB_BADGES_BASE = 'https://raw.githubusercontent.com/hussenom-beep/Cin-
 /* Configuration visuelle par rareté */
 const BADGES_RARITY_CONFIG = {
   bronze:   { label: 'Bronze',   color: '#CD7F32', bg: '#3A2818', notif: 'toast' },
-  argent:   { label: 'Argent',   color: '#C0C0C0', bg: '#2A2A2A', notif: 'toast' },
+  argent:   { label: 'Argent',   color: '#C0C0C0', bg: '#2A2A2A', notif: 'modal' },
   or:       { label: 'Or',       color: '#FFD700', bg: '#3A2D08', notif: 'modal' },
   emeraude: { label: 'Émeraude', color: '#50C878', bg: '#0F2E1F', notif: 'modal' },
   diamant:  { label: 'Diamant',  color: '#B9F2FF', bg: '#0E2A35', notif: 'modal' }
@@ -13200,6 +13296,17 @@ function invalidateStudentDecoCache(studentId) {
    - compact : true → variante plus petite pour les listes denses
    - showTitle : true (défaut) → affiche le chip de titre
    - showBadges : true (défaut) → affiche les mini-badges */
+/* Petit rond doré avec le numéro de niveau, à placer à gauche du nom dans
+   les listes (inscrits, attente, bannis) ou en grosse version dans la fiche
+   admin. level défaut 1, sinon clamp 1..XP_MAX_LEVEL. Si large=true, ajoute
+   la classe level-rond-lg. */
+function renderLevelRondHTML(level, large = false) {
+  let n = parseInt(level, 10);
+  if (!Number.isFinite(n) || n < 1) n = 1;
+  if (typeof XP_MAX_LEVEL === 'number' && n > XP_MAX_LEVEL) n = XP_MAX_LEVEL;
+  return `<span class="level-rond${large ? ' level-rond-lg' : ''}" title="Niveau ${n}">${n}</span>`;
+}
+
 function renderStudentDecorationHTML(deco, options = {}) {
   if (!deco) return '';
   const { compact = false, showTitle = true, showBadges = true } = options;
@@ -18732,11 +18839,14 @@ async function viewStudentRegistrants(sesId, date) {
       const firstName = r.students?.first_name || 'Élève';
       const lastName = r.students?.last_name || 'introuvable';
       const className = r.students?.class_name || '—';
-      const decoHtml = renderStudentDecorationHTML(decoMap.get(r.student_id), { compact: true });
+      const deco = decoMap.get(r.student_id);
+      const decoHtml = renderStudentDecorationHTML(deco, { compact: true });
+      const levelHtml = renderLevelRondHTML(deco?.level || 1);
 
       return `
         <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--surface-2);border-radius:8px;gap:10px;flex-wrap:wrap;">
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0;flex:1;">
+            ${levelHtml}
             <span style="font-weight:600;font-size:14px;">${firstName} ${lastName}</span>
             ${decoHtml}
           </div>
@@ -23955,11 +24065,15 @@ async function viewRegistrants(sesId, date) {
     const regRow = r => {
       const risk = _viewRiskMap.get(r.studentId) || { lateCount: 0, absenceCount: 0 };
       const riskHtml = _renderRiskBadges(risk, { compact: true });
+      const deco = _viewDecoMap.get(r.studentId);
       const decoHtml = (typeof renderStudentDecorationHTML === 'function')
-        ? renderStudentDecorationHTML(_viewDecoMap.get(r.studentId), { compact: true }) : '';
+        ? renderStudentDecorationHTML(deco, { compact: true }) : '';
+      const levelHtml = (typeof renderLevelRondHTML === 'function')
+        ? renderLevelRondHTML(deco?.level || 1) : '';
       return `
       <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--surface-2);border-radius:8px;gap:8px;">
         <div style="flex:1;min-width:0;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+          ${levelHtml}
           <button class="admin-student-link" onclick="openStudentDetail('${r.studentId}')">
             ${r.firstName || ''} ${r.lastName || ''}
           </button>
@@ -23981,10 +24095,15 @@ async function viewRegistrants(sesId, date) {
     html += '<div style="margin-bottom: 24px; padding-top: 16px; border-top: 1px solid var(--border);">';
     html += '<h3 style="font-size: 15px; font-weight: 700; color: var(--text-1); margin-bottom: 12px;">⏳ Liste d\'attente</h3>';
     
-    const waitRow = w => `
+    const waitRow = w => {
+      const deco = _viewDecoMap.get(w.studentId);
+      const levelHtml = (typeof renderLevelRondHTML === 'function')
+        ? renderLevelRondHTML(deco?.level || 1) : '';
+      return `
       <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--surface-2);border-radius:8px;gap:8px;">
         <div style="flex:1;min-width:0;display:flex;align-items:center;gap:8px;">
           <span style="font-size:13px;font-weight:700;color:var(--text-2);min-width:24px;">#${w.rank}</span>
+          ${levelHtml}
           <div style="flex:1;min-width:0;">
             <button class="admin-student-link" onclick="openStudentDetail('${w.studentId}')">
               ${w.firstName || ''} ${w.lastName || ''}
@@ -23993,6 +24112,7 @@ async function viewRegistrants(sesId, date) {
           </div>
         </div>
       </div>`;
+    };
 
     html += `<p class="text-sm text-muted mb-1">${waitlistStudents.length} en attente</p>
       <div style="display:flex;flex-direction:column;gap:7px;">${waitlistStudents.map(waitRow).join('')}</div>`;
@@ -24004,14 +24124,21 @@ async function viewRegistrants(sesId, date) {
     html += '<div style="margin-bottom: 16px; padding-top: 16px; border-top: 1px solid var(--border);">';
     html += '<h3 style="font-size: 15px; font-weight: 700; color: var(--red); margin-bottom: 12px;">🚫 Élèves refusés / bloqués</h3>';
     
-    const banRow = b => `
+    const banRow = b => {
+      const deco = _viewDecoMap.get(b.studentId);
+      const levelHtml = (typeof renderLevelRondHTML === 'function')
+        ? renderLevelRondHTML(deco?.level || 1) : '';
+      return `
       <div style="display:flex;flex-direction:column;gap:6px;padding:10px 12px;background:var(--surface-2);border-radius:8px;border-left:3px solid var(--red);">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
-          <div style="flex:1;min-width:0;">
-            <button class="admin-student-link" onclick="openStudentDetail('${b.studentId}')">
-              ${b.firstName || ''} ${b.lastName || ''}
-            </button>
-            <span class="badge badge-muted" style="margin-left:6px;">${b.className || '—'}</span>
+          <div style="flex:1;min-width:0;display:flex;align-items:center;gap:8px;">
+            ${levelHtml}
+            <div style="flex:1;min-width:0;">
+              <button class="admin-student-link" onclick="openStudentDetail('${b.studentId}')">
+                ${b.firstName || ''} ${b.lastName || ''}
+              </button>
+              <span class="badge badge-muted" style="margin-left:6px;">${b.className || '—'}</span>
+            </div>
           </div>
           <button class="btn btn-sm btn-ghost" onclick="unbanStudent('${sesId}','${b.studentId}','${date}')">
             Débloquer
@@ -24019,6 +24146,7 @@ async function viewRegistrants(sesId, date) {
         </div>
         ${b.reason ? `<p style="font-size:13px;color:var(--text-2);margin:0;padding-left:2px;">💬 ${b.reason}</p>` : ''}
       </div>`;
+    };
 
     html += `<p class="text-sm text-muted mb-1">${bannedStudents.length} bloqué${bannedStudents.length > 1 ? 's' : ''}</p>
       <div style="display:flex;flex-direction:column;gap:7px;">${bannedStudents.map(banRow).join('')}</div>`;
@@ -24827,6 +24955,7 @@ async function openStudentDetail(studentId) {
   sdSwitchTab('overview');
   openModal('modal-student-detail');
   _sdLoadOverview(studentId);
+  _sdLoadCinemaProfile(studentId);
 }
 
 /* Ouverture par eleve_uid */
@@ -24942,6 +25071,80 @@ async function changeAdminPassword() {
       btn.disabled = false;
       btn.textContent = '🔐 Modifier le mot de passe';
     }
+  }
+}
+
+/* ---- Profil cinéma (niveau, XP, titre, badges épinglés, compteur) ----
+   Affiché en haut de l'onglet Vue d'ensemble dans la fiche élève admin.
+   Data : 1 query xp_events agrégée (déjà loadStudentsBusinessCards), +
+   1 query student_badges count pour le X / 44. */
+async function _sdLoadCinemaProfile(studentId) {
+  const wrap = document.getElementById('sd-cinema-block');
+  const sect = document.getElementById('sd-cinema-section');
+  if (!wrap || !sect) return;
+
+  try {
+    // 1. Décoration (niveau + titre épinglé + 3 badges épinglés) via le helper batch
+    let deco = null;
+    if (typeof loadStudentsBusinessCards === 'function') {
+      const m = await loadStudentsBusinessCards([studentId]);
+      deco = m.get(studentId);
+    }
+    if (!deco) deco = { level: 1, totalXp: 0, pinnedBadges: [], pinnedTitleSlug: null };
+
+    // 2. Compteur de badges débloqués
+    let badgeCount = 0;
+    try {
+      const { count } = await db.from('student_badges')
+        .select('badge_slug', { count: 'exact', head: true })
+        .eq('student_id', studentId);
+      badgeCount = count || 0;
+    } catch (e) { console.warn('[sdCinema] badge count:', e); }
+
+    // 3. Progression XP (réutilise computeXpProgress si dispo)
+    const level = deco.level || 1;
+    const totalXp = deco.totalXp || 0;
+    let progress = { pct: 0, current: 0, next: 0, isMax: false };
+    if (typeof computeXpProgress === 'function') {
+      progress = computeXpProgress(totalXp);
+    }
+
+    // 4. Carte de visite (chip titre + 3 badges)
+    const decoHtml = (typeof renderStudentDecorationHTML === 'function')
+      ? renderStudentDecorationHTML(deco, { compact: false })
+      : '';
+    const titleObj = (typeof getEffectiveTitle === 'function')
+      ? getEffectiveTitle(level, deco.pinnedTitleSlug)
+      : null;
+    const totalBadges = (typeof BADGES_CATALOG !== 'undefined' && BADGES_CATALOG.length) || 44;
+
+    const xpBarHtml = progress.isMax
+      ? `<div class="admin-cinema-xp-bar"><div class="admin-cinema-xp-fill" style="width:100%;"></div></div>
+         <div class="admin-cinema-xp-text">Niveau max atteint — ${totalXp.toLocaleString('fr-FR')} XP cumulés</div>`
+      : `<div class="admin-cinema-xp-bar"><div class="admin-cinema-xp-fill" style="width:${Math.max(0, Math.min(100, progress.pct || 0)).toFixed(1)}%;"></div></div>
+         <div class="admin-cinema-xp-text">${(progress.current || 0).toLocaleString('fr-FR')} / ${(progress.next || 0).toLocaleString('fr-FR')} XP — ${totalXp.toLocaleString('fr-FR')} XP cumulés</div>`;
+
+    wrap.innerHTML = `
+      <div class="admin-cinema-block">
+        <div class="admin-cinema-row">
+          ${renderLevelRondHTML(level, true)}
+          <div class="admin-cinema-info">
+            <div class="admin-cinema-title-line">
+              ${titleObj ? `${titleObj.emoji} <strong>${_escapeHtml(titleObj.label)}</strong>` : 'Niveau ' + level}
+            </div>
+            ${xpBarHtml}
+          </div>
+        </div>
+        ${decoHtml || badgeCount > 0 ? `
+          <div class="admin-cinema-badges-row">
+            ${decoHtml}
+            <span class="admin-cinema-badges-count">🏅 ${badgeCount} / ${totalBadges} badges</span>
+          </div>` : ''}
+      </div>`;
+    sect.style.display = '';
+  } catch (e) {
+    console.warn('[sdCinema] error:', e);
+    sect.style.display = 'none';
   }
 }
 
