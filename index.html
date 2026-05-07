@@ -2920,93 +2920,159 @@ body.theme-christmas .s-header {
 }
 
 /* ================================================================
-   Petit rond doré avec le niveau (à gauche du nom dans les listes)
+   Mini anneau XP (à gauche du nom dans les listes : inscrits, attente, bannis)
+   Reprend le look du grand .profile-xp-ring mais en miniature 32px
    ================================================================ */
-.level-rond {
+.mini-xp-ring {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
-  min-width: 26px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 30% 30%, #ffd97a 0%, var(--gold, #f0a500) 60%, #b87a00 100%);
-  color: #2a1a05;
-  font-family: 'Playfair Display', serif;
-  font-weight: 800;
-  font-size: 12px;
-  line-height: 1;
-  border: 1.5px solid rgba(0, 0, 0, 0.4);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
   flex-shrink: 0;
-  letter-spacing: -0.5px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3A271B 0%, #241811 100%);
+  box-shadow: 0 1px 5px rgba(240, 165, 0, 0.25);
+  vertical-align: middle;
 }
-/* Variante grosse pour la fiche admin */
-.level-rond.level-rond-lg {
-  width: 56px;
-  height: 56px;
-  min-width: 56px;
-  font-size: 24px;
-  border-width: 2px;
-  letter-spacing: -1px;
+.mini-xp-ring .xp-ring-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+  pointer-events: none;
+}
+.mini-xp-ring .xp-ring-track {
+  fill: none;
+  stroke: rgba(240, 165, 0, 0.18);
+  stroke-width: 2.5;
+}
+.mini-xp-ring .xp-ring-progress {
+  fill: none;
+  stroke: var(--gold, #f0a500);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 2px rgba(240, 165, 0, 0.5));
+  transition: stroke-dasharray 0.5s ease-out;
+}
+.mini-xp-ring .xp-ring-level {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--gold, #f0a500);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  position: relative;
+  z-index: 1;
+}
+.mini-xp-ring.xp-max .xp-ring-progress {
+  stroke: #FFD700;
+  filter: drop-shadow(0 0 3px rgba(255, 215, 0, 0.7));
 }
 
-/* ================================================================
-   Bloc "Profil cinéma" dans la fiche élève admin
-   ================================================================ */
-.admin-cinema-block {
-  background: linear-gradient(135deg, rgba(240, 165, 0, 0.08), rgba(240, 165, 0, 0.02));
-  border: 1px solid rgba(240, 165, 0, 0.2);
-  border-radius: 12px;
-  padding: 14px 16px;
-  margin: 10px 0 16px;
-}
-.admin-cinema-row {
+/* Header de la fiche élève admin : remplace l'avatar initiales par le ring XP
+   + ajoute une barre XP et la déco (titre + badges + compteur) */
+.sd-avatar-ring {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  min-width: 64px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3A271B 0%, #241811 100%);
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 10px;
+  justify-content: center;
+  box-shadow: 0 2px 10px rgba(240, 165, 0, 0.3);
 }
-.admin-cinema-info {
-  flex: 1;
-  min-width: 0;
-}
-.admin-cinema-title-line {
-  font-size: 13px;
-  color: var(--text-2);
-  margin-bottom: 4px;
-}
-.admin-cinema-xp-bar {
+.sd-avatar-ring .xp-ring-svg {
+  position: absolute;
+  inset: 0;
   width: 100%;
-  height: 8px;
-  background: rgba(255, 255, 255, 0.06);
+  height: 100%;
+  transform: rotate(-90deg);
+  pointer-events: none;
+}
+.sd-avatar-ring .xp-ring-track {
+  fill: none;
+  stroke: rgba(240, 165, 0, 0.18);
+  stroke-width: 3.5;
+}
+.sd-avatar-ring .xp-ring-progress {
+  fill: none;
+  stroke: var(--gold, #f0a500);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 3px rgba(240, 165, 0, 0.5));
+  transition: stroke-dasharray 0.5s ease-out;
+}
+.sd-avatar-ring .xp-ring-level {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--gold, #f0a500);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  position: relative;
+  z-index: 1;
+}
+.sd-avatar-ring.xp-max .xp-ring-progress {
+  stroke: #FFD700;
+  filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.7));
+}
+
+/* Barre XP intégrée au header admin (sous le nom + meta + uid) */
+.sd-xp-row {
+  margin-top: 8px;
+  padding: 8px 10px;
+  background: linear-gradient(135deg, rgba(240, 165, 0, 0.06), rgba(240, 165, 0, 0.02));
+  border: 1px solid rgba(240, 165, 0, 0.15);
+  border-radius: 8px;
+}
+.sd-xp-title-line {
+  font-size: 12.5px;
+  color: var(--text-2);
+  margin-bottom: 5px;
+  font-weight: 600;
+}
+.sd-xp-bar {
+  width: 100%;
+  height: 7px;
+  background: rgba(240, 165, 0, 0.15);
   border-radius: 999px;
   overflow: hidden;
-  position: relative;
 }
-.admin-cinema-xp-fill {
+.sd-xp-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--gold, #f0a500), #ffd97a);
+  background: linear-gradient(90deg, var(--gold, #f0a500), #FFC857);
   border-radius: 999px;
-  transition: width 0.5s ease-out;
+  box-shadow: 0 0 5px rgba(240, 165, 0, 0.5);
+  transition: width 0.6s cubic-bezier(.4, .15, .2, 1);
 }
-.admin-cinema-xp-text {
+.sd-xp-text {
   font-size: 11px;
   color: var(--text-2);
   margin-top: 4px;
 }
-.admin-cinema-badges-row {
+
+/* Ligne déco (titre + 3 badges épinglés + compteur) sous la barre XP */
+.sd-deco-row {
+  margin-top: 8px;
   display: flex;
   align-items: center;
   gap: 10px;
-  padding-top: 8px;
-  border-top: 1px dashed rgba(240, 165, 0, 0.15);
+  flex-wrap: wrap;
 }
-.admin-cinema-badges-count {
+.sd-deco-badges-count {
   font-size: 12px;
   color: var(--text-2);
   margin-left: auto;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 /* ================================================================
@@ -9834,7 +9900,14 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 
       <!-- Identité (toujours visible en haut) -->
       <div class="sd-identity">
-        <div class="sd-avatar" id="sd-avatar">?</div>
+        <div class="sd-avatar-ring" id="sd-avatar-ring">
+          <svg class="xp-ring-svg" viewBox="0 0 64 64">
+            <circle class="xp-ring-track" cx="32" cy="32" r="28"/>
+            <circle class="xp-ring-progress" id="sd-avatar-ring-progress" cx="32" cy="32" r="28"
+                    stroke-dasharray="0 175.93"/>
+          </svg>
+          <span class="xp-ring-level" id="sd-avatar-ring-level">1</span>
+        </div>
         <div style="flex:1;min-width:0;">
           <div class="sd-name" id="sd-name">—</div>
           <div class="sd-meta">
@@ -9847,6 +9920,14 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
             <span class="sd-uid" id="sd-uid" title="Identifiant connexion"></span>
             <span class="sd-uid" id="sd-eleve-uid" style="margin-left:5px;" title="EleveUID permanent"></span>
           </div>
+          <!-- Barre XP (Profil cinéma intégré) -->
+          <div class="sd-xp-row" id="sd-xp-row" style="display:none;">
+            <div class="sd-xp-title-line" id="sd-xp-title-line"></div>
+            <div class="sd-xp-bar"><div class="sd-xp-fill" id="sd-xp-fill" style="width:0%;"></div></div>
+            <div class="sd-xp-text" id="sd-xp-text"></div>
+          </div>
+          <!-- Ligne déco : titre + 3 badges + compteur X / 44 -->
+          <div class="sd-deco-row" id="sd-deco-row" style="display:none;"></div>
           <!-- Bouton Contacter l'élève -->
           <div id="sd-contact-btn" style="margin-top:10px;"></div>
           <!-- Bouton Inscrire à une séance (admin force-register) -->
@@ -9856,12 +9937,6 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 
       <!-- ---- ONGLET : Vue d'ensemble ---- -->
       <div id="sd-pane-overview">
-        <div class="sd-section" id="sd-cinema-section" style="display:none;">
-          <div class="sd-section-title">🎬 Profil cinéma</div>
-          <div id="sd-cinema-block">
-            <div class="loader" style="padding:14px;"><div class="spinner"></div></div>
-          </div>
-        </div>
         <div class="sd-section">
           <div class="sd-section-title">Repères</div>
           <div style="display:flex;flex-direction:column;gap:7px;" id="sd-account-info"></div>
@@ -13296,15 +13371,40 @@ function invalidateStudentDecoCache(studentId) {
    - compact : true → variante plus petite pour les listes denses
    - showTitle : true (défaut) → affiche le chip de titre
    - showBadges : true (défaut) → affiche les mini-badges */
-/* Petit rond doré avec le numéro de niveau, à placer à gauche du nom dans
-   les listes (inscrits, attente, bannis) ou en grosse version dans la fiche
-   admin. level défaut 1, sinon clamp 1..XP_MAX_LEVEL. Si large=true, ajoute
-   la classe level-rond-lg. */
-function renderLevelRondHTML(level, large = false) {
+/* Mini anneau XP avec niveau au centre — à placer à gauche du nom dans
+   les listes (inscrits, attente, bannis). Réutilise le look du grand ring
+   du profil élève en miniature 32px.
+   Args : level (1..XP_MAX_LEVEL), totalXp (pour calculer l'anneau de progression).
+   Si totalXp absent, le calcul de progression est fait depuis level uniquement
+   (donc anneau vide ou plein selon le niveau max). */
+function renderLevelRondHTML(level, totalXp) {
   let n = parseInt(level, 10);
   if (!Number.isFinite(n) || n < 1) n = 1;
   if (typeof XP_MAX_LEVEL === 'number' && n > XP_MAX_LEVEL) n = XP_MAX_LEVEL;
-  return `<span class="level-rond${large ? ' level-rond-lg' : ''}" title="Niveau ${n}">${n}</span>`;
+
+  // Pourcentage de progression dans le niveau courant
+  let pct = 0;
+  let isMax = false;
+  if (typeof totalXp === 'number' && typeof computeXpProgress === 'function') {
+    const p = computeXpProgress(totalXp);
+    pct = p.percent || 0;
+    isMax = !!p.isMax;
+  } else if (typeof XP_MAX_LEVEL === 'number' && n >= XP_MAX_LEVEL) {
+    pct = 100; isMax = true;
+  }
+
+  // SVG : circle r=14 → circumference = 2π·14 ≈ 87.96
+  const C = 87.96;
+  const dash = isMax ? C : (pct / 100) * C;
+  const dashArray = `${dash.toFixed(2)} ${C.toFixed(2)}`;
+
+  return `<span class="mini-xp-ring${isMax ? ' xp-max' : ''}" title="Niveau ${n}">
+    <svg class="xp-ring-svg" viewBox="0 0 32 32">
+      <circle class="xp-ring-track" cx="16" cy="16" r="14"/>
+      <circle class="xp-ring-progress" cx="16" cy="16" r="14" stroke-dasharray="${dashArray}"/>
+    </svg>
+    <span class="xp-ring-level">${n}</span>
+  </span>`;
 }
 
 function renderStudentDecorationHTML(deco, options = {}) {
@@ -18841,7 +18941,7 @@ async function viewStudentRegistrants(sesId, date) {
       const className = r.students?.class_name || '—';
       const deco = decoMap.get(r.student_id);
       const decoHtml = renderStudentDecorationHTML(deco, { compact: true });
-      const levelHtml = renderLevelRondHTML(deco?.level || 1);
+      const levelHtml = renderLevelRondHTML(deco?.level || 1, deco?.totalXp);
 
       return `
         <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--surface-2);border-radius:8px;gap:10px;flex-wrap:wrap;">
@@ -24069,7 +24169,7 @@ async function viewRegistrants(sesId, date) {
       const decoHtml = (typeof renderStudentDecorationHTML === 'function')
         ? renderStudentDecorationHTML(deco, { compact: true }) : '';
       const levelHtml = (typeof renderLevelRondHTML === 'function')
-        ? renderLevelRondHTML(deco?.level || 1) : '';
+        ? renderLevelRondHTML(deco?.level || 1, deco?.totalXp) : '';
       return `
       <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--surface-2);border-radius:8px;gap:8px;">
         <div style="flex:1;min-width:0;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
@@ -24098,7 +24198,7 @@ async function viewRegistrants(sesId, date) {
     const waitRow = w => {
       const deco = _viewDecoMap.get(w.studentId);
       const levelHtml = (typeof renderLevelRondHTML === 'function')
-        ? renderLevelRondHTML(deco?.level || 1) : '';
+        ? renderLevelRondHTML(deco?.level || 1, deco?.totalXp) : '';
       return `
       <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--surface-2);border-radius:8px;gap:8px;">
         <div style="flex:1;min-width:0;display:flex;align-items:center;gap:8px;">
@@ -24127,7 +24227,7 @@ async function viewRegistrants(sesId, date) {
     const banRow = b => {
       const deco = _viewDecoMap.get(b.studentId);
       const levelHtml = (typeof renderLevelRondHTML === 'function')
-        ? renderLevelRondHTML(deco?.level || 1) : '';
+        ? renderLevelRondHTML(deco?.level || 1, deco?.totalXp) : '';
       return `
       <div style="display:flex;flex-direction:column;gap:6px;padding:10px 12px;background:var(--surface-2);border-radius:8px;border-left:3px solid var(--red);">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
@@ -24802,8 +24902,6 @@ async function openStudentDetail(studentId) {
   const notifDotHtml = _renderNotifDot(s);
 
   document.getElementById('sd-header-title').textContent = `${s.first_name} ${s.last_name}`;
-  const initials = ((s.first_name?.[0] || '') + (s.last_name?.[0] || '')).toUpperCase() || '?';
-  document.getElementById('sd-avatar').textContent = initials;
   document.getElementById('sd-name').innerHTML     = `${notifDotHtml}${s.first_name} ${s.last_name}`;
 
   const classBadge = document.getElementById('sd-class-badge');
@@ -25074,17 +25172,29 @@ async function changeAdminPassword() {
   }
 }
 
-/* ---- Profil cinéma (niveau, XP, titre, badges épinglés, compteur) ----
-   Affiché en haut de l'onglet Vue d'ensemble dans la fiche élève admin.
-   Data : 1 query xp_events agrégée (déjà loadStudentsBusinessCards), +
-   1 query student_badges count pour le X / 44. */
+/* ---- Profil cinéma intégré au header de la fiche admin ----
+   Peuple le ring XP de l'avatar + la barre XP + la ligne déco (titre + badges
+   + compteur). Tout est dans le header, pas de section séparée. */
 async function _sdLoadCinemaProfile(studentId) {
-  const wrap = document.getElementById('sd-cinema-block');
-  const sect = document.getElementById('sd-cinema-section');
-  if (!wrap || !sect) return;
+  const ringEl       = document.getElementById('sd-avatar-ring');
+  const ringLevelEl  = document.getElementById('sd-avatar-ring-level');
+  const ringProgEl   = document.getElementById('sd-avatar-ring-progress');
+  const xpRow        = document.getElementById('sd-xp-row');
+  const xpTitleLine  = document.getElementById('sd-xp-title-line');
+  const xpFill       = document.getElementById('sd-xp-fill');
+  const xpText       = document.getElementById('sd-xp-text');
+  const decoRow      = document.getElementById('sd-deco-row');
+  if (!ringEl || !xpRow || !decoRow) return;
+
+  // Reset par défaut (le temps du fetch)
+  if (ringLevelEl) ringLevelEl.textContent = '1';
+  if (ringProgEl)  ringProgEl.setAttribute('stroke-dasharray', '0 175.93');
+  if (xpRow)       xpRow.style.display = 'none';
+  if (decoRow)     decoRow.style.display = 'none';
+  ringEl.classList.remove('xp-max');
 
   try {
-    // 1. Décoration (niveau + titre épinglé + 3 badges épinglés) via le helper batch
+    // 1. Décoration (level + totalXp + titre épinglé + 3 badges épinglés)
     let deco = null;
     if (typeof loadStudentsBusinessCards === 'function') {
       const m = await loadStudentsBusinessCards([studentId]);
@@ -25101,50 +25211,58 @@ async function _sdLoadCinemaProfile(studentId) {
       badgeCount = count || 0;
     } catch (e) { console.warn('[sdCinema] badge count:', e); }
 
-    // 3. Progression XP (réutilise computeXpProgress si dispo)
-    const level = deco.level || 1;
+    const level   = deco.level || 1;
     const totalXp = deco.totalXp || 0;
-    let progress = { pct: 0, current: 0, next: 0, isMax: false };
+
+    // 3. Progression XP
+    let progress = { percent: 0, xpInLevel: 0, xpNeededForNext: 0, isMax: false };
     if (typeof computeXpProgress === 'function') {
       progress = computeXpProgress(totalXp);
     }
 
-    // 4. Carte de visite (chip titre + 3 badges)
-    const decoHtml = (typeof renderStudentDecorationHTML === 'function')
-      ? renderStudentDecorationHTML(deco, { compact: false })
-      : '';
+    // 4. Peupler le ring d'avatar
+    if (ringLevelEl) ringLevelEl.textContent = String(level);
+    if (ringProgEl) {
+      // r=28 → circumference = 2π·28 ≈ 175.93
+      const C = 175.93;
+      const dash = progress.isMax ? C : (progress.percent / 100) * C;
+      ringProgEl.setAttribute('stroke-dasharray', `${dash.toFixed(2)} ${C.toFixed(2)}`);
+    }
+    if (progress.isMax) ringEl.classList.add('xp-max');
+
+    // 5. Peupler la barre XP
     const titleObj = (typeof getEffectiveTitle === 'function')
       ? getEffectiveTitle(level, deco.pinnedTitleSlug)
       : null;
+
+    if (xpTitleLine) {
+      xpTitleLine.innerHTML = titleObj
+        ? `${titleObj.emoji} <strong>${_escapeHtml(titleObj.label)}</strong> <span style="color:var(--text-3);font-weight:400;">— Niveau ${level}</span>`
+        : `Niveau ${level}`;
+    }
+    if (xpFill) {
+      const pct = progress.isMax ? 100 : Math.max(0, Math.min(100, progress.percent || 0));
+      xpFill.style.width = pct + '%';
+    }
+    if (xpText) {
+      xpText.textContent = progress.isMax
+        ? `Niveau max atteint — ${totalXp.toLocaleString('fr-FR')} XP cumulés`
+        : `${(progress.xpInLevel || 0).toLocaleString('fr-FR')} / ${(progress.xpNeededForNext || 0).toLocaleString('fr-FR')} XP — ${totalXp.toLocaleString('fr-FR')} XP cumulés`;
+    }
+    xpRow.style.display = '';
+
+    // 6. Peupler la ligne déco (titre chip + 3 badges + compteur X / 44)
     const totalBadges = (typeof BADGES_CATALOG !== 'undefined' && BADGES_CATALOG.length) || 44;
-
-    const xpBarHtml = progress.isMax
-      ? `<div class="admin-cinema-xp-bar"><div class="admin-cinema-xp-fill" style="width:100%;"></div></div>
-         <div class="admin-cinema-xp-text">Niveau max atteint — ${totalXp.toLocaleString('fr-FR')} XP cumulés</div>`
-      : `<div class="admin-cinema-xp-bar"><div class="admin-cinema-xp-fill" style="width:${Math.max(0, Math.min(100, progress.pct || 0)).toFixed(1)}%;"></div></div>
-         <div class="admin-cinema-xp-text">${(progress.current || 0).toLocaleString('fr-FR')} / ${(progress.next || 0).toLocaleString('fr-FR')} XP — ${totalXp.toLocaleString('fr-FR')} XP cumulés</div>`;
-
-    wrap.innerHTML = `
-      <div class="admin-cinema-block">
-        <div class="admin-cinema-row">
-          ${renderLevelRondHTML(level, true)}
-          <div class="admin-cinema-info">
-            <div class="admin-cinema-title-line">
-              ${titleObj ? `${titleObj.emoji} <strong>${_escapeHtml(titleObj.label)}</strong>` : 'Niveau ' + level}
-            </div>
-            ${xpBarHtml}
-          </div>
-        </div>
-        ${decoHtml || badgeCount > 0 ? `
-          <div class="admin-cinema-badges-row">
-            ${decoHtml}
-            <span class="admin-cinema-badges-count">🏅 ${badgeCount} / ${totalBadges} badges</span>
-          </div>` : ''}
-      </div>`;
-    sect.style.display = '';
+    const decoHtml = (typeof renderStudentDecorationHTML === 'function')
+      ? renderStudentDecorationHTML(deco, { compact: false })
+      : '';
+    const hasDeco = decoHtml || badgeCount > 0;
+    if (hasDeco) {
+      decoRow.innerHTML = `${decoHtml}<span class="sd-deco-badges-count">🏅 ${badgeCount} / ${totalBadges} badges</span>`;
+      decoRow.style.display = '';
+    }
   } catch (e) {
     console.warn('[sdCinema] error:', e);
-    sect.style.display = 'none';
   }
 }
 
