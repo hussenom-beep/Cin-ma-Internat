@@ -12369,7 +12369,15 @@ const BADGES_CATALOG = [
 
   { slug: 'cache-mois-irreprochable', name: 'Mois irréprochable',   description: '30 jours sans aucune pénalité',
     category: 'cache', rarity: 'diamant', hidden: true, emoji: '💯',
-    condition: { type: 'no_penalty_days', days: 30 } },
+    /* `launchDate` : date de lancement du système de badges. La fenêtre de
+       30 jours commence à `max(launchDate, student.activated_at)` : pour les
+       élèves existants au lancement, le badge est éligible 30 jours plus tard ;
+       pour les nouveaux, 30 jours après leur activation.
+       `requireWeeklyLogin` : exige au moins 1 connexion par semaine sur les
+       30 jours, sinon le badge est trop facile (un élève qui se connecte
+       quasi-jamais mais sans pénalité aurait gagné). */
+    condition: { type: 'no_penalty_days', days: 30,
+                 launchDate: '2026-05-06', requireWeeklyLogin: true } },
 
   { slug: 'cache-couche-tard',      name: 'Couche-tard',            description: 'Connexion après minuit',
     category: 'cache', rarity: 'diamant', hidden: true, emoji: '🌙',
@@ -12501,7 +12509,9 @@ async function loadStudentBadgeStats(studentId) {
     eventsAll,
     proposalsSent,
     proposalsAccepted,
-    messagesSentCount
+    messagesSentCount,
+    studentRow,
+    recentLogins
   ] = await Promise.all([
     getStudentTotalXp(studentId).catch(() => 0),
     getStudentXpHistory(studentId, 1000).catch(() => []),
@@ -12524,6 +12534,21 @@ async function loadStudentBadgeStats(studentId) {
           .eq('sender_type', 'student');
         return count || 0;
       } catch (e) { return 0; }
+    })(),
+    // Date d'activation du compte (pour calculer la fenêtre du badge "mois irréprochable")
+    db.from('students').select('activated_at, created_at').eq('id', studentId).maybeSingle()
+      .then(r => r.data || null).catch(() => null),
+    // Connexions des 60 derniers jours (pour vérif activité hebdo)
+    (async () => {
+      try {
+        const since = new Date(Date.now() - 60 * 86400000).toISOString();
+        const { data } = await db.from('student_logins')
+          .select('logged_at')
+          .eq('student_id', studentId)
+          .gte('logged_at', since)
+          .order('logged_at', { ascending: true });
+        return (data || []).map(r => r.logged_at).filter(Boolean);
+      } catch (e) { return []; }
     })()
   ]);
 
@@ -12550,7 +12575,9 @@ async function loadStudentBadgeStats(studentId) {
     messagesSentCount,
     maxVotesInOneDay,
     votesCount: eventCounts.vote || 0,
-    sessionsCount: (eventCounts.session_attended || 0) + (eventCounts.event_attended || 0)
+    sessionsCount: (eventCounts.session_attended || 0) + (eventCounts.event_attended || 0),
+    activatedAt:   studentRow?.activated_at || studentRow?.created_at || null,
+    recentLogins:  recentLogins || []
   };
 }
 
@@ -12614,14 +12641,52 @@ function evaluateBadgeCondition(condition, stats) {
       return stats.maxVotesInOneDay >= (condition.count || 5);
 
     case 'no_penalty_days': {
-      // Dans les N derniers jours, aucun event session_absent ni session_left
-      // ET au moins 1 event positif (sinon trop facile : un élève qui ne fait rien valide)
       const days = condition.days || 30;
-      const since = new Date(Date.now() - days * 86400000).toISOString();
+      const now = Date.now();
+
+      // 1) Date de référence = max(launchDate, activatedAt)
+      //    Le badge n'est éligible qu'après `days` jours écoulés depuis cette
+      //    référence. Pour les élèves existants au lancement → délai de 30j à
+      //    partir de launchDate. Pour les nouveaux → 30j à partir de leur
+      //    activation.
+      let refStart = 0;
+      if (condition.launchDate) {
+        const t = new Date(condition.launchDate).getTime();
+        if (Number.isFinite(t)) refStart = Math.max(refStart, t);
+      }
+      if (stats.activatedAt) {
+        const t = new Date(stats.activatedAt).getTime();
+        if (Number.isFinite(t)) refStart = Math.max(refStart, t);
+      }
+      const eligibleAt = refStart + days * 86400000;
+      if (now < eligibleAt) return false;
+
+      // 2) Pas de pénalité dans les `days` derniers jours
+      const since = new Date(now - days * 86400000).toISOString();
       const recent = stats.eventsAll.filter(e => e.created_at >= since);
       const hasPenalty = recent.some(e => e.event_type === 'session_absent' || e.event_type === 'session_left');
+      if (hasPenalty) return false;
+
+      // 3) Au moins 1 event positif sur la période
       const hasPositive = recent.some(e => (e.xp_amount || 0) > 0);
-      return !hasPenalty && hasPositive;
+      if (!hasPositive) return false;
+
+      // 4) Connexion hebdo : au moins 1 login dans chaque fenêtre glissante
+      //    de 7 jours sur la période. Pour 30j → 4 fenêtres consécutives.
+      if (condition.requireWeeklyLogin) {
+        const logins = (stats.recentLogins || [])
+          .map(l => new Date(l).getTime())
+          .filter(Number.isFinite);
+        const numWeeks = Math.floor(days / 7);
+        for (let w = 0; w < numWeeks; w++) {
+          const winStart = now - (w + 1) * 7 * 86400000;
+          const winEnd   = now - w * 7 * 86400000;
+          const hasLogin = logins.some(t => t >= winStart && t < winEnd);
+          if (!hasLogin) return false;
+        }
+      }
+
+      return true;
     }
 
     case 'todo':
