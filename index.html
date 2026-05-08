@@ -12369,15 +12369,7 @@ const BADGES_CATALOG = [
 
   { slug: 'cache-mois-irreprochable', name: 'Mois irréprochable',   description: '30 jours sans aucune pénalité',
     category: 'cache', rarity: 'diamant', hidden: true, emoji: '💯',
-    /* `launchDate` : date de lancement du système de badges. La fenêtre de
-       30 jours commence à `max(launchDate, student.activated_at)` : pour les
-       élèves existants au lancement, le badge est éligible 30 jours plus tard ;
-       pour les nouveaux, 30 jours après leur activation.
-       `requireWeeklyLogin` : exige au moins 1 connexion par semaine sur les
-       30 jours, sinon le badge est trop facile (un élève qui se connecte
-       quasi-jamais mais sans pénalité aurait gagné). */
-    condition: { type: 'no_penalty_days', days: 30,
-                 launchDate: '2026-05-06', requireWeeklyLogin: true } },
+    condition: { type: 'no_penalty_days', days: 30 } },
 
   { slug: 'cache-couche-tard',      name: 'Couche-tard',            description: 'Connexion après minuit',
     category: 'cache', rarity: 'diamant', hidden: true, emoji: '🌙',
@@ -12509,9 +12501,7 @@ async function loadStudentBadgeStats(studentId) {
     eventsAll,
     proposalsSent,
     proposalsAccepted,
-    messagesSentCount,
-    studentRow,
-    recentLogins
+    messagesSentCount
   ] = await Promise.all([
     getStudentTotalXp(studentId).catch(() => 0),
     getStudentXpHistory(studentId, 1000).catch(() => []),
@@ -12534,21 +12524,6 @@ async function loadStudentBadgeStats(studentId) {
           .eq('sender_type', 'student');
         return count || 0;
       } catch (e) { return 0; }
-    })(),
-    // Date d'activation du compte (pour calculer la fenêtre du badge "mois irréprochable")
-    db.from('students').select('activated_at, created_at').eq('id', studentId).maybeSingle()
-      .then(r => r.data || null).catch(() => null),
-    // Connexions des 60 derniers jours (pour vérif activité hebdo)
-    (async () => {
-      try {
-        const since = new Date(Date.now() - 60 * 86400000).toISOString();
-        const { data } = await db.from('student_logins')
-          .select('logged_at')
-          .eq('student_id', studentId)
-          .gte('logged_at', since)
-          .order('logged_at', { ascending: true });
-        return (data || []).map(r => r.logged_at).filter(Boolean);
-      } catch (e) { return []; }
     })()
   ]);
 
@@ -12575,9 +12550,7 @@ async function loadStudentBadgeStats(studentId) {
     messagesSentCount,
     maxVotesInOneDay,
     votesCount: eventCounts.vote || 0,
-    sessionsCount: (eventCounts.session_attended || 0) + (eventCounts.event_attended || 0),
-    activatedAt:   studentRow?.activated_at || studentRow?.created_at || null,
-    recentLogins:  recentLogins || []
+    sessionsCount: (eventCounts.session_attended || 0) + (eventCounts.event_attended || 0)
   };
 }
 
@@ -12641,52 +12614,14 @@ function evaluateBadgeCondition(condition, stats) {
       return stats.maxVotesInOneDay >= (condition.count || 5);
 
     case 'no_penalty_days': {
+      // Dans les N derniers jours, aucun event session_absent ni session_left
+      // ET au moins 1 event positif (sinon trop facile : un élève qui ne fait rien valide)
       const days = condition.days || 30;
-      const now = Date.now();
-
-      // 1) Date de référence = max(launchDate, activatedAt)
-      //    Le badge n'est éligible qu'après `days` jours écoulés depuis cette
-      //    référence. Pour les élèves existants au lancement → délai de 30j à
-      //    partir de launchDate. Pour les nouveaux → 30j à partir de leur
-      //    activation.
-      let refStart = 0;
-      if (condition.launchDate) {
-        const t = new Date(condition.launchDate).getTime();
-        if (Number.isFinite(t)) refStart = Math.max(refStart, t);
-      }
-      if (stats.activatedAt) {
-        const t = new Date(stats.activatedAt).getTime();
-        if (Number.isFinite(t)) refStart = Math.max(refStart, t);
-      }
-      const eligibleAt = refStart + days * 86400000;
-      if (now < eligibleAt) return false;
-
-      // 2) Pas de pénalité dans les `days` derniers jours
-      const since = new Date(now - days * 86400000).toISOString();
+      const since = new Date(Date.now() - days * 86400000).toISOString();
       const recent = stats.eventsAll.filter(e => e.created_at >= since);
       const hasPenalty = recent.some(e => e.event_type === 'session_absent' || e.event_type === 'session_left');
-      if (hasPenalty) return false;
-
-      // 3) Au moins 1 event positif sur la période
       const hasPositive = recent.some(e => (e.xp_amount || 0) > 0);
-      if (!hasPositive) return false;
-
-      // 4) Connexion hebdo : au moins 1 login dans chaque fenêtre glissante
-      //    de 7 jours sur la période. Pour 30j → 4 fenêtres consécutives.
-      if (condition.requireWeeklyLogin) {
-        const logins = (stats.recentLogins || [])
-          .map(l => new Date(l).getTime())
-          .filter(Number.isFinite);
-        const numWeeks = Math.floor(days / 7);
-        for (let w = 0; w < numWeeks; w++) {
-          const winStart = now - (w + 1) * 7 * 86400000;
-          const winEnd   = now - w * 7 * 86400000;
-          const hasLogin = logins.some(t => t >= winStart && t < winEnd);
-          if (!hasLogin) return false;
-        }
-      }
-
-      return true;
+      return !hasPenalty && hasPositive;
     }
 
     case 'todo':
@@ -13400,10 +13335,32 @@ async function loadStudentsBusinessCards(studentIds) {
         xpByStudent.set(e.student_id, (xpByStudent.get(e.student_id) || 0) + (e.xp_amount || 0));
       }
 
+      // 3. Badges débloqués pour ces élèves — pour filtrer les épinglés
+      //    "fantômes" (slug encore dans pinned_badges mais badge plus dans
+      //    student_badges, ex. après suppression manuelle / changement de logique).
+      const unlockedByStudent = new Map();
+      try {
+        const { data: unlocked } = await db
+          .from('student_badges')
+          .select('student_id, badge_slug')
+          .in('student_id', toFetch);
+        for (const b of (unlocked || [])) {
+          if (!unlockedByStudent.has(b.student_id)) unlockedByStudent.set(b.student_id, new Set());
+          unlockedByStudent.get(b.student_id).add(b.badge_slug);
+        }
+      } catch (e) {
+        console.warn('[deco] unlocked badges fetch error:', e);
+      }
+
       for (const s of (students || [])) {
         const xp = xpByStudent.get(s.id) || 0;
+        const pinnedRaw = Array.isArray(s.pinned_badges) ? s.pinned_badges : [];
+        const ownedSet  = unlockedByStudent.get(s.id) || new Set();
+        // On ne garde dans pinnedBadges que les slugs effectivement possédés
+        const pinnedFiltered = pinnedRaw.filter(slug => ownedSet.has(slug));
+
         _studentDecoCache.set(s.id, {
-          pinnedBadges:    Array.isArray(s.pinned_badges) ? s.pinned_badges : [],
+          pinnedBadges:    pinnedFiltered,
           pinnedTitleSlug: s.pinned_title_slug || null,
           level:           levelFromXp(xp),
           totalXp:         xp
