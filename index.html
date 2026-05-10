@@ -1069,7 +1069,7 @@ body.theme-christmas .s-header {
   position: fixed; inset: 0;
   background: rgba(0,0,0,.72);
   z-index: 500;
-  display: flex; align-items: flex-end;
+  display: flex; align-items: flex-end; justify-content: center;
 }
 .sheet {
   background: var(--surface);
@@ -5115,6 +5115,70 @@ body.theme-christmas .s-header {
   }
 }
 
+/* Par défaut (PC) : icône et label sur la même ligne, l'emoji a juste un peu de marge */
+.sd-tabs-admin-settings .sd-tab .sd-tab-icon {
+  margin-right: 5px;
+}
+
+/* ============================================================================
+   MOBILE — Bottom nav fixe pour la modale Paramètres admin
+   On transforme la barre d'onglets horizontale du haut en bottom nav fixe en
+   bas de l'écran, avec icône au-dessus du label (style natif iOS/Android).
+   Ne s'applique QUE à #modal-admin-settings (pas la fiche élève admin).
+   ============================================================================ */
+@media (max-width: 1023px) {
+  #modal-admin-settings .sd-tabs.sd-tabs-admin-settings {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin: 0;
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0));
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    border-bottom: none;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0;
+    overflow: visible;
+    z-index: 10;
+    box-shadow: 0 -3px 14px rgba(0, 0, 0, 0.45);
+  }
+  #modal-admin-settings .sd-tabs-admin-settings .sd-tab {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    padding: 7px 4px;
+    border-bottom: none;
+    border-radius: 8px;
+    margin-bottom: 0;
+    width: 100%;
+  }
+  #modal-admin-settings .sd-tabs-admin-settings .sd-tab.active {
+    border-bottom-color: transparent;
+    background: var(--gold-dim);
+  }
+  #modal-admin-settings .sd-tabs-admin-settings .sd-tab .sd-tab-icon {
+    display: block;
+    font-size: 20px;
+    line-height: 1;
+    margin: 0;
+  }
+  #modal-admin-settings .sd-tabs-admin-settings .sd-tab .sd-tab-label {
+    display: block;
+    font-size: 10.5px;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: 0.01em;
+  }
+
+  /* Padding-bottom du body pour ne pas chevaucher la bottom nav */
+  #modal-admin-settings .sd-body {
+    padding-bottom: 80px !important;
+  }
+}
+
 /* Panneaux d'onglet : un seul visible à la fois.
    Réutilisé par modal-student-detail ET modal-admin-settings. */
 .sd-tab-panel { display: none; }
@@ -5379,7 +5443,7 @@ body.theme-christmas .s-header {
    avec la liste verticale des onglets et leurs badges.
    ================================================================ */
 
-/* Bouton burger (header admin) — visible mobile uniquement */
+/* Le bouton burger lui-même : visible mobile uniquement */
 .admin-burger {
   display: none;
   align-items: center;
@@ -5440,6 +5504,10 @@ body.theme-christmas .s-header {
 
 /* Footer du drawer (Paramètres + Déconnexion) — pas affiché sur desktop */
 .admin-drawer-footer { display: none; }
+
+/* Bouton Déconnexion en haut à droite du drawer — caché par défaut,
+   réactivé dans le media query mobile plus bas. */
+.admin-drawer-logout-top { display: none; }
 
 /* ===== MOBILE : transformation en drawer ===== */
 @media (max-width: 1023px) {
@@ -5574,10 +5642,9 @@ body.theme-christmas .s-header {
   }
 }
 
-/* Cacher le bouton déconnexion top par défaut (n'apparaît que sur mobile via @media) */
-.admin-drawer-logout-top {
-  display: none;
-}
+/* Cacher le bouton déconnexion top par défaut (n'apparaît que sur mobile via @media)
+   → règle déplacée AVANT le media query plus haut pour éviter qu'elle écrase
+     le `display: inline-flex` du @media (sinon le bouton restait toujours invisible). */
 
 .admin-tab {
   padding: 13px 14px;
@@ -10312,19 +10379,18 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     <div class="sd-header">
       <button class="sd-header-close" onclick="closeModal('modal-admin-settings')">←</button>
       <span class="sd-header-title">⚙ Paramètres</span>
-      <button class="btn-logout-header" onclick="closeModal('modal-admin-settings'); logout();">
-        ⏻ Se déconnecter
-      </button>
     </div>
     <div class="sd-body">
 
-      <!-- ===== Barre d'onglets ===== -->
-      <div class="sd-tabs">
-        <button class="sd-tab active" id="sd-stab-compte"      onclick="sdSwitchSettingsTab('compte')">👤 Compte</button>
-        <button class="sd-tab"        id="sd-stab-comm"        onclick="sdSwitchSettingsTab('comm')">📢 Comm.</button>
-        <button class="sd-tab"        id="sd-stab-apparence"   onclick="sdSwitchSettingsTab('apparence')">🎨 Apparence</button>
-        <button class="sd-tab"        id="sd-stab-maintenance" onclick="sdSwitchSettingsTab('maintenance')">🛠️ Maintenance</button>
-        <button class="sd-tab"        id="sd-stab-donnees"     onclick="sdSwitchSettingsTab('donnees')">📊 Données</button>
+      <!-- ===== Barre d'onglets =====
+           Sur PC : barre horizontale en haut.
+           Sur mobile : bottom nav fixe (transformée par CSS @media). -->
+      <div class="sd-tabs sd-tabs-admin-settings">
+        <button class="sd-tab active" id="sd-stab-compte"      onclick="sdSwitchSettingsTab('compte')"><span class="sd-tab-icon">👤</span><span class="sd-tab-label">Compte</span></button>
+        <button class="sd-tab"        id="sd-stab-comm"        onclick="sdSwitchSettingsTab('comm')"><span class="sd-tab-icon">📢</span><span class="sd-tab-label">Comm.</span></button>
+        <button class="sd-tab"        id="sd-stab-apparence"   onclick="sdSwitchSettingsTab('apparence')"><span class="sd-tab-icon">🎨</span><span class="sd-tab-label">Style</span></button>
+        <button class="sd-tab"        id="sd-stab-maintenance" onclick="sdSwitchSettingsTab('maintenance')"><span class="sd-tab-icon">🛠️</span><span class="sd-tab-label">Outils</span></button>
+        <button class="sd-tab"        id="sd-stab-donnees"     onclick="sdSwitchSettingsTab('donnees')"><span class="sd-tab-icon">📊</span><span class="sd-tab-label">Données</span></button>
       </div>
 
       <!-- ============================================================
