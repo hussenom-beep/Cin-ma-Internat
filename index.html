@@ -7636,20 +7636,10 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
        device et la disponibilité du prompt natif. -->
   <div id="pwa-install-banner-host" class="hidden"></div>
 
-  <!-- Bloc Messagerie (conditionnel - seulement si discussion active) -->
+  <!-- Bloc Messagerie (conditionnel - une carte par conversation active) -->
   <div class="home-section hidden" id="home-messaging" style="margin-top:18px;">
     <div class="home-section-title">💬 Messagerie</div>
-    <div class="home-card" onclick="openStudentMessaging()" style="cursor:pointer;position:relative;">
-      <div style="display:flex;align-items:center;gap:12px;">
-        <div style="font-size:32px;">💬</div>
-        <div style="flex:1;">
-          <div style="font-weight:600;font-size:15px;margin-bottom:4px;" id="home-msg-status">Discussion en cours</div>
-          <div class="text-sm text-muted" id="home-msg-subject">—</div>
-          <div class="text-sm text-muted" style="margin-top:4px;" id="home-msg-preview">—</div>
-        </div>
-      </div>
-      <div class="unread-dot hidden" id="home-msg-unread" style="position:absolute;top:14px;right:14px;width:10px;height:10px;background:var(--gold);border-radius:50%;box-shadow:0 0 8px var(--gold);"></div>
-    </div>
+    <div id="home-msg-list" style="display:flex;flex-direction:column;gap:8px;"></div>
   </div>
 
   <!-- Bloc Nouveautés (propositions récentes) -->
@@ -8336,6 +8326,72 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 </div>
 
 <!-- ================================================================
+     MODAL: Confirmation envoi notif après modif séance
+     Affichée après éditer date / heure / film d'une séance pour proposer
+     d'envoyer un push à tous les élèves.
+     ================================================================ -->
+<div class="overlay hidden" id="modal-notify-after-edit">
+  <div class="sheet" style="max-width:440px;">
+    <h2 style="margin-top:0;">📢 Prévenir les élèves ?</h2>
+    <p style="color:var(--text-2);margin-bottom:8px;" id="notify-after-edit-summary">—</p>
+    <p style="color:var(--text-2);font-size:13px;">
+      Une notification sera envoyée à <strong>tous les élèves</strong> avec le message ci-dessous.
+      Tu peux le personnaliser avant l'envoi.
+    </p>
+    <textarea id="notify-after-edit-message"
+              style="width:100%;min-height:80px;padding:10px;border-radius:8px;background:var(--surface-2);color:var(--text-1);border:1px solid var(--border);resize:vertical;"
+              placeholder="Message de notification…"></textarea>
+    <div style="display:flex;gap:10px;margin-top:14px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('modal-notify-after-edit')">Non merci</button>
+      <button class="btn btn-gold" style="flex:1;" onclick="confirmNotifyAfterEdit()">📢 Envoyer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     MODAL: Composer un message groupé aux inscrits d'une séance
+     ================================================================ -->
+<div class="overlay hidden" id="modal-broadcast-session">
+  <div class="sheet" style="max-width:480px;">
+    <h2 style="margin-top:0;">💬 Message aux élèves</h2>
+    <p style="color:var(--text-2);font-size:13px;margin-bottom:10px;" id="broadcast-session-context">—</p>
+
+    <label style="display:block;font-size:13px;color:var(--text-2);margin-bottom:6px;">Destinataires</label>
+    <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px;">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;">
+        <input type="checkbox" id="broadcast-target-registered" checked>
+        <span>Inscrits <span id="broadcast-count-registered" style="color:var(--text-3);font-size:12px;"></span></span>
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;">
+        <input type="checkbox" id="broadcast-target-waitlist">
+        <span>Liste d'attente <span id="broadcast-count-waitlist" style="color:var(--text-3);font-size:12px;"></span></span>
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;">
+        <input type="checkbox" id="broadcast-target-banned">
+        <span>Bannis <span id="broadcast-count-banned" style="color:var(--text-3);font-size:12px;"></span></span>
+      </label>
+    </div>
+
+    <label style="display:block;font-size:13px;color:var(--text-2);margin-bottom:6px;">Sujet</label>
+    <input id="broadcast-subject" type="text" placeholder="Ex : Séance du 15/05 — décalée"
+           style="width:100%;padding:10px;border-radius:8px;background:var(--surface-2);color:var(--text-1);border:1px solid var(--border);margin-bottom:10px;" />
+
+    <label style="display:block;font-size:13px;color:var(--text-2);margin-bottom:6px;">Message</label>
+    <textarea id="broadcast-content"
+              style="width:100%;min-height:110px;padding:10px;border-radius:8px;background:var(--surface-2);color:var(--text-1);border:1px solid var(--border);resize:vertical;"
+              placeholder="Bonjour, …" maxlength="500"></textarea>
+    <div style="text-align:right;font-size:11px;color:var(--text-3);margin-top:4px;">
+      <span id="broadcast-char-count">0</span> / 500
+    </div>
+
+    <div style="display:flex;gap:10px;margin-top:14px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('modal-broadcast-session')">Annuler</button>
+      <button class="btn btn-gold" style="flex:1;" onclick="confirmBroadcastSession()">📨 Envoyer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
      MODAL: Fiche détaillée TMDB
      ================================================================ -->
 <div class="overlay hidden" id="modal-tmdb-detail">
@@ -8785,6 +8841,9 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
           </button>
           <button class="btn btn-sm btn-gold" id="ssh-attendance-btn" onclick="openAttendanceMode()">
             📋 Faire l'appel
+          </button>
+          <button class="btn btn-sm btn-ghost" id="ssh-broadcast-btn" onclick="openBroadcastModal()">
+            💬 Message
           </button>
         </div>
         <div class="ssh-stats">
@@ -16851,70 +16910,78 @@ async function loadHome() {
   pwaCheckAndShow();
 }
 
-/* Charge le bloc messagerie conditionnel sur l'accueil */
+/* Charge le bloc messagerie sur la home : une carte par conversation active
+   ou clôturée récemment (<7j). Si aucune → bloc masqué. */
 async function loadHomeMessagingBlock() {
   const block = document.getElementById('home-messaging');
-  if (!block || !S.currentStudent?.id) return;
+  const listEl = document.getElementById('home-msg-list');
+  if (!block || !listEl || !S.currentStudent?.id) return;
 
-  // Chercher une conversation active ou clôturée récente
+  // Charger jusqu'à 10 conversations récentes (active ou closed)
   const { data: convs } = await db.from('conversations')
-    .select('*')
+    .select('id, subject, status, closed_at, unread_student, last_message_at, created_at')
     .eq('student_id', S.currentStudent.id)
     .in('status', ['active', 'closed'])
-    .order('created_at', { ascending: false })
-    .limit(1);
+    .order('last_message_at', { ascending: false, nullsFirst: false })
+    .limit(10);
 
-  const conv = convs?.[0];
+  // Filtrer : active OU closed depuis <7j
+  const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const visible = (convs || []).filter(c =>
+    c.status === 'active' ||
+    (c.status === 'closed' && c.closed_at && new Date(c.closed_at).getTime() > sevenDaysAgo)
+  );
 
-  if (!conv || (conv.status === 'closed' && new Date() - new Date(conv.closed_at) > 7 * 24 * 60 * 60 * 1000)) {
-    // Pas de conversation ou clôturée depuis plus de 7 jours → masquer le bloc
+  if (visible.length === 0) {
     block.classList.add('hidden');
+    listEl.innerHTML = '';
     return;
   }
-
-  // Afficher le bloc
   block.classList.remove('hidden');
 
-  const isClosed = conv.status === 'closed';
-  const statusEl = document.getElementById('home-msg-status');
-  const subjectEl = document.getElementById('home-msg-subject');
-  const previewEl = document.getElementById('home-msg-preview');
-  const unreadDot = document.getElementById('home-msg-unread');
+  // Récupérer le dernier message de chacune en parallèle pour l'extrait
+  const lastMsgs = await Promise.all(visible.map(c =>
+    db.from('conversation_messages')
+      .select('content, sender_type')
+      .eq('conversation_id', c.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(r => r.data || null)
+      .catch(() => null)
+  ));
 
-  if (statusEl) {
-    statusEl.textContent = isClosed ? 'Conversation clôturée' : 'Discussion en cours';
-    statusEl.style.color = isClosed ? 'var(--text-muted)' : 'var(--text-primary)';
-  }
+  const supervisorName = (typeof getSupervisorName === 'function') ? getSupervisorName() : 'le surveillant';
+  const capitalizedName = supervisorName === 'le surveillant'
+    ? 'Surveillant'
+    : supervisorName.charAt(0).toUpperCase() + supervisorName.slice(1);
 
-  if (subjectEl) {
-    subjectEl.textContent = `Sujet : ${conv.subject || '(sans sujet)'}`;
-  }
-
-  // Chercher le dernier message pour l'extrait
-  const { data: lastMsg } = await db.from('conversation_messages')
-    .select('content, sender_type')
-    .eq('conversation_id', conv.id)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .single();
-
-  if (previewEl && lastMsg) {
-    const supervisorName = getSupervisorName();
-    const capitalizedName = supervisorName === 'le surveillant' 
-      ? 'Surveillant' 
-      : supervisorName.charAt(0).toUpperCase() + supervisorName.slice(1);
-    const who = lastMsg.sender_type === 'admin' ? capitalizedName : 'Toi';
-    const txt = (lastMsg.content || '').replace(/\s+/g, ' ').trim();
+  listEl.innerHTML = visible.map((c, i) => {
+    const isClosed = c.status === 'closed';
+    const lastMsg = lastMsgs[i];
+    const who = lastMsg ? (lastMsg.sender_type === 'admin' ? capitalizedName : 'Toi') : '';
+    const txt = lastMsg ? (lastMsg.content || '').replace(/\s+/g, ' ').trim() : '';
     const extract = txt.length > 60 ? txt.slice(0, 57) + '…' : txt;
-    previewEl.textContent = `${who} : ${extract}`;
-  } else if (previewEl) {
-    previewEl.textContent = '—';
-  }
-
-  // Point doré si non lu
-  if (unreadDot) {
-    unreadDot.classList.toggle('hidden', !conv.unread_student);
-  }
+    const previewLine = lastMsg ? `${who} : ${extract}` : '—';
+    const subjectSafe = _escapeHtml(c.subject || '(sans sujet)');
+    const status = isClosed ? 'Conversation clôturée' : 'Discussion en cours';
+    const statusColor = isClosed ? 'var(--text-muted)' : 'var(--text-primary)';
+    const dotHtml = c.unread_student
+      ? `<div class="unread-dot" style="position:absolute;top:14px;right:14px;width:10px;height:10px;background:var(--gold);border-radius:50%;box-shadow:0 0 8px var(--gold);"></div>`
+      : '';
+    return `
+      <div class="home-card" onclick="openStudentMessaging('${c.id}')" style="cursor:pointer;position:relative;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="font-size:32px;">💬</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:600;font-size:15px;margin-bottom:4px;color:${statusColor};">${status}</div>
+            <div class="text-sm text-muted">Sujet : ${subjectSafe}</div>
+            <div class="text-sm text-muted" style="margin-top:4px;">${_escapeHtml(previewLine)}</div>
+          </div>
+        </div>
+        ${dotHtml}
+      </div>`;
+  }).join('');
 }
 
 /* Charge les nouveautés (propositions acceptées / refusées récentes) */
@@ -20606,6 +20673,16 @@ async function editSessionDate() {
     await loadAdminFilms();
     renderHome?.();
     renderSessions?.();
+
+    // Proposer d'envoyer une notif aux élèves
+    const filmTitle = session.films?.title || 'séance';
+    const dateFmt = (typeof fmtDateLong === 'function' ? fmtDateLong(newDate) : newDate);
+    _promptNotifyAfterEdit(
+      session.id,
+      'session_modified_date',
+      `Date modifiée : ${currentDate} → ${newDate}`,
+      `📅 La séance « ${filmTitle} » a été déplacée au ${dateFmt}.`
+    );
   } catch (e) {
     console.error('[editSessionDate] Exception:', e);
     toast('Impossible de modifier la date', 'error');
@@ -20673,6 +20750,9 @@ async function saveTime() {
   }
   
   const sessionId = window._editingTime.sessionId;
+  // Capturer l'heure courante AVANT update (pour comparaison + summary)
+  const session = window._currentSessionData;
+  const oldTime = session?.session_time || '';
   
   try {
     const { error } = await db
@@ -20697,6 +20777,21 @@ async function saveTime() {
     await loadAdminFilms();
     renderHome?.();
     renderSessions?.();
+
+    // Proposer d'envoyer une notif aux élèves (si l'heure a réellement changé)
+    if (oldTime && oldTime !== newTime) {
+      const filmTitle = session?.films?.title || 'séance';
+      const dateFmt = session?.session_date && typeof fmtDateLong === 'function'
+        ? fmtDateLong(session.session_date) : '';
+      _promptNotifyAfterEdit(
+        sessionId,
+        'session_modified_time',
+        `Heure modifiée : ${oldTime} → ${newTime}`,
+        dateFmt
+          ? `🕐 La séance « ${filmTitle} » du ${dateFmt} commence désormais à ${newTime}.`
+          : `🕐 La séance « ${filmTitle} » commence désormais à ${newTime}.`
+      );
+    }
   } catch (e) {
     console.error('[saveTime] Exception:', e);
     toast('Erreur de mise à jour', 'error');
@@ -23240,8 +23335,15 @@ let _studentCurrentConv = null;
 let _studentCurrentMessages = [];
 
 /** Ouvre la messagerie élève (point d'entrée unique) */
-async function openStudentMessaging(forceNew = false) {
+async function openStudentMessaging(arg = false) {
   if (!S.currentStudent?.id) return;
+
+  // Support 2 signatures rétro-compatibles :
+  // - openStudentMessaging()           → ouvre la dernière conv active
+  // - openStudentMessaging(true)       → forceNew (bouton "Nouveau message")
+  // - openStudentMessaging('conv-id')  → ouvre directement cette conv
+  const forceNew = arg === true;
+  const targetConvId = typeof arg === 'string' && arg.length > 0 ? arg : null;
 
   // ✅ 1. OUVRIR LA MODALE IMMÉDIATEMENT (feedback visuel instantané)
   openModal('modal-student-messaging');
@@ -23257,14 +23359,24 @@ async function openStudentMessaging(forceNew = false) {
 
   // ✅ 3. Charger la conversation EN ARRIÈRE-PLAN (non-bloquant visuellement)
   try {
-    const { data: convs } = await db.from('conversations')
-      .select('*, students!inner(id)')
-      .eq('student_id', S.currentStudent.id)
-      .in('status', ['active', 'closed'])
-      .order('created_at', { ascending: false })
-      .limit(1);
-
-    const conv = convs?.[0];
+    let conv = null;
+    if (targetConvId) {
+      // Ouvrir une conv précise (ex : depuis la home, plusieurs convs actives)
+      const { data } = await db.from('conversations')
+        .select('*, students!inner(id)')
+        .eq('id', targetConvId)
+        .eq('student_id', S.currentStudent.id)
+        .maybeSingle();
+      conv = data;
+    } else {
+      const { data: convs } = await db.from('conversations')
+        .select('*, students!inner(id)')
+        .eq('student_id', S.currentStudent.id)
+        .in('status', ['active', 'closed'])
+        .order('created_at', { ascending: false })
+        .limit(1);
+      conv = convs?.[0];
+    }
 
     if (!conv) {
       // Aucune conversation → mode 'new'
@@ -24015,36 +24127,239 @@ async function loadAdminSessions() {
 
 /* Crée un student_event pour tous les élèves actifs (new_session, session_opened…) */
 
-async function _notifyAllStudents(sessionId, eventType) {
+/* Notifier des élèves d'un événement de séance.
+   - sessionId    : id de la séance concernée
+   - eventType    : new_session | session_opened | session_modified_date |
+                    session_modified_time | session_modified_film | broadcast_message
+   - opts.message : message custom (sinon défaut selon eventType)
+   - opts.studentIds : liste d'ids ; si null → tous les élèves actifs */
+async function _notifyAllStudents(sessionId, eventType, opts = {}) {
   try {
-    const { data: students, error: studentsError } = await db
-      .from('students')
-      .select('id')
-      .eq('is_active', true);
+    let students;
+    if (Array.isArray(opts.studentIds) && opts.studentIds.length > 0) {
+      students = opts.studentIds.map(id => ({ id }));
+    } else {
+      const { data, error } = await db.from('students').select('id').eq('is_active', true);
+      if (error || !data?.length) return;
+      students = data;
+    }
 
-    if (studentsError || !students?.length) return;
-
-    let defaultMessage = null;
-    if (eventType === 'new_session') {
-      defaultMessage = 'Une nouvelle séance a été ajoutée.';
-    } else if (eventType === 'session_opened') {
-      defaultMessage = 'Les inscriptions sont ouvertes pour une séance.';
+    let defaultMessage = opts.message || null;
+    if (!defaultMessage) {
+      const map = {
+        new_session:             'Une nouvelle séance a été ajoutée.',
+        session_opened:          'Les inscriptions sont ouvertes pour une séance.',
+        session_modified_date:   'La date d\'une séance a été modifiée.',
+        session_modified_time:   'L\'heure d\'une séance a été modifiée.',
+        session_modified_film:   'Le film d\'une séance a été modifié.',
+        broadcast_message:       'Nouveau message de l\'équipe.'
+      };
+      defaultMessage = map[eventType] || null;
     }
 
     const payload = students.map(s => ({
       student_id: s.id,
       session_id: sessionId,
       event_type: eventType,
-      message: defaultMessage,
+      message:    defaultMessage,
       created_at: new Date().toISOString()
     }));
 
     const { error } = await db.from('student_events').insert(payload);
-    if (error) {
-      console.error('notifyAllStudents error:', error);
-    }
+    if (error) console.error('notifyAllStudents error:', error);
   } catch (e) {
     console.error('notifyAllStudents exception:', e);
+  }
+}
+
+/* État courant pour la modale "notifier après modif" : retient les infos
+   nécessaires pour exécuter l'envoi quand l'admin clique Confirmer. */
+let _pendingNotifyAfterEdit = null;
+
+/* Ouvre la modale qui propose à l'admin d'envoyer un push après une modif.
+   - sessionId : id de la séance
+   - eventType : session_modified_date | session_modified_time | session_modified_film
+   - summary : libellé court du changement (affiché à l'admin)
+   - defaultMsg : message pré-rempli (modifiable par l'admin) */
+function _promptNotifyAfterEdit(sessionId, eventType, summary, defaultMsg) {
+  _pendingNotifyAfterEdit = { sessionId, eventType };
+  const sumEl = document.getElementById('notify-after-edit-summary');
+  const msgEl = document.getElementById('notify-after-edit-message');
+  if (sumEl) sumEl.textContent = summary || '';
+  if (msgEl) msgEl.value = defaultMsg || '';
+  openModal('modal-notify-after-edit');
+}
+
+/* Confirmation : envoie le push avec le message custom */
+async function confirmNotifyAfterEdit() {
+  if (!_pendingNotifyAfterEdit) {
+    closeModal('modal-notify-after-edit');
+    return;
+  }
+  const { sessionId, eventType } = _pendingNotifyAfterEdit;
+  const msgEl = document.getElementById('notify-after-edit-message');
+  const message = (msgEl?.value || '').trim();
+  closeModal('modal-notify-after-edit');
+  _pendingNotifyAfterEdit = null;
+
+  await _notifyAllStudents(sessionId, eventType, { message: message || null });
+  toast('Notification envoyée 📢', 'success');
+}
+
+/* ===========================================================================
+   Message groupé aux élèves d'une séance (broadcast).
+   Pour chaque destinataire (inscrit / attente / banni selon les cases cochées),
+   on crée une nouvelle conversation indépendante (Option A) avec un message
+   initial provenant de l'admin, et on envoie une notif push.
+   ============================================================================ */
+async function openBroadcastModal() {
+  const session = window._currentSessionData;
+  if (!session) {
+    toast('Données de séance introuvables', 'error');
+    return;
+  }
+
+  // Pré-remplir le sujet et compter les destinataires
+  const filmTitle = session.films?.title || 'Séance';
+  const dateFmt = session.session_date && typeof fmtDateShort === 'function'
+    ? fmtDateShort(session.session_date) : (session.session_date || '');
+  const subjectEl = document.getElementById('broadcast-subject');
+  if (subjectEl) subjectEl.value = `${filmTitle} — ${dateFmt}`;
+  const contentEl = document.getElementById('broadcast-content');
+  if (contentEl) contentEl.value = '';
+  const ctxEl = document.getElementById('broadcast-context');
+  const ctxEl2 = document.getElementById('broadcast-session-context');
+  const ctxText = `${filmTitle} — ${dateFmt} à ${session.session_time || '?'}`;
+  if (ctxEl)  ctxEl.textContent  = ctxText;
+  if (ctxEl2) ctxEl2.textContent = ctxText;
+
+  // Compter les destinataires de chaque catégorie
+  try {
+    const [reg, wait, ban] = await Promise.all([
+      db.from('registrations').select('id', { count: 'exact', head: true })
+        .eq('session_id', session.id).eq('status', 'registered'),
+      db.from('registrations').select('id', { count: 'exact', head: true })
+        .eq('session_id', session.id).eq('status', 'waitlist'),
+      db.from('session_bans').select('id', { count: 'exact', head: true })
+        .eq('session_id', session.id)
+    ]);
+    document.getElementById('broadcast-count-registered').textContent = `(${reg.count || 0})`;
+    document.getElementById('broadcast-count-waitlist').textContent   = `(${wait.count || 0})`;
+    document.getElementById('broadcast-count-banned').textContent     = `(${ban.count || 0})`;
+  } catch (e) {
+    console.warn('[broadcast] count error:', e);
+  }
+
+  // Wire up live char counter
+  if (contentEl) {
+    const cc = document.getElementById('broadcast-char-count');
+    contentEl.oninput = () => { if (cc) cc.textContent = (contentEl.value || '').length; };
+    if (document.getElementById('broadcast-char-count')) document.getElementById('broadcast-char-count').textContent = '0';
+  }
+
+  // Reset cases
+  document.getElementById('broadcast-target-registered').checked = true;
+  document.getElementById('broadcast-target-waitlist').checked   = false;
+  document.getElementById('broadcast-target-banned').checked     = false;
+
+  openModal('modal-broadcast-session');
+}
+
+async function confirmBroadcastSession() {
+  const session = window._currentSessionData;
+  if (!session) return;
+
+  const subject = (document.getElementById('broadcast-subject')?.value || '').trim();
+  const content = (document.getElementById('broadcast-content')?.value || '').trim();
+  if (!subject) { toast('Sujet manquant', 'error'); return; }
+  if (!content) { toast('Message vide', 'error'); return; }
+  if (content.length > 500) { toast('Message trop long (500 max)', 'error'); return; }
+
+  const wantReg  = document.getElementById('broadcast-target-registered').checked;
+  const wantWait = document.getElementById('broadcast-target-waitlist').checked;
+  const wantBan  = document.getElementById('broadcast-target-banned').checked;
+  if (!wantReg && !wantWait && !wantBan) {
+    toast('Choisis au moins un destinataire', 'error');
+    return;
+  }
+
+  // Récupérer les ids selon les cases cochées
+  const ids = new Set();
+  try {
+    const queries = [];
+    if (wantReg) {
+      queries.push(db.from('registrations').select('student_id')
+        .eq('session_id', session.id).eq('status', 'registered'));
+    }
+    if (wantWait) {
+      queries.push(db.from('registrations').select('student_id')
+        .eq('session_id', session.id).eq('status', 'waitlist'));
+    }
+    if (wantBan) {
+      queries.push(db.from('session_bans').select('student_id')
+        .eq('session_id', session.id));
+    }
+    const results = await Promise.all(queries);
+    for (const r of results) {
+      for (const row of (r.data || [])) {
+        if (row.student_id) ids.add(row.student_id);
+      }
+    }
+  } catch (e) {
+    console.error('[broadcast] fetch recipients error:', e);
+    toast('Erreur de chargement des destinataires', 'error');
+    return;
+  }
+
+  if (ids.size === 0) {
+    toast('Aucun destinataire trouvé', 'error');
+    return;
+  }
+
+  // Pour chaque destinataire : créer une nouvelle conversation + ajouter
+  // le message initial. Insertion en lots pour rester performant.
+  closeModal('modal-broadcast-session');
+  toast(`Envoi à ${ids.size} élève${ids.size > 1 ? 's' : ''}…`, 'info');
+
+  const studentIds = Array.from(ids);
+  const nowIso = new Date().toISOString();
+
+  try {
+    // 1. Créer N conversations (option A : nouvelle conv par broadcast)
+    const convPayload = studentIds.map(sid => ({
+      student_id: sid,
+      subject:    subject,
+      status:     'active',
+      created_at: nowIso,
+      last_message_at: nowIso,
+      unread_student:  true
+    }));
+    const { data: createdConvs, error: convErr } = await db.from('conversations')
+      .insert(convPayload).select('id, student_id');
+    if (convErr) throw convErr;
+
+    // 2. Insérer le message initial dans chaque conv
+    const msgPayload = (createdConvs || []).map(c => ({
+      conversation_id: c.id,
+      sender_type:     'admin',
+      content:         content,
+      created_at:      nowIso
+    }));
+    if (msgPayload.length) {
+      const { error: msgErr } = await db.from('conversation_messages').insert(msgPayload);
+      if (msgErr) throw msgErr;
+    }
+
+    // 3. Notif push aux destinataires
+    await _notifyAllStudents(session.id, 'broadcast_message', {
+      message: subject,
+      studentIds: studentIds
+    });
+
+    toast(`✅ Message envoyé à ${studentIds.length} élève${studentIds.length > 1 ? 's' : ''}`, 'success');
+  } catch (e) {
+    console.error('[broadcast] error:', e);
+    toast('Erreur lors de l\'envoi du message', 'error');
   }
 }
 
@@ -24550,14 +24865,19 @@ async function saveEditSession() {
     }
   }
 
+  // Récupérer l'état AVANT update pour calculer le diff
+  const { data: before } = await db.from('cinema_sessions')
+    .select('session_date, session_time, film_id, event_tag, films(title)')
+    .eq('id', id).maybeSingle();
+  const oldDate = before?.session_date || null;
+  const oldTime = before?.session_time || null;
+  const oldFilmId = before?.film_id || null;
+  const oldFilmTitle = before?.films?.title || '';
+
   // Détermination du nouveau event_tag
-  // - Si toggle coché : on garde l'ancien tag si présent, sinon on prend le thème actif
-  // - Si toggle décoché : on retire le tag (null)
   let newEventTag = null;
   if (isEvent) {
-    // Récupérer l'ancien tag pour préserver si la séance était déjà tagée
-    const { data: cur } = await db.from('cinema_sessions').select('event_tag').eq('id', id).maybeSingle();
-    newEventTag = cur?.event_tag || (theme !== 'none' ? theme : null);
+    newEventTag = before?.event_tag || (theme !== 'none' ? theme : null);
   }
 
   await db.from('cinema_sessions').update({
@@ -24577,14 +24897,52 @@ async function saveEditSession() {
 
   closeModal('modal-edit-session');
   toast('Séance mise à jour ✅', 'success');
-  
+
   // Recharger la fiche séance si elle est ouverte
   if (window._currentSessionData?.id === id) {
     await loadSessionSheetData(id);
   }
-  
+
   loadAdminSessions();
   loadAdminFilms();
+
+  // ====== Proposer d'envoyer une notif si quelque chose a changé ======
+  const dateChanged = oldDate && oldDate !== newDate;
+  const timeChanged = oldTime && oldTime !== newTime;
+  const filmChanged = oldFilmId !== newFilmId;
+  if (!dateChanged && !timeChanged && !filmChanged) return;
+
+  // Récupérer le titre du nouveau film pour le message
+  let newFilmTitle = oldFilmTitle;
+  if (filmChanged && newFilmId) {
+    const { data: nf } = await db.from('films').select('title').eq('id', newFilmId).maybeSingle();
+    newFilmTitle = nf?.title || newFilmTitle;
+  } else if (filmChanged && !newFilmId) {
+    newFilmTitle = '(film à définir)';
+  }
+
+  // Choisir le type d'event prioritaire (priorité au film, puis date, puis heure)
+  let eventType, summaryParts = [], msgParts = [];
+  const dateFmt = (d) => (d && typeof fmtDateLong === 'function') ? fmtDateLong(d) : (d || '');
+  if (filmChanged)  { summaryParts.push(`Film : ${oldFilmTitle || '—'} → ${newFilmTitle}`); }
+  if (dateChanged)  { summaryParts.push(`Date : ${oldDate} → ${newDate}`); }
+  if (timeChanged)  { summaryParts.push(`Heure : ${oldTime} → ${newTime}`); }
+
+  if (filmChanged && (dateChanged || timeChanged)) {
+    eventType = 'session_modified_film'; // film + autres → on annonce le film
+    msgParts.push(`🎬 Changement : la séance du ${dateFmt(newDate)} à ${newTime} projettera désormais « ${newFilmTitle} ».`);
+  } else if (filmChanged) {
+    eventType = 'session_modified_film';
+    msgParts.push(`🎬 Changement de film : « ${newFilmTitle} » remplace « ${oldFilmTitle || '—'} » pour la séance du ${dateFmt(newDate)}.`);
+  } else if (dateChanged) {
+    eventType = 'session_modified_date';
+    msgParts.push(`📅 La séance « ${newFilmTitle} » a été déplacée au ${dateFmt(newDate)}${timeChanged ? ' à ' + newTime : ''}.`);
+  } else {
+    eventType = 'session_modified_time';
+    msgParts.push(`🕐 La séance « ${newFilmTitle} » du ${dateFmt(newDate)} commence désormais à ${newTime}.`);
+  }
+
+  _promptNotifyAfterEdit(id, eventType, summaryParts.join(' • '), msgParts.join(' '));
 }
 
 function openSessionEditModal() {
