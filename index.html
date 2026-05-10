@@ -24963,15 +24963,43 @@ async function loadAdminSessions() {
    - opts.studentIds : liste d'ids ; si null → tous les élèves actifs */
 async function _notifyAllStudents(sessionId, eventType, opts = {}) {
   try {
-    let students;
+    // 1. Récupérer la liste de base des destinataires (tous les actifs ou ceux ciblés)
+    let baseIds;
     if (Array.isArray(opts.studentIds) && opts.studentIds.length > 0) {
-      students = opts.studentIds.map(id => ({ id }));
+      baseIds = opts.studentIds;
     } else {
       const { data, error } = await db.from('students').select('id').eq('is_active', true);
-      if (error || !data?.length) return;
-      students = data;
+      if (error || !data?.length) {
+        console.warn('[notifyAllStudents] aucun élève actif trouvé', error);
+        return;
+      }
+      baseIds = data.map(s => s.id);
     }
 
+    // 2. Filtrer pour ne garder que les élèves avec au moins une push subscription active
+    //    → évite de polluer student_events pour des élèves qui ne recevront jamais la push
+    const { data: subs, error: subsErr } = await db.from('push_subscriptions')
+      .select('student_id')
+      .eq('active', true)
+      .not('student_id', 'is', null)
+      .in('student_id', baseIds);
+
+    if (subsErr) {
+      console.error('[notifyAllStudents] erreur lookup push_subscriptions:', subsErr);
+      return;
+    }
+
+    const subscribedSet = new Set((subs || []).map(r => r.student_id));
+    const recipientIds = baseIds.filter(id => subscribedSet.has(id));
+
+    console.log(`[notifyAllStudents] eventType=${eventType} • base=${baseIds.length} • abonnés push=${recipientIds.length}`);
+
+    if (recipientIds.length === 0) {
+      console.warn('[notifyAllStudents] aucun élève abonné aux push parmi les destinataires — rien à insérer');
+      return;
+    }
+
+    // 3. Construire le message par défaut si aucun custom n'est fourni
     let defaultMessage = opts.message || null;
     if (!defaultMessage) {
       const map = {
@@ -24985,8 +25013,9 @@ async function _notifyAllStudents(sessionId, eventType, opts = {}) {
       defaultMessage = map[eventType] || null;
     }
 
-    const payload = students.map(s => ({
-      student_id: s.id,
+    // 4. Insérer les events ciblés (uniquement pour les abonnés)
+    const payload = recipientIds.map(id => ({
+      student_id: id,
       session_id: sessionId,
       event_type: eventType,
       message:    defaultMessage,
@@ -24994,9 +25023,13 @@ async function _notifyAllStudents(sessionId, eventType, opts = {}) {
     }));
 
     const { error } = await db.from('student_events').insert(payload);
-    if (error) console.error('notifyAllStudents error:', error);
+    if (error) {
+      console.error('[notifyAllStudents] erreur insertion student_events:', error);
+    } else {
+      console.log(`[notifyAllStudents] ✅ ${payload.length} events insérés`);
+    }
   } catch (e) {
-    console.error('notifyAllStudents exception:', e);
+    console.error('[notifyAllStudents] exception:', e);
   }
 }
 
