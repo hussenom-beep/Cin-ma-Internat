@@ -5373,6 +5373,212 @@ body.theme-christmas .s-header {
 }
 .admin-tabs::-webkit-scrollbar { display: none; }
 
+/* ================================================================
+   ADMIN MOBILE — Drawer latéral
+   Le bouton burger ouvre un panneau à gauche couvrant 80% de l'écran
+   avec la liste verticale des onglets et leurs badges.
+   ================================================================ */
+
+/* Bouton burger (header admin) — visible mobile uniquement */
+.admin-burger {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  position: relative;
+  margin-right: 10px;
+  flex-shrink: 0;
+  transition: background .18s, border-color .18s;
+}
+.admin-burger:active {
+  background: var(--surface-3, var(--surface-2));
+  border-color: var(--gold);
+}
+.admin-burger-icon {
+  font-size: 20px;
+  line-height: 1;
+  color: var(--text-1);
+  font-weight: 600;
+}
+.admin-burger-dot {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 12px;
+  height: 12px;
+  background: var(--gold);
+  border-radius: 50%;
+  border: 2px solid var(--surface);
+  box-shadow: 0 0 8px var(--gold);
+  animation: burger-dot-pulse 1.6s ease-in-out infinite;
+}
+@keyframes burger-dot-pulse {
+  0%, 100% { transform: scale(1);    opacity: 1; }
+  50%      { transform: scale(1.25); opacity: 0.7; }
+}
+
+/* Backdrop sombre derrière le drawer */
+.admin-drawer-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 199;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .25s;
+}
+.admin-drawer-backdrop.show {
+  opacity: 1;
+  pointer-events: all;
+}
+
+/* Footer du drawer (Paramètres + Déconnexion) — pas affiché sur desktop */
+.admin-drawer-footer { display: none; }
+
+/* ===== MOBILE : transformation en drawer ===== */
+@media (max-width: 1023px) {
+  .admin-burger {
+    display: inline-flex;
+  }
+  .admin-drawer-backdrop {
+    display: block;
+  }
+  /* Cacher les éléments desktop-only sur mobile */
+  .admin-desktop-only {
+    display: none !important;
+  }
+  /* Le drawer lui-même : panneau coulissant à gauche */
+  .admin-tabs {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 82%;
+    max-width: 320px;
+    flex-direction: column;
+    overflow-y: auto;
+    overflow-x: hidden;
+    border-right: 1px solid var(--border);
+    border-bottom: none;
+    background: var(--surface);
+    z-index: 200;
+    transform: translateX(-105%);
+    transition: transform .28s cubic-bezier(.4, .15, .2, 1);
+    /* padding-top élargi pour laisser la place au bouton déconnexion en absolu */
+    padding: 56px 12px 12px;
+    gap: 4px;
+    box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+  }
+  .admin-tabs.open {
+    transform: translateX(0);
+    box-shadow: 12px 0 32px rgba(0, 0, 0, 0.55);
+  }
+
+  /* Bouton Déconnexion en haut à droite du drawer */
+  .admin-drawer-logout-top {
+    display: inline-flex;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 36px;
+    height: 36px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    color: var(--red, #e85a5a);
+    z-index: 1;
+    transition: background .15s, border-color .15s;
+  }
+  .admin-drawer-logout-top:active {
+    background: var(--surface-3, var(--surface-2));
+    border-color: var(--red, #e85a5a);
+  }
+
+  /* Onglets dans le drawer : grands, pleine largeur, alignés à gauche */
+  .admin-tab {
+    border-bottom: none;
+    border-radius: 8px;
+    text-align: left;
+    padding: 13px 14px;
+    font-size: 14.5px;
+    font-weight: 600;
+    color: var(--text-2);
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 0;
+    transition: background .15s, color .15s;
+  }
+  .admin-tab:active {
+    background: var(--surface-2);
+  }
+  .admin-tab.active {
+    background: var(--gold-dim);
+    color: var(--gold);
+    border-bottom-color: transparent;
+  }
+
+  /* Wrap (badge à droite) — comme sur desktop */
+  .admin-tab-wrap {
+    width: 100%;
+    padding: 0;
+    display: block;
+    position: relative;
+  }
+  .admin-tab-wrap .admin-tab {
+    padding-right: 44px;
+    width: 100%;
+  }
+  .admin-tab-wrap .pending-badge {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    border-radius: 11px;
+    background: var(--gold);
+    color: #2a1a05;
+    font-size: 11.5px;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    box-shadow: 0 1px 4px rgba(240, 165, 0, 0.4);
+  }
+
+  /* Footer drawer : poussé en bas du drawer (Paramètres uniquement) */
+  .admin-drawer-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: auto;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+  .admin-drawer-action {
+    background: var(--surface-2);
+  }
+}
+
+/* Cacher le bouton déconnexion top par défaut (n'apparaît que sur mobile via @media) */
+.admin-drawer-logout-top {
+  display: none;
+}
+
 .admin-tab {
   padding: 13px 14px;
   font-size: 12.5px;
@@ -7759,25 +7965,45 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
      ================================================================ -->
 <div class="screen no-nav hidden" id="screen-admin">
   <div class="s-header">
-    <h1>⚙️ Administration</h1>
-    <button class="admin-settings-btn" onclick="openModal('modal-admin-settings')" title="Paramètres">⚙️ Paramètres</button>
+    <!-- Bouton burger : visible uniquement sur mobile, ouvre le drawer -->
+    <button class="admin-burger" onclick="adminDrawerToggle()" title="Menu" aria-label="Ouvrir le menu">
+      <span class="admin-burger-icon">☰</span>
+      <span class="admin-burger-dot hidden" id="admin-burger-dot"></span>
+    </button>
+    <h1 id="admin-header-title">⚙️ Administration</h1>
+    <button class="admin-settings-btn admin-desktop-only" onclick="openModal('modal-admin-settings')" title="Paramètres">⚙️ Paramètres</button>
   </div>
 
+  <!-- Backdrop du drawer mobile (clic pour fermer) -->
+  <div class="admin-drawer-backdrop" id="admin-drawer-backdrop" onclick="adminDrawerClose()"></div>
+
   <div class="admin-tabs" id="admin-tabs">
-    <button class="admin-tab active" onclick="aTab('dashboard')">🏠 Accueil</button>
-    <button class="admin-tab" onclick="aTab('films')">🎬 Films</button>
-    <button class="admin-tab" onclick="aTab('votes')">🗳️ Votes</button>
+    <!-- Bouton Déconnexion : positionné en haut à droite du drawer mobile -->
+    <button class="admin-drawer-logout-top" onclick="logout()" title="Déconnexion" aria-label="Déconnexion">🚪</button>
+
+    <button class="admin-tab active" data-tab="dashboard" onclick="aTab('dashboard')">🏠 Accueil</button>
+    <button class="admin-tab" data-tab="votes" onclick="aTab('votes')">🗳️ Votes</button>
     <div class="admin-tab-wrap">
-      <button class="admin-tab" onclick="aTab('proposals')">💡 Propositions</button>
+      <button class="admin-tab" data-tab="proposals" onclick="aTab('proposals')">💡 Propositions</button>
       <span class="pending-badge hidden" id="pending-proposals-badge">0</span>
     </div>
     <div class="admin-tab-wrap">
-      <button class="admin-tab" onclick="aTab('requests')">📨 Demandes</button>
+      <button class="admin-tab" data-tab="messages" onclick="aTab('messages')">💬 Messages</button>
+      <span class="pending-badge hidden" id="pending-messages-badge">0</span>
+    </div>
+    <button class="admin-tab" data-tab="films" onclick="aTab('films')">🎬 Films</button>
+    <button class="admin-tab" data-tab="sessions" onclick="aTab('sessions')">🎟️ Séances</button>
+    <div class="admin-tab-wrap">
+      <button class="admin-tab" data-tab="requests" onclick="aTab('requests')">📨 Demandes</button>
       <span class="pending-badge hidden" id="pending-requests-badge">0</span>
     </div>
-    <button class="admin-tab" onclick="aTab('sessions')">🎟️ Séances</button>
-    <button class="admin-tab" onclick="aTab('students')">👥 Élèves</button>
-    <button class="admin-tab" onclick="aTab('tutorials')">📚 Tutoriels</button>
+    <button class="admin-tab" data-tab="students" onclick="aTab('students')">👥 Élèves</button>
+    <button class="admin-tab" data-tab="tutorials" onclick="aTab('tutorials')">📚 Tutoriels</button>
+
+    <!-- Footer : Paramètres uniquement (déconnexion est en haut à droite) -->
+    <div class="admin-drawer-footer">
+      <button class="admin-tab admin-drawer-action" onclick="adminDrawerClose(); openModal('modal-admin-settings');">⚙️ Paramètres</button>
+    </div>
   </div>
 
   <div class="admin-panels-container">
@@ -7881,14 +8107,22 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       <div class="admin-list" id="admin-proposals-list"><div class="loader"><div class="spinner"></div></div></div>
     </div>
 
-    <!-- Requests panel -->
+    <!-- Messages panel (NOUVEAU - séparé de Demandes) -->
+    <div class="admin-panel hidden" id="ap-messages">
+      <div class="admin-panel-title">Messagerie</div>
+      <div class="sub-tabs" id="msg-subtabs">
+        <button class="sub-tab active" onclick="filterMessages('active')">💬 Actives <span class="pending-badge hidden" id="msg-active-badge">0</span></button>
+        <button class="sub-tab" onclick="filterMessages('archived')">📁 Archivées</button>
+      </div>
+      <div class="admin-list" id="admin-messages-list"><div class="loader"><div class="spinner"></div></div></div>
+    </div>
+
+    <!-- Requests panel (réduit à : codes oubliés + traitées) -->
     <div class="admin-panel hidden" id="ap-requests">
       <div class="admin-panel-title">Demandes élèves</div>
       <!-- Sous-onglets filtres types -->
       <div class="sub-tabs" id="req-subtabs">
-        <button class="sub-tab active" onclick="filterRequests('message')">💬 Messages <span class="pending-badge hidden" id="req-message-badge">0</span></button>
-        <button class="sub-tab" onclick="filterRequests('forgot_pin')">🔑 Codes oubliés <span class="pending-badge hidden" id="req-forgot-badge">0</span></button>
-        <button class="sub-tab" onclick="filterRequests('archived_messages')">📁 Archivées</button>
+        <button class="sub-tab active" onclick="filterRequests('forgot_pin')">🔑 Codes oubliés <span class="pending-badge hidden" id="req-forgot-badge">0</span></button>
         <button class="sub-tab" onclick="filterRequests('handled')">✅ Traitées</button>
       </div>
       <div class="admin-list" id="admin-requests-list"><div class="loader"><div class="spinner"></div></div></div>
@@ -19173,7 +19407,21 @@ async function openStudentSessionDetail(sessionId) {
 /* ================================================================
    ADMIN — TAB SWITCHING
    ================================================================ */
-const PANELS = ['dashboard','films','votes','proposals','requests','sessions','students','tutorials'];
+const PANELS = ['dashboard','votes','proposals','messages','films','sessions','requests','students','tutorials'];
+
+/* Libellés pour le titre dynamique du header admin sur mobile.
+   Mapping panel → emoji + label. */
+const PANEL_TITLES = {
+  dashboard: '🏠 Accueil',
+  votes:     '🗳️ Votes',
+  proposals: '💡 Propositions',
+  messages:  '💬 Messages',
+  films:     '🎬 Films',
+  sessions:  '🎟️ Séances',
+  requests:  '📨 Demandes',
+  students:  '👥 Élèves',
+  tutorials: '📚 Tutoriels'
+};
 
 // État courant des sous-onglets
 let _filmFilter     = 'active';
@@ -19243,15 +19491,40 @@ function filterProposals(status) {
 /* ================================================================
    ADMIN DEMANDES — filtres et chargement
    ================================================================ */
-let _requestFilter = 'message';
+let _requestFilter = 'forgot_pin';
+let _messagesFilter = 'active';   // 'active' ou 'archived'
 
 function filterRequests(type) {
   _requestFilter = type;
-  const filters = ['message', 'forgot_pin', 'archived_messages', 'handled'];
+  const filters = ['forgot_pin', 'handled'];
   document.querySelectorAll('#req-subtabs .sub-tab').forEach((btn, i) => {
     btn.classList.toggle('active', filters[i] === type);
   });
   loadAdminRequests();
+}
+
+/* Sous-onglet messagerie : actives vs archivées */
+function filterMessages(type) {
+  _messagesFilter = type;
+  const filters = ['active', 'archived'];
+  document.querySelectorAll('#msg-subtabs .sub-tab').forEach((btn, i) => {
+    btn.classList.toggle('active', filters[i] === type);
+  });
+  loadAdminMessages();
+}
+
+/* Charge le panneau Messagerie. Réutilise la fonction existante
+   _loadAdminConversations qui peuple `admin-requests-list` — on doit donc
+   d'abord déplacer son rendu vers `admin-messages-list` quand on est sur
+   l'onglet Messages. Solution simple : on swap l'id avant l'appel, et on
+   restaure après. Plus propre : on patch _loadAdminConversations pour qu'elle
+   choisisse sa cible selon le panel actif. Ici on fait le simple. */
+async function loadAdminMessages() {
+  // On cible directement la liste des messages
+  const list = document.getElementById('admin-messages-list');
+  if (!list) return;
+  list.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
+  await _loadAdminConversations(_messagesFilter === 'archived', { targetId: 'admin-messages-list' });
 }
 
 /* ================================================================
@@ -19594,20 +19867,72 @@ function _onAdminRTEvent(table) {
 }
 
 function aTab(tab) {
-  PANELS.forEach((p, i) => {
-    document.querySelectorAll('.admin-tab')[i].classList.toggle('active', p === tab);
-    document.getElementById('ap-' + p).classList.toggle('hidden', p !== tab);
+  // Activer le bon onglet visuellement (matchage par data-tab → robuste au reorder)
+  document.querySelectorAll('.admin-tab[data-tab]').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tab === tab);
   });
+  // Afficher le bon panel
+  PANELS.forEach(p => {
+    const el = document.getElementById('ap-' + p);
+    if (el) el.classList.toggle('hidden', p !== tab);
+  });
+  // Mettre à jour le titre du header admin (visible sur mobile)
+  const titleEl = document.getElementById('admin-header-title');
+  if (titleEl) titleEl.textContent = PANEL_TITLES[tab] || '⚙️ Administration';
+  // Fermer le drawer mobile s'il est ouvert
+  if (typeof adminDrawerClose === 'function') adminDrawerClose();
+  // Charger les données du panel
   switch(tab) {
     case 'dashboard': loadAdminDashboard(); break;
     case 'films':     loadAdminFilms();     break;
     case 'votes':     loadAdminVotes();     break;
     case 'proposals': loadAdminProposals(); break;
+    case 'messages':  loadAdminMessages();  break;
     case 'requests':  loadAdminRequests();  break;
     case 'sessions':  loadAdminSessions();  break;
     case 'students':  loadAdminStudents();  break;
     case 'tutorials': loadTutorialsAdminPanel(); break;
   }
+}
+
+/* ============================================================================
+   Drawer mobile : ouverture/fermeture via le bouton burger.
+   ============================================================================ */
+function adminDrawerToggle() {
+  const tabs = document.getElementById('admin-tabs');
+  const bd   = document.getElementById('admin-drawer-backdrop');
+  if (!tabs) return;
+  const isOpen = tabs.classList.contains('open');
+  if (isOpen) {
+    tabs.classList.remove('open');
+    bd?.classList.remove('show');
+  } else {
+    tabs.classList.add('open');
+    bd?.classList.add('show');
+  }
+}
+function adminDrawerClose() {
+  const tabs = document.getElementById('admin-tabs');
+  const bd   = document.getElementById('admin-drawer-backdrop');
+  tabs?.classList.remove('open');
+  bd?.classList.remove('show');
+}
+
+/* Met à jour le point doré pulsant sur le bouton burger en fonction des
+   notifs admin globales (propositions + messages + demandes). */
+function _refreshAdminBurgerNotifDot() {
+  const dot = document.getElementById('admin-burger-dot');
+  if (!dot) return;
+  const get = id => {
+    const el = document.getElementById(id);
+    if (!el || el.classList.contains('hidden')) return 0;
+    const n = parseInt(el.textContent, 10);
+    return Number.isFinite(n) ? n : 0;
+  };
+  const total = get('pending-proposals-badge') +
+                get('pending-messages-badge') +
+                get('pending-requests-badge');
+  dot.classList.toggle('hidden', total === 0);
 }
 
 async function loadAdmin() {
@@ -22372,6 +22697,7 @@ async function refreshPendingProposalsBadge() {
     } else {
       badge.classList.add('hidden');
     }
+    if (typeof _refreshAdminBurgerNotifDot === 'function') _refreshAdminBurgerNotifDot();
   } catch(e) { /* silencieux */ }
 }
 
@@ -22535,28 +22861,32 @@ async function refreshPendingRequestsBadge() {
       console.warn('[refreshPendingRequestsBadge] Exception comptage conversations:', e);
     }
 
-    // Le badge "Messages" affiche désormais (legacy student_requests + conversations unread)
-    const totalMessageBadge = (messageCount || 0) + conversationsUnread;
-    
-    console.log('[refreshPendingRequestsBadge] Comptages:', {
-      total: totalCount,
-      forgot_pin: forgotCount,
-      message: messageCount
-    });
-    
-    // Badge principal (onglet Demandes)
+    // === Badges séparés depuis qu'on a un onglet Messages dédié ===
+    // Badge "Messages" (onglet Messages) : conversations unread admin uniquement
+    const messagesBadge = document.getElementById('pending-messages-badge');
+    if (messagesBadge) {
+      if (conversationsUnread > 0) {
+        messagesBadge.textContent = conversationsUnread;
+        messagesBadge.classList.remove('hidden');
+      } else {
+        messagesBadge.classList.add('hidden');
+      }
+    }
+
+    // Badge "Demandes" (onglet Demandes) : student_requests legacy uniquement
+    // (forgot_pin pending + message pending sans conv associée)
     const mainBadge = document.getElementById('pending-requests-badge');
-    const grandTotal = (totalCount || 0) + conversationsUnread;
+    const requestsTotal = (totalCount || 0);
     if (mainBadge) {
-      if (grandTotal > 0) {
-        mainBadge.textContent = grandTotal;
+      if (requestsTotal > 0) {
+        mainBadge.textContent = requestsTotal;
         mainBadge.classList.remove('hidden');
       } else {
         mainBadge.classList.add('hidden');
       }
     }
-    
-    // Badge Codes oubliés
+
+    // Sous-badges du panneau Demandes
     const forgotBadge = document.getElementById('req-forgot-badge');
     if (forgotBadge) {
       if (forgotCount > 0) {
@@ -22566,18 +22896,21 @@ async function refreshPendingRequestsBadge() {
         forgotBadge.classList.add('hidden');
       }
     }
-    
-    // Badge Messages
-    const messageBadge = document.getElementById('req-message-badge');
-    if (messageBadge) {
-      if (totalMessageBadge > 0) {
-        messageBadge.textContent = totalMessageBadge;
-        messageBadge.classList.remove('hidden');
+
+    // Sous-badge du panneau Messages (Actives)
+    const msgActiveBadge = document.getElementById('msg-active-badge');
+    if (msgActiveBadge) {
+      if (conversationsUnread > 0) {
+        msgActiveBadge.textContent = conversationsUnread;
+        msgActiveBadge.classList.remove('hidden');
       } else {
-        messageBadge.classList.add('hidden');
+        msgActiveBadge.classList.add('hidden');
       }
     }
-  } catch(e) { 
+
+    // Mettre à jour le point doré du burger mobile (synthèse globale)
+    if (typeof _refreshAdminBurgerNotifDot === 'function') _refreshAdminBurgerNotifDot();
+  } catch(e) {
     console.error('[refreshPendingRequestsBadge] Exception:', e);
   }
 }
@@ -22852,9 +23185,14 @@ function _msgRenderThread(containerId, messages) {
   container.innerHTML = html;
 }
 
-/** Charge les conversations admin (actives ou archivées) */
-async function _loadAdminConversations(archived) {
-  const list = document.getElementById('admin-requests-list');
+/** Charge les conversations admin (actives ou archivées).
+    `opts.targetId` permet de cibler un autre conteneur que le panneau
+    legacy 'admin-requests-list' — utilisé par le nouvel onglet Messages
+    qui rend dans 'admin-messages-list'. */
+async function _loadAdminConversations(archived, opts = {}) {
+  const targetId = opts.targetId || 'admin-requests-list';
+  const list = document.getElementById(targetId);
+  if (!list) return;
   list.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
 
   const status = archived ? 'closed' : 'active';
@@ -23309,9 +23647,10 @@ async function closeAdminConversation() {
   closeModal('modal-admin-conversation');
   _adminCurrentConv = null;
 
-  // Rafraîchir la liste si on est sur l'onglet messages
-  if (_requestFilter === 'message' || _requestFilter === 'archived_messages') {
-    loadAdminRequests();
+  // Rafraîchir la liste si on est sur l'onglet Messages (nouveau panneau)
+  const onMsgPanel = !document.getElementById('ap-messages')?.classList.contains('hidden');
+  if (onMsgPanel) {
+    loadAdminMessages();
   }
   refreshPendingRequestsBadge();
 }
