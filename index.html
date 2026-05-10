@@ -5122,16 +5122,27 @@ body.theme-christmas .s-header {
 
 /* ============================================================================
    MOBILE — Bottom nav fixe pour la modale Paramètres admin
-   On transforme la barre d'onglets horizontale du haut en bottom nav fixe en
-   bas de l'écran, avec icône au-dessus du label (style natif iOS/Android).
-   Ne s'applique QUE à #modal-admin-settings (pas la fiche élève admin).
+   La barre d'onglets est en HORS du sd-body (sibling), donc elle reste
+   collée en bas du panel quel que soit le scroll dans le body.
+   Style de l'actif : reprend la nav élève (capsule dorée discrète +
+   barre dorée pleine en haut), pas un encadré rectangulaire.
    ============================================================================ */
 @media (max-width: 1023px) {
+  /* Le panel est déjà en flex column avec height: 100vh sur mobile.
+     On désactive l'overflow du panel et on délègue le scroll au sd-body. */
+  #modal-admin-settings .sd-panel {
+    overflow: hidden;
+  }
+  #modal-admin-settings .sd-body {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 16px;
+  }
+
+  /* La nav reste en bas naturellement (dernière de la flex-column) */
   #modal-admin-settings .sd-tabs.sd-tabs-admin-settings {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
+    flex-shrink: 0;
     margin: 0;
     padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0));
     background: var(--surface);
@@ -5149,19 +5160,37 @@ body.theme-christmas .s-header {
     align-items: center;
     justify-content: center;
     gap: 3px;
-    padding: 7px 4px;
+    padding: 8px 4px;
     border-bottom: none;
-    border-radius: 8px;
+    /* Capsule discrète pour l'actif, comme la nav élève */
+    border-radius: 0;
     margin-bottom: 0;
     width: 100%;
+    position: relative;
+    background: none;
+    color: rgba(255, 255, 255, .55);
   }
   #modal-admin-settings .sd-tabs-admin-settings .sd-tab.active {
     border-bottom-color: transparent;
-    background: var(--gold-dim);
+    color: var(--gold);
+    background: rgba(240, 165, 0, .08);
+  }
+  /* Barre dorée pleine en haut de l'onglet actif (style nav élève) */
+  #modal-admin-settings .sd-tabs-admin-settings .sd-tab.active::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 28px;
+    height: 2.5px;
+    background: var(--gold);
+    border-radius: 0 0 4px 4px;
+    box-shadow: 0 2px 8px rgba(240, 165, 0, .5);
   }
   #modal-admin-settings .sd-tabs-admin-settings .sd-tab .sd-tab-icon {
     display: block;
-    font-size: 20px;
+    font-size: 24px;
     line-height: 1;
     margin: 0;
   }
@@ -5172,10 +5201,12 @@ body.theme-christmas .s-header {
     line-height: 1;
     letter-spacing: 0.01em;
   }
+}
 
-  /* Padding-bottom du body pour ne pas chevaucher la bottom nav */
-  #modal-admin-settings .sd-body {
-    padding-bottom: 80px !important;
+/* ===== PC : on remet la nav en haut (avant le sd-body) via order ===== */
+@media (min-width: 1024px) {
+  #modal-admin-settings .sd-tabs.sd-tabs-admin-settings {
+    order: -1;
   }
 }
 
@@ -5562,14 +5593,19 @@ body.theme-christmas .s-header {
     cursor: pointer;
     align-items: center;
     justify-content: center;
-    font-size: 16px;
-    color: var(--red, #e85a5a);
+    font-size: 18px;
+    font-weight: 700;
+    /* Couleur rouge pour le symbole power ⏻ (doit avoir une couleur explicite
+       car le caractère est un symbole text, pas un emoji graphique) */
+    color: #e85a5a;
     z-index: 1;
-    transition: background .15s, border-color .15s;
+    transition: background .15s, border-color .15s, color .15s;
+    line-height: 1;
   }
   .admin-drawer-logout-top:active {
-    background: var(--surface-3, var(--surface-2));
-    border-color: var(--red, #e85a5a);
+    background: rgba(232, 90, 90, 0.15);
+    border-color: #e85a5a;
+    color: #ff6b6b;
   }
 
   /* Onglets dans le drawer : grands, pleine largeur, alignés à gauche */
@@ -8046,7 +8082,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 
   <div class="admin-tabs" id="admin-tabs">
     <!-- Bouton Déconnexion : positionné en haut à droite du drawer mobile -->
-    <button class="admin-drawer-logout-top" onclick="logout()" title="Déconnexion" aria-label="Déconnexion">🚪</button>
+    <button class="admin-drawer-logout-top" onclick="logout()" title="Déconnexion" aria-label="Déconnexion">⏻</button>
 
     <button class="admin-tab active" data-tab="dashboard" onclick="aTab('dashboard')">🏠 Accueil</button>
     <button class="admin-tab" data-tab="votes" onclick="aTab('votes')">🗳️ Votes</button>
@@ -10382,17 +10418,6 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     </div>
     <div class="sd-body">
 
-      <!-- ===== Barre d'onglets =====
-           Sur PC : barre horizontale en haut.
-           Sur mobile : bottom nav fixe (transformée par CSS @media). -->
-      <div class="sd-tabs sd-tabs-admin-settings">
-        <button class="sd-tab active" id="sd-stab-compte"      onclick="sdSwitchSettingsTab('compte')"><span class="sd-tab-icon">👤</span><span class="sd-tab-label">Compte</span></button>
-        <button class="sd-tab"        id="sd-stab-comm"        onclick="sdSwitchSettingsTab('comm')"><span class="sd-tab-icon">📢</span><span class="sd-tab-label">Comm.</span></button>
-        <button class="sd-tab"        id="sd-stab-apparence"   onclick="sdSwitchSettingsTab('apparence')"><span class="sd-tab-icon">🎨</span><span class="sd-tab-label">Style</span></button>
-        <button class="sd-tab"        id="sd-stab-maintenance" onclick="sdSwitchSettingsTab('maintenance')"><span class="sd-tab-icon">🛠️</span><span class="sd-tab-label">Outils</span></button>
-        <button class="sd-tab"        id="sd-stab-donnees"     onclick="sdSwitchSettingsTab('donnees')"><span class="sd-tab-icon">📊</span><span class="sd-tab-label">Données</span></button>
-      </div>
-
       <!-- ============================================================
            ONGLET : 👤 COMPTE
            ============================================================ -->
@@ -10680,6 +10705,17 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
         </div>
       </div>
 
+    </div>
+
+    <!-- ===== Barre d'onglets (placée HORS du sd-body pour rester collée
+         en bas du panel sur mobile, indépendamment du scroll).
+         Sur PC : remontée en haut via `order: -1` en CSS. -->
+    <div class="sd-tabs sd-tabs-admin-settings">
+      <button class="sd-tab active" id="sd-stab-compte"      onclick="sdSwitchSettingsTab('compte')"><span class="sd-tab-icon">👤</span><span class="sd-tab-label">Compte</span></button>
+      <button class="sd-tab"        id="sd-stab-comm"        onclick="sdSwitchSettingsTab('comm')"><span class="sd-tab-icon">📢</span><span class="sd-tab-label">Comm.</span></button>
+      <button class="sd-tab"        id="sd-stab-apparence"   onclick="sdSwitchSettingsTab('apparence')"><span class="sd-tab-icon">🎨</span><span class="sd-tab-label">Style</span></button>
+      <button class="sd-tab"        id="sd-stab-maintenance" onclick="sdSwitchSettingsTab('maintenance')"><span class="sd-tab-icon">🛠️</span><span class="sd-tab-label">Outils</span></button>
+      <button class="sd-tab"        id="sd-stab-donnees"     onclick="sdSwitchSettingsTab('donnees')"><span class="sd-tab-icon">📊</span><span class="sd-tab-label">Données</span></button>
     </div>
   </div>
 </div>
