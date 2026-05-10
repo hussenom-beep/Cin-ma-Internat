@@ -24963,43 +24963,15 @@ async function loadAdminSessions() {
    - opts.studentIds : liste d'ids ; si null → tous les élèves actifs */
 async function _notifyAllStudents(sessionId, eventType, opts = {}) {
   try {
-    // 1. Récupérer la liste de base des destinataires (tous les actifs ou ceux ciblés)
-    let baseIds;
+    let students;
     if (Array.isArray(opts.studentIds) && opts.studentIds.length > 0) {
-      baseIds = opts.studentIds;
+      students = opts.studentIds.map(id => ({ id }));
     } else {
       const { data, error } = await db.from('students').select('id').eq('is_active', true);
-      if (error || !data?.length) {
-        console.warn('[notifyAllStudents] aucun élève actif trouvé', error);
-        return;
-      }
-      baseIds = data.map(s => s.id);
+      if (error || !data?.length) return;
+      students = data;
     }
 
-    // 2. Filtrer pour ne garder que les élèves avec au moins une push subscription active
-    //    → évite de polluer student_events pour des élèves qui ne recevront jamais la push
-    const { data: subs, error: subsErr } = await db.from('push_subscriptions')
-      .select('student_id')
-      .eq('active', true)
-      .not('student_id', 'is', null)
-      .in('student_id', baseIds);
-
-    if (subsErr) {
-      console.error('[notifyAllStudents] erreur lookup push_subscriptions:', subsErr);
-      return;
-    }
-
-    const subscribedSet = new Set((subs || []).map(r => r.student_id));
-    const recipientIds = baseIds.filter(id => subscribedSet.has(id));
-
-    console.log(`[notifyAllStudents] eventType=${eventType} • base=${baseIds.length} • abonnés push=${recipientIds.length}`);
-
-    if (recipientIds.length === 0) {
-      console.warn('[notifyAllStudents] aucun élève abonné aux push parmi les destinataires — rien à insérer');
-      return;
-    }
-
-    // 3. Construire le message par défaut si aucun custom n'est fourni
     let defaultMessage = opts.message || null;
     if (!defaultMessage) {
       const map = {
@@ -25013,9 +24985,8 @@ async function _notifyAllStudents(sessionId, eventType, opts = {}) {
       defaultMessage = map[eventType] || null;
     }
 
-    // 4. Insérer les events ciblés (uniquement pour les abonnés)
-    const payload = recipientIds.map(id => ({
-      student_id: id,
+    const payload = students.map(s => ({
+      student_id: s.id,
       session_id: sessionId,
       event_type: eventType,
       message:    defaultMessage,
@@ -25023,13 +24994,9 @@ async function _notifyAllStudents(sessionId, eventType, opts = {}) {
     }));
 
     const { error } = await db.from('student_events').insert(payload);
-    if (error) {
-      console.error('[notifyAllStudents] erreur insertion student_events:', error);
-    } else {
-      console.log(`[notifyAllStudents] ✅ ${payload.length} events insérés`);
-    }
+    if (error) console.error('notifyAllStudents error:', error);
   } catch (e) {
-    console.error('[notifyAllStudents] exception:', e);
+    console.error('notifyAllStudents exception:', e);
   }
 }
 
@@ -25063,7 +25030,20 @@ async function confirmNotifyAfterEdit() {
   closeModal('modal-notify-after-edit');
   _pendingNotifyAfterEdit = null;
 
+  // 1. Logger l'event en BDD (historique)
   await _notifyAllStudents(sessionId, eventType, { message: message || null });
+
+  // 2. ENVOI RÉEL DE LA PUSH WEB via la edge function send-push
+  //    Sans ça, l'event est juste loggé en BDD mais aucune notification n'arrive.
+  const titleMap = {
+    session_modified_date: '📅 Séance modifiée',
+    session_modified_time: '🕐 Séance modifiée',
+    session_modified_film: '🎬 Changement de film',
+  };
+  const pushTitle = titleMap[eventType] || '📢 Information séance';
+  const pushBody  = message || 'Une séance a été modifiée.';
+  _invokeSendPush({ type: 'students_all' }, pushTitle, pushBody, '/');
+
   toast('Notification envoyée 📢', 'success');
 }
 
@@ -25211,10 +25191,18 @@ async function confirmBroadcastSession() {
       if (msgErr) throw msgErr;
     }
 
-    // 3. Notif push aux destinataires
+    // 3. Logger les events en BDD (uniquement pour les abonnés push)
     await _notifyAllStudents(session.id, 'broadcast_message', {
       message: subject,
       studentIds: studentIds
+    });
+
+    // 4. ENVOI RÉEL DE LA PUSH WEB à chaque destinataire individuellement.
+    //    On utilise le sujet comme titre et le contenu comme body.
+    const pushTitle = `💬 ${subject}`;
+    const pushBody  = content.length > 120 ? content.slice(0, 117) + '…' : content;
+    studentIds.forEach(sid => {
+      _invokeSendPush({ type: 'student', id: sid }, pushTitle, pushBody, '/');
     });
 
     toast(`✅ Message envoyé à ${studentIds.length} élève${studentIds.length > 1 ? 's' : ''}`, 'success');
