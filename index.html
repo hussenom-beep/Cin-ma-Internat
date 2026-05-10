@@ -7933,7 +7933,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       <div class="home-sub">Ton espace cinéma du mercredi soir</div>
     </div>
     <!-- Bouton profil — card avec anneau XP + Prénom Nom (Batch C2a v2) -->
-    <button class="home-profile-card" id="home-profile-card" onclick="openModal('modal-profile')" title="Mon profil">
+    <button class="home-profile-card" id="home-profile-card" onclick="openModal('modal-profile'); refreshStudentPersistCard()" title="Mon profil">
       <span class="home-profile-btn" id="home-profile-btn"></span>
       <span class="home-profile-card-name">
         <span class="home-profile-card-firstname" id="home-card-firstname">—</span>
@@ -7977,7 +7977,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 <div class="screen hidden" id="screen-films">
   <div class="s-header">
     <h1>🎬 Films en vote</h1>
-    <button class="home-profile-btn" onclick="openModal('modal-profile')" title="Mon profil">?</button>
+    <button class="home-profile-btn" onclick="openModal('modal-profile'); refreshStudentPersistCard()" title="Mon profil">?</button>
   </div>
   <!-- Toggle de filtre événement (visible uniquement si thème actif) -->
   <div id="films-event-filter" class="event-filter-bar hidden">
@@ -8022,7 +8022,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 <div class="screen hidden" id="screen-propose">
   <div class="s-header">
     <h1>💡 Proposer un film</h1>
-    <button class="home-profile-btn" onclick="openModal('modal-profile')" title="Mon profil">?</button>
+    <button class="home-profile-btn" onclick="openModal('modal-profile'); refreshStudentPersistCard()" title="Mon profil">?</button>
   </div>
   <div class="propose-body">
     <p class="text-sm text-muted mb-2">Recherche un film et propose-le. L'admin le validera avant qu'il apparaisse.</p>
@@ -8069,7 +8069,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 <div class="screen hidden" id="screen-session">
   <div class="s-header">
     <h1>🎟️ Séances</h1>
-    <button class="home-profile-btn" onclick="openModal('modal-profile')" title="Mon profil">?</button>
+    <button class="home-profile-btn" onclick="openModal('modal-profile'); refreshStudentPersistCard()" title="Mon profil">?</button>
   </div>
   <div class="sessions-body" id="sessions-body">
     <div class="loader"><div class="spinner"></div></div>
@@ -8908,6 +8908,16 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
             2. Une fois l'app ouverte depuis l'icône sur ton écran d'accueil, reviens ici et appuie sur <strong>🔕 Activer les notifications</strong>.
           </div>
         </div>
+
+        <!-- Toggle "Rester connecté" — visible uniquement en PWA (sinon caché au load) -->
+        <button class="profile-action-btn" id="student-persist-card" onclick="toggleStudentPersist()" style="display:none;">
+          <span class="pa-icon" id="student-persist-icon">🔓</span>
+          <span class="pa-text">
+            <span id="student-persist-title" style="display:block;">Rester connecté sur cet appareil</span>
+            <span id="student-persist-sub" style="display:block;font-size:11.5px;color:var(--text-3);font-weight:500;margin-top:2px;">Évite de retaper ton code à chaque ouverture.</span>
+          </span>
+          <span class="pa-arrow">›</span>
+        </button>
       </div>
 
       <!-- Section Besoin d'aide -->
@@ -9509,6 +9519,45 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     <button class="btn btn-ghost btn-full" style="margin-top:10px;" onclick="closeModal('modal-push-firstlogin')">
       Plus tard
     </button>
+  </div>
+</div>
+
+<!-- ================================================================
+     STAY-LOGGED — Modale onboarding "Rester connecté"
+     ================================================================
+     Proposée aux élèves après 3 logins réussis sur PWA installée.
+     - Activer        → enregistre la préférence, ferme la modale
+     - Plus tard      → re-proposera dans 24 h
+     - Non merci      → re-proposera dans 30 jours
+     Dans tous les cas (sauf Activer), un petit message rappelle que la
+     fonctionnalité est dans le profil. -->
+<div class="overlay hidden" id="modal-stay-logged-firstlogin">
+  <div class="sheet" onclick="event.stopPropagation()" style="max-width:440px;">
+    <div class="pwa-flogin-emoji">🔒</div>
+    <div class="pwa-flogin-title">Rester connecté sur cet appareil ?</div>
+    <div class="pwa-flogin-subtitle">
+      Évite de retaper ton code chaque fois que tu ouvres l'application.<br>
+      <strong style="color: var(--gold);">À activer uniquement si ce téléphone est bien le tien.</strong>
+    </div>
+
+    <div class="pwa-flogin-perks">
+      <div>⚡ <strong>Accès direct</strong> à l'app sans relogin</div>
+      <div>📱 <strong>Sur cet appareil uniquement</strong> — choix par téléphone</div>
+      <div>🛡️ <strong>Auto-déconnexion</strong> si pas d'ouverture pendant 30 jours</div>
+    </div>
+
+    <button class="btn btn-gold btn-full btn-lg" onclick="stayLoggedPromptActivate()">
+      🔒 Activer maintenant
+    </button>
+    <button class="btn btn-ghost btn-full" style="margin-top:10px;" onclick="stayLoggedPromptLater()">
+      Plus tard
+    </button>
+    <button class="btn btn-ghost btn-full" style="margin-top:6px;font-size:13px;color:var(--text-3);" onclick="stayLoggedPromptDismiss()">
+      Non merci
+    </button>
+    <div style="text-align:center;margin-top:14px;font-size:12px;color:var(--text-3);line-height:1.5;">
+      💡 Tu pourras toujours activer cette option<br>plus tard depuis ton profil.
+    </div>
   </div>
 </div>
 
@@ -15048,12 +15097,101 @@ function whatsNewClose() {
    le rappel de date de naissance et le check de badges après login attendent
    tous que ces modales soient fermées avant de s'afficher. */
 function _isOnboardingModalOpen() {
-  const ids = ['modal-pwa-firstlogin', 'modal-pwa-ios-tuto', 'modal-push-firstlogin'];
+  const ids = ['modal-pwa-firstlogin', 'modal-pwa-ios-tuto', 'modal-push-firstlogin', 'modal-stay-logged-firstlogin'];
   for (const id of ids) {
     const el = document.getElementById(id);
     if (el && !el.classList.contains('hidden')) return true;
   }
   return false;
+}
+
+/* ============================================================================
+   STAY-LOGGED ONBOARDING — Modale "Rester connecté" pour les élèves
+   ============================================================================
+   Conditions d'affichage (toutes doivent être vraies) :
+   - L'utilisateur est un élève (pas l'admin)
+   - L'app tourne en PWA installée (pas dans le navigateur web)
+   - Le toggle n'est pas DÉJÀ activé
+   - L'élève s'est connecté >= 3 fois (compteur ci_login_count_<id>)
+   - On n'est pas dans une période de report (Plus tard 24h ou Non merci 30j)
+   ============================================================================ */
+const STAY_LOGGED_LOGIN_COUNT_KEY = 'ci_stay_logged_login_count';
+const STAY_LOGGED_REMIND_AFTER_KEY = 'ci_stay_logged_remind_after';
+const STAY_LOGGED_MIN_LOGINS = 3;
+const STAY_LOGGED_LATER_DELAY = 24 * 60 * 60 * 1000;        // 24 h
+const STAY_LOGGED_DISMISS_DELAY = 30 * 24 * 60 * 60 * 1000; // 30 j
+
+/* Compteur de logins par élève (clé localStorage avec son id) */
+function _stayLoggedIncrementLoginCount() {
+  if (!S.user || S.isAdmin) return;
+  try {
+    const key = `${STAY_LOGGED_LOGIN_COUNT_KEY}_${S.user.id}`;
+    const cur = parseInt(localStorage.getItem(key) || '0', 10);
+    localStorage.setItem(key, String(cur + 1));
+  } catch (_) {}
+}
+
+function _stayLoggedGetLoginCount() {
+  if (!S.user || S.isAdmin) return 0;
+  try {
+    const key = `${STAY_LOGGED_LOGIN_COUNT_KEY}_${S.user.id}`;
+    return parseInt(localStorage.getItem(key) || '0', 10);
+  } catch (_) { return 0; }
+}
+
+function _stayLoggedIsInRemindWindow() {
+  try {
+    const remindAfter = parseInt(localStorage.getItem(STAY_LOGGED_REMIND_AFTER_KEY) || '0', 10);
+    return remindAfter > Date.now();
+  } catch (_) { return false; }
+}
+
+/* Affiche la modale onboarding si toutes les conditions sont remplies.
+   Appelée après les autres modales d'onboarding pour ne pas chevaucher. */
+async function checkAndShowStayLogged() {
+  if (S.isAdmin || !S.user) return;
+  // PWA uniquement
+  if (typeof _pwaIsStandalone === 'function' && !_pwaIsStandalone()) return;
+  // Déjà activé
+  if (isStudentPersistEnabled()) return;
+  // Compteur de logins
+  if (_stayLoggedGetLoginCount() < STAY_LOGGED_MIN_LOGINS) return;
+  // Période de report
+  if (_stayLoggedIsInRemindWindow()) return;
+  // Attendre les autres modales
+  if (_isOnboardingModalOpen()) {
+    setTimeout(checkAndShowStayLogged, 1500);
+    return;
+  }
+  setTimeout(() => openModal('modal-stay-logged-firstlogin'), 400);
+}
+
+/* Bouton "Activer maintenant" */
+function stayLoggedPromptActivate() {
+  setStudentPersistEnabled(true);
+  saveLocal();
+  if (typeof startInactivityTimer === 'function') startInactivityTimer();
+  if (typeof refreshStudentPersistCard === 'function') refreshStudentPersistCard();
+  closeModal('modal-stay-logged-firstlogin');
+  toast('🔒 Tu resteras connecté sur cet appareil', 'success');
+}
+
+/* Bouton "Plus tard" → re-proposera dans 24h */
+function stayLoggedPromptLater() {
+  try {
+    localStorage.setItem(STAY_LOGGED_REMIND_AFTER_KEY, String(Date.now() + STAY_LOGGED_LATER_DELAY));
+  } catch (_) {}
+  closeModal('modal-stay-logged-firstlogin');
+  toast('Tu retrouves cette option dans ton profil 👤', 'info', 3500);
+}
+
+/* Bouton "Non merci" → re-proposera dans 30 jours */
+function stayLoggedPromptDismiss() {
+  try {
+    localStorage.setItem(STAY_LOGGED_REMIND_AFTER_KEY, String(Date.now() + STAY_LOGGED_DISMISS_DELAY));
+  } catch (_) {}
+  closeModal('modal-stay-logged-firstlogin');
+  toast('Tu retrouves cette option dans ton profil 👤', 'info', 3500);
 }
 
 /* Vérifie si l'élève a des tutos non vus, et les affiche le cas échéant.
@@ -15944,8 +16082,11 @@ function nextWednesday() {
    SESSION — durées d'inactivité max (millisecondes)
    ---------------------------------------------------------------- */
 const SESSION_TTL = {
-  student: 5 * 60 * 1000,   // 5 minutes
-  admin:   10 * 60 * 1000,   // 10 minutes
+  student: 5 * 60 * 1000,    // 5 minutes (mode normal)
+  admin:   10 * 60 * 1000,   // 10 minutes (mode normal)
+  // En mode persist élève : 30 jours glissants (si pas d'ouverture pendant
+  // 30 jours, la session expire et l'élève doit re-saisir son code)
+  studentPersist: 30 * 24 * 60 * 60 * 1000,
 };
 
 /* Mode "Rester connecté" admin — par device (clé localStorage).
@@ -15955,6 +16096,16 @@ const SESSION_TTL = {
    - Le timer d'inactivité est désactivé → pas de logout auto après 10 min
    Au prochain rechargement, l'admin arrive directement sur le dashboard. */
 const ADMIN_PERSIST_KEY = 'ci_admin_persist_session';
+
+/* Mode "Rester connecté" élève — par device (clé localStorage).
+   Différences avec l'admin :
+   - Désactivé par défaut (consentement explicite via modale onboarding)
+   - Expiration glissante : si l'élève n'ouvre pas l'app pendant 30 jours,
+     la session expire automatiquement (re-PIN obligatoire)
+   - La déconnexion volontaire désactive AUSSI le toggle (sécurité : un élève
+     qui prête son tel et déco pour le rendre s'attend à ce que tout soit propre)
+   - Ne s'active qu'en PWA (pas dans le navigateur web standard) */
+const STUDENT_PERSIST_KEY = 'ci_student_persist_session';
 
 function isAdminPersistEnabled() {
   try { return localStorage.getItem(ADMIN_PERSIST_KEY) === '1'; }
@@ -15966,6 +16117,27 @@ function setAdminPersistEnabled(enabled) {
     if (enabled) localStorage.setItem(ADMIN_PERSIST_KEY, '1');
     else         localStorage.removeItem(ADMIN_PERSIST_KEY);
   } catch (_) {}
+}
+
+function isStudentPersistEnabled() {
+  try { return localStorage.getItem(STUDENT_PERSIST_KEY) === '1'; }
+  catch (_) { return false; }
+}
+
+function setStudentPersistEnabled(enabled) {
+  try {
+    if (enabled) localStorage.setItem(STUDENT_PERSIST_KEY, '1');
+    else         localStorage.removeItem(STUDENT_PERSIST_KEY);
+  } catch (_) {}
+}
+
+/* Helper unifié : retourne true si la session courante doit persister.
+   - Admin : selon ADMIN_PERSIST_KEY
+   - Élève : selon STUDENT_PERSIST_KEY */
+function _shouldPersistSession() {
+  if (S.isAdmin) return isAdminPersistEnabled();
+  if (S.user)    return isStudentPersistEnabled();
+  return false;
 }
 
 /* Bascule le toggle "Rester connecté sur cet appareil" depuis le bouton dans
@@ -16018,15 +16190,70 @@ function refreshAdminPersistCard() {
   }
 }
 
+/* Bascule "Rester connecté" côté élève (depuis le profil ou la modale onboarding).
+   Côté UX : on stocke la préférence + on migre la session vers le bon storage. */
+function toggleStudentPersist() {
+  if (S.isAdmin || !S.user) return;
+  const willEnable = !isStudentPersistEnabled();
+  setStudentPersistEnabled(willEnable);
+
+  // Migrer la session courante vers le bon storage
+  saveLocal();
+
+  // Adapter le timer d'inactivité
+  if (typeof startInactivityTimer === 'function') startInactivityTimer();
+
+  // Mettre à jour la carte UI dans le profil
+  refreshStudentPersistCard();
+
+  if (willEnable) {
+    toast('🔒 Tu resteras connecté sur cet appareil', 'success');
+  } else {
+    toast('Déconnexion auto réactivée', 'info');
+  }
+}
+
+/* Met à jour la carte "Rester connecté" dans le profil élève selon l'état.
+   Visible uniquement en PWA installée (l'option n'a aucun sens dans le
+   navigateur web qui efface tout à la fermeture). */
+function refreshStudentPersistCard() {
+  const card  = document.getElementById('student-persist-card');
+  const icon  = document.getElementById('student-persist-icon');
+  const title = document.getElementById('student-persist-title');
+  const sub   = document.getElementById('student-persist-sub');
+  if (!card) return;
+  // Masquer si pas en PWA installée
+  const inPwa = (typeof _pwaIsStandalone === 'function') ? _pwaIsStandalone() : false;
+  if (!inPwa) {
+    card.style.display = 'none';
+    return;
+  }
+  card.style.display = '';
+  const on = isStudentPersistEnabled();
+  if (on) {
+    icon  && (icon.textContent  = '🔒');
+    title && (title.textContent = 'Connexion permanente activée');
+    sub   && (sub.textContent   = 'Tu restes connecté sur cet appareil. Touche pour désactiver.');
+    card.style.borderColor = 'var(--gold)';
+    card.style.background  = 'rgba(240, 165, 0, 0.05)';
+  } else {
+    icon  && (icon.textContent  = '🔓');
+    title && (title.textContent = 'Rester connecté sur cet appareil');
+    sub   && (sub.textContent   = 'Évite de retaper ton code à chaque ouverture.');
+    card.style.borderColor = '';
+    card.style.background  = '';
+  }
+}
+
 let _inactivityTimer = null;
 
-/* Storage cible pour la session : localStorage si admin + persist activé,
-   sinon sessionStorage. */
+/* Storage cible pour la session : localStorage si persist activé (admin OU
+   élève selon le rôle courant), sinon sessionStorage. */
 function _sessionStore() {
-  return (S.isAdmin && isAdminPersistEnabled()) ? localStorage : sessionStorage;
+  return _shouldPersistSession() ? localStorage : sessionStorage;
 }
 function _sessionStoreOther() {
-  return (S.isAdmin && isAdminPersistEnabled()) ? sessionStorage : localStorage;
+  return _shouldPersistSession() ? sessionStorage : localStorage;
 }
 
 function saveLocal() {
@@ -16045,7 +16272,7 @@ function saveLocal() {
 
 function loadLocal() {
   try {
-    // Tenter d'abord localStorage (mode admin persist), puis sessionStorage
+    // Tenter d'abord localStorage (mode persist), puis sessionStorage
     let store = localStorage;
     let u   = store.getItem('ci_user');
     let adm = !!store.getItem('ci_admin');
@@ -16057,14 +16284,27 @@ function loadLocal() {
     const last = parseInt(store.getItem('ci_lastActivity') || '0');
     if (!u || !last) return;
 
-    // Skip TTL si admin et persist activé
-    const skipTtl = adm && isAdminPersistEnabled();
-    if (!skipTtl) {
-      const ttl = adm ? SESSION_TTL.admin : SESSION_TTL.student;
-      if (Date.now() - last > ttl) {
-        clearSession();
-        return;
+    // Déterminer le bon TTL selon le rôle et le mode
+    // - Admin + persist  : pas de TTL (skip)
+    // - Élève + persist  : 30 jours glissants
+    // - Sinon            : TTL classique (5 min élève / 10 min admin)
+    const adminPersist   = adm && isAdminPersistEnabled();
+    const studentPersist = !adm && isStudentPersistEnabled();
+    let ttl;
+    if (adminPersist)        ttl = null; // pas d'expiration
+    else if (studentPersist) ttl = SESSION_TTL.studentPersist;
+    else                     ttl = adm ? SESSION_TTL.admin : SESSION_TTL.student;
+
+    if (ttl !== null && Date.now() - last > ttl) {
+      // Session expirée
+      if (studentPersist) {
+        // Si l'élève en mode persist a dépassé 30j → on force aussi la
+        // désactivation du toggle pour qu'il revoie la modale d'onboarding
+        // au prochain login.
+        setStudentPersistEnabled(false);
       }
+      clearSession();
+      return;
     }
     S.user    = JSON.parse(u);
     S.isAdmin = adm;
@@ -16091,9 +16331,10 @@ function clearSession() {
 function startInactivityTimer() {
   stopInactivityTimer();
 
-  // Skip total si admin + mode "rester connecté" activé sur ce device
-  if (S.isAdmin && isAdminPersistEnabled()) {
-    console.log('[session] Mode admin persistant : pas de timer d\'inactivité');
+  // Skip total si l'utilisateur courant est en mode "rester connecté"
+  // (admin OU élève selon le rôle)
+  if (_shouldPersistSession()) {
+    console.log('[session] Mode persistant : pas de timer d\'inactivité');
     return;
   }
 
@@ -16712,6 +16953,9 @@ async function loginAs(student) {
 
   navigateTo('home');
 
+  // Incrémenter le compteur de logins (utilisé par l'onboarding "Rester connecté")
+  _stayLoggedIncrementLoginCount();
+
   // Affichage des tutoriels What's New non vus (silencieux si aucun)
   checkAndShowWhatsNew();
 
@@ -16719,6 +16963,9 @@ async function loginAs(student) {
   // Délai pour laisser le What's New s'ouvrir d'abord ; checkAndShowBirthdayPrompt
   // attend la fermeture de la modale What's New si elle est encore visible.
   setTimeout(checkAndShowBirthdayPrompt, 1200);
+
+  // Modale onboarding "Rester connecté" (PWA + 3+ logins)
+  setTimeout(checkAndShowStayLogged, 2000);
 
   // Batch C3 — Check rétroactif des badges à chaque login : débloque ceux que
   // l'élève "mérite" déjà mais qu'il n'a jamais reçus (ex. système activé après
@@ -17152,6 +17399,14 @@ async function renderProfileXpBlock() {
 }
 
 function logout(reason) {
+  // Sécurité élève : si c'est un logout VOLONTAIRE (= pas une expiration auto),
+  // on désactive aussi le toggle "Rester connecté" pour les élèves.
+  // Comme ça si l'élève prête son tel et clique Déconnexion pour le rendre,
+  // l'ami qui se logge ensuite n'hérite pas du mode persistant.
+  // Pour l'admin, le toggle reste activé (différence assumée).
+  if (reason !== 'expired' && S.user && !S.isAdmin) {
+    setStudentPersistEnabled(false);
+  }
   stopAdminRealtime();
   stopStudentRealtime();
   stopMaintenanceRealtime();
