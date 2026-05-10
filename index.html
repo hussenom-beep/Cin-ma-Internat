@@ -8087,7 +8087,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       <span class="admin-burger-dot hidden" id="admin-burger-dot"></span>
     </button>
     <h1 id="admin-header-title">⚙️ Administration</h1>
-    <button class="admin-settings-btn admin-desktop-only" onclick="openModal('modal-admin-settings')" title="Paramètres">⚙️ Paramètres</button>
+    <button class="admin-settings-btn admin-desktop-only" onclick="openModal('modal-admin-settings'); refreshAdminPersistCard();" title="Paramètres">⚙️ Paramètres</button>
   </div>
 
   <!-- Backdrop du drawer mobile (clic pour fermer) -->
@@ -8118,7 +8118,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 
     <!-- Footer : Paramètres uniquement (déconnexion est en haut à droite) -->
     <div class="admin-drawer-footer">
-      <button class="admin-tab admin-drawer-action" onclick="adminDrawerClose(); openModal('modal-admin-settings');">⚙️ Paramètres</button>
+      <button class="admin-tab admin-drawer-action" onclick="adminDrawerClose(); openModal('modal-admin-settings'); refreshAdminPersistCard();">⚙️ Paramètres</button>
     </div>
   </div>
 
@@ -10446,6 +10446,19 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
               <div class="profile-install-text" data-push-sub>Sois averti des nouvelles demandes, désistements tardifs et propositions</div>
             </div>
             <div class="profile-install-arrow">›</div>
+          </button>
+        </div>
+
+        <!-- Rester connecté sur cet appareil (toggle par device) -->
+        <div class="sd-section">
+          <div class="sd-section-title">Session</div>
+          <button class="profile-install-card" id="admin-persist-card" onclick="toggleAdminPersist()" style="border:none;width:100%;text-align:left;font-family:inherit;cursor:pointer;margin-bottom:0;">
+            <div class="profile-install-icon" id="admin-persist-icon">🔓</div>
+            <div class="profile-install-content">
+              <div class="profile-install-title" id="admin-persist-title">Rester connecté sur cet appareil</div>
+              <div class="profile-install-text" id="admin-persist-sub">Désactive la déconnexion automatique. À activer uniquement sur tes appareils personnels.</div>
+            </div>
+            <div class="profile-install-arrow" id="admin-persist-arrow">›</div>
           </button>
         </div>
 
@@ -15935,39 +15948,141 @@ const SESSION_TTL = {
   admin:   10 * 60 * 1000,   // 10 minutes
 };
 
+/* Mode "Rester connecté" admin — par device (clé localStorage).
+   Quand activé sur ce device :
+   - La session admin est stockée dans localStorage (au lieu de sessionStorage)
+     → persiste à la fermeture du navigateur
+   - Le timer d'inactivité est désactivé → pas de logout auto après 10 min
+   Au prochain rechargement, l'admin arrive directement sur le dashboard. */
+const ADMIN_PERSIST_KEY = 'ci_admin_persist_session';
+
+function isAdminPersistEnabled() {
+  try { return localStorage.getItem(ADMIN_PERSIST_KEY) === '1'; }
+  catch (_) { return false; }
+}
+
+function setAdminPersistEnabled(enabled) {
+  try {
+    if (enabled) localStorage.setItem(ADMIN_PERSIST_KEY, '1');
+    else         localStorage.removeItem(ADMIN_PERSIST_KEY);
+  } catch (_) {}
+}
+
+/* Bascule le toggle "Rester connecté sur cet appareil" depuis le bouton dans
+   les Paramètres > Compte. Reflète l'état dans la carte et adapte le storage
+   de session courant à la volée. */
+function toggleAdminPersist() {
+  if (!S.isAdmin) return;
+  const willEnable = !isAdminPersistEnabled();
+  setAdminPersistEnabled(willEnable);
+
+  // Migrer la session courante vers le bon storage
+  saveLocal();
+
+  // Adapter le timer d'inactivité
+  if (typeof startInactivityTimer === 'function') startInactivityTimer();
+
+  // Mettre à jour la carte UI
+  refreshAdminPersistCard();
+
+  if (willEnable) {
+    toast('🔒 Tu resteras connecté sur cet appareil', 'success');
+  } else {
+    toast('Déconnexion auto réactivée', 'info');
+  }
+}
+
+/* Met à jour l'apparence de la carte selon l'état actuel du toggle. */
+function refreshAdminPersistCard() {
+  const card  = document.getElementById('admin-persist-card');
+  const icon  = document.getElementById('admin-persist-icon');
+  const title = document.getElementById('admin-persist-title');
+  const sub   = document.getElementById('admin-persist-sub');
+  const arrow = document.getElementById('admin-persist-arrow');
+  if (!card) return;
+  const on = isAdminPersistEnabled();
+  if (on) {
+    icon  && (icon.textContent  = '🔒');
+    title && (title.textContent = 'Session permanente activée');
+    sub   && (sub.textContent   = 'Tu es connecté en permanence sur cet appareil. Tape pour désactiver.');
+    arrow && (arrow.textContent = '✓');
+    card.style.borderColor = 'var(--gold)';
+    card.style.background  = 'rgba(240, 165, 0, 0.05)';
+  } else {
+    icon  && (icon.textContent  = '🔓');
+    title && (title.textContent = 'Rester connecté sur cet appareil');
+    sub   && (sub.textContent   = 'Désactive la déconnexion automatique. À activer uniquement sur tes appareils personnels.');
+    arrow && (arrow.textContent = '›');
+    card.style.borderColor = '';
+    card.style.background  = '';
+  }
+}
+
 let _inactivityTimer = null;
 
+/* Storage cible pour la session : localStorage si admin + persist activé,
+   sinon sessionStorage. */
+function _sessionStore() {
+  return (S.isAdmin && isAdminPersistEnabled()) ? localStorage : sessionStorage;
+}
+function _sessionStoreOther() {
+  return (S.isAdmin && isAdminPersistEnabled()) ? sessionStorage : localStorage;
+}
+
 function saveLocal() {
-  // sessionStorage : effacé automatiquement à la fermeture de l'onglet/navigateur
-  sessionStorage.setItem('ci_user',        JSON.stringify(S.user));
-  sessionStorage.setItem('ci_admin',       S.isAdmin ? '1' : '');
-  sessionStorage.setItem('ci_lastActivity', Date.now().toString());
+  const store = _sessionStore();
+  const other = _sessionStoreOther();
+  // Nettoyer l'autre storage pour éviter la coexistence des deux
+  try {
+    other.removeItem('ci_user');
+    other.removeItem('ci_admin');
+    other.removeItem('ci_lastActivity');
+  } catch (_) {}
+  store.setItem('ci_user',         JSON.stringify(S.user));
+  store.setItem('ci_admin',        S.isAdmin ? '1' : '');
+  store.setItem('ci_lastActivity', Date.now().toString());
 }
 
 function loadLocal() {
   try {
-    const u    = sessionStorage.getItem('ci_user');
-    const adm  = !!sessionStorage.getItem('ci_admin');
-    const last = parseInt(sessionStorage.getItem('ci_lastActivity') || '0');
-
-    if (!u || !last) return; // rien en session
-
-    // Vérifier si la session n'a pas déjà expiré (page rechargée après idle)
-    const ttl = adm ? SESSION_TTL.admin : SESSION_TTL.student;
-    if (Date.now() - last > ttl) {
-      clearSession();
-      return;
+    // Tenter d'abord localStorage (mode admin persist), puis sessionStorage
+    let store = localStorage;
+    let u   = store.getItem('ci_user');
+    let adm = !!store.getItem('ci_admin');
+    if (!u) {
+      store = sessionStorage;
+      u   = store.getItem('ci_user');
+      adm = !!store.getItem('ci_admin');
     }
+    const last = parseInt(store.getItem('ci_lastActivity') || '0');
+    if (!u || !last) return;
 
+    // Skip TTL si admin et persist activé
+    const skipTtl = adm && isAdminPersistEnabled();
+    if (!skipTtl) {
+      const ttl = adm ? SESSION_TTL.admin : SESSION_TTL.student;
+      if (Date.now() - last > ttl) {
+        clearSession();
+        return;
+      }
+    }
     S.user    = JSON.parse(u);
     S.isAdmin = adm;
   } catch(e) { clearSession(); }
 }
 
 function clearSession() {
-  sessionStorage.removeItem('ci_user');
-  sessionStorage.removeItem('ci_admin');
-  sessionStorage.removeItem('ci_lastActivity');
+  // Vider les deux storages pour être sûr
+  try {
+    sessionStorage.removeItem('ci_user');
+    sessionStorage.removeItem('ci_admin');
+    sessionStorage.removeItem('ci_lastActivity');
+    localStorage.removeItem('ci_user');
+    localStorage.removeItem('ci_admin');
+    localStorage.removeItem('ci_lastActivity');
+  } catch (_) {}
+  // Note : on NE TOUCHE PAS à ADMIN_PERSIST_KEY — le toggle reste activé,
+  // pour que l'admin n'ait pas à le re-cocher après un logout volontaire.
 }
 
 /* ----------------------------------------------------------------
@@ -15976,23 +16091,27 @@ function clearSession() {
 function startInactivityTimer() {
   stopInactivityTimer();
 
+  // Skip total si admin + mode "rester connecté" activé sur ce device
+  if (S.isAdmin && isAdminPersistEnabled()) {
+    console.log('[session] Mode admin persistant : pas de timer d\'inactivité');
+    return;
+  }
+
   const ttl = S.isAdmin ? SESSION_TTL.admin : SESSION_TTL.student;
 
   function resetTimer() {
-    if (!S.user) return;  // plus de session, on arrête
-    saveLocal();          // rafraîchit le timestamp à chaque activité
+    if (!S.user) return;
+    saveLocal();
     clearTimeout(_inactivityTimer);
     _inactivityTimer = setTimeout(() => {
       logout('expired');
     }, ttl);
   }
 
-  // Écouter toute forme d'activité utilisateur
   ['click', 'keydown', 'scroll', 'touchstart', 'mousemove'].forEach(evt =>
     document.addEventListener(evt, resetTimer, { passive: true })
   );
 
-  // Démarrer le premier timer
   resetTimer();
 }
 
@@ -25953,6 +26072,10 @@ function sdSwitchSettingsTab(tab) {
     document.getElementById(`sd-stab-${t}`)?.classList.toggle('active', t === tab);
     document.getElementById(`sd-spane-${t}`)?.classList.toggle('active', t === tab);
   });
+  // Rafraîchir la carte "Rester connecté" quand on entre dans Compte
+  if (tab === 'compte' && typeof refreshAdminPersistCard === 'function') {
+    refreshAdminPersistCard();
+  }
 }
 
 /* ----------------------------------------------------------------
