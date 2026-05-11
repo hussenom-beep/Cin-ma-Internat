@@ -12782,6 +12782,9 @@ const BADGES_CATEGORY_LABELS = {
      - { type: 'votes_in_one_day', count: N }       (X votes dans un même jour)
      - { type: 'fast_accepted_weeks', count: N, hours: H }  (N propositions acceptées en <H h, sur N semaines différentes)
      - { type: 'sessions_streak_with_pardon', count: N }     (N séances présent d'affilée, avec tolérance "stage" : 1 cycle de 2 mois max où le retour <2 semaines casse rétroactivement)
+     - { type: 'month_perfect_attendance', minSessions: N }  (100% de présence sur 1 mois calendaire avec au moins N séances)
+     - { type: 'quarter_engaged', months: N, minPerMonth: M } (M+ présences par mois pendant N mois consécutifs)
+     - { type: 'school_year_active', minMonths: N }          (au moins 1 vote/proposition/séance par mois × N mois dans une même année scolaire)
      - { type: 'todo' }                             (placeholder pour conditions complexes — jamais débloqué)
 */
 const BADGES_CATALOG = [
@@ -12925,18 +12928,18 @@ const BADGES_CATALOG = [
     category: 'xp', rarity: 'diamant', hidden: false, emoji: '💎',
     condition: { type: 'xp_total', min: 10000 } },
 
-  // ===== RÉGULARITÉ (TODO — logique calendaire complexe) =====
-  { slug: 'mois-parfait',           name: 'Mois parfait',           description: "Présent à toutes les séances d'un mois",
+  // ===== RÉGULARITÉ =====
+  { slug: 'mois-parfait',           name: 'Mois parfait',           description: "Présent à toutes les séances d'un mois (min. 3)",
     category: 'regularite', rarity: 'or', hidden: false, emoji: '📅',
-    condition: { type: 'todo' } },
+    condition: { type: 'month_perfect_attendance', minSessions: 3 } },
 
   { slug: 'trimestre-engage',       name: 'Trimestre engagé',       description: "Au moins 2 séances/mois pendant 3 mois consécutifs",
     category: 'regularite', rarity: 'emeraude', hidden: false, emoji: '🔁',
-    condition: { type: 'todo' } },
+    condition: { type: 'quarter_engaged', months: 3, minPerMonth: 2 } },
 
-  { slug: 'annee-cinema',           name: 'Année cinéma',           description: "Actif au moins 9 mois sur l'année scolaire",
+  { slug: 'annee-cinema',           name: 'Année cinéma',           description: "Actif (vote, proposition ou séance) au moins 9 mois sur l'année scolaire",
     category: 'regularite', rarity: 'diamant', hidden: false, emoji: '⭐',
-    condition: { type: 'todo' } },
+    condition: { type: 'school_year_active', minMonths: 9 } },
 
   // ===== SAISONNIER (cachés à la demande de Matthias) =====
   { slug: 'survivant-halloween',    name: 'Survivant Halloween',    description: 'Présent à la séance Halloween',
@@ -13120,11 +13123,12 @@ async function loadStudentBadgeStats(studentId) {
         return count || 0;
       } catch (e) { return 0; }
     })(),
-    // Détail des propositions acceptées (pour le badge Chanceux : timing < 24h × 3 semaines)
+    // Détail des propositions (toutes statuts) — utilisé par :
+    //  - Chanceux (fast_accepted_weeks) : filtre status='accepted' + delta proposed→reviewed
+    //  - Année cinéma (school_year_active) : utilise proposed_at de toutes les propositions
     db.from('proposals')
       .select('id, status, proposed_at, reviewed_at')
       .eq('student_id', studentId)
-      .eq('status', 'accepted')
       .then(r => r.data || []).catch(() => []),
     // Séances classiques passées (hors event spéciaux) pour le streak affilée avec pardon.
     // On exclut les event_tag (Halloween, Noël) qui ne comptent pas dans le streak normal.
@@ -13345,6 +13349,96 @@ function evaluateBadgeCondition(condition, stats) {
       // Si pardon ouvert à la fin et déjà expiré par rapport à maintenant → casse current
       // (mais maxStreak reste, ce qui détermine le déblocage du badge)
       return maxStreak >= need;
+    }
+
+    case 'month_perfect_attendance': {
+      // Badge "Mois parfait" : sur au moins UN mois calendaire de l'historique,
+      // l'élève a été présent à 100% des séances classiques, ET le mois compte
+      // au moins minSessions séances (sinon trop facile).
+      const minSessions = condition.minSessions || 3;
+      const timeline = stats.sessionsTimeline || [];
+      const byMonth = {}; // YYYY-MM -> { total, present }
+      for (const s of timeline) {
+        if (!s.session_date) continue;
+        const key = s.session_date.slice(0, 7);
+        if (!byMonth[key]) byMonth[key] = { total: 0, present: 0 };
+        byMonth[key].total++;
+        if (s.status === 'present') byMonth[key].present++;
+      }
+      for (const key in byMonth) {
+        const m = byMonth[key];
+        if (m.total >= minSessions && m.present === m.total) return true;
+      }
+      return false;
+    }
+
+    case 'quarter_engaged': {
+      // Badge "Trimestre engagé" : minPerMonth séances présent par mois,
+      // pendant `months` mois calendaires CONSÉCUTIFS.
+      const months = condition.months || 3;
+      const minPerMonth = condition.minPerMonth || 2;
+      const timeline = stats.sessionsTimeline || [];
+      // Compter présences par mois (clé YYYY-MM)
+      const presentByMonth = {};
+      for (const s of timeline) {
+        if (s.status !== 'present' || !s.session_date) continue;
+        const key = s.session_date.slice(0, 7);
+        presentByMonth[key] = (presentByMonth[key] || 0) + 1;
+      }
+      // Helper local : ajouter N mois à un YYYY-MM
+      const addMonths = (ym, n) => {
+        const [y, m] = ym.split('-').map(Number);
+        const total = y * 12 + (m - 1) + n;
+        const newYear = Math.floor(total / 12);
+        const newMonth = (total % 12) + 1;
+        return `${newYear}-${String(newMonth).padStart(2, '0')}`;
+      };
+      // Chercher une suite consécutive valide
+      for (const key in presentByMonth) {
+        if (presentByMonth[key] < minPerMonth) continue;
+        let ok = true;
+        for (let j = 1; j < months; j++) {
+          const nextKey = addMonths(key, j);
+          if ((presentByMonth[nextKey] || 0) < minPerMonth) { ok = false; break; }
+        }
+        if (ok) return true;
+      }
+      return false;
+    }
+
+    case 'school_year_active': {
+      // Badge "Année cinéma" : sur une même année scolaire (sept→août), l'élève
+      // a été actif au moins `minMonths` mois différents. "Actif" = au moins
+      // un événement parmi {vote, séance présent, proposition envoyée} dans le mois.
+      const minMonths = condition.minMonths || 9;
+      // Map<schoolYear (= année du sept de début), Set<YYYY-MM des mois actifs>>
+      const monthsByYear = new Map();
+      const addMonth = (dateStr) => {
+        if (!dateStr) return;
+        const [y, m] = dateStr.slice(0, 10).split('-').map(Number);
+        if (!y || !m) return;
+        const schoolYear = (m >= 9) ? y : y - 1;
+        const monthKey = dateStr.slice(0, 7);
+        if (!monthsByYear.has(schoolYear)) monthsByYear.set(schoolYear, new Set());
+        monthsByYear.get(schoolYear).add(monthKey);
+      };
+      // 1. Votes
+      for (const ev of (stats.eventsAll || [])) {
+        if (ev.event_type === 'vote') addMonth(ev.created_at);
+      }
+      // 2. Séances présent
+      for (const s of (stats.sessionsTimeline || [])) {
+        if (s.status === 'present') addMonth(s.session_date);
+      }
+      // 3. Propositions envoyées (tous statuts)
+      for (const p of (stats.proposalsDetail || [])) {
+        addMonth(p.proposed_at);
+      }
+      // Au moins une année scolaire avec minMonths mois actifs ?
+      for (const months of monthsByYear.values()) {
+        if (months.size >= minMonths) return true;
+      }
+      return false;
     }
 
     case 'todo':
