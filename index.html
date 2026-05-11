@@ -5892,6 +5892,14 @@ body.theme-christmas .s-header {
   box-shadow: 0 4px 16px rgba(212, 175, 55, .15);
   transform: translateY(-8px);
 }
+.lb-podium-slot:hover {
+  border-color: rgba(212, 175, 55, .45);
+  transform: translateY(-2px);
+  transition: transform .15s ease, border-color .15s ease;
+}
+.lb-podium-slot[data-rank="1"]:hover {
+  transform: translateY(-10px);
+}
 .lb-podium-medal {
   font-size: 26px;
   line-height: 1;
@@ -5941,6 +5949,11 @@ body.theme-christmas .s-header {
   border: 1px solid rgba(212, 175, 55, .08);
   border-radius: 10px;
   font-size: 13px;
+  transition: background .15s ease, border-color .15s ease;
+}
+.lb-row:hover {
+  background: linear-gradient(135deg, rgba(212, 175, 55, .08) 0%, rgba(212, 175, 55, .03) 100%);
+  border-color: rgba(212, 175, 55, .28);
 }
 .lb-row-rank {
   flex-shrink: 0;
@@ -16897,6 +16910,19 @@ function loadLocal() {
     }
     S.user    = JSON.parse(u);
     S.isAdmin = adm;
+    // Reconstruire un S.currentStudent minimal pour les flows qui en dépendent
+    // (messagerie, realtime, etc.) — sinon ils returnent silencieusement à
+    // chaque clic. Toutes les consommations utilisent uniquement .id ou les
+    // champs snake_case basiques, donc ce minimum suffit.
+    if (!adm && S.user && S.user.id) {
+      S.currentStudent = {
+        id:            S.user.id,
+        first_name:    S.user.firstName || '',
+        last_name:     S.user.lastName  || '',
+        class_name:    S.user.className || '',
+        date_of_birth: S.user.dateOfBirth || null
+      };
+    }
   } catch(e) { clearSession(); }
 }
 
@@ -28424,7 +28450,7 @@ function _renderLeaderboard() {
     const medals = { 1: '🥇', 2: '🥈', 3: '🥉' };
     const cakeHtml = _isBirthdayToday(s.date_of_birth) ? _renderBirthdayCake() : '';
     return `
-      <div class="lb-podium-slot" data-rank="${rank}">
+      <div class="lb-podium-slot" data-rank="${rank}" onclick="openStudentDetail('${s.id}')" style="cursor:pointer;">
         <div class="lb-podium-medal">${medals[rank]}</div>
         <div class="lb-podium-name">${_escapeHtml(s.first_name)} ${_escapeHtml(s.last_name)}${cakeHtml}</div>
         ${s.class_name ? `<div class="lb-podium-class">${_escapeHtml(s.class_name)}</div>` : ''}
@@ -28446,7 +28472,7 @@ function _renderLeaderboard() {
         const rank = i + 4;
         const cakeHtml = _isBirthdayToday(s.date_of_birth) ? _renderBirthdayCake() : '';
         return `
-        <div class="lb-row">
+        <div class="lb-row" onclick="openStudentDetail('${s.id}')" style="cursor:pointer;">
           <div class="lb-row-rank">${rank}</div>
           <div class="lb-row-name">${_escapeHtml(s.first_name)} ${_escapeHtml(s.last_name)}${cakeHtml}</div>
           ${s.class_name ? `<div class="lb-row-class">${_escapeHtml(s.class_name)}</div>` : ''}
@@ -29946,6 +29972,10 @@ async function init() {
     } else {
       // Session élève restaurée → démarrer le realtime maintenance pour l'éviction live
       startMaintenanceRealtime();
+      // Démarrer aussi le realtime élève (messagerie + conversations).
+      // Sans ça, l'élève ne reçoit pas les notifications temps réel des
+      // nouveaux messages quand sa session est restaurée via auto-login.
+      startStudentRealtime();
       navigateTo('home');
     }
   } else {
