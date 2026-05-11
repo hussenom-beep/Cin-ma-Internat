@@ -12781,6 +12781,7 @@ const BADGES_CATEGORY_LABELS = {
      - { type: 'no_penalty_days', days: N }         (aucune pénalité sur N jours)
      - { type: 'votes_in_one_day', count: N }       (X votes dans un même jour)
      - { type: 'fast_accepted_weeks', count: N, hours: H }  (N propositions acceptées en <H h, sur N semaines différentes)
+     - { type: 'sessions_streak_with_pardon', count: N }     (N séances présent d'affilée, avec tolérance "stage" : 1 cycle de 2 mois max où le retour <2 semaines casse rétroactivement)
      - { type: 'todo' }                             (placeholder pour conditions complexes — jamais débloqué)
 */
 const BADGES_CATALOG = [
@@ -12843,23 +12844,23 @@ const BADGES_CATALOG = [
   // (logique de streak complexe à implémenter en Phase 2 — TODO)
   { slug: 'affilee-court-metrage',  name: 'Court-métrage',          description: "3 séances d'affilée",
     category: 'affilee', rarity: 'bronze', hidden: false, emoji: '🎞️',
-    condition: { type: 'todo' } },
+    condition: { type: 'sessions_streak_with_pardon', count: 3 } },
 
   { slug: 'affilee-moyen-metrage',  name: 'Moyen-métrage',          description: "5 séances d'affilée",
     category: 'affilee', rarity: 'argent', hidden: false, emoji: '🎞️',
-    condition: { type: 'todo' } },
+    condition: { type: 'sessions_streak_with_pardon', count: 5 } },
 
   { slug: 'affilee-long-metrage',   name: 'Long-métrage',           description: "8 séances d'affilée",
     category: 'affilee', rarity: 'or', hidden: false, emoji: '🎞️',
-    condition: { type: 'todo' } },
+    condition: { type: 'sessions_streak_with_pardon', count: 8 } },
 
   { slug: 'affilee-saga',           name: 'Saga',                   description: "11 séances d'affilée",
     category: 'affilee', rarity: 'emeraude', hidden: false, emoji: '🎞️',
-    condition: { type: 'todo' } },
+    condition: { type: 'sessions_streak_with_pardon', count: 11 } },
 
   { slug: 'affilee-cycle-complet',  name: 'Cycle complet',          description: "15 séances d'affilée",
     category: 'affilee', rarity: 'diamant', hidden: false, emoji: '🎞️',
-    condition: { type: 'todo' } },
+    condition: { type: 'sessions_streak_with_pardon', count: 15 } },
 
   // ===== PROPOSITIONS =====
   { slug: 'premier-reveur',         name: 'Premier rêveur',         description: '1ère proposition envoyée',
@@ -13094,7 +13095,8 @@ async function loadStudentBadgeStats(studentId) {
     proposalsSent,
     proposalsAccepted,
     messagesSentCount,
-    proposalsDetail
+    proposalsDetail,
+    pastSessions
   ] = await Promise.all([
     getStudentTotalXp(studentId).catch(() => 0),
     getStudentXpHistory(studentId, 1000).catch(() => []),
@@ -13123,6 +13125,14 @@ async function loadStudentBadgeStats(studentId) {
       .select('id, status, proposed_at, reviewed_at')
       .eq('student_id', studentId)
       .eq('status', 'accepted')
+      .then(r => r.data || []).catch(() => []),
+    // Séances classiques passées (hors event spéciaux) pour le streak affilée avec pardon.
+    // On exclut les event_tag (Halloween, Noël) qui ne comptent pas dans le streak normal.
+    db.from('cinema_sessions')
+      .select('id, session_date')
+      .lt('session_date', new Date().toISOString().split('T')[0])
+      .is('event_tag', null)
+      .order('session_date', { ascending: true })
       .then(r => r.data || []).catch(() => [])
   ]);
 
@@ -13139,6 +13149,23 @@ async function loadStudentBadgeStats(studentId) {
   }
   const maxVotesInOneDay = Math.max(0, ...Object.values(eventsByDay));
 
+  // Timeline streak affilée : pour chaque séance passée non-event, déterminer le
+  // statut de l'élève (present | absent | left | none) à partir de ses events XP
+  // (qui contiennent metadata.session_id).
+  const statusBySession = new Map();
+  for (const ev of eventsAll) {
+    const sid = ev.metadata && ev.metadata.session_id;
+    if (!sid) continue;
+    if (ev.event_type === 'session_attended') statusBySession.set(String(sid), 'present');
+    else if (ev.event_type === 'session_absent') statusBySession.set(String(sid), 'absent');
+    else if (ev.event_type === 'session_left')   statusBySession.set(String(sid), 'left');
+  }
+  const sessionsTimeline = (pastSessions || []).map(s => ({
+    session_id:   String(s.id),
+    session_date: s.session_date,
+    status:       statusBySession.get(String(s.id)) || 'none'  // 'none' = pas inscrit
+  }));
+
   return {
     totalXp,
     level: levelFromXp(totalXp),
@@ -13150,7 +13177,8 @@ async function loadStudentBadgeStats(studentId) {
     messagesSentCount,
     maxVotesInOneDay,
     votesCount: eventCounts.vote || 0,
-    sessionsCount: (eventCounts.session_attended || 0) + (eventCounts.event_attended || 0)
+    sessionsCount: (eventCounts.session_attended || 0) + (eventCounts.event_attended || 0),
+    sessionsTimeline
   };
 }
 
@@ -13258,6 +13286,65 @@ function evaluateBadgeCondition(condition, stats) {
         if (weekKeys.size >= need) return true; // early exit
       }
       return weekKeys.size >= need;
+    }
+
+    case 'sessions_streak_with_pardon': {
+      // Badges affilée (3, 5, 8, 11, 15) — tient compte des stages :
+      //
+      // RÈGLE : parcourt chronologiquement les séances classiques passées.
+      //   • status 'present'  → streak++
+      //   • status 'absent'/'left'/'none' → "loupée" → ouvre une fenêtre pardon
+      //     de 2 mois pendant laquelle d'autres loupées sont tolérées
+      //   • si l'élève REVIENT (present) en MOINS DE 2 SEMAINES après le début
+      //     du pardon → il n'était pas en stage → streak cassé rétroactivement
+      //   • si retour entre 2 sem et 2 mois → stage validé, pardon clos, streak continue
+      //   • si pardon dépasse 2 mois sans retour → expiration, streak cassé
+      // On retourne max(streak atteint) >= need : un badge déjà mérité reste mérité.
+      const need = condition.count || 3;
+      const timeline = stats.sessionsTimeline || [];
+      if (timeline.length === 0) return false;
+      const DAY_MS    = 86400000;
+      const RETURN_LIMIT_MS = 14 * DAY_MS;  // < 2 sem = pas un stage
+      const PARDON_LIMIT_MS = 60 * DAY_MS;  // 2 mois ≈ 60 jours
+
+      let streak = 0;
+      let maxStreak = 0;
+      let pardonStartMs = null; // null = pas en mode pardon
+
+      for (const s of timeline) {
+        const sessionMs = new Date(s.session_date + 'T12:00:00').getTime();
+
+        // Avant tout : si pardon en cours et expiré → casse + sortie pardon
+        if (pardonStartMs !== null && (sessionMs - pardonStartMs) > PARDON_LIMIT_MS) {
+          streak = 0;
+          pardonStartMs = null;
+        }
+
+        if (s.status === 'present') {
+          if (pardonStartMs !== null) {
+            const delta = sessionMs - pardonStartMs;
+            if (delta < RETURN_LIMIT_MS) {
+              // Retour trop rapide → pas un stage → casse
+              streak = 0;
+            }
+            // Sinon : stage validé (≥ 2 sem), streak conservé, on sort du pardon
+            pardonStartMs = null;
+          }
+          streak++;
+          if (streak > maxStreak) maxStreak = streak;
+          if (maxStreak >= need) return true; // early exit
+        } else {
+          // 'absent', 'left', ou 'none' (pas inscrit) → loupée
+          if (pardonStartMs === null) {
+            pardonStartMs = sessionMs; // démarre la fenêtre pardon
+          }
+          // sinon : déjà en pardon (et pas expiré), on continue silencieusement
+        }
+      }
+
+      // Si pardon ouvert à la fin et déjà expiré par rapport à maintenant → casse current
+      // (mais maxStreak reste, ce qui détermine le déblocage du badge)
+      return maxStreak >= need;
     }
 
     case 'todo':
