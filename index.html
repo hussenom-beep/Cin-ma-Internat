@@ -3604,6 +3604,72 @@ body.theme-christmas .s-header {
   font-weight: 600;
 }
 
+/* ---- Mes tutos (relecture) ---- */
+.tutos-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.tutos-category {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tutos-category-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  padding: 0 4px 6px;
+  border-bottom: 1px solid rgba(212, 175, 55, .15);
+}
+
+.tutos-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: linear-gradient(135deg, rgba(34,34,58,.5) 0%, rgba(26,26,40,.5) 100%);
+  border: 1px solid rgba(212, 175, 55, .12);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background .15s ease, border-color .15s ease, transform .1s ease;
+}
+
+.tutos-item:hover {
+  background: linear-gradient(135deg, rgba(212, 175, 55, .08) 0%, rgba(212, 175, 55, .04) 100%);
+  border-color: rgba(212, 175, 55, .35);
+}
+
+.tutos-item:active {
+  transform: scale(.98);
+}
+
+.tutos-item-title {
+  flex: 1;
+  font-size: 14px;
+  color: var(--text-1);
+  font-weight: 500;
+}
+
+.tutos-item-replay {
+  font-size: 12px;
+  color: var(--gold);
+  font-weight: 600;
+  letter-spacing: .02em;
+}
+
+.tutos-empty {
+  text-align: center;
+  color: var(--text-3);
+  font-size: 13px;
+  padding: 28px 16px;
+  font-style: italic;
+}
+
 /* Changement de PIN — cases 6 chiffres dans modal */
 /* Petites cases PIN - États visuels harmonisés */
 .pin-change-block { display: flex; flex-direction: column; gap: 18px; }
@@ -8938,6 +9004,11 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
           <span class="pa-text">Aide / FAQ</span>
           <span class="pa-arrow">›</span>
         </button>
+        <button class="profile-action-btn" onclick="openStudentTutos()">
+          <span class="pa-icon">📚</span>
+          <span class="pa-text">Mes tutos</span>
+          <span class="pa-arrow">›</span>
+        </button>
       </div>
 
       <!-- Déconnexion séparée -->
@@ -9811,6 +9882,28 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     
     <div style="padding:12px 0 0;border-top:1px solid var(--border);margin-top:12px;">
       <button class="btn btn-ghost w-full" onclick="closeModal('modal-student-faq')">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     MODAL: Mes tutos (relecture des anciens tutoriels)
+     ----------------------------------------------------------------
+     Liste les tutoriels que l'élève a déjà vus (dismissed), groupés par
+     catégorie. Clic sur un item → re-joue le tuto en mode preview
+     (pas d'effet de bord, pas de +XP, pas de re-marquage).
+     ================================================================ -->
+<div class="overlay hidden" id="modal-student-tutos">
+  <div class="sheet" style="max-width:520px;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">📚 Mes tutos</div>
+
+    <div style="max-height:65vh;overflow-y:auto;padding:0 4px;" id="modal-student-tutos-body">
+      <!-- contenu généré dynamiquement par openStudentTutos() -->
+    </div>
+
+    <div style="padding:12px 0 0;border-top:1px solid var(--border);margin-top:12px;">
+      <button class="btn btn-ghost w-full" onclick="closeModal('modal-student-tutos')">Fermer</button>
     </div>
   </div>
 </div>
@@ -17024,6 +17117,89 @@ function toggleFAQ(questionEl) {
     questionEl.classList.add('active');
     answerEl.classList.remove('hidden');
   }
+}
+
+/* ================================================================
+   MES TUTOS — relecture des anciens tutoriels
+   ----------------------------------------------------------------
+   Liste les tutoriels que l'élève a déjà vus (présents dans
+   whatsnew_dismissals), groupés par catégorie. Clic → re-joue en
+   mode preview (pas de side-effect : pas de +XP, pas de re-dismiss).
+   ================================================================ */
+async function openStudentTutos() {
+  closeModal('modal-profile');
+  const body = document.getElementById('modal-student-tutos-body');
+  if (!body) return;
+
+  // Loading state minimal
+  body.innerHTML = '<div class="tutos-empty">Chargement…</div>';
+  openModal('modal-student-tutos');
+
+  const studentId = S.user && S.user.id;
+  if (!studentId) {
+    body.innerHTML = '<div class="tutos-empty">Connecte-toi pour voir tes tutos.</div>';
+    return;
+  }
+
+  try {
+    const dismissed = await getDismissedTutorialSlugs(studentId);
+    const seenTutos = WHATSNEW_TUTORIALS
+      .filter(t => dismissed.has(t.slug))
+      .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+
+    if (seenTutos.length === 0) {
+      body.innerHTML = '<div class="tutos-empty">Tu n\'as encore lu aucun tuto.</div>';
+      return;
+    }
+
+    // Groupement par catégorie en respectant l'ordre WHATSNEW_CATEGORY_LABELS
+    const byCategory = {};
+    seenTutos.forEach(t => {
+      const cat = t.category || 'comm';
+      if (!byCategory[cat]) byCategory[cat] = [];
+      byCategory[cat].push(t);
+    });
+
+    const categoryOrder = Object.keys(WHATSNEW_CATEGORY_LABELS);
+    const html = categoryOrder
+      .filter(cat => byCategory[cat] && byCategory[cat].length > 0)
+      .map(cat => {
+        const label = WHATSNEW_CATEGORY_LABELS[cat] || cat;
+        const items = byCategory[cat].map(t => `
+          <div class="tutos-item" onclick="replayTutorial('${_escapeHtml(t.slug)}')">
+            <span class="tutos-item-title">${_escapeHtml(t.title || t.slug)}</span>
+            <span class="tutos-item-replay">▶ Revoir</span>
+          </div>
+        `).join('');
+        return `
+          <div class="tutos-category">
+            <div class="tutos-category-label">${_escapeHtml(label)}</div>
+            ${items}
+          </div>
+        `;
+      }).join('');
+
+    body.innerHTML = `<div class="tutos-list">${html}</div>`;
+  } catch (e) {
+    console.warn('[tutos] openStudentTutos error:', e);
+    body.innerHTML = '<div class="tutos-empty">Erreur de chargement. Réessaie plus tard.</div>';
+  }
+}
+
+/* Re-joue un tuto à la demande en mode preview (pas d'effet de bord) */
+function replayTutorial(slug) {
+  const tuto = WHATSNEW_TUTORIALS.find(t => t.slug === slug);
+  if (!tuto) {
+    console.warn('[tutos] replayTutorial : slug introuvable', slug);
+    return;
+  }
+  // Fermer la modale liste avant d'ouvrir le carrousel (évite la superposition)
+  closeModal('modal-student-tutos');
+  // previewMode = true : pas de dismiss, pas de side-effect en BDD.
+  // Le CTA reste cliquable mais whatsNewXpAndBadgesComplete est idempotent
+  // (check xp_events), donc pas de double +XP.
+  const studentId = S.user && S.user.id;
+  whatsNewOpen([tuto], studentId, true);
 }
 
 /* ================================================================
