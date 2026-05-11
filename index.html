@@ -13179,8 +13179,17 @@ function evaluateBadgeCondition(condition, stats) {
     case 'no_penalty_days': {
       // Dans les N derniers jours, aucun event session_absent ni session_left
       // ET au moins 1 event positif (sinon trop facile : un élève qui ne fait rien valide)
+      //
+      // CUTOFF 2026-05-06 : on a décidé de remettre tout le monde à zéro à cette
+      // date. La fenêtre N jours ne peut donc pas commencer avant le cutoff.
+      // Conséquence : le badge n'est pas débloquable tant que (now - cutoff) < N jours
+      // (impossible avant le 2026-06-05 pour N=30).
       const days = condition.days || 30;
-      const since = new Date(Date.now() - days * 86400000).toISOString();
+      const cutoffMs = new Date('2026-05-06T00:00:00Z').getTime();
+      const windowStartMs = Date.now() - days * 86400000;
+      // Si la fenêtre N jours déborderait avant le cutoff → badge non débloquable
+      if (windowStartMs < cutoffMs) return false;
+      const since = new Date(windowStartMs).toISOString();
       const recent = stats.eventsAll.filter(e => e.created_at >= since);
       const hasPenalty = recent.some(e => e.event_type === 'session_absent' || e.event_type === 'session_left');
       const hasPositive = recent.some(e => (e.xp_amount || 0) > 0);
