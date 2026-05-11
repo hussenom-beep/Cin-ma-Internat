@@ -28114,6 +28114,29 @@ function _fmtBirthDate(dob) {
   return `${d}/${m}/${y}`;
 }
 
+/* Calcule un âge "X ans Y mois" à partir d'une date ISO YYYY-MM-DD.
+   - Si dob vide ou invalide ou dans le futur → '' (rien à afficher)
+   - Si âge < 1 an → "Y mois" (sans le "0 ans")
+   - Sinon → "X an(s) Y mois" (Y peut être 0 → on affiche juste "X an(s)")
+   Pluriel : "1 an" / "2 ans" ; "1 mois" reste "1 mois" (invariable). */
+function _calcAge(dob) {
+  if (!dob) return '';
+  const [y, m, d] = dob.slice(0, 10).split('-').map(Number);
+  if (!y || !m || !d) return '';
+  const birth = new Date(y, m - 1, d);
+  const now = new Date();
+  if (birth > now) return ''; // date dans le futur (saisie erronée)
+  let years = now.getFullYear() - birth.getFullYear();
+  let months = now.getMonth() - birth.getMonth();
+  // Si on n'a pas encore passé le jour anniversaire ce mois-ci, on retire 1 mois
+  if (now.getDate() < birth.getDate()) months -= 1;
+  if (months < 0) { years -= 1; months += 12; }
+  if (years < 0) return '';
+  if (years === 0) return `${months} mois`;
+  const yLabel = (years === 1) ? '1 an' : `${years} ans`;
+  return (months === 0) ? yLabel : `${yLabel} ${months} mois`;
+}
+
 function _renderBirthdayCake(title = 'Joyeux anniversaire !') {
   return `<span class="birthday-cake" title="${title}" role="img" aria-label="anniversaire">🎂</span>`;
 }
@@ -28271,7 +28294,12 @@ function _renderStudentTable() {
       <td>${s.class_name || '—'}</td>
       <td>${_sexeBadgeHTML(s.sexe)}</td>
       <td><code style="font-size:11.5px;">${s.login_identifier || s.activation_code || '—'}</code></td>
-      <td style="font-size:12.5px;">${_fmtBirthDate(s.date_of_birth)}</td>
+      <td style="font-size:12.5px;">
+        ${_fmtBirthDate(s.date_of_birth)}${(() => {
+          const age = _calcAge(s.date_of_birth);
+          return age ? ` <span style="color:var(--text-3);">· ${age}</span>` : '';
+        })()}
+      </td>
     </tr>`;
   }).join('');
 
