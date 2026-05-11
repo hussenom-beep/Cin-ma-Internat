@@ -5823,6 +5823,46 @@ body.theme-christmas .s-header {
 }
 .sub-tab.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,.35); }
 
+/* ---- Anniversaires ---- */
+.birthday-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  margin: 14px 0;
+  background: linear-gradient(135deg, rgba(212, 175, 55, .12) 0%, rgba(212, 175, 55, .04) 100%);
+  border: 1px solid rgba(212, 175, 55, .35);
+  border-radius: 12px;
+  font-size: 13.5px;
+  color: var(--text-1);
+}
+.birthday-banner-cake {
+  font-size: 18px;
+  filter: drop-shadow(0 0 8px rgba(212, 175, 55, .4));
+}
+.birthday-banner-text strong {
+  color: var(--gold);
+  font-weight: 700;
+}
+.birthday-banner-names {
+  color: var(--text-1);
+  font-weight: 600;
+}
+
+/* Petit gâteau inline à côté d'un nom d'élève (liste / fiche / carte) */
+.birthday-cake {
+  display: inline-block;
+  font-size: 0.95em;
+  margin: 0 2px 0 4px;
+  filter: drop-shadow(0 0 4px rgba(212, 175, 55, .5));
+  animation: birthday-cake-pulse 2.4s ease-in-out infinite;
+  cursor: help;
+}
+@keyframes birthday-cake-pulse {
+  0%, 100% { transform: scale(1) translateY(0); }
+  50%      { transform: scale(1.12) translateY(-1px); }
+}
+
 /* Compteur discret dans le label des sub-tabs (ex: "● Actifs (5)") */
 .sub-tab-count {
   display: inline-block;
@@ -8271,7 +8311,16 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
         <div class="next-session-card" id="next-session-card">
           <div class="loader"><div class="spinner"></div></div>
         </div>
-        
+
+        <!-- Bannière anniversaire du jour (visible uniquement si au moins un élève fête son anniv) -->
+        <div class="birthday-banner" id="admin-birthday-banner" style="display:none;">
+          <span class="birthday-banner-cake">🎂</span>
+          <div class="birthday-banner-text">
+            <strong>Aujourd'hui :</strong>
+            <span class="birthday-banner-names" id="admin-birthday-names">—</span>
+          </div>
+        </div>
+
         <!-- Blocs secondaires -->
         <div class="admin-home-secondary">
           <div class="ahs-grid">
@@ -8472,9 +8521,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
               <th>Classe</th>
               <th>Sexe</th>
               <th>Identifiant</th>
-              <th class="sortable" onclick="sortStudents('status')" id="sh-status">
-                Statut <span class="sort-arrow"></span>
-              </th>
+              <th>Date naissance</th>
             </tr>
           </thead>
           <tbody id="students-tbody">
@@ -14177,10 +14224,11 @@ async function loadStudentsBusinessCards(studentIds) {
   if (toFetch.length > 0) {
     if (!cacheValid) _studentDecoCache.clear();
     try {
-      // 1. pinned_* depuis students
+      // 1. pinned_* + date_of_birth depuis students (date_of_birth utilisée
+      //    pour afficher le 🎂 anniversaire dans la déco)
       const { data: students, error: studErr } = await db
         .from('students')
-        .select('id, pinned_badges, pinned_title_slug')
+        .select('id, pinned_badges, pinned_title_slug, date_of_birth')
         .in('id', toFetch);
       if (studErr) throw studErr;
 
@@ -14226,7 +14274,8 @@ async function loadStudentsBusinessCards(studentIds) {
           pinnedBadges:    pinnedFiltered,
           pinnedTitleSlug: s.pinned_title_slug || null,
           level:           levelFromXp(xp),
-          totalXp:         xp
+          totalXp:         xp,
+          isBirthday:      _isBirthdayToday(s.date_of_birth)
         });
       }
       _studentDecoCacheTime = now;
@@ -14297,6 +14346,11 @@ function renderStudentDecorationHTML(deco, options = {}) {
   const { compact = false, showTitle = true, showBadges = true } = options;
 
   const parts = [];
+
+  // 🎂 anniversaire en tête de la déco
+  if (deco.isBirthday) {
+    parts.push(_renderBirthdayCake());
+  }
 
   // Titre effectif
   if (showTitle) {
@@ -20990,12 +21044,52 @@ async function loadAdmin() {
    ================================================================ */
 async function loadAdminDashboard() {
   console.log('[loadAdminDashboard] Chargement accueil admin');
-  
+
   // Charger la grosse carte prochaine séance
   await loadNextSessionCard();
 
+  // Bannière anniversaire (non-bloquante)
+  renderTodayBirthdays();
+
   // Charger le graphique des connexions élèves
   loadConnectionsChart();
+}
+
+/* ================================================================
+   BANNIÈRE ANNIVERSAIRES ÉCRAN ACCUEIL ADMIN
+   ----------------------------------------------------------------
+   Affiche la liste des élèves actifs qui fêtent leur anniversaire
+   aujourd'hui, juste sous la carte prochaine séance. Cachée si aucun.
+   ================================================================ */
+async function renderTodayBirthdays() {
+  const banner = document.getElementById('admin-birthday-banner');
+  const namesEl = document.getElementById('admin-birthday-names');
+  if (!banner || !namesEl) return;
+
+  try {
+    // On charge tous les élèves actifs avec une date de naissance ; le filtre
+    // sur jour/mois se fait côté JS (Supabase ne facilite pas EXTRACT(DAY/MONTH)).
+    const { data, error } = await db.from('students')
+      .select('id, first_name, last_name, date_of_birth')
+      .eq('is_active', true)
+      .not('date_of_birth', 'is', null);
+    if (error) throw error;
+    const todays = (data || []).filter(s => _isBirthdayToday(s.date_of_birth));
+    if (todays.length === 0) {
+      banner.style.display = 'none';
+      return;
+    }
+    // Format : "Rayan AMAR, Clara ARNAUD, ..."
+    const names = todays
+      .map(s => `${s.first_name || ''} ${(s.last_name || '').toUpperCase()}`.trim())
+      .filter(Boolean)
+      .join(', ');
+    namesEl.textContent = names;
+    banner.style.display = '';
+  } catch (e) {
+    console.warn('[birthdays] renderTodayBirthdays error:', e);
+    banner.style.display = 'none';
+  }
 }
 
 /* ================================================================
@@ -26780,9 +26874,11 @@ async function openStudentDetail(studentId) {
 
   // Pastille notif à côté du nom (header + corps)
   const notifDotHtml = _renderNotifDot(s);
+  // 🎂 si anniversaire aujourd'hui
+  const cakeHtml = _isBirthdayToday(s.date_of_birth) ? _renderBirthdayCake() : '';
 
-  document.getElementById('sd-header-title').textContent = `${s.first_name} ${s.last_name}`;
-  document.getElementById('sd-name').innerHTML     = `${notifDotHtml}${s.first_name} ${s.last_name}`;
+  document.getElementById('sd-header-title').innerHTML = `${s.first_name} ${s.last_name}${cakeHtml}`;
+  document.getElementById('sd-name').innerHTML     = `${notifDotHtml}${s.first_name} ${s.last_name}${cakeHtml}`;
 
   const classBadge = document.getElementById('sd-class-badge');
   classBadge.className   = 'profile-class';
@@ -27994,6 +28090,34 @@ let _studentSearch  = '';
 let _studentSort    = { key: 'last_name', dir: 'asc' };
 let _selectedStudents = new Set(); // IDs des élèves cochés
 
+/* ================================================================
+   ANNIVERSAIRES — helpers
+   ----------------------------------------------------------------
+   _isBirthdayToday(dob)   → bool, true si dob = aujourd'hui (jour/mois)
+   _fmtBirthDate(dob)      → "15/06/2008" ou "Non renseignée"
+   _renderBirthdayCake()   → markup HTML du petit gâteau animé
+   ================================================================ */
+function _isBirthdayToday(dob) {
+  if (!dob) return false;
+  // dob est au format ISO "YYYY-MM-DD" ou avec heure. On extrait juste MM-DD.
+  const md = dob.slice(5, 10); // "MM-DD"
+  const now = new Date();
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  return md === `${mm}-${dd}`;
+}
+
+function _fmtBirthDate(dob) {
+  if (!dob) return '<span style="color:var(--text-3);font-style:italic;">Non renseignée</span>';
+  const [y, m, d] = dob.slice(0, 10).split('-');
+  if (!y || !m || !d) return '<span style="color:var(--text-3);">—</span>';
+  return `${d}/${m}/${y}`;
+}
+
+function _renderBirthdayCake(title = 'Joyeux anniversaire !') {
+  return `<span class="birthday-cake" title="${title}" role="img" aria-label="anniversaire">🎂</span>`;
+}
+
 function _sexeBadgeHTML(sexe) {
   if (!sexe) return '<span style="color:var(--text-3);">—</span>';
   const s = (sexe || '').toLowerCase().trim();
@@ -28124,14 +28248,11 @@ function _renderStudentTable() {
   }
 
   tbody.innerHTML = rows.map(s => {
-    const statusBadge = s.is_activated
-      ? `<span class="badge badge-green">✓ Activé</span>`
-      : `<span class="badge badge-muted">○ En attente</span>`;
-    const archivedBadge = !s.is_active
-      ? `<span class="badge badge-muted" style="margin-left:4px;">⊘ Archivé</span>`
-      : '';
     const checked = _selectedStudents.has(s.id) ? 'checked' : '';
     const selClass = _selectedStudents.has(s.id) ? ' row-selected' : '';
+    // 🎂 si c'est l'anniversaire aujourd'hui
+    const isBirthday = _isBirthdayToday(s.date_of_birth);
+    const cakeInline = isBirthday ? _renderBirthdayCake() : '';
 
     return `
     <tr class="${selClass}" data-student-id="${s.id}" style="cursor:pointer;" onclick="toggleStudentSelectionFromRow('${s.id}')">
@@ -28145,19 +28266,19 @@ function _renderStudentTable() {
       <td>
         ${_renderNotifDot(s)}<span onclick="event.stopPropagation(); openStudentDetail('${s.id}')" style="cursor:pointer; text-decoration:underline; text-decoration-color:rgba(0,0,0,0.15);">
           ${s.first_name || '—'}
-        </span>
+        </span>${cakeInline}
       </td>
       <td>${s.class_name || '—'}</td>
       <td>${_sexeBadgeHTML(s.sexe)}</td>
       <td><code style="font-size:11.5px;">${s.login_identifier || s.activation_code || '—'}</code></td>
-      <td onclick="event.stopPropagation();">${statusBadge}${archivedBadge}</td>
+      <td style="font-size:12.5px;">${_fmtBirthDate(s.date_of_birth)}</td>
     </tr>`;
   }).join('');
 
   _updateSelCount();
 
-  // Flèches de tri
-  ['last_name','first_name','status'].forEach(k => {
+  // Flèches de tri (status retiré — plus de tri sur statut)
+  ['last_name','first_name'].forEach(k => {
     const th = document.getElementById(`sh-${k}`);
     if (!th) return;
     th.classList.remove('sort-asc','sort-desc');
