@@ -12780,6 +12780,7 @@ const BADGES_CATEGORY_LABELS = {
      - { type: 'login_after_hour', hour: N }        (login_first_daily après hh ou avant 5h le lendemain)
      - { type: 'no_penalty_days', days: N }         (aucune pénalité sur N jours)
      - { type: 'votes_in_one_day', count: N }       (X votes dans un même jour)
+     - { type: 'fast_accepted_weeks', count: N, hours: H }  (N propositions acceptées en <H h, sur N semaines différentes)
      - { type: 'todo' }                             (placeholder pour conditions complexes — jamais débloqué)
 */
 const BADGES_CATALOG = [
@@ -12966,9 +12967,9 @@ const BADGES_CATALOG = [
     category: 'cache', rarity: 'diamant', hidden: true, emoji: '🌙',
     condition: { type: 'login_after_hour', hour: 0 } },
 
-  { slug: 'cache-chanceux',         name: 'Chanceux',               description: 'Proposition acceptée du 1er coup',
+  { slug: 'cache-chanceux',         name: 'Chanceux',               description: 'Proposition acceptée en moins de 24h, sur 3 semaines différentes',
     category: 'cache', rarity: 'diamant', hidden: true, emoji: '🍀',
-    condition: { type: 'todo' } },  // Logique trop spécifique — Phase 2
+    condition: { type: 'fast_accepted_weeks', count: 3, hours: 24 } },
 ];
 
 /* Renvoie l'URL d'une image de badge (avec fallback emoji si placeholder non remplacé) */
@@ -13092,7 +13093,8 @@ async function loadStudentBadgeStats(studentId) {
     eventsAll,
     proposalsSent,
     proposalsAccepted,
-    messagesSentCount
+    messagesSentCount,
+    proposalsDetail
   ] = await Promise.all([
     getStudentTotalXp(studentId).catch(() => 0),
     getStudentXpHistory(studentId, 1000).catch(() => []),
@@ -13115,7 +13117,13 @@ async function loadStudentBadgeStats(studentId) {
           .eq('sender_type', 'student');
         return count || 0;
       } catch (e) { return 0; }
-    })()
+    })(),
+    // Détail des propositions acceptées (pour le badge Chanceux : timing < 24h × 3 semaines)
+    db.from('proposals')
+      .select('id, status, proposed_at, reviewed_at')
+      .eq('student_id', studentId)
+      .eq('status', 'accepted')
+      .then(r => r.data || []).catch(() => [])
   ]);
 
   // Compteurs dérivés des events
@@ -13138,6 +13146,7 @@ async function loadStudentBadgeStats(studentId) {
     eventCounts,
     proposalsSent,
     proposalsAccepted,
+    proposalsDetail,
     messagesSentCount,
     maxVotesInOneDay,
     votesCount: eventCounts.vote || 0,
@@ -13222,6 +13231,33 @@ function evaluateBadgeCondition(condition, stats) {
       const hasPenalty = recent.some(e => e.event_type === 'session_absent' || e.event_type === 'session_left');
       const hasPositive = recent.some(e => (e.xp_amount || 0) > 0);
       return !hasPenalty && hasPositive;
+    }
+
+    case 'fast_accepted_weeks': {
+      // Badge "Chanceux" : N propositions acceptées en moins de X heures après envoi,
+      // chacune dans une semaine calendaire (lundi→dimanche) DIFFÉRENTE.
+      // Empêche le farm sur une seule semaine (3 props tendance le même we).
+      const need = condition.count || 3;
+      const maxDeltaMs = (condition.hours || 24) * 3600 * 1000;
+      const proposals = stats.proposalsDetail || [];
+      const weekKeys = new Set();
+      for (const p of proposals) {
+        if (p.status !== 'accepted') continue;
+        if (!p.proposed_at || !p.reviewed_at) continue;
+        const proposedMs = new Date(p.proposed_at).getTime();
+        const reviewedMs = new Date(p.reviewed_at).getTime();
+        const delta = reviewedMs - proposedMs;
+        if (delta < 0 || delta > maxDeltaMs) continue;
+        // Calcule la clé "lundi de la semaine de l'envoi" en YYYY-MM-DD (heure locale)
+        const d = new Date(proposedMs);
+        d.setHours(0, 0, 0, 0);
+        const day = d.getDay(); // 0=dim, 1=lun, …, 6=sam
+        const diff = (day === 0) ? -6 : 1 - day;
+        d.setDate(d.getDate() + diff);
+        weekKeys.add(d.toISOString().slice(0, 10));
+        if (weekKeys.size >= need) return true; // early exit
+      }
+      return weekKeys.size >= need;
     }
 
     case 'todo':
