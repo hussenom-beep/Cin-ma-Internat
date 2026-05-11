@@ -3877,6 +3877,32 @@ body.theme-christmas .s-header {
    PROPOSE SCREEN
    ================================================================ */
 .propose-body { padding: 18px; }
+
+/* Compteur de propositions hebdomadaires (anti-spam : 3/sem max) */
+.weekly-counter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  margin: 0 0 14px;
+  background: linear-gradient(135deg, rgba(34,34,58,.5) 0%, rgba(26,26,40,.5) 100%);
+  border: 1px solid rgba(212, 175, 55, .18);
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+.weekly-counter strong {
+  color: var(--gold);
+  font-weight: 700;
+}
+.weekly-counter.limit-reached {
+  border-color: rgba(220, 80, 80, .35);
+  background: linear-gradient(135deg, rgba(80,30,30,.35) 0%, rgba(50,20,20,.35) 100%);
+  color: var(--text-1);
+}
+.weekly-counter.limit-reached strong {
+  color: #ff9090;
+}
 .tmdb-results { display: flex; flex-direction: column; gap: 9px; margin-top: 10px; }
 .tmdb-card {
   background: var(--surface);
@@ -8092,6 +8118,8 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
   </div>
   <div class="propose-body">
     <p class="text-sm text-muted mb-2">Recherche un film et propose-le. L'admin le validera avant qu'il apparaisse.</p>
+
+    <div class="weekly-counter" id="weekly-proposal-counter">📊 <strong>—/3</strong> propositions cette semaine</div>
 
     <div class="fgroup">
       <label class="flabel">Rechercher</label>
@@ -18977,6 +19005,17 @@ async function sendProposalConfirmed() {
     return;
   }
 
+  // Limite hebdomadaire (3/sem, lundi → dimanche). Comptent pending + accepted.
+  const usedThisWeek = await _countWeeklyProposalsForStudent(S.user.id);
+  if (usedThisWeek >= WEEKLY_PROPOSAL_LIMIT) {
+    btn.disabled = false;
+    btn.textContent = 'Envoyer ✉️';
+    closeModal('modal-propose-confirm');
+    toast(`Limite atteinte : ${WEEKLY_PROPOSAL_LIMIT} propositions max par semaine. Réessaie lundi.`, 'error');
+    refreshWeeklyProposalCounter();
+    return;
+  }
+
   const { error } = await db.from('proposals').insert({
     student_id: S.user.id,
     title: m.title,
@@ -19029,6 +19068,59 @@ function filterStudentHistory(status) {
     btn.classList.toggle('active', ['pending','accepted','rejected'][i] === status);
   });
   loadStudentProposals();
+}
+
+/* ================================================================
+   LIMITE HEBDOMADAIRE — anti-spam propositions
+   ----------------------------------------------------------------
+   3 propositions max par semaine calendaire (lundi 00:00 → dimanche 23:59).
+   Comptent : pending + accepted. Les rejetées par l'admin ne consomment
+   pas le quota (plus indulgent).
+   ================================================================ */
+const WEEKLY_PROPOSAL_LIMIT = 3;
+
+/* Renvoie l'ISO du lundi 00:00:00 (heure locale) de la semaine courante. */
+function _getCurrentWeekStartIso() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  // getDay() : 0=dim, 1=lun, ..., 6=sam. On veut le lundi.
+  const day = d.getDay();
+  const diff = (day === 0) ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff);
+  return d.toISOString();
+}
+
+/* Compte les propositions pending+accepted de l'élève depuis le début de la semaine. */
+async function _countWeeklyProposalsForStudent(studentId) {
+  if (!studentId) return 0;
+  try {
+    const weekStart = _getCurrentWeekStartIso();
+    const { count, error } = await db.from('proposals')
+      .select('*', { count: 'exact', head: true })
+      .eq('student_id', studentId)
+      .in('status', ['pending', 'accepted'])
+      .gte('proposed_at', weekStart);
+    if (error) {
+      console.warn('[propose] _countWeeklyProposalsForStudent error:', error);
+      return 0;
+    }
+    return count || 0;
+  } catch (e) {
+    console.warn('[propose] _countWeeklyProposalsForStudent exception:', e);
+    return 0;
+  }
+}
+
+/* Met à jour visuellement le compteur "X/3 cette semaine" en haut de l'onglet. */
+async function refreshWeeklyProposalCounter() {
+  const el = document.getElementById('weekly-proposal-counter');
+  if (!el || !S.user) return;
+  const used = await _countWeeklyProposalsForStudent(S.user.id);
+  const reached = used >= WEEKLY_PROPOSAL_LIMIT;
+  el.classList.toggle('limit-reached', reached);
+  el.innerHTML = reached
+    ? `🛑 <strong>${used}/${WEEKLY_PROPOSAL_LIMIT}</strong> propositions cette semaine — limite atteinte (réinitialisée lundi)`
+    : `📊 <strong>${used}/${WEEKLY_PROPOSAL_LIMIT}</strong> propositions cette semaine`;
 }
 
 async function loadStudentProposals() {
@@ -19111,6 +19203,9 @@ async function loadStudentProposals() {
         </div>
       </div>`;
   }).join('');
+
+  // Rafraîchir le compteur hebdo (3/sem max) — non-bloquant en cas d'erreur
+  refreshWeeklyProposalCounter();
 }
 
 function openEditProposal(id) {
@@ -19277,6 +19372,15 @@ async function fillAdminForm(encoded) {
 async function submitManualProposal() {
   const title = document.getElementById('prop-manual-title').value.trim();
   if (!title) { toast('Entre un titre', 'error'); return; }
+
+  // Limite hebdomadaire (3/sem, lundi → dimanche). Comptent pending + accepted.
+  const usedThisWeek = await _countWeeklyProposalsForStudent(S.user.id);
+  if (usedThisWeek >= WEEKLY_PROPOSAL_LIMIT) {
+    toast(`Limite atteinte : ${WEEKLY_PROPOSAL_LIMIT} propositions max par semaine. Réessaie lundi.`, 'error');
+    refreshWeeklyProposalCounter();
+    return;
+  }
+
   const { error } = await db.from('proposals').insert({
     student_id: S.user.id, title, status: 'pending'
   });
