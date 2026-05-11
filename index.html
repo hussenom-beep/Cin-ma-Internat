@@ -5863,6 +5863,127 @@ body.theme-christmas .s-header {
   50%      { transform: scale(1.12) translateY(-1px); }
 }
 
+/* ---- Classement (leaderboard admin) ---- */
+.lb-podium {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr 1fr;
+  gap: 12px;
+  align-items: end;
+  margin: 18px 0 22px;
+  padding: 18px 8px 12px;
+  background: linear-gradient(180deg, rgba(212, 175, 55, .04) 0%, transparent 100%);
+  border-radius: 14px;
+}
+.lb-podium-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 10px;
+  background: linear-gradient(180deg, rgba(34,34,58,.65) 0%, rgba(26,26,40,.65) 100%);
+  border: 1px solid rgba(212, 175, 55, .2);
+  border-radius: 12px;
+  text-align: center;
+  position: relative;
+}
+.lb-podium-slot[data-rank="1"] {
+  border-color: rgba(212, 175, 55, .55);
+  background: linear-gradient(180deg, rgba(212, 175, 55, .14) 0%, rgba(212, 175, 55, .04) 100%);
+  box-shadow: 0 4px 16px rgba(212, 175, 55, .15);
+  transform: translateY(-8px);
+}
+.lb-podium-medal {
+  font-size: 26px;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.lb-podium-slot[data-rank="1"] .lb-podium-medal { font-size: 32px; }
+.lb-podium-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-1);
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  max-width: 100%;
+}
+.lb-podium-class {
+  font-size: 11px;
+  color: var(--text-3);
+  font-weight: 500;
+}
+.lb-podium-metric {
+  margin-top: 6px;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gold);
+  background: rgba(212, 175, 55, .12);
+  border: 1px solid rgba(212, 175, 55, .3);
+  border-radius: 10px;
+}
+
+/* Liste des rangs 4+ */
+.lb-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.lb-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 14px;
+  background: linear-gradient(135deg, rgba(34,34,58,.4) 0%, rgba(26,26,40,.4) 100%);
+  border: 1px solid rgba(212, 175, 55, .08);
+  border-radius: 10px;
+  font-size: 13px;
+}
+.lb-row-rank {
+  flex-shrink: 0;
+  width: 32px;
+  font-weight: 700;
+  color: var(--text-3);
+  font-size: 12px;
+  text-align: center;
+}
+.lb-row-name {
+  flex: 1;
+  font-weight: 600;
+  color: var(--text-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lb-row-class {
+  font-size: 11.5px;
+  color: var(--text-3);
+  font-weight: 500;
+  flex-shrink: 0;
+}
+.lb-row-metric {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gold);
+  background: rgba(212, 175, 55, .08);
+  border-radius: 8px;
+  min-width: 56px;
+  text-align: center;
+}
+
+.lb-empty {
+  text-align: center;
+  color: var(--text-3);
+  font-size: 13px;
+  padding: 28px 16px;
+  font-style: italic;
+}
+
 /* Compteur discret dans le label des sub-tabs (ex: "● Actifs (5)") */
 .sub-tab-count {
   display: inline-block;
@@ -8294,6 +8415,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       <span class="pending-badge hidden" id="pending-requests-badge">0</span>
     </div>
     <button class="admin-tab" data-tab="students" onclick="aTab('students')">👥 Élèves</button>
+    <button class="admin-tab" data-tab="leaderboard" onclick="aTab('leaderboard')">🏆 Classement</button>
     <button class="admin-tab" data-tab="tutorials" onclick="aTab('tutorials')">📚 Tutoriels</button>
 
     <!-- Footer : Paramètres uniquement (déconnexion est en haut à droite) -->
@@ -8528,6 +8650,26 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
             <tr><td colspan="7" style="text-align:center;color:var(--text-3);padding:20px;">Chargement...</td></tr>
           </tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- Leaderboard panel -->
+    <div class="admin-panel hidden" id="ap-leaderboard">
+      <div class="admin-panel-title">🏆 Classement</div>
+
+      <p class="text-sm text-muted" style="margin:-6px 0 16px;">
+        Classement des élèves actifs. L'élève test est exclu.
+      </p>
+
+      <!-- Sous-onglets : Niveau / Badges -->
+      <div class="sub-tabs" id="lb-subtabs">
+        <button class="sub-tab active" onclick="_setLeaderboardMode('level')">⚡ Niveau</button>
+        <button class="sub-tab" onclick="_setLeaderboardMode('badges')">🏅 Badges</button>
+      </div>
+
+      <!-- Conteneurs podium + suite -->
+      <div id="lb-content">
+        <div class="loader"><div class="spinner"></div></div>
       </div>
     </div>
 
@@ -20502,7 +20644,7 @@ async function openStudentSessionDetail(sessionId) {
 /* ================================================================
    ADMIN — TAB SWITCHING
    ================================================================ */
-const PANELS = ['dashboard','votes','proposals','messages','films','sessions','requests','students','tutorials'];
+const PANELS = ['dashboard','votes','proposals','messages','films','sessions','requests','students','leaderboard','tutorials'];
 
 /* Libellés pour le titre dynamique du header admin sur mobile.
    Mapping panel → emoji + label. */
@@ -20515,8 +20657,12 @@ const PANEL_TITLES = {
   sessions:  '🎟️ Séances',
   requests:  '📨 Demandes',
   students:  '👥 Élèves',
+  leaderboard: '🏆 Classement',
   tutorials: '📚 Tutoriels'
 };
+
+/* UUIDs exclus des classements (comptes test ayant tout débloqué manuellement) */
+const LEADERBOARD_EXCLUDED_IDS = ['d4ece670-de5f-49a0-a6c4-877dc9942a9c'];
 
 // État courant des sous-onglets
 let _filmFilter     = 'active';
@@ -20986,6 +21132,7 @@ function aTab(tab) {
     case 'requests':  loadAdminRequests();  break;
     case 'sessions':  loadAdminSessions();  break;
     case 'students':  loadAdminStudents();  break;
+    case 'leaderboard': loadAdminLeaderboard(); break;
     case 'tutorials': loadTutorialsAdminPanel(); break;
   }
 }
@@ -28166,6 +28313,149 @@ async function loadAdminStudents() {
   document.getElementById('filter-activation').value = 'all';
   document.getElementById('filter-sexe').value = 'all';
   _renderStudentTable();
+}
+
+/* ================================================================
+   CLASSEMENT ADMIN — Niveau / Badges
+   ----------------------------------------------------------------
+   Charge l'ensemble des élèves actifs (sauf comptes exclus), calcule
+   XP cumulé + niveau + nb badges, et offre 2 classements switchables.
+   Top 3 affiché en podium ; rangs 4+ en liste scrollable.
+   ================================================================ */
+let _leaderboardData = null;       // Array<{id, first_name, last_name, class_name, totalXp, level, badgeCount}>
+let _leaderboardMode = 'level';    // 'level' | 'badges'
+
+async function loadAdminLeaderboard() {
+  const container = document.getElementById('lb-content');
+  if (!container) return;
+  container.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
+
+  try {
+    // 1. Élèves actifs (sauf exclus)
+    const { data: students, error: stuErr } = await db.from('students')
+      .select('id, first_name, last_name, class_name, date_of_birth')
+      .eq('is_active', true);
+    if (stuErr) throw stuErr;
+    const eligible = (students || []).filter(s => !LEADERBOARD_EXCLUDED_IDS.includes(s.id));
+    const ids = eligible.map(s => s.id);
+
+    if (ids.length === 0) {
+      container.innerHTML = '<div class="lb-empty">Aucun élève actif à classer.</div>';
+      return;
+    }
+
+    // 2. XP cumulé + nb badges, en parallèle
+    const nowIso = new Date().toISOString();
+    const [xpRes, badgesRes] = await Promise.all([
+      db.from('xp_events').select('student_id, xp_amount')
+        .in('student_id', ids).lte('scheduled_for', nowIso),
+      db.from('student_badges').select('student_id').in('student_id', ids)
+    ]);
+
+    const xpByStudent = new Map();
+    for (const e of (xpRes.data || [])) {
+      xpByStudent.set(e.student_id, (xpByStudent.get(e.student_id) || 0) + (e.xp_amount || 0));
+    }
+    const badgesByStudent = new Map();
+    for (const b of (badgesRes.data || [])) {
+      badgesByStudent.set(b.student_id, (badgesByStudent.get(b.student_id) || 0) + 1);
+    }
+
+    _leaderboardData = eligible.map(s => {
+      const xp = xpByStudent.get(s.id) || 0;
+      return {
+        id:         s.id,
+        first_name: s.first_name || '',
+        last_name:  s.last_name || '',
+        class_name: s.class_name || '',
+        date_of_birth: s.date_of_birth || null,
+        totalXp:    xp,
+        level:      levelFromXp(xp),
+        badgeCount: badgesByStudent.get(s.id) || 0
+      };
+    });
+
+    _renderLeaderboard();
+  } catch (e) {
+    console.warn('[leaderboard] loadAdminLeaderboard error:', e);
+    container.innerHTML = '<div class="lb-empty">Erreur de chargement du classement.</div>';
+  }
+}
+
+function _setLeaderboardMode(mode) {
+  if (mode !== 'level' && mode !== 'badges') return;
+  _leaderboardMode = mode;
+  document.querySelectorAll('#lb-subtabs .sub-tab').forEach((btn, i) => {
+    btn.classList.toggle('active', ['level','badges'][i] === mode);
+  });
+  _renderLeaderboard();
+}
+
+function _renderLeaderboard() {
+  const container = document.getElementById('lb-content');
+  if (!container || !_leaderboardData) return;
+
+  const mode = _leaderboardMode;
+  // Tri par métrique principale, puis XP, puis nom asc
+  const sorted = [..._leaderboardData].sort((a, b) => {
+    let diff;
+    if (mode === 'level') diff = b.level - a.level;
+    else                  diff = b.badgeCount - a.badgeCount;
+    if (diff !== 0) return diff;
+    if (b.totalXp !== a.totalXp) return b.totalXp - a.totalXp;
+    return (a.last_name || '').localeCompare(b.last_name || '');
+  });
+
+  if (sorted.length === 0) {
+    container.innerHTML = '<div class="lb-empty">Aucun élève à classer.</div>';
+    return;
+  }
+
+  const metricLabel = (s) => mode === 'level'
+    ? `Niv. ${s.level}`
+    : `${s.badgeCount} 🏅`;
+
+  // Podium : top 3, disposé 2-1-3 (la 1ère au milieu)
+  const top3 = sorted.slice(0, 3);
+  const rest = sorted.slice(3);
+
+  const podiumSlot = (s, rank) => {
+    if (!s) return '<div></div>'; // slot vide si moins de 3 élèves
+    const medals = { 1: '🥇', 2: '🥈', 3: '🥉' };
+    const cakeHtml = _isBirthdayToday(s.date_of_birth) ? _renderBirthdayCake() : '';
+    return `
+      <div class="lb-podium-slot" data-rank="${rank}">
+        <div class="lb-podium-medal">${medals[rank]}</div>
+        <div class="lb-podium-name">${_escapeHtml(s.first_name)} ${_escapeHtml(s.last_name)}${cakeHtml}</div>
+        ${s.class_name ? `<div class="lb-podium-class">${_escapeHtml(s.class_name)}</div>` : ''}
+        <div class="lb-podium-metric">${metricLabel(s)}</div>
+      </div>`;
+  };
+
+  // Ordre visuel 2-1-3 (la 1ère au centre, plus haute)
+  const podiumHtml = `
+    <div class="lb-podium">
+      ${podiumSlot(top3[1], 2)}
+      ${podiumSlot(top3[0], 1)}
+      ${podiumSlot(top3[2], 3)}
+    </div>`;
+
+  const listHtml = rest.length === 0 ? '' : `
+    <div class="lb-list">
+      ${rest.map((s, i) => {
+        const rank = i + 4;
+        const cakeHtml = _isBirthdayToday(s.date_of_birth) ? _renderBirthdayCake() : '';
+        return `
+        <div class="lb-row">
+          <div class="lb-row-rank">${rank}</div>
+          <div class="lb-row-name">${_escapeHtml(s.first_name)} ${_escapeHtml(s.last_name)}${cakeHtml}</div>
+          ${s.class_name ? `<div class="lb-row-class">${_escapeHtml(s.class_name)}</div>` : ''}
+          <div class="lb-row-metric">${metricLabel(s)}</div>
+        </div>`;
+      }).join('')}
+    </div>`;
+
+  container.innerHTML = podiumHtml + listHtml;
 }
 
 // Cache des élèves ayant au moins une push_subscription active
