@@ -5823,6 +5823,52 @@ body.theme-christmas .s-header {
 }
 .sub-tab.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,.35); }
 
+/* Compteur discret dans le label des sub-tabs (ex: "● Actifs (5)") */
+.sub-tab-count {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 1px 6px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--gold);
+  background: rgba(212, 175, 55, .1);
+  border: 1px solid rgba(212, 175, 55, .22);
+  border-radius: 8px;
+  min-width: 16px;
+  text-align: center;
+  letter-spacing: 0;
+}
+.sub-tab.active .sub-tab-count {
+  background: rgba(212, 175, 55, .18);
+  border-color: rgba(212, 175, 55, .4);
+}
+
+/* En-têtes de section dans la liste films admin (Programmés / Actifs) */
+.film-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 4px 8px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  border-bottom: 1px solid rgba(212, 175, 55, .15);
+  margin-bottom: 4px;
+}
+.film-section-header:first-child { padding-top: 4px; }
+.film-section-header .count {
+  color: var(--gold);
+  font-weight: 700;
+  font-size: 11px;
+  padding: 1px 7px;
+  background: rgba(212, 175, 55, .1);
+  border: 1px solid rgba(212, 175, 55, .22);
+  border-radius: 8px;
+  letter-spacing: 0;
+}
+
 /* Badges statuts films */
 .badge-blue    { background: rgba(96,165,250,.12); color: #60a5fa; border: 1px solid rgba(96,165,250,.22); }
 .badge-purple  { background: rgba(167,139,250,.12); color: #a78bfa; border: 1px solid rgba(167,139,250,.22); }
@@ -8262,9 +8308,9 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       </div>
       <!-- Sous-onglets filtres statuts (sans Programmé — géré via Séances) -->
       <div class="sub-tabs" id="film-subtabs">
-        <button class="sub-tab active" onclick="filterFilms('active')">● Actifs</button>
-        <button class="sub-tab" onclick="filterFilms('screened')">✅ Vus</button>
-        <button class="sub-tab" onclick="filterFilms('archived')">⊘ Archivés</button>
+        <button class="sub-tab active" onclick="filterFilms('active')">● Actifs <span class="sub-tab-count" id="film-count-active">—</span></button>
+        <button class="sub-tab" onclick="filterFilms('screened')">✅ Vus <span class="sub-tab-count" id="film-count-screened">—</span></button>
+        <button class="sub-tab" onclick="filterFilms('archived')">⊘ Archivés <span class="sub-tab-count" id="film-count-archived">—</span></button>
       </div>
       <!-- Toggle de filtre événement (visible uniquement si thème actif) -->
       <div id="admin-films-event-filter" class="event-filter-bar hidden">
@@ -23179,10 +23225,56 @@ async function toggleFilmEventTagFromModal() {
   }
 }
 
+/* ================================================================
+   COMPTEURS FILMS ADMIN — par statut (actifs+programmés, vus, archivés)
+   ----------------------------------------------------------------
+   3 requêtes COUNT(*) en parallèle, qui respectent le filtre event_tag
+   actuel (Année complète / Halloween / etc.). Mis à jour à chaque
+   appel de loadAdminFilms ou changement de filtre event.
+   ================================================================ */
+async function _refreshFilmCounts() {
+  const theme = S.eventTheme || 'none';
+
+  // Helper : applique status + filtre event_tag courant
+  const buildQuery = (statusKey) => {
+    let q = db.from('films').select('*', { count: 'exact', head: true });
+    if (statusKey === 'active') q = q.in('status', ['active', 'scheduled']);
+    else q = q.eq('status', statusKey);
+    // Filtre event_tag cohérent avec loadAdminFilms
+    if (theme !== 'none') {
+      if (S.adminFilmEventFilter === 'event') q = q.eq('event_tag', theme);
+      else q = q.is('event_tag', null);
+    } else {
+      q = q.is('event_tag', null);
+    }
+    return q;
+  };
+
+  try {
+    const [aCount, sCount, arCount] = await Promise.all([
+      buildQuery('active').then(r => r.count ?? 0).catch(() => 0),
+      buildQuery('screened').then(r => r.count ?? 0).catch(() => 0),
+      buildQuery('archived').then(r => r.count ?? 0).catch(() => 0)
+    ]);
+    const setCount = (id, v) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = v;
+    };
+    setCount('film-count-active', aCount);
+    setCount('film-count-screened', sCount);
+    setCount('film-count-archived', arCount);
+  } catch (e) {
+    console.warn('[admin films] _refreshFilmCounts error:', e);
+  }
+}
+
 async function loadAdminFilms() {
   const list   = document.getElementById('admin-films-list');
   const status = _filmFilter;
   list.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
+
+  // Rafraîchir les 3 compteurs (non-bloquant — n'attend pas la réponse)
+  _refreshFilmCounts();
 
   // Pour l'onglet 'active', on récupère aussi les films 'scheduled'
   let query = db.from('films').select('*').order('added_at', { ascending: false });
@@ -23253,14 +23345,15 @@ async function loadAdminFilms() {
 
   // Tri : scheduled avec séance en tête (par date asc), puis active sans séance (ordre d'ajout desc)
   let displayData = filtered;
+  let withSession = [], withoutSession = [];
   if (status === 'active') {
-    const withSession    = filtered.filter(f =>  sessionMap[f.id])
+    withSession    = filtered.filter(f =>  sessionMap[f.id])
       .sort((a, b) => sessionMap[a.id].date < sessionMap[b.id].date ? -1 : 1);
-    const withoutSession = filtered.filter(f => !sessionMap[f.id]);
+    withoutSession = filtered.filter(f => !sessionMap[f.id]);
     displayData = [...withSession, ...withoutSession];
   }
 
-  list.innerHTML = displayData.map(f => {
+  const renderFilmCard = (f) => {
     // Mémoriser dans le cache pour ouverture fiche
     _adminFilmCache[f.id] = f;
     const sessionInfo = sessionMap[f.id];
@@ -23328,7 +23421,25 @@ async function loadAdminFilms() {
       </div>
       <div class="ai-actions">${actions}</div>
     </div>`;
-  }).join('');
+  };
+
+  // Construction finale : pour l'onglet Actifs, on insère 2 en-têtes de section
+  // (Programmés / Actifs) qui séparent visuellement la liste. Pour les autres
+  // onglets, rendu linéaire classique.
+  if (status === 'active') {
+    let html = '';
+    if (withSession.length) {
+      html += `<div class="film-section-header">📅 Programmés <span class="count">${withSession.length}</span></div>`;
+      html += withSession.map(renderFilmCard).join('');
+    }
+    if (withoutSession.length) {
+      html += `<div class="film-section-header">● Actifs <span class="count">${withoutSession.length}</span></div>`;
+      html += withoutSession.map(renderFilmCard).join('');
+    }
+    list.innerHTML = html;
+  } else {
+    list.innerHTML = displayData.map(renderFilmCard).join('');
+  }
 }
 
 async function setFilmStatus(id, status) {
