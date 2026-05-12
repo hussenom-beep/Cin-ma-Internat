@@ -10922,6 +10922,19 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
             🔐 Modifier le mot de passe
           </button>
         </div>
+
+        <!-- Sessions / Déconnexion globale -->
+        <div class="sd-section">
+          <div class="sd-section-title">📱 Sessions</div>
+          <p class="text-sm text-muted" style="margin-bottom:14px;">
+            Déconnecte tous les appareils où ce compte admin est resté connecté
+            (téléphone perdu, ordi partagé, etc.). La session actuelle sera aussi déconnectée.
+          </p>
+          <button class="btn btn-ghost btn-full" onclick="confirmRevokeAllAdminSessions()"
+                  style="border-color: rgba(255,90,90,.4); color:#ff9090;">
+            🔒 Déconnecter tous les appareils
+          </button>
+        </div>
       </div>
 
       <!-- ============================================================
@@ -16932,12 +16945,76 @@ function clearSession() {
     sessionStorage.removeItem('ci_user');
     sessionStorage.removeItem('ci_admin');
     sessionStorage.removeItem('ci_lastActivity');
+    sessionStorage.removeItem('ci_admin_login_at');
     localStorage.removeItem('ci_user');
     localStorage.removeItem('ci_admin');
     localStorage.removeItem('ci_lastActivity');
+    localStorage.removeItem('ci_admin_login_at');
   } catch (_) {}
   // Note : on NE TOUCHE PAS à ADMIN_PERSIST_KEY — le toggle reste activé,
   // pour que l'admin n'ait pas à le re-cocher après un logout volontaire.
+}
+
+/* ================================================================
+   RÉVOCATION GLOBALE DES SESSIONS ADMIN
+   ----------------------------------------------------------------
+   Mécanique : on stocke en BDD (app_settings.admin_session_revoked_at)
+   un timestamp ISO. Quand un appareil se connecte (login normal OU
+   auto-login), on enregistre Date.now() localement. Au démarrage en
+   mode auto-login admin, on compare : si la révocation BDD est plus
+   récente que le login local → on force le logout.
+   Marche même si l'appareil était hors-ligne au moment de la révocation
+   (le check s'applique dès la prochaine ouverture en ligne).
+   ================================================================ */
+const ADMIN_LOGIN_AT_KEY = 'ci_admin_login_at';
+
+function _saveAdminLoginTimestamp() {
+  try {
+    const ts = Date.now().toString();
+    localStorage.setItem(ADMIN_LOGIN_AT_KEY, ts);
+    sessionStorage.setItem(ADMIN_LOGIN_AT_KEY, ts);
+  } catch (_) {}
+}
+
+async function _isAdminSessionRevoked() {
+  try {
+    const { data } = await db.from('app_settings')
+      .select('value').eq('key', 'admin_session_revoked_at').maybeSingle();
+    if (!data?.value) return false;
+    const revokedAtMs = new Date(data.value).getTime();
+    if (!revokedAtMs || isNaN(revokedAtMs)) return false;
+    const localAtStr = localStorage.getItem(ADMIN_LOGIN_AT_KEY)
+                    || sessionStorage.getItem(ADMIN_LOGIN_AT_KEY);
+    const localAtMs = parseInt(localAtStr || '0');
+    // Si pas de timestamp local connu → on considère que la révocation s'applique
+    // (session louche, on déconnecte par sécurité)
+    return !localAtMs || revokedAtMs > localAtMs;
+  } catch (e) {
+    console.warn('[admin sessions] revoke check error:', e);
+    return false; // En cas d'erreur réseau, ne pas déconnecter (préserve l'admin)
+  }
+}
+
+async function confirmRevokeAllAdminSessions() {
+  const ok = confirm(
+    'Déconnecter TOUS les appareils où ce compte admin est connecté ?\n\n' +
+    'La session actuelle sera aussi déconnectée. Tu devras te reconnecter.'
+  );
+  if (!ok) return;
+  try {
+    const nowIso = new Date().toISOString();
+    const { error } = await db.from('app_settings').upsert(
+      { key: 'admin_session_revoked_at', value: nowIso },
+      { onConflict: 'key' }
+    );
+    if (error) throw error;
+    toast('Toutes les sessions admin ont été déconnectées', 'success');
+    // Petit délai pour laisser apparaître le toast avant de quitter
+    setTimeout(() => logout('manual_global_revoke'), 700);
+  } catch (e) {
+    console.error('[admin sessions] revoke error:', e);
+    toast('Erreur lors de la déconnexion globale', 'error');
+  }
 }
 
 /* ----------------------------------------------------------------
@@ -17490,6 +17567,7 @@ async function handleAdminLogin() {
   S.isAdmin = true;
   S.user = { id: 'admin', firstName: 'Admin', lastName: '', className: '' };
   saveLocal();
+  _saveAdminLoginTimestamp();  // pour révocation globale des sessions admin
   // Marquer cet appareil comme "admin reconnu" pour que les futures
   // visites puissent voir le thème même pendant la maintenance.
   _markAdminDevice();
@@ -29968,6 +30046,16 @@ async function init() {
     }
     startInactivityTimer();
     if (S.isAdmin) {
+      // Check révocation globale des sessions admin (non-bloquant) :
+      // si l'admin a cliqué "Déconnecter tous les appareils" depuis un autre
+      // appareil, on déconnecte cette session-ci automatiquement.
+      _isAdminSessionRevoked().then(revoked => {
+        if (revoked) {
+          console.log('[admin sessions] session révoquée à distance → logout');
+          toast('Session déconnectée à distance', 'info');
+          setTimeout(() => logout('remote_revoke'), 800);
+        }
+      });
       navigateTo('admin');
     } else {
       // Session élève restaurée → démarrer le realtime maintenance pour l'éviction live
