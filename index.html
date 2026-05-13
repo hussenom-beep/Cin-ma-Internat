@@ -10890,6 +10890,40 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 </div>
 
 <!-- ================================================================
+     MODAL: Paramètres de séance par défaut (heure + capacité)
+     ================================================================ -->
+<div class="overlay hidden" id="modal-default-session-settings">
+  <div class="sheet" style="max-width:440px;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">⚙️ Paramètres de séance par défaut</div>
+
+    <p class="text-sm text-muted" style="margin:-6px 0 18px;">
+      Valeurs préremplies automatiquement à la création d'une nouvelle séance.
+    </p>
+
+    <div class="fgroup">
+      <label class="flabel">Heure de la séance</label>
+      <input type="time" class="finput" id="dss-time" style="font-size:15px;">
+    </div>
+
+    <div class="fgroup">
+      <label class="flabel">Capacité max (nombre d'inscrits)</label>
+      <input type="number" class="finput" id="dss-capacity"
+             min="1" max="99" step="1" style="font-size:15px;"
+             placeholder="20">
+      <div class="text-sm text-muted" style="margin-top:6px;font-size:11.5px;opacity:.7;">
+        Entre 1 et 99 inscrits maximum par séance
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-top:18px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('modal-default-session-settings')">Annuler</button>
+      <button class="btn btn-gold" style="flex:1;" onclick="saveDefaultSessionSettings()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
      MODAL: Programmer un film (date + création séance auto)
      ================================================================ -->
 <!-- ================================================================
@@ -11087,15 +11121,9 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
           </div>
           <button class="btn btn-gold btn-full" onclick="saveSupervisorName()">Enregistrer</button>
 
-          <div class="fgroup" style="margin-top:18px;">
-            <label class="flabel">Heure par défaut des nouvelles séances</label>
-            <input type="time" class="finput" id="default-session-time-input"
-                   style="font-size:15px;">
-            <div class="text-sm text-muted" style="margin-top:6px;font-size:11.5px;opacity:.7;">
-              Heure préremplie automatiquement lors de la création d'une séance
-            </div>
-          </div>
-          <button class="btn btn-gold btn-full" onclick="saveDefaultSessionTime()">Enregistrer</button>
+          <button class="btn btn-ghost btn-full" style="margin-top:18px;" onclick="openDefaultSessionSettings()">
+            ⚙️ Paramètres de séance par défaut
+          </button>
         </div>
 
         <!-- Mot de passe admin -->
@@ -12513,35 +12541,46 @@ function getSupervisorName() {
 }
 
 /* ================================================================
-   HEURE PAR DÉFAUT DES NOUVELLES SÉANCES (admin)
+   PARAMÈTRES PAR DÉFAUT DES NOUVELLES SÉANCES (admin)
    ----------------------------------------------------------------
-   Stockée dans app_settings.default_session_time (clé / valeur "HH:MM").
-   Utilisée comme valeur préremplie dans le modal "Créer une séance".
-   Fallback "20:00" si le setting n'est pas défini.
+   Stockés dans app_settings :
+   - default_session_time     (string "HH:MM", fallback "20:00")
+   - default_session_capacity (string entier 1-99, fallback "20")
+   Préremplis dans le modal "Créer une séance".
    ================================================================ */
 async function loadDefaultSessionTimeFromDB() {
   try {
     const { data, error } = await db
       .from('app_settings')
-      .select('value')
-      .eq('key', 'default_session_time')
-      .maybeSingle();
+      .select('key, value')
+      .in('key', ['default_session_time', 'default_session_capacity']);
     if (error) {
-      console.warn('[defaultSessionTime] load error:', error);
+      console.warn('[defaultSession] load error:', error);
       S.defaultSessionTime = '20:00';
+      S.defaultSessionCapacity = 20;
       return;
     }
-    // Validation : doit matcher HH:MM strict (sinon fallback)
-    const v = (data?.value || '').trim();
-    S.defaultSessionTime = /^([01]\d|2[0-3]):[0-5]\d$/.test(v) ? v : '20:00';
+    const map = {};
+    (data || []).forEach(r => { map[r.key] = (r.value || '').trim(); });
+    // Heure : valide HH:MM, sinon fallback
+    S.defaultSessionTime = /^([01]\d|2[0-3]):[0-5]\d$/.test(map.default_session_time || '')
+      ? map.default_session_time
+      : '20:00';
+    // Capacité : entier entre 1 et 99, sinon fallback 20
+    const capInt = parseInt(map.default_session_capacity || '', 10);
+    S.defaultSessionCapacity = (capInt >= 1 && capInt <= 99) ? capInt : 20;
   } catch (e) {
-    console.warn('[defaultSessionTime] load exception:', e);
+    console.warn('[defaultSession] load exception:', e);
     S.defaultSessionTime = '20:00';
+    S.defaultSessionCapacity = 20;
   }
 }
 
 function getDefaultSessionTime() {
   return S.defaultSessionTime || '20:00';
+}
+function getDefaultSessionCapacity() {
+  return S.defaultSessionCapacity || 20;
 }
 
 /* ================================================================
@@ -27291,7 +27330,7 @@ async function openCreateSessionModal(prefilledFilmId = null) {
   document.getElementById('ses-date').value = nextWednesday();
   document.getElementById('ses-time').value = getDefaultSessionTime();
   document.getElementById('ses-open').checked = true;
-  document.getElementById('ses-capacity').value = '20';
+  document.getElementById('ses-capacity').value = String(getDefaultSessionCapacity());
 
   // ----- Toggle événement (visible uniquement si thème actif) -----
   const theme = S.eventTheme || 'none';
@@ -29432,41 +29471,58 @@ async function loadSupervisorName() {
 }
 
 /* ----------------------------------------------------------------
-   Heure par défaut des séances : save + préremplissage du champ
+   Paramètres séance par défaut : ouverture + sauvegarde groupée
    ---------------------------------------------------------------- */
-async function saveDefaultSessionTime() {
-  const input = document.getElementById('default-session-time-input');
-  if (!input) return;
-  const v = (input.value || '').trim();
-  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(v)) {
+async function openDefaultSessionSettings() {
+  const inpTime = document.getElementById('dss-time');
+  const inpCap  = document.getElementById('dss-capacity');
+  if (!inpTime || !inpCap) return;
+
+  // Préremplir depuis la mémoire si dispo, sinon fetch BDD
+  if (S.defaultSessionTime && S.defaultSessionCapacity) {
+    inpTime.value = S.defaultSessionTime;
+    inpCap.value  = String(S.defaultSessionCapacity);
+  } else {
+    await loadDefaultSessionTimeFromDB();
+    inpTime.value = S.defaultSessionTime || '20:00';
+    inpCap.value  = String(S.defaultSessionCapacity || 20);
+  }
+
+  openModal('modal-default-session-settings');
+}
+
+async function saveDefaultSessionSettings() {
+  const inpTime = document.getElementById('dss-time');
+  const inpCap  = document.getElementById('dss-capacity');
+  if (!inpTime || !inpCap) return;
+
+  const t = (inpTime.value || '').trim();
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(t)) {
     toast('Heure invalide (format attendu : HH:MM, ex 20:00)', 'error');
     return;
   }
-  const { error } = await db.from('app_settings').upsert(
-    { key: 'default_session_time', value: v },
-    { onConflict: 'key' }
-  );
+  const cap = parseInt(inpCap.value, 10);
+  if (!(cap >= 1 && cap <= 99)) {
+    toast('Capacité invalide (entre 1 et 99)', 'error');
+    return;
+  }
+
+  // Upsert des 2 settings en une seule query
+  const { error } = await db.from('app_settings').upsert([
+    { key: 'default_session_time',     value: t },
+    { key: 'default_session_capacity', value: String(cap) }
+  ], { onConflict: 'key' });
+
   if (error) {
-    console.error('[defaultSessionTime] save error:', error);
+    console.error('[defaultSession] save error:', error);
     toast('Erreur lors de l\'enregistrement', 'error');
     return;
   }
-  S.defaultSessionTime = v;
-  toast(`✅ Heure par défaut : ${v}`);
-}
 
-async function loadDefaultSessionTimeInput() {
-  const input = document.getElementById('default-session-time-input');
-  if (!input) return;
-  // Si déjà chargé en mémoire (boot), utiliser direct, sinon fetch
-  if (S.defaultSessionTime) {
-    input.value = S.defaultSessionTime;
-    return;
-  }
-  const { data } = await db.from('app_settings')
-    .select('value').eq('key', 'default_session_time').maybeSingle();
-  const v = (data?.value || '').trim();
-  input.value = /^([01]\d|2[0-3]):[0-5]\d$/.test(v) ? v : '20:00';
+  S.defaultSessionTime     = t;
+  S.defaultSessionCapacity = cap;
+  toast(`✅ Paramètres enregistrés (${t} · ${cap} inscrits max)`);
+  closeModal('modal-default-session-settings');
 }
 
 /* ----------------------------------------------------------------
@@ -30098,7 +30154,6 @@ function openModal(id) {
     setImportMode('ponctuel');
     document.getElementById('import-result')?.classList.add('hidden');
     loadSupervisorName();
-    loadDefaultSessionTimeInput();
     // Maintenance : recharger depuis la DB puis remplir l'UI (au cas où une
     // autre tab admin aurait modifié les valeurs).
     loadMaintenanceFromDB().then(() => loadMaintenanceUI());
