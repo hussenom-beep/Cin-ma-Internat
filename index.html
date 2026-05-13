@@ -5997,6 +5997,193 @@ body.theme-christmas .s-header {
   font-style: italic;
 }
 
+/* ════════════════════════════════════════════════════════════════
+   REFONTE ADMIN FILMS — GRILLE PC PREMIUM (≥ 1024px)
+   ----------------------------------------------------------------
+   Sur mobile, l'affichage liste classique reste actif.
+   Sur PC, on passe en grille 4 colonnes avec cards "affiche pleine
+   taille", zoom au survol et boutons d'action en cercles flottants
+   qui apparaissent au hover.
+   ════════════════════════════════════════════════════════════════ */
+@media (min-width: 1024px) {
+
+  /* Grille principale */
+  .films-grid-pc {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+    padding: 4px 0 12px;
+  }
+  @media (min-width: 1500px) {
+    .films-grid-pc { grid-template-columns: repeat(5, 1fr); }
+  }
+
+  /* Card individuelle : ratio affiche 2:3, background-image */
+  .fc-pc {
+    position: relative;
+    aspect-ratio: 2 / 3;
+    border-radius: 14px;
+    overflow: hidden;
+    cursor: pointer;
+    background: #1a1a28 center/cover no-repeat;
+    box-shadow: 0 4px 14px rgba(0,0,0,.4);
+    transition: transform .35s cubic-bezier(.2,.7,.3,1), box-shadow .35s ease;
+  }
+  .fc-pc:hover {
+    transform: scale(1.04);
+    box-shadow: 0 10px 28px rgba(0,0,0,.55), 0 0 0 1px rgba(212,175,55,.4);
+    z-index: 2;
+  }
+  /* Placeholder si pas de poster_url */
+  .fc-pc-noposter {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 64px;
+    background: linear-gradient(135deg, #2a2a3e 0%, #1a1a28 100%);
+    color: rgba(255,255,255,.2);
+  }
+
+  /* Voile dégradé bas pour lisibilité du titre */
+  .fc-pc-gradient {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 55%;
+    background: linear-gradient(to top, rgba(0,0,0,.92) 0%, rgba(0,0,0,.6) 45%, transparent 100%);
+    pointer-events: none;
+  }
+
+  /* Bandeau bas : année + titre */
+  .fc-pc-info {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    padding: 14px 14px 12px;
+    color: #fff;
+  }
+  .fc-pc-year {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--gold);
+    letter-spacing: .04em;
+    margin-bottom: 3px;
+  }
+  .fc-pc-title {
+    font-size: 14.5px;
+    font-weight: 700;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    text-shadow: 0 1px 4px rgba(0,0,0,.6);
+  }
+
+  /* Badge top-left : event_tag (Halloween / Noël) */
+  .fc-pc-badge {
+    position: absolute;
+    top: 10px; left: 10px;
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: 10px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,.15);
+    background: rgba(0,0,0,.55);
+    letter-spacing: .04em;
+  }
+
+  /* Badge top-right : date séance si programmé */
+  .fc-pc-session {
+    position: absolute;
+    top: 10px; right: 10px;
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #93c5fd;
+    background: rgba(30, 64, 175, .65);
+    border: 1px solid rgba(147, 197, 253, .4);
+    border-radius: 10px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  /* Variante "vu le" pour onglet Vus */
+  .fc-pc-session.fc-pc-seen {
+    color: #86efac;
+    background: rgba(22, 101, 52, .65);
+    border-color: rgba(134, 239, 172, .4);
+  }
+
+  /* Bandeau de boutons d'action — cercles flottants en bas-droite */
+  .fc-pc-actions {
+    position: absolute;
+    right: 10px; bottom: 56px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    opacity: 0;
+    transform: translateY(6px);
+    pointer-events: none;
+    transition: opacity .25s ease, transform .25s ease;
+  }
+  .fc-pc:hover .fc-pc-actions {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+  .fc-pc-btn {
+    width: 36px; height: 36px;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(0,0,0,.7);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,.15);
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background .15s ease, border-color .15s ease, transform .1s ease;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  .fc-pc-btn:hover { background: rgba(212,175,55,.85); border-color: rgba(212,175,55,1); color: #1a1a28; }
+  .fc-pc-btn:active { transform: scale(.92); }
+  .fc-pc-btn.danger:hover { background: rgba(220,38,38,.85); border-color: rgba(220,38,38,1); color: #fff; }
+  .fc-pc-btn.success:hover { background: rgba(22,163,74,.85); border-color: rgba(22,163,74,1); color: #fff; }
+
+  /* Toggle tri (Récents / Populaires) — visible uniquement quand pertinent */
+  .fc-sort-toggle {
+    display: flex;
+    gap: 4px;
+    margin: 4px 0 14px;
+    padding: 3px;
+    background: rgba(0,0,0,.3);
+    border: 1px solid rgba(212,175,55,.15);
+    border-radius: 10px;
+    width: fit-content;
+  }
+  .fc-sort-btn {
+    padding: 6px 14px;
+    border: none;
+    background: transparent;
+    color: var(--text-3);
+    font-size: 12.5px;
+    font-weight: 700;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: all .15s ease;
+    font-family: inherit;
+  }
+  .fc-sort-btn.active {
+    background: rgba(212,175,55,.18);
+    color: var(--gold);
+  }
+  .fc-sort-btn:not(.active):hover { color: var(--text-1); }
+}
+
+/* Hors PC : toggle de tri masqué (la zone Programmés/Actifs garde son tri par défaut) */
+@media (max-width: 1023.98px) {
+  .fc-sort-toggle { display: none; }
+}
+
 /* Compteur discret dans le label des sub-tabs (ex: "● Actifs (5)") */
 .sub-tab-count {
   display: inline-block;
@@ -8513,6 +8700,14 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
                oninput="filterAdminFilmList(this.value)">
         <button class="admin-film-search-clear" id="admin-film-search-clear"
                 onclick="clearAdminFilmSearch()" tabindex="-1" aria-label="Effacer">✕</button>
+      </div>
+      <!-- Toggle de tri (visible sur PC seulement, ne s'applique pas à la
+           section "Programmés" qui garde son tri par date de séance) -->
+      <div class="fc-sort-toggle" id="fc-sort-toggle">
+        <button class="fc-sort-btn active" id="fc-sort-recent"
+                onclick="setAdminFilmSort('recent')">🆕 Derniers ajoutés</button>
+        <button class="fc-sort-btn" id="fc-sort-popular"
+                onclick="setAdminFilmSort('popular')">🔥 Populaires</button>
       </div>
       <div class="admin-list" id="admin-films-list"><div class="loader"><div class="spinner"></div></div></div>
     </div>
@@ -20770,6 +20965,7 @@ const LEADERBOARD_EXCLUDED_IDS = ['d4ece670-de5f-49a0-a6c4-877dc9942a9c'];
 
 // État courant des sous-onglets
 let _filmFilter     = 'active';
+let _adminFilmSort  = 'recent';   // 'recent' (date d'ajout DESC) | 'popular' (nb votes DESC)
 let _proposalFilter = 'pending';
 let _adminFilmSearch = '';   // filtre texte dans l'onglet Films
 
@@ -23493,6 +23689,20 @@ function setAdminFilmEventFilter(mode) {
   loadAdminFilms();
 }
 
+/** Switch du toggle de tri (Récents / Populaires) admin films */
+function setAdminFilmSort(mode) {
+  if (mode !== 'recent' && mode !== 'popular') return;
+  _adminFilmSort = mode;
+  // MAJ visuelle des boutons
+  const btnR = document.getElementById('fc-sort-recent');
+  const btnP = document.getElementById('fc-sort-popular');
+  if (btnR && btnP) {
+    btnR.classList.toggle('active', mode === 'recent');
+    btnP.classList.toggle('active', mode === 'popular');
+  }
+  loadAdminFilms();
+}
+
 /** Met à jour visibilité + libellés du toggle admin votes */
 function updateAdminVoteEventFilterUI() {
   const bar = document.getElementById('admin-votes-event-filter');
@@ -23674,28 +23884,67 @@ async function loadAdminFilms() {
   const badgeLbl = { active:'● Actif', screened:'✅ Diffusé', archived:'⊘ Archivé' };
 
   // Pour les films actifs+scheduled, récupérer les séances futures associées
+  // + en parallèle : compter les votes par film (utile pour le tri "Populaires")
   const today = new Date().toISOString().split('T')[0];
   const filmIds = filtered.map(f => f.id);
   let sessionMap = {};
-  if (status === 'active' && filmIds.length) {
-    const { data: sessions } = await db.from('cinema_sessions')
-      .select('id, film_id, session_date')
-      .in('film_id', filmIds)
-      .gte('session_date', today)
-      .order('session_date', { ascending: true });
-    (sessions || []).forEach(s => {
+  let voteCountMap = {};
+  if (filmIds.length) {
+    const queries = [];
+    if (status === 'active') {
+      queries.push(
+        db.from('cinema_sessions')
+          .select('id, film_id, session_date')
+          .in('film_id', filmIds)
+          .gte('session_date', today)
+          .order('session_date', { ascending: true })
+      );
+    } else {
+      queries.push(Promise.resolve({ data: [] }));
+    }
+    // Toujours charger les votes : sert au tri "Populaires" ET à afficher
+    // le nombre de votes dans le label du toggle si on veut.
+    queries.push(db.from('votes').select('film_id').in('film_id', filmIds));
+    const [sessionsRes, votesRes] = await Promise.all(queries);
+    (sessionsRes.data || []).forEach(s => {
       if (!sessionMap[s.film_id]) sessionMap[s.film_id] = { id: s.id, date: s.session_date };
+    });
+    (votesRes.data || []).forEach(v => {
+      voteCountMap[v.film_id] = (voteCountMap[v.film_id] || 0) + 1;
     });
   }
 
-  // Tri : scheduled avec séance en tête (par date asc), puis active sans séance (ordre d'ajout desc)
+  // Helper de tri pour la zone "non-programmée" :
+  // - 'recent'  : par date d'ajout DESC (added_at, fallback created_at)
+  // - 'popular' : par nombre de votes DESC (puis par récence en départage)
+  const applyAdminSort = (arr) => {
+    if (_adminFilmSort === 'popular') {
+      return arr.slice().sort((a, b) => {
+        const va = voteCountMap[a.id] || 0;
+        const vb = voteCountMap[b.id] || 0;
+        if (vb !== va) return vb - va;
+        // Départage : plus récent en premier
+        return (b.added_at || b.created_at || '').localeCompare(a.added_at || a.created_at || '');
+      });
+    }
+    // 'recent' (défaut)
+    return arr.slice().sort((a, b) =>
+      (b.added_at || b.created_at || '').localeCompare(a.added_at || a.created_at || '')
+    );
+  };
+
+  // Tri : scheduled avec séance en tête (par date séance asc, INCHANGÉ),
+  //       puis le reste selon _adminFilmSort
   let displayData = filtered;
   let withSession = [], withoutSession = [];
   if (status === 'active') {
     withSession    = filtered.filter(f =>  sessionMap[f.id])
       .sort((a, b) => sessionMap[a.id].date < sessionMap[b.id].date ? -1 : 1);
-    withoutSession = filtered.filter(f => !sessionMap[f.id]);
+    withoutSession = applyAdminSort(filtered.filter(f => !sessionMap[f.id]));
     displayData = [...withSession, ...withoutSession];
+  } else {
+    // Onglets Vus / Archivés : tri _adminFilmSort sur toute la liste
+    displayData = applyAdminSort(filtered);
   }
 
   const renderFilmCard = (f) => {
@@ -23768,6 +24017,68 @@ async function loadAdminFilms() {
     </div>`;
   };
 
+  /* Card PC premium (≥1024px) — affiche pleine taille avec boutons hover */
+  const renderFilmCardPC = (f) => {
+    _adminFilmCache[f.id] = f;
+    const sessionInfo = sessionMap[f.id];
+
+    // Boutons d'action en cercles flottants (apparaissent au hover)
+    const stop = 'event.stopPropagation();';
+    let btns = '';
+    if (status === 'active') {
+      btns += !sessionInfo
+        ? `<button class="fc-pc-btn success" title="Créer une séance" onclick="${stop} openCreateSessionModal('${f.id}')">📆</button>`
+        : `<button class="fc-pc-btn danger"  title="Annuler la séance" onclick="${stop} cancelSes('${sessionInfo.id}','${f.id}')">🗓</button>`;
+      btns += `<button class="fc-pc-btn" title="Archiver" onclick="${stop} openArchiveFilm('${f.id}')">⊘</button>`;
+      btns += `<button class="fc-pc-btn danger" title="Supprimer" onclick="${stop} deleteFilm('${f.id}')">🗑</button>`;
+    } else if (status === 'screened') {
+      btns += `<button class="fc-pc-btn success" title="Remettre actif" onclick="${stop} setFilmStatus('${f.id}','active')">↩</button>`;
+      btns += `<button class="fc-pc-btn" title="Archiver" onclick="${stop} openArchiveFilm('${f.id}')">⊘</button>`;
+    } else {
+      btns += `<button class="fc-pc-btn success" title="Restaurer" onclick="${stop} setFilmStatus('${f.id}','active')">↩</button>`;
+      btns += `<button class="fc-pc-btn danger" title="Supprimer" onclick="${stop} deleteFilm('${f.id}')">🗑</button>`;
+    }
+
+    // Badges flottants : event_tag à gauche, session à droite
+    const eventBadgeHtml = f.event_tag
+      ? (() => {
+          const lbl = (EVENT_FILTER_LABELS && EVENT_FILTER_LABELS[f.event_tag]) || f.event_tag;
+          return `<div class="fc-pc-badge">${_escapeHtml(lbl)}</div>`;
+        })()
+      : '';
+    let sessionBadgeHtml = '';
+    if (sessionInfo) {
+      sessionBadgeHtml = `<div class="fc-pc-session">📅 ${fmtDateShort(sessionInfo.date)}</div>`;
+    } else if (status === 'screened' && f.screened_at) {
+      sessionBadgeHtml = `<div class="fc-pc-session fc-pc-seen">✅ ${fmtDateShort(f.screened_at.split('T')[0])}</div>`;
+    }
+
+    const bgStyle = f.poster_url
+      ? `background-image: url('${f.poster_url.replace(/'/g, "\\'")}');`
+      : '';
+
+    return `
+    <div class="fc-pc" style="${bgStyle}" onclick="openAdminFilmDetailById('${f.id}')">
+      ${!f.poster_url ? '<div class="fc-pc-noposter">🎬</div>' : ''}
+      ${eventBadgeHtml}
+      ${sessionBadgeHtml}
+      <div class="fc-pc-actions">${btns}</div>
+      <div class="fc-pc-gradient"></div>
+      <div class="fc-pc-info">
+        ${f.year ? `<div class="fc-pc-year">${f.year}</div>` : ''}
+        <div class="fc-pc-title">${_escapeHtml(f.title || 'Sans titre')}</div>
+      </div>
+    </div>`;
+  };
+
+  // Détection PC vs mobile (>= 1024px = grille premium)
+  const isPC = typeof window !== 'undefined'
+    && window.matchMedia
+    && window.matchMedia('(min-width: 1024px)').matches;
+  const render = isPC ? renderFilmCardPC : renderFilmCard;
+  const wrapStart = isPC ? '<div class="films-grid-pc">' : '';
+  const wrapEnd   = isPC ? '</div>' : '';
+
   // Construction finale : pour l'onglet Actifs, on insère 2 en-têtes de section
   // (Programmés / Actifs) qui séparent visuellement la liste. Pour les autres
   // onglets, rendu linéaire classique.
@@ -23775,15 +24086,15 @@ async function loadAdminFilms() {
     let html = '';
     if (withSession.length) {
       html += `<div class="film-section-header">📅 Programmés <span class="count">${withSession.length}</span></div>`;
-      html += withSession.map(renderFilmCard).join('');
+      html += wrapStart + withSession.map(render).join('') + wrapEnd;
     }
     if (withoutSession.length) {
       html += `<div class="film-section-header">● Actifs <span class="count">${withoutSession.length}</span></div>`;
-      html += withoutSession.map(renderFilmCard).join('');
+      html += wrapStart + withoutSession.map(render).join('') + wrapEnd;
     }
     list.innerHTML = html;
   } else {
-    list.innerHTML = displayData.map(renderFilmCard).join('');
+    list.innerHTML = wrapStart + displayData.map(render).join('') + wrapEnd;
   }
 }
 
