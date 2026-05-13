@@ -20159,6 +20159,12 @@ async function submitManualProposal() {
    SESSIONS (student)
    ================================================================ */
 async function loadSessions() {
+  // IMPORTANT : checkScheduledFilms() DOIT être appelé AVANT cleanupPastSessions()
+  // car cleanupPastSessions() supprime les séances terminées de cinema_sessions.
+  // Sans ça, checkScheduledFilms ne trouve plus la séance et le film ne passe
+  // jamais en status='screened' (bug : film "vu" côté élève mais resté "actif"
+  // côté admin parce que l'élève a déclenché cleanup avant que l'admin lance check).
+  await checkScheduledFilms();
   await cleanupPastSessions();
 
   const body = document.getElementById('sessions-body');
