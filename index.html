@@ -30520,6 +30520,18 @@ async function init() {
       // admin. Sans ça, les élèves en "rester connecté" disparaissaient des
       // stats car _hookXpOnLogin n'était appelé que via loginAs() (manuel).
       _hookXpOnLogin(S.user.id, S.user.dateOfBirth);
+      // Historiser la connexion dans student_logins (table source du graphique
+      // Connexions élèves côté admin) + update du last_login_at sur le profil.
+      // Fire-and-forget pour ne pas bloquer la navigation.
+      db.from('student_logins').insert({ student_id: S.user.id }).then(({ error }) => {
+        if (error) console.warn('[autoLogin] student_logins insert error:', error);
+      });
+      db.from('students')
+        .update({ last_login_at: new Date().toISOString() })
+        .eq('id', S.user.id)
+        .then(({ error }) => {
+          if (error) console.warn('[autoLogin] last_login_at update error:', error);
+        });
       navigateTo('home');
     }
   } else {
