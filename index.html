@@ -30515,6 +30515,11 @@ async function init() {
       // Sans ça, l'élève ne reçoit pas les notifications temps réel des
       // nouveaux messages quand sa session est restaurée via auto-login.
       startStudentRealtime();
+      // Enregistrer l'event de connexion (login_first_daily / login_extra_daily)
+      // pour que l'élève apparaisse dans le graphique Connexions élèves côté
+      // admin. Sans ça, les élèves en "rester connecté" disparaissaient des
+      // stats car _hookXpOnLogin n'était appelé que via loginAs() (manuel).
+      _hookXpOnLogin(S.user.id, S.user.dateOfBirth);
       navigateTo('home');
     }
   } else {
