@@ -12315,6 +12315,64 @@ async function _refreshPushButtons() {
 // Expose en global pour debug console
 window._refreshPushButtons = _refreshPushButtons;
 
+/**
+ * Resynchronise silencieusement la subscription push avec la BDD.
+ * Appelé à chaque login (manuel ou auto-login) pour éviter que les
+ * subscriptions des élèves en "rester connecté" se désynchronisent
+ * (BDD active=true mais endpoint navigateur invalidé, ou inverse).
+ *
+ * Stratégie :
+ *   - Si permission ≠ 'granted' OU pas en standalone : abort silencieux
+ *   - Récupère la subscription du navigateur via SW
+ *   - Si elle existe : upsert dans push_subscriptions avec active=true
+ *     + last_seen_at = NOW (réveille l'endpoint si flagué inactif)
+ *   - Pas de toast, pas de prompt — c'est invisible pour l'utilisateur
+ */
+async function _silentRefreshPushSubscription() {
+  try {
+    // Guards : on ne refresh pas si pas supporté / pas accordé
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    if (Notification.permission !== 'granted') return;
+    if (!S.user || !S.user.id) return;
+
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    if (!sub) return; // pas de subscription côté navigateur, rien à faire
+
+    const json = sub.toJSON();
+    const payload = {
+      endpoint:     json.endpoint,
+      p256dh:       json.keys.p256dh,
+      auth:         json.keys.auth,
+      platform:     _detectPlatform(),
+      user_agent:   navigator.userAgent.slice(0, 250),
+      active:       true,
+      last_seen_at: new Date().toISOString(),
+      last_error:   null,
+    };
+    if (S.isAdmin) {
+      payload.is_admin     = true;
+      payload.student_id   = null;
+      payload.device_label = 'Admin (' + payload.platform + ')';
+    } else {
+      payload.is_admin     = false;
+      payload.student_id   = S.user.id;
+      payload.device_label = (S.user.firstName || '') + ' (' + payload.platform + ')';
+    }
+
+    const { error } = await db.from('push_subscriptions')
+      .upsert(payload, { onConflict: 'endpoint' });
+    if (error) {
+      console.warn('[push] silent refresh upsert error:', error);
+    } else {
+      console.log('[push] subscription resynchronisée silencieusement');
+    }
+  } catch (e) {
+    console.warn('[push] silent refresh exception:', e);
+  }
+}
+window._silentRefreshPushSubscription = _silentRefreshPushSubscription;
+
 /* ================================================================
    PUSH NOTIFICATIONS — branchements événements métier
    ----------------------------------------------------------------
@@ -17912,6 +17970,11 @@ async function loginAs(student) {
   startStudentRealtime();
   // Démarrer le realtime maintenance (éviction live si maintenance activée pendant la session)
   startMaintenanceRealtime();
+
+  // Resynchronise silencieusement la subscription push : réveille l'endpoint
+  // dans push_subscriptions si jamais il avait été marqué inactif côté serveur
+  // (cas typique : élève qui avait coupé les notifs puis rallumé).
+  _silentRefreshPushSubscription();
 
   // Re-appliquer le thème : si on est l'élève test pendant la maintenance,
   // _canSeeRealTheme() bascule maintenant sur true et révèle le thème.
@@ -30533,6 +30596,21 @@ async function init() {
           if (error) console.warn('[autoLogin] last_login_at update error:', error);
         });
       navigateTo('home');
+
+      // Resynchronise silencieusement la subscription push (cf loginAs).
+      // Nécessaire pour les élèves "rester connecté" qui ne re-passent jamais
+      // par le flow manuel — sans ça, leurs subscriptions peuvent expirer.
+      _silentRefreshPushSubscription();
+
+      // Affichage des tutoriels What's New non vus (silencieux si aucun)
+      checkAndShowWhatsNew();
+
+      // Rappel date de naissance : si pas renseignée, prompt léger
+      setTimeout(checkAndShowBirthdayPrompt, 1200);
+
+      // Check rétroactif des badges (avec animation de déblocage). Délai
+      // pour laisser What's New et Birthday s'afficher avant.
+      setTimeout(_checkBadgesAfterLogin, 2500);
     }
   } else {
     showScreen('login');
