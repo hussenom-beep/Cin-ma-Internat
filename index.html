@@ -16197,6 +16197,19 @@ function _shouldShowBirthdayPrompt() {
 
 /* Appelé après login (et après fermeture des modales onboarding et What's New) */
 function checkAndShowBirthdayPrompt() {
+  // Si dateOfBirth pas encore résolu (rehydratation BDD en cours après
+  // auto-login d'une session ancienne sans la propriété en cache), on attend.
+  // Garde-fou : on n'attend que 3 retries pour ne pas boucler indéfiniment
+  // en cas d'erreur de fetch — passé ce délai, comportement par défaut.
+  if (S.user && S.user.id && !('dateOfBirth' in S.user)) {
+    checkAndShowBirthdayPrompt._waitCount = (checkAndShowBirthdayPrompt._waitCount || 0) + 1;
+    if (checkAndShowBirthdayPrompt._waitCount <= 3) {
+      setTimeout(checkAndShowBirthdayPrompt, 800);
+      return;
+    }
+    // Sinon : on continue avec dateOfBirth = undefined (comportement legacy)
+  }
+
   if (!_shouldShowBirthdayPrompt()) return;
 
   // Attendre la fermeture des modales d'onboarding (PWA install, push)
@@ -30578,6 +30591,32 @@ async function init() {
       // Sans ça, l'élève ne reçoit pas les notifications temps réel des
       // nouveaux messages quand sa session est restaurée via auto-login.
       startStudentRealtime();
+
+      // Rehydrater date_of_birth depuis la BDD si elle est absente du
+      // localStorage (sessions sauvegardées avant que la propriété ne soit
+      // ajoutée à S.user). Sans ça, _shouldShowBirthdayPrompt voit
+      // dateOfBirth === undefined et redemande la date à chaque auto-login
+      // même si l'élève l'a déjà renseignée en BDD.
+      // Test sur "in" (pas sur truthy) pour distinguer "jamais fetchée"
+      // (undefined) de "fetchée mais vide" (null = pas renseignée).
+      if (S.user && S.user.id && !('dateOfBirth' in S.user)) {
+        db.from('students')
+          .select('date_of_birth')
+          .eq('id', S.user.id)
+          .maybeSingle()
+          .then(({ data, error }) => {
+            if (error) {
+              console.warn('[autoLogin] rehydrate dob error:', error);
+              return;
+            }
+            const dob = data?.date_of_birth || null;
+            S.user.dateOfBirth = dob;
+            if (S.currentStudent) S.currentStudent.date_of_birth = dob;
+            saveLocal(); // persiste pour les prochaines ouvertures
+            console.log('[autoLogin] dateOfBirth rehydratée :', dob);
+          });
+      }
+
       // Enregistrer l'event de connexion (login_first_daily / login_extra_daily)
       // pour que l'élève apparaisse dans le graphique Connexions élèves côté
       // admin. Sans ça, les élèves en "rester connecté" disparaissaient des
