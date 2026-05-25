@@ -21620,6 +21620,168 @@ function adminDrawerClose() {
   bd?.classList.remove('show');
 }
 
+/* ════════════════════════════════════════════════════════════════
+   SWIPE GESTURES — Drawer admin mobile uniquement
+   ----------------------------------------------------------------
+   - Glisser depuis le bord gauche (premiers 22px) vers la droite
+     → ouvre le drawer (suit le doigt en temps réel)
+   - Glisser depuis le drawer ouvert vers la gauche → ferme
+   - Fermeture aussi via tap sur backdrop / changement de page
+     (déjà branchés ailleurs dans le code)
+   - Désactivé sur desktop (>= 1024px) et hors écran admin
+   - Pas de conflit avec scroll vertical : on n'engage le drag que si
+     mouvement horizontal dominant (dx > dy)
+   - Pas de conflit avec scroll horizontal interne : déclenchement
+     limité au bord gauche pour l'ouverture
+   ════════════════════════════════════════════════════════════════ */
+(function setupAdminDrawerSwipe() {
+  const EDGE_TRIGGER_PX     = 22;   // zone bord gauche pour déclencher l'ouverture
+  const DIRECTION_THRESHOLD = 8;    // px de mouvement avant de décider H vs V
+  const SNAP_RATIO          = 0.4;  // proportion du menu à dépasser pour snap
+  const VELOCITY_SNAP       = 0.4;  // px/ms pour forcer le snap par vélocité
+
+  let startX = 0, startY = 0;
+  let lastX  = 0, lastTime = 0;
+  let velocity = 0;
+  let dragging = false;
+  let mode = null;            // 'opening' | 'closing'
+  let drawer = null;
+  let backdrop = null;
+  let menuWidth = 0;
+
+  function isMobileLayout() {
+    return window.matchMedia('(max-width: 1023.98px)').matches;
+  }
+  function isAdminScreenVisible() {
+    const sc = document.getElementById('screen-admin');
+    return sc && !sc.classList.contains('hidden');
+  }
+  /* Pas de swipe si une modale (overlay) est ouverte par-dessus */
+  function isAnyOverlayOpen() {
+    return document.querySelectorAll('.overlay:not(.hidden)').length > 0;
+  }
+
+  function onTouchStart(e) {
+    if (e.touches.length !== 1)            return;
+    if (!isMobileLayout())                 return;
+    if (!isAdminScreenVisible())           return;
+    if (isAnyOverlayOpen())                return;
+
+    drawer   = document.getElementById('admin-tabs');
+    backdrop = document.getElementById('admin-drawer-backdrop');
+    if (!drawer) return;
+
+    const t = e.touches[0];
+    startX = lastX = t.clientX;
+    startY = t.clientY;
+    lastTime = e.timeStamp;
+    velocity = 0;
+    dragging = false;
+    mode     = null;
+
+    const isOpen = drawer.classList.contains('open');
+
+    if (!isOpen && startX <= EDGE_TRIGGER_PX) {
+      mode = 'opening';
+    } else if (isOpen) {
+      /* Pour la fermeture : on n'engage que si le touch démarre dans le drawer
+         ou son backdrop, et qu'on glisse vers la gauche */
+      const tgt = e.target;
+      const inDrawer   = drawer.contains(tgt);
+      const inBackdrop = backdrop && backdrop.contains(tgt);
+      if (inDrawer || inBackdrop) mode = 'closing';
+    }
+  }
+
+  function onTouchMove(e) {
+    if (!mode || e.touches.length !== 1) return;
+
+    const t  = e.touches[0];
+    const dx = t.clientX - startX;
+    const dy = t.clientY - startY;
+
+    /* Phase 1 : décider si c'est un drag horizontal */
+    if (!dragging) {
+      if (Math.abs(dx) < DIRECTION_THRESHOLD && Math.abs(dy) < DIRECTION_THRESHOLD) return;
+      if (Math.abs(dy) > Math.abs(dx)) {
+        /* Mouvement vertical dominant → abandonner, laisser le scroll natif */
+        mode = null;
+        return;
+      }
+      dragging = true;
+      menuWidth = drawer.offsetWidth;
+      drawer.style.transition = 'none';
+      if (backdrop) {
+        backdrop.style.transition = 'none';
+        backdrop.classList.add('show'); /* assure que le backdrop reçoit l'opacité */
+      }
+    }
+
+    /* Phase 2 : suivi du doigt */
+    const now = e.timeStamp;
+    velocity = (t.clientX - lastX) / Math.max(1, now - lastTime);
+    lastX = t.clientX;
+    lastTime = now;
+
+    let translateX, progress;
+    if (mode === 'opening') {
+      const open = Math.max(0, Math.min(menuWidth, dx)); /* clamp 0..menuWidth */
+      translateX = open - menuWidth;
+      progress = open / menuWidth;
+    } else {
+      const close = Math.max(-menuWidth, Math.min(0, dx)); /* clamp -menuWidth..0 */
+      translateX = close;
+      progress = 1 + (close / menuWidth);
+    }
+
+    drawer.style.transform = `translateX(${translateX}px)`;
+    if (backdrop) backdrop.style.opacity = String(progress * 0.55);
+
+    /* Empêcher le scroll horizontal de la page pendant le drag */
+    if (e.cancelable) e.preventDefault();
+  }
+
+  function endDrag() {
+    if (!mode || !dragging) {
+      mode = null;
+      dragging = false;
+      return;
+    }
+
+    /* Restaurer les transitions CSS pour l'animation de snap */
+    drawer.style.transition = '';
+    drawer.style.transform  = '';
+    if (backdrop) {
+      backdrop.style.transition = '';
+      backdrop.style.opacity = '';
+    }
+
+    const dx = lastX - startX;
+    let shouldOpen;
+    if (mode === 'opening') {
+      shouldOpen = dx > menuWidth * SNAP_RATIO || velocity > VELOCITY_SNAP;
+    } else {
+      shouldOpen = !(dx < -menuWidth * SNAP_RATIO || velocity < -VELOCITY_SNAP);
+    }
+
+    if (shouldOpen) {
+      drawer.classList.add('open');
+      if (backdrop) backdrop.classList.add('show');
+    } else {
+      drawer.classList.remove('open');
+      if (backdrop) backdrop.classList.remove('show');
+    }
+
+    mode = null;
+    dragging = false;
+  }
+
+  document.addEventListener('touchstart',  onTouchStart, { passive: true  });
+  document.addEventListener('touchmove',   onTouchMove,  { passive: false });
+  document.addEventListener('touchend',    endDrag,      { passive: true  });
+  document.addEventListener('touchcancel', endDrag,      { passive: true  });
+})();
+
 /* Met à jour le point doré pulsant sur le bouton burger en fonction des
    notifs admin globales (propositions + messages + demandes). */
 function _refreshAdminBurgerNotifDot() {
