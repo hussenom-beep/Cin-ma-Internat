@@ -11285,6 +11285,45 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       </div>
 
       <!-- ============================================================
+           ONGLET : ⭐ TAUX XP
+           ============================================================ -->
+      <div class="sd-tab-panel" id="sd-spane-xp">
+
+        <div class="sd-section">
+          <div class="sd-section-title">Taux XP — Gains</div>
+          <p class="text-sm text-muted" style="margin-bottom:14px;">
+            Modifie les points gagnés pour chaque action. Les changements
+            s'appliquent <strong>uniquement aux futurs gains</strong> : l'XP déjà
+            attribué et les niveaux actuels ne bougent pas.
+          </p>
+          <div id="xp-amounts-fields"><!-- généré par renderXpSettingsFields() --></div>
+        </div>
+
+        <div class="sd-section">
+          <div class="sd-section-title">Réglages avancés</div>
+          <p class="text-sm text-muted" style="margin-bottom:14px;">
+            Limites quotidiennes et conditions. Valeurs entières positives.
+          </p>
+          <div id="xp-tuning-fields"><!-- généré par renderXpSettingsFields() --></div>
+
+          <div class="fgroup" style="margin-top:14px;opacity:.6;">
+            <label class="flabel">Niveau maximum (lecture seule)</label>
+            <input type="number" class="finput" value="25" disabled
+                   style="font-size:15px;cursor:not-allowed;">
+            <div class="text-sm text-muted" style="margin-top:6px;font-size:11.5px;">
+              Non modifiable ici : changer le niveau max recalculerait toute la
+              courbe de progression et ferait bouger les niveaux des élèves.
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-top:4px;">
+          <button class="btn btn-ghost" style="flex:1;" onclick="resetXpSettings()">↺ Réinitialiser</button>
+          <button class="btn btn-gold" style="flex:1;" onclick="saveXpSettings()">Enregistrer</button>
+        </div>
+      </div>
+
+      <!-- ============================================================
            ONGLET : 📊 DONNÉES
            ============================================================ -->
       <div class="sd-tab-panel" id="sd-spane-donnees">
@@ -11402,6 +11441,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       <button class="sd-tab"        id="sd-stab-comm"        onclick="sdSwitchSettingsTab('comm')"><span class="sd-tab-icon">📢</span><span class="sd-tab-label">Comm.</span></button>
       <button class="sd-tab"        id="sd-stab-apparence"   onclick="sdSwitchSettingsTab('apparence')"><span class="sd-tab-icon">🎨</span><span class="sd-tab-label">Style</span></button>
       <button class="sd-tab"        id="sd-stab-maintenance" onclick="sdSwitchSettingsTab('maintenance')"><span class="sd-tab-icon">🛠️</span><span class="sd-tab-label">Outils</span></button>
+      <button class="sd-tab"        id="sd-stab-xp"          onclick="sdSwitchSettingsTab('xp')"><span class="sd-tab-icon">⭐</span><span class="sd-tab-label">XP</span></button>
       <button class="sd-tab"        id="sd-stab-donnees"     onclick="sdSwitchSettingsTab('donnees')"><span class="sd-tab-icon">📊</span><span class="sd-tab-label">Données</span></button>
     </div>
   </div>
@@ -12987,7 +13027,10 @@ const EVENT_HERO_IMAGES = {
      Max     : niveau 25 ≈ 7836 XP
 */
 
-const XP_AMOUNTS = {
+// Valeurs par défaut codées en dur (servent de fallback + bouton "Réinitialiser").
+// NE PAS modifier ces valeurs : les ajustements se font via le panneau admin
+// (Paramètres → Taux XP) qui écrase XP_AMOUNTS au runtime.
+const XP_AMOUNTS_DEFAULTS = {
   vote:                  3,
   vote_first_of_month:  15,
   session_attended:     50,
@@ -13003,16 +13046,80 @@ const XP_AMOUNTS = {
   tutorial_xp_completed: 10,  // bonus de bienvenue à la fin du tuto XP & Badges (Batch C4)
 };
 
-// Cap quotidien sur les votes : 3 votes maximum comptés pour XP par jour
-const XP_DAILY_VOTE_CAP = 3;
-// Connexions supplémentaires comptées par jour (en plus de la 1ère qui donne +10)
-const XP_DAILY_LOGIN_EXTRA_CAP = 2;
-// Étalement des propositions acceptées (jours)
-const XP_PROPOSAL_SPREAD_DAYS = 5;
+// Objet mutable réellement utilisé partout dans le code. Écrasé au boot par les
+// overrides BDD via loadXpSettingsFromDB(). Le passé reste figé (les events déjà
+// stockés ne changent pas) — seuls les futurs gains utilisent les nouvelles valeurs.
+const XP_AMOUNTS = { ...XP_AMOUNTS_DEFAULTS };
+
+// Constantes de réglage par défaut (4 modifiables + cap quotidien).
+const XP_TUNING_DEFAULTS = {
+  XP_DAILY_VOTE_CAP:        3,   // votes max comptés pour XP par jour
+  XP_DAILY_LOGIN_EXTRA_CAP: 2,   // connexions bonus comptées par jour (après la 1ère)
+  XP_PROPOSAL_SPREAD_DAYS:  5,   // étalement des propositions acceptées (jours)
+  XP_PENALTY_MIN_LEVEL:     3,   // niveau min avant d'appliquer les pénalités d'absence
+};
+// Objet mutable pour les constantes de réglage (cf XP_AMOUNTS).
+const XP_TUNING = { ...XP_TUNING_DEFAULTS };
+
+// Accesseurs : remplacent les anciennes constantes. Lus au moment du gain,
+// donc reflètent toujours la dernière valeur configurée.
+function _xpDailyVoteCap()        { return XP_TUNING.XP_DAILY_VOTE_CAP; }
+function _xpDailyLoginExtraCap()  { return XP_TUNING.XP_DAILY_LOGIN_EXTRA_CAP; }
+function _xpProposalSpreadDays()  { return XP_TUNING.XP_PROPOSAL_SPREAD_DAYS; }
+function _xpPenaltyMinLevel()     { return XP_TUNING.XP_PENALTY_MIN_LEVEL; }
+
+/* ----------------------------------------------------------------
+   Chargement des overrides XP depuis app_settings (clé 'xp_settings').
+   Valeur stockée = un JSON { amounts: {...}, tuning: {...} }.
+   Écrase XP_AMOUNTS et XP_TUNING au boot. Toute clé absente / invalide
+   garde sa valeur par défaut (robustesse). Le passé reste figé.
+   ---------------------------------------------------------------- */
+async function loadXpSettingsFromDB() {
+  try {
+    const { data, error } = await db
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'xp_settings')
+      .maybeSingle();
+    if (error) { console.warn('[xpSettings] load error:', error); return; }
+    if (!data?.value) return; // pas d'override → on garde les defaults
+
+    let parsed;
+    try { parsed = JSON.parse(data.value); }
+    catch (e) { console.warn('[xpSettings] JSON parse error:', e); return; }
+
+    // Amounts : on n'applique que les clés connues + valeurs numériques finies
+    if (parsed && parsed.amounts && typeof parsed.amounts === 'object') {
+      Object.keys(XP_AMOUNTS_DEFAULTS).forEach(k => {
+        const v = parsed.amounts[k];
+        if (typeof v === 'number' && Number.isFinite(v)) {
+          XP_AMOUNTS[k] = Math.round(v);
+        }
+      });
+    }
+    // Tuning : pareil, clés connues + valeurs entières positives
+    if (parsed && parsed.tuning && typeof parsed.tuning === 'object') {
+      Object.keys(XP_TUNING_DEFAULTS).forEach(k => {
+        const v = parsed.tuning[k];
+        if (typeof v === 'number' && Number.isFinite(v) && v >= 0) {
+          XP_TUNING[k] = Math.round(v);
+        }
+      });
+    }
+    console.log('[xpSettings] overrides appliqués', { amounts: XP_AMOUNTS, tuning: XP_TUNING });
+  } catch (e) {
+    console.warn('[xpSettings] load exception:', e);
+  }
+}
+
+// Compat : on garde ces noms en lecture pour les commentaires/logs éventuels,
+// mais le code applicatif doit utiliser les accesseurs ci-dessus.
+const XP_DAILY_VOTE_CAP        = XP_TUNING_DEFAULTS.XP_DAILY_VOTE_CAP;
+const XP_DAILY_LOGIN_EXTRA_CAP = XP_TUNING_DEFAULTS.XP_DAILY_LOGIN_EXTRA_CAP;
+const XP_PROPOSAL_SPREAD_DAYS  = XP_TUNING_DEFAULTS.XP_PROPOSAL_SPREAD_DAYS;
+const XP_PENALTY_MIN_LEVEL     = XP_TUNING_DEFAULTS.XP_PENALTY_MIN_LEVEL;
 // Niveau max
 const XP_MAX_LEVEL = 25;
-// En dessous de ce niveau, pas de pénalité d'absence (épargne en début d'aventure)
-const XP_PENALTY_MIN_LEVEL = 3;
 
 /* ----------------------------------------------------------------
    TITRES PAR PALIER (5 paliers de 5 niveaux)
@@ -15002,8 +15109,8 @@ async function applyXpPenalty(studentId, eventType, requestedAmount, metadata = 
   const currentLevel = levelFromXp(currentXp);
 
   // Épargne en début d'aventure
-  if (currentLevel < XP_PENALTY_MIN_LEVEL) {
-    console.log(`[xp] penalty skipped (level ${currentLevel} < ${XP_PENALTY_MIN_LEVEL}) for student ${studentId}`);
+  if (currentLevel < _xpPenaltyMinLevel()) {
+    console.log(`[xp] penalty skipped (level ${currentLevel} < ${_xpPenaltyMinLevel()}) for student ${studentId}`);
     return null;
   }
 
@@ -15061,7 +15168,7 @@ async function _hookXpOnVote(studentId, filmId) {
       .gte('created_at', todayStart.toISOString());
     if (errCount) { console.warn('[xp hook vote] count error:', errCount); return; }
     const activeVotesToday = (todayVoteEvents || []).filter(e => !(e.metadata && e.metadata.refunded));
-    if (activeVotesToday.length >= XP_DAILY_VOTE_CAP) return; // cap atteint
+    if (activeVotesToday.length >= _xpDailyVoteCap()) return; // cap atteint
 
     // 3. Insère l'event vote (avec feedback : toast + ring + level-up éventuel)
     await addXpEventWithFeedback(studentId, 'vote', XP_AMOUNTS.vote, { film_id: filmId });
@@ -15260,7 +15367,7 @@ async function _hookXpOnLogin(studentId, dateOfBirth) {
     if (loginsToday === 0) {
       // 1ère connexion du jour
       await addXpEvent(studentId, 'login_first_daily', XP_AMOUNTS.login_first_daily, {});
-    } else if (loginsToday <= XP_DAILY_LOGIN_EXTRA_CAP) {
+    } else if (loginsToday <= _xpDailyLoginExtraCap()) {
       // 2ème ou 3ème connexion : +1 chacune
       await addXpEvent(studentId, 'login_extra_daily', XP_AMOUNTS.login_extra_daily, {});
     }
@@ -15374,7 +15481,7 @@ async function replayHistoricalXP(opts = {}) {
       const day   = (v._ts || '').slice(0, 10);
       const month = (v._ts || '').slice(0, 7);
       const dayCount = dailyCounts.get(day) || 0;
-      if (dayCount >= XP_DAILY_VOTE_CAP) return;
+      if (dayCount >= _xpDailyVoteCap()) return;
       dailyCounts.set(day, dayCount + 1);
 
       eventsToInsert.push({
@@ -15468,7 +15575,7 @@ async function replayHistoricalXP(opts = {}) {
           created_at:    l.logged_at
         });
         stats.logins++;
-      } else if (count <= XP_DAILY_LOGIN_EXTRA_CAP) {
+      } else if (count <= _xpDailyLoginExtraCap()) {
         eventsToInsert.push({
           student_id:    studentId,
           event_type:    'login_extra_daily',
@@ -27941,7 +28048,7 @@ function sdSwitchTab(tab) {
    Onglets de la modale Paramètres admin (#modal-admin-settings)
    ---------------------------------------------------------------- */
 function sdSwitchSettingsTab(tab) {
-  ['compte','comm','apparence','maintenance','donnees'].forEach(t => {
+  ['compte','comm','apparence','maintenance','xp','donnees'].forEach(t => {
     document.getElementById(`sd-stab-${t}`)?.classList.toggle('active', t === tab);
     document.getElementById(`sd-spane-${t}`)?.classList.toggle('active', t === tab);
   });
@@ -27949,6 +28056,123 @@ function sdSwitchSettingsTab(tab) {
   if (tab === 'compte' && typeof refreshAdminPersistCard === 'function') {
     refreshAdminPersistCard();
   }
+  // Remplir les champs XP quand on entre dans l'onglet XP
+  if (tab === 'xp' && typeof renderXpSettingsFields === 'function') {
+    renderXpSettingsFields();
+  }
+}
+
+/* ----------------------------------------------------------------
+   Panneau Taux XP (Paramètres admin → onglet ⭐ XP)
+   ---------------------------------------------------------------- */
+// Libellés lisibles pour chaque taux
+const _XP_AMOUNT_LABELS = {
+  vote:                  'Voter pour un film',
+  vote_first_of_month:  '1er vote du mois (bonus)',
+  session_attended:     'Présence à une séance',
+  event_attended:       'Présence séance événement (Halloween/Noël)',
+  session_absent:       'Absence à une séance inscrite (malus)',
+  session_left:         'Parti pendant le film (malus)',
+  login_first_daily:    '1ère connexion du jour',
+  login_extra_daily:    'Connexions suivantes du jour',
+  proposal_accepted:    'Proposition de film acceptée',
+  birthday:             'Bonus anniversaire',
+  monthly_loyalty:      'Fidélité mensuelle',
+  profile_birthday_set: '1ère saisie date de naissance',
+  tutorial_xp_completed:'Fin du tuto XP & Badges',
+};
+const _XP_TUNING_LABELS = {
+  XP_DAILY_VOTE_CAP:        'Votes max comptés / jour',
+  XP_DAILY_LOGIN_EXTRA_CAP: 'Connexions bonus / jour',
+  XP_PROPOSAL_SPREAD_DAYS:  'Étalement propositions (jours)',
+  XP_PENALTY_MIN_LEVEL:     'Niveau min avant malus absence',
+};
+
+function _xpFieldRow(key, label, value, allowNeg) {
+  return `
+    <div class="fgroup" style="margin-bottom:10px;">
+      <label class="flabel" style="font-size:12.5px;">${label}</label>
+      <input type="number" class="finput xp-setting-input"
+             data-xpkey="${key}" value="${value}"
+             step="1" ${allowNeg ? '' : 'min="0"'}
+             style="font-size:15px;">
+    </div>`;
+}
+
+function renderXpSettingsFields() {
+  const aWrap = document.getElementById('xp-amounts-fields');
+  const tWrap = document.getElementById('xp-tuning-fields');
+  if (aWrap) {
+    aWrap.innerHTML = Object.keys(XP_AMOUNTS_DEFAULTS).map(k => {
+      const allowNeg = XP_AMOUNTS_DEFAULTS[k] < 0 || k === 'session_absent' || k === 'session_left';
+      return _xpFieldRow(k, _XP_AMOUNT_LABELS[k] || k, XP_AMOUNTS[k], allowNeg);
+    }).join('');
+  }
+  if (tWrap) {
+    tWrap.innerHTML = Object.keys(XP_TUNING_DEFAULTS).map(k =>
+      _xpFieldRow(k, _XP_TUNING_LABELS[k] || k, XP_TUNING[k], false)
+    ).join('');
+  }
+}
+
+async function saveXpSettings() {
+  // Lire tous les inputs
+  const amounts = {};
+  const tuning  = {};
+  let invalid = false;
+
+  document.querySelectorAll('#xp-amounts-fields .xp-setting-input').forEach(inp => {
+    const k = inp.dataset.xpkey;
+    const v = parseInt(inp.value, 10);
+    if (!Number.isFinite(v)) { invalid = true; return; }
+    amounts[k] = v;
+  });
+  document.querySelectorAll('#xp-tuning-fields .xp-setting-input').forEach(inp => {
+    const k = inp.dataset.xpkey;
+    const v = parseInt(inp.value, 10);
+    if (!Number.isFinite(v) || v < 0) { invalid = true; return; }
+    tuning[k] = v;
+  });
+
+  if (invalid) {
+    toast('Une ou plusieurs valeurs sont invalides', 'error');
+    return;
+  }
+
+  const payload = JSON.stringify({ amounts, tuning });
+  const { error } = await db.from('app_settings').upsert(
+    { key: 'xp_settings', value: payload },
+    { onConflict: 'key' }
+  );
+  if (error) {
+    console.error('[xpSettings] save error:', error);
+    toast('Erreur lors de l\'enregistrement', 'error');
+    return;
+  }
+
+  // Appliquer immédiatement en mémoire (pas besoin de reload)
+  Object.keys(amounts).forEach(k => { if (k in XP_AMOUNTS) XP_AMOUNTS[k] = amounts[k]; });
+  Object.keys(tuning).forEach(k => { if (k in XP_TUNING) XP_TUNING[k] = tuning[k]; });
+
+  toast('✅ Taux XP enregistrés');
+}
+
+async function resetXpSettings() {
+  if (!confirm('Réinitialiser tous les taux XP aux valeurs par défaut ?')) return;
+
+  // Remettre les defaults en mémoire
+  Object.keys(XP_AMOUNTS_DEFAULTS).forEach(k => { XP_AMOUNTS[k] = XP_AMOUNTS_DEFAULTS[k]; });
+  Object.keys(XP_TUNING_DEFAULTS).forEach(k => { XP_TUNING[k] = XP_TUNING_DEFAULTS[k]; });
+
+  // Supprimer l'override en BDD (revient aux defaults au prochain boot aussi)
+  const { error } = await db.from('app_settings').delete().eq('key', 'xp_settings');
+  if (error) {
+    console.warn('[xpSettings] reset delete error:', error);
+    // On ne bloque pas : la mémoire est déjà reset
+  }
+
+  renderXpSettingsFields(); // re-render avec les defaults
+  toast('↺ Valeurs par défaut restaurées');
 }
 
 /* ----------------------------------------------------------------
@@ -30714,6 +30938,7 @@ async function init() {
   // Charger les paramètres globaux depuis Supabase
   loadSupervisorNameFromDB();
   loadDefaultSessionTimeFromDB();
+  loadXpSettingsFromDB();
   // Maintenance : on attend la fin du chargement avant de décider d'auto-login,
   // sinon une session élève restaurée pourrait passer alors que la maintenance
   // a été activée pendant que l'onglet était fermé.
