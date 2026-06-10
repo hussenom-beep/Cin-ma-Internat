@@ -11313,7 +11313,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 
           <!-- Warning annuel (masqué par défaut) -->
           <div class="import-annual-warning hidden" id="import-annual-warning">
-            ⚠️ Cet import mettra à jour l'année scolaire active, archivera les élèves absents du fichier et <strong>réinitialisera tous les votes</strong>.
+            ⚠️ Cet import mettra à jour l'année scolaire active, archivera les élèves absents du fichier et <strong>supprimera uniquement les votes des élèves archivés</strong>. Les votes des élèves qui restent sont conservés.
           </div>
 
           <!-- CSV -->
@@ -29926,8 +29926,8 @@ async function importStudentsFromSettings() {
     }
   }
 
-  // ---- Import annuel : archiver les absents + reset votes ----
-  let votesReset = false;
+  // ---- Import annuel : archiver les absents + supprimer leurs votes ----
+  let votesDeleted = 0;
   if (_importMode === 'annual') {
     // Archiver les élèves actifs absents
     const toArchive = (existing || []).filter(s =>
@@ -29954,10 +29954,21 @@ async function importStudentsFromSettings() {
       } catch (e) {
         console.warn('[bulk archive] push sync exception:', e);
       }
+
+      // Supprimer uniquement les votes des élèves archivés.
+      // Les votes des élèves qui restent sont conservés d'une année sur
+      // l'autre pour éviter qu'ils aient à re-voter pour des films déjà
+      // soutenus l'année précédente.
+      const { data: deletedVotes, error: votesErr } = await db.from('votes')
+        .delete()
+        .in('student_id', archivedIds)
+        .select('id'); // .select pour récupérer le count
+      if (votesErr) {
+        console.warn('[bulk archive] delete votes archived students:', votesErr);
+      } else {
+        votesDeleted = (deletedVotes || []).length;
+      }
     }
-    // Reset votes
-    await db.from('votes').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    votesReset = true;
   }
 
   // ---- Résumé ----
@@ -29985,7 +29996,7 @@ async function importStudentsFromSettings() {
       ${row('Élèves mis à jour', updated)}
       ${row('Élèves désarchivés', unarchived, unarchived > 0 ? 'green' : '')}
       ${row('Élèves archivés', archived, archived > 0 ? 'red' : '')}
-      ${row('Votes réinitialisés', votesReset ? '✅ Oui' : 'Non', votesReset ? 'red' : '')}
+      ${row('Votes supprimés (élèves archivés)', votesDeleted, votesDeleted > 0 ? 'red' : '')}
     </div>`;
 
   toast(`Import terminé — ${created} créé${created !== 1 ? 's' : ''}, ${updated + unarchived} mis à jour`, 'success');
