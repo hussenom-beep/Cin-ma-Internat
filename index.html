@@ -1943,6 +1943,90 @@ body.theme-christmas .s-header {
   letter-spacing: .06em;
   margin: 4px 0 10px;
 }
+
+/* ---- Onglets Mon parcours ---- */
+.journey-tabs { margin: 8px 16px 0; }
+.journey-pane { display: none; }
+.journey-pane.active { display: block; }
+.journey-rank-mode { margin: 0 0 12px; max-width: 220px; }
+
+/* ---- Carte "Ta position" ---- */
+.jrn-me-card {
+  position: relative;
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+  background: linear-gradient(135deg, rgba(212,175,55,.16) 0%, rgba(212,175,55,.05) 100%);
+  border: 1px solid rgba(212,175,55,.35);
+}
+.jrn-me-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.jrn-me-rank { font-size: 26px; font-weight: 900; color: var(--gold); line-height: 1; }
+.jrn-me-rank small { font-size: 13px; font-weight: 700; color: var(--text-2); margin-left: 4px; }
+.jrn-me-delta { font-size: 12px; font-weight: 800; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+.jrn-me-delta.up   { color: #86efac; background: rgba(22,163,74,.18); }
+.jrn-me-delta.down { color: #fca5a5; background: rgba(220,38,38,.18); }
+.jrn-me-delta.same { color: var(--text-3); background: rgba(255,255,255,.06); }
+.jrn-me-sub { margin-top: 6px; font-size: 12.5px; color: var(--text-2); }
+.jrn-me-next { margin-top: 8px; font-size: 12px; color: var(--text-3); }
+.jrn-me-next b { color: var(--text); font-weight: 700; }
+
+/* ---- Lignes du classement ---- */
+.jrn-rank-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px; margin-bottom: 6px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  font-size: 13px;
+}
+.jrn-rank-row.me {
+  background: linear-gradient(135deg, rgba(212,175,55,.14) 0%, rgba(212,175,55,.04) 100%);
+  border-color: rgba(212,175,55,.45);
+}
+.jrn-rank-pos { width: 28px; text-align: center; font-weight: 800; color: var(--text-3); font-size: 13px; flex-shrink: 0; }
+.jrn-rank-pos.medal { font-size: 18px; }
+.jrn-rank-name { flex: 1; font-weight: 700; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.jrn-rank-row.me .jrn-rank-name { color: var(--gold); }
+.jrn-rank-metric { font-size: 12px; color: var(--text-2); white-space: nowrap; }
+.jrn-rank-metric b { color: var(--text); }
+.jrn-rank-gap {
+  text-align: center; color: var(--text-3); font-size: 16px; letter-spacing: .3em;
+  padding: 2px 0 8px; user-select: none;
+}
+.jrn-rank-more {
+  display: block; width: 100%; margin-top: 6px; padding: 9px;
+  background: none; border: 1px dashed var(--border); border-radius: 10px;
+  color: var(--text-2); font-size: 12.5px; font-weight: 700; cursor: pointer; font-family: inherit;
+}
+.jrn-rank-more:active { background: var(--surface-2); }
+
+/* ---- Guide "Gain d'XP" ---- */
+.jrn-gain-group { margin-bottom: 16px; }
+.jrn-gain-title { font-size: 12px; font-weight: 800; color: var(--text-2); text-transform: uppercase; letter-spacing: .06em; margin: 0 0 8px; }
+.jrn-gain-title .hint { font-weight: 600; text-transform: none; letter-spacing: 0; color: var(--gold); margin-left: 6px; }
+.jrn-gain-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 12px; margin-bottom: 5px;
+  border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border);
+}
+.jrn-gain-icon { width: 24px; text-align: center; font-size: 16px; flex-shrink: 0; }
+.jrn-gain-info { flex: 1; min-width: 0; }
+.jrn-gain-label { font-size: 13px; font-weight: 700; color: var(--text); }
+.jrn-gain-note { font-size: 11.5px; color: var(--text-3); margin-top: 1px; }
+.jrn-gain-xp { font-weight: 900; font-size: 14px; color: var(--gold); white-space: nowrap; }
+.jrn-gain-xp.neg { color: #fca5a5; }
+.jrn-gain-rule {
+  font-size: 12px; color: var(--text-2); line-height: 1.45;
+  padding: 10px 12px; border-radius: 10px;
+  background: rgba(212,175,55,.06); border: 1px solid rgba(212,175,55,.2);
+  margin-top: 4px;
+}
+.jrn-gain-scale { display: flex; flex-wrap: wrap; gap: 6px; }
+.jrn-gain-scale span {
+  font-size: 11.5px; font-weight: 700; color: var(--text-2);
+  padding: 4px 9px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border);
+}
+.jrn-gain-scale span b { color: var(--gold); }
 .journey-list {
   display: flex;
   flex-direction: column;
@@ -9467,6 +9551,11 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
           <span class="pa-text">Conversations archivées</span>
           <span class="pa-arrow">›</span>
         </button>
+        <button class="profile-action-btn" onclick="openStudentXpGuide()">
+          <span class="pa-icon">💡</span>
+          <span class="pa-text">Comment gagner de l'XP ?</span>
+          <span class="pa-arrow">›</span>
+        </button>
         <button class="profile-action-btn" onclick="openStudentFAQ()">
           <span class="pa-icon">❔</span>
           <span class="pa-text">Aide / FAQ</span>
@@ -9544,19 +9633,42 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       </div>
     </div>
 
-    <!-- Sous-stats : compteurs d'événements -->
-    <div class="journey-counters" id="journey-counters">
-      <div class="journey-counter"><span id="jrn-c-sessions">0</span> séances</div>
-      <div class="journey-counter"><span id="jrn-c-votes">0</span> votes</div>
-      <div class="journey-counter"><span id="jrn-c-proposals">0</span> propositions</div>
+    <!-- Onglets : Classement (défaut) · Historique · Gain d'XP -->
+    <div class="sub-tabs journey-tabs" id="journey-tabs">
+      <button class="sub-tab active" id="jrn-tab-rank"    onclick="journeySwitchTab('rank')">🏆 Classement</button>
+      <button class="sub-tab"        id="jrn-tab-history" onclick="journeySwitchTab('history')">📜 Historique</button>
+      <button class="sub-tab"        id="jrn-tab-gain"    onclick="journeySwitchTab('gain')">💡 Gain d'XP ?</button>
     </div>
 
-    <!-- Liste -->
+    <!-- Contenu scrollable des onglets -->
     <div class="journey-list-section">
-      <div class="journey-list-title">📜 Historique</div>
-      <div class="journey-list" id="journey-list">
-        <div class="journey-empty">Chargement…</div>
+
+      <!-- ===== Onglet CLASSEMENT ===== -->
+      <div class="journey-pane active" id="jrn-pane-rank">
+        <div class="sub-tabs journey-rank-mode" id="jrn-rank-mode">
+          <button class="sub-tab active" onclick="journeySetRankMode('level')">Niveau</button>
+          <button class="sub-tab"        onclick="journeySetRankMode('badges')">Badges</button>
+        </div>
+        <div id="jrn-rank-content"><div class="journey-empty">Chargement…</div></div>
       </div>
+
+      <!-- ===== Onglet HISTORIQUE ===== -->
+      <div class="journey-pane" id="jrn-pane-history">
+        <div class="journey-counters" id="journey-counters">
+          <div class="journey-counter"><span id="jrn-c-sessions">0</span> séances</div>
+          <div class="journey-counter"><span id="jrn-c-votes">0</span> votes</div>
+          <div class="journey-counter"><span id="jrn-c-proposals">0</span> propositions</div>
+        </div>
+        <div class="journey-list" id="journey-list">
+          <div class="journey-empty">Chargement…</div>
+        </div>
+      </div>
+
+      <!-- ===== Onglet GAIN D'XP ===== -->
+      <div class="journey-pane" id="jrn-pane-gain">
+        <div id="jrn-gain-content"><div class="journey-empty">Chargement…</div></div>
+      </div>
+
     </div>
   </div>
 </div>
@@ -16512,40 +16624,64 @@ function _xpRelativeDate(isoStr) {
 }
 
 /* Ouvre la modale Mon parcours */
-async function openStudentJourney() {
+/* ================================================================
+   MON PARCOURS — 3 onglets : Classement (défaut) · Historique · Gain d'XP
+   La carte stats en tête est toujours visible ; chaque onglet charge son
+   contenu à la première ouverture seulement (cache _jrn).
+   ================================================================ */
+const _jrn = { tab: 'rank', rankMode: 'level', rankData: null, rankExpanded: false, historyLoaded: false, gainLoaded: false };
+
+async function openStudentJourney(initialTab = 'rank') {
   if (!S.user) return;
   closeModal('modal-profile');
   openModal('modal-student-journey');
 
-  const list = document.getElementById('journey-list');
-  list.innerHTML = '<div class="journey-empty">Chargement…</div>';
+  // Reset caches à chaque ouverture (les données bougent)
+  _jrn.rankData = null; _jrn.rankExpanded = false;
+  _jrn.historyLoaded = false; _jrn.gainLoaded = false;
+  document.getElementById('jrn-rank-content').innerHTML = '<div class="journey-empty">Chargement…</div>';
+  document.getElementById('journey-list').innerHTML = '<div class="journey-empty">Chargement…</div>';
 
+  // 1. Carte stats (toujours)
   try {
-    // 1. Stats
     const totalXp = await getStudentTotalXp(S.user.id);
     const progress = computeXpProgress(totalXp);
     const title = getTitleForLevel(progress.level);
-
     document.getElementById('jrn-total-xp').textContent = totalXp;
     document.getElementById('jrn-level').textContent    = progress.level;
     document.getElementById('jrn-title').textContent    = `${title.emoji} ${title.label}`;
 
-    // 2. XP du mois en cours
-    const monthStart = new Date();
-    monthStart.setDate(1);
-    monthStart.setHours(0, 0, 0, 0);
-    const { data: monthEvents } = await db
-      .from('xp_events')
-      .select('xp_amount')
+    const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0,0,0,0);
+    const { data: monthEvents } = await db.from('xp_events').select('xp_amount')
       .eq('student_id', S.user.id)
       .gte('created_at', monthStart.toISOString())
       .lte('scheduled_for', new Date().toISOString());
-    const monthXp = (monthEvents || []).reduce((s, r) => s + (r.xp_amount || 0), 0);
+    const monthXp = (monthEvents || []).reduce((a, r) => a + (r.xp_amount || 0), 0);
     const monthEl = document.getElementById('jrn-month-xp');
     monthEl.textContent = (monthXp >= 0 ? '+' : '') + monthXp;
     monthEl.style.color = monthXp < 0 ? 'var(--red)' : 'var(--gold)';
+  } catch (e) { console.warn('[journey] stats error:', e); }
 
-    // 3. Compteurs (sessions, votes, propositions)
+  // 2. Onglet initial (classement par défaut)
+  journeySwitchTab(initialTab);
+}
+
+function journeySwitchTab(tab) {
+  if (!['rank','history','gain'].includes(tab)) return;
+  _jrn.tab = tab;
+  ['rank','history','gain'].forEach(t => {
+    document.getElementById(`jrn-tab-${t}`)?.classList.toggle('active', t === tab);
+    document.getElementById(`jrn-pane-${t}`)?.classList.toggle('active', t === tab);
+  });
+  if (tab === 'rank'    && !_jrn.rankData)      _journeyLoadRank();
+  if (tab === 'history' && !_jrn.historyLoaded) _journeyLoadHistory();
+  if (tab === 'gain'    && !_jrn.gainLoaded)    _journeyRenderGain();
+}
+
+/* ---------------- Onglet HISTORIQUE (logique d'origine) ---------------- */
+async function _journeyLoadHistory() {
+  const list = document.getElementById('journey-list');
+  try {
     const events = await getStudentXpHistory(S.user.id, 500);
     const cSessions  = events.filter(e => e.event_type === 'session_attended' || e.event_type === 'event_attended').length;
     const cVotes     = events.filter(e => e.event_type === 'vote' || e.event_type === 'vote_first_of_month').length;
@@ -16554,43 +16690,245 @@ async function openStudentJourney() {
     document.getElementById('jrn-c-votes').textContent     = cVotes;
     document.getElementById('jrn-c-proposals').textContent = cProposals;
 
-    // 4. Liste — on n'affiche que les events déjà arrivés (scheduled_for <= now)
     const now = new Date();
-    const visible = events.filter(e => {
-      if (!e.scheduled_for) return true;
-      return new Date(e.scheduled_for) <= now;
-    });
-
+    const visible = events.filter(e => !e.scheduled_for || new Date(e.scheduled_for) <= now);
     if (!visible.length) {
-      list.innerHTML = `
-        <div class="journey-empty">
-          Aucun événement pour l'instant.<br>
-          Connecte-toi régulièrement, vote pour des films, viens aux séances pour gagner de l'XP !
-        </div>`;
-      return;
+      list.innerHTML = `<div class="journey-empty">Aucun événement pour l'instant.<br>
+        Connecte-toi régulièrement, vote pour des films, viens aux séances pour gagner de l'XP !</div>`;
+    } else {
+      list.innerHTML = visible.map(e => {
+        const map = XP_EVENT_LABELS[e.event_type] || { icon: '✨', label: e.event_type };
+        const xp = e.xp_amount || 0;
+        const xpStr = (xp >= 0 ? '+' : '') + xp + ' XP';
+        const cls = xp < 0 ? 'journey-row-xp negative' : 'journey-row-xp';
+        return `
+          <div class="journey-row">
+            <div class="journey-row-icon">${map.icon}</div>
+            <div class="journey-row-info">
+              <div class="journey-row-label">${_escapeHtml(map.label)}</div>
+              <div class="journey-row-date">${_escapeHtml(_xpRelativeDate(e.created_at))}</div>
+            </div>
+            <div class="${cls}">${xpStr}</div>
+          </div>`;
+      }).join('');
     }
-
-    list.innerHTML = visible.map(e => {
-      const map = XP_EVENT_LABELS[e.event_type] || { icon: '✨', label: e.event_type };
-      const xp = e.xp_amount || 0;
-      const xpStr = (xp >= 0 ? '+' : '') + xp + ' XP';
-      const cls = xp < 0 ? 'journey-row-xp negative' : 'journey-row-xp';
-      const date = _xpRelativeDate(e.created_at);
-      return `
-        <div class="journey-row">
-          <div class="journey-row-icon">${map.icon}</div>
-          <div class="journey-row-info">
-            <div class="journey-row-label">${_escapeHtml(map.label)}</div>
-            <div class="journey-row-date">${_escapeHtml(date)}</div>
-          </div>
-          <div class="${cls}">${xpStr}</div>
-        </div>
-      `;
-    }).join('');
+    _jrn.historyLoaded = true;
   } catch (e) {
-    console.warn('[journey] error:', e);
+    console.warn('[journey] history error:', e);
     list.innerHTML = '<div class="journey-empty">Erreur de chargement. Réessaie.</div>';
   }
+}
+
+/* ---------------- Onglet CLASSEMENT ---------------- */
+/* Prénom + initiale du nom : "Léa M." */
+function _jrnShortName(s) {
+  const fn = (s.first_name || '').trim();
+  const ln = (s.last_name || '').trim();
+  return ln ? `${fn} ${ln[0].toUpperCase()}.` : fn;
+}
+
+/* Charge élèves actifs (hors comptes test), XP actuel + XP à fin du mois
+   dernier (pour la variation de rang), nb badges actuel + fin du mois dernier. */
+async function _journeyLoadRank() {
+  const box = document.getElementById('jrn-rank-content');
+  try {
+    const { data: students, error: stuErr } = await db.from('students')
+      .select('id, first_name, last_name, class_name').eq('is_active', true);
+    if (stuErr) throw stuErr;
+    const eligible = (students || []).filter(s => !_isTestClass(s.class_name));
+    const ids = eligible.map(s => s.id);
+    if (!ids.length) { box.innerHTML = '<div class="journey-empty">Aucun élève à classer.</div>'; return; }
+
+    const nowIso = new Date().toISOString();
+    const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0,0,0,0);
+    const monthStartIso = monthStart.toISOString();
+
+    const [xpRes, bRes] = await Promise.all([
+      db.from('xp_events').select('student_id, xp_amount, scheduled_for').in('student_id', ids).lte('scheduled_for', nowIso),
+      db.from('student_badges').select('student_id, unlocked_at').in('student_id', ids)
+    ]);
+
+    const xpNow = new Map(), xpPrev = new Map(), bNow = new Map(), bPrev = new Map();
+    for (const e of (xpRes.data || [])) {
+      xpNow.set(e.student_id, (xpNow.get(e.student_id) || 0) + (e.xp_amount || 0));
+      if (e.scheduled_for < monthStartIso)
+        xpPrev.set(e.student_id, (xpPrev.get(e.student_id) || 0) + (e.xp_amount || 0));
+    }
+    for (const b of (bRes.data || [])) {
+      bNow.set(b.student_id, (bNow.get(b.student_id) || 0) + 1);
+      if (!b.unlocked_at || b.unlocked_at < monthStartIso)
+        bPrev.set(b.student_id, (bPrev.get(b.student_id) || 0) + 1);
+    }
+
+    _jrn.rankData = eligible.map(s => {
+      const xp = xpNow.get(s.id) || 0, xpP = xpPrev.get(s.id) || 0;
+      return {
+        id: s.id, name: _jrnShortName(s), last_name: s.last_name || '',
+        xp, level: levelFromXp(xp), badges: bNow.get(s.id) || 0,
+        xpPrev: xpP, levelPrev: levelFromXp(xpP), badgesPrev: bPrev.get(s.id) || 0
+      };
+    });
+    _journeyRenderRank();
+  } catch (e) {
+    console.warn('[journey] rank error:', e);
+    box.innerHTML = '<div class="journey-empty">Erreur de chargement du classement.</div>';
+  }
+}
+
+function journeySetRankMode(mode) {
+  if (mode !== 'level' && mode !== 'badges') return;
+  _jrn.rankMode = mode;
+  document.querySelectorAll('#jrn-rank-mode .sub-tab').forEach((b, i) => b.classList.toggle('active', ['level','badges'][i] === mode));
+  _journeyRenderRank();
+}
+function journeyToggleRankExpand() { _jrn.rankExpanded = !_jrn.rankExpanded; _journeyRenderRank(); }
+
+function _jrnSort(arr, mode, prev) {
+  const L = prev ? 'levelPrev' : 'level', B = prev ? 'badgesPrev' : 'badges', X = prev ? 'xpPrev' : 'xp';
+  return [...arr].sort((a, b) => {
+    const d = (mode === 'level') ? b[L] - a[L] : b[B] - a[B];
+    if (d) return d;
+    if (b[X] !== a[X]) return b[X] - a[X];
+    return a.last_name.localeCompare(b.last_name);
+  });
+}
+
+function _journeyRenderRank() {
+  const box = document.getElementById('jrn-rank-content');
+  if (!box || !_jrn.rankData) return;
+  const mode = _jrn.rankMode;
+  const sorted = _jrnSort(_jrn.rankData, mode, false);
+  const sortedPrev = _jrnSort(_jrn.rankData, mode, true);
+  const total = sorted.length;
+  const myIdx = sorted.findIndex(r => r.id === S.user.id);
+  const myPrevIdx = sortedPrev.findIndex(r => r.id === S.user.id);
+  const me = myIdx >= 0 ? sorted[myIdx] : null;
+
+  const metric = r => (mode === 'level')
+    ? `Niv <b>${r.level}</b> · ${r.xp} XP`
+    : `<b>${r.badges}</b> badge${r.badges > 1 ? 's' : ''} · ${r.xp} XP`;
+
+  // ---- Carte "Ta position" ----
+  let meCard = '';
+  if (me) {
+    const delta = (myPrevIdx >= 0) ? (myPrevIdx - myIdx) : 0;
+    const deltaHtml = delta > 0 ? `<span class="jrn-me-delta up">▲ ${delta} place${delta > 1 ? 's' : ''} ce mois</span>`
+                    : delta < 0 ? `<span class="jrn-me-delta down">▼ ${-delta} place${-delta < -1 ? 's' : ''} ce mois</span>`
+                    : `<span class="jrn-me-delta same">= stable ce mois</span>`;
+    let next = '';
+    if (myIdx > 0) {
+      const ahead = sorted[myIdx - 1];
+      if (mode === 'level') {
+        const gap = ahead.level > me.level
+          ? `atteindre le niveau ${ahead.level} (+${xpThresholdForLevel(ahead.level) - me.xp} XP)`
+          : `+${ahead.xp - me.xp + 1} XP`;
+        next = `<div class="jrn-me-next">Devant toi : <b>${_escapeHtml(ahead.name)}</b> — ${gap} pour passer devant</div>`;
+      } else {
+        const gap = ahead.badges > me.badges ? `${ahead.badges - me.badges} badge${ahead.badges - me.badges > 1 ? 's' : ''} de plus` : `+${ahead.xp - me.xp + 1} XP`;
+        next = `<div class="jrn-me-next">Devant toi : <b>${_escapeHtml(ahead.name)}</b> — ${gap} pour passer devant</div>`;
+      }
+    } else {
+      next = `<div class="jrn-me-next">🥇 Tu es en tête — garde le rythme !</div>`;
+    }
+    meCard = `
+      <div class="jrn-me-card">
+        <div class="jrn-me-top">
+          <div class="jrn-me-rank">#${myIdx + 1}<small>sur ${total}</small></div>
+          ${deltaHtml}
+        </div>
+        <div class="jrn-me-sub">${metric(me)}</div>
+        ${next}
+      </div>`;
+  }
+
+  // ---- Liste : top 3 + fenêtre autour de moi (ou tout si déplié) ----
+  const medals = ['🥇','🥈','🥉'];
+  const row = (r, i) => `
+    <div class="jrn-rank-row${r.id === S.user.id ? ' me' : ''}">
+      <div class="jrn-rank-pos${i < 3 ? ' medal' : ''}">${i < 3 ? medals[i] : i + 1}</div>
+      <div class="jrn-rank-name">${r.id === S.user.id ? 'Toi' : _escapeHtml(r.name)}</div>
+      <div class="jrn-rank-metric">${metric(r)}</div>
+    </div>`;
+
+  let listHtml = '', more = '';
+  if (_jrn.rankExpanded || total <= 8) {
+    listHtml = sorted.map(row).join('');
+    if (total > 8) more = `<button class="jrn-rank-more" onclick="journeyToggleRankExpand()">Réduire</button>`;
+  } else {
+    const show = new Set([0, 1, 2]);
+    if (myIdx >= 0) for (let i = myIdx - 2; i <= myIdx + 2; i++) if (i >= 0 && i < total) show.add(i);
+    const idxs = [...show].sort((a, b) => a - b);
+    let last = -1;
+    for (const i of idxs) {
+      if (last >= 0 && i > last + 1) listHtml += `<div class="jrn-rank-gap">···</div>`;
+      listHtml += row(sorted[i], i);
+      last = i;
+    }
+    more = `<button class="jrn-rank-more" onclick="journeyToggleRankExpand()">Voir tout le classement (${total})</button>`;
+  }
+
+  box.innerHTML = meCard + listHtml + more;
+}
+
+/* ---------------- Onglet GAIN D'XP (valeurs lues en direct) ---------------- */
+function _journeyRenderGain() {
+  const box = document.getElementById('jrn-gain-content');
+  if (!box) return;
+  const A = XP_AMOUNTS, T = XP_TUNING;
+  const fmt = v => (v >= 0 ? '+' : '') + v;
+  const r = (icon, label, xp, note = '') => `
+    <div class="jrn-gain-row">
+      <div class="jrn-gain-icon">${icon}</div>
+      <div class="jrn-gain-info">
+        <div class="jrn-gain-label">${label}</div>
+        ${note ? `<div class="jrn-gain-note">${note}</div>` : ''}
+      </div>
+      <div class="jrn-gain-xp${xp < 0 ? ' neg' : ''}">${fmt(xp)} XP</div>
+    </div>`;
+  const g = (title, rows, hint = '', rule = '') => `
+    <div class="jrn-gain-group">
+      <div class="jrn-gain-title">${title}${hint ? `<span class="hint">${hint}</span>` : ''}</div>
+      ${rows.join('')}
+      ${rule ? `<div class="jrn-gain-rule">${rule}</div>` : ''}
+    </div>`;
+
+  box.innerHTML =
+    g('🎬 Séances', [
+      r('🎬', 'Présence à une séance', A.session_attended),
+      r('🎉', 'Présence à un événement spécial', A.event_attended, 'Halloween, Noël…'),
+      r('❌', 'Absence à une séance où tu es inscrit', A.session_absent, `À partir du niveau ${T.XP_PENALTY_MIN_LEVEL}`),
+      r('🚪', 'Départ avant la fin du film', A.session_left, `À partir du niveau ${T.XP_PENALTY_MIN_LEVEL}`),
+    ], 'le plus rentable',
+    `Une pénalité ne te fait <b>jamais</b> redescendre de niveau : elle s'arrête au seuil de ton niveau actuel.`) +
+    g('🗳️ Votes', [
+      r('🗳️', 'Voter pour un film', A.vote, `${T.XP_DAILY_VOTE_CAP} votes comptés par jour max`),
+      r('🌟', '1er vote du mois', A.vote_first_of_month, 'Bonus une fois par mois'),
+    ], '', `Retirer ton vote annule l'XP gagné sur ce film.`) +
+    g('💡 Propositions', [
+      r('💡', 'Proposition de film acceptée', A.proposal_accepted, `${(typeof WEEKLY_PROPOSAL_LIMIT !== 'undefined') ? WEEKLY_PROPOSAL_LIMIT : 3} propositions par semaine max`),
+    ]) +
+    g('🌅 Connexions', [
+      r('🌅', '1ère connexion du jour', A.login_first_daily),
+      r('🔁', 'Connexions suivantes', A.login_extra_daily, `${T.XP_DAILY_LOGIN_EXTRA_CAP} par jour max`),
+    ]) +
+    g('🎁 Bonus', [
+      r('🎂', 'Ton anniversaire', A.birthday, 'Si ta date de naissance est renseignée'),
+      r('🎖️', 'Fidélité mensuelle', A.monthly_loyalty),
+      r('📅', 'Date de naissance renseignée', A.profile_birthday_set, 'Une seule fois'),
+      r('🎓', 'Tutoriel XP découvert', A.tutorial_xp_completed, 'Une seule fois'),
+    ]) +
+    `<div class="jrn-gain-group">
+      <div class="jrn-gain-title">📈 Échelle des niveaux</div>
+      <div class="jrn-gain-scale">
+        ${[5, 10, 15, 20, XP_MAX_LEVEL].map(l => `<span>Niv ${l} <b>${xpThresholdForLevel(l)} XP</b></span>`).join('')}
+      </div>
+    </div>`;
+  _jrn.gainLoaded = true;
+}
+
+/* Accès direct depuis l'aide du profil */
+function openStudentXpGuide() {
+  openStudentJourney('gain');
 }
 
 /* DEBUG / PREVIEW — tuto factice avec 3 slides, sans écriture BDD.
