@@ -1047,6 +1047,24 @@ body.theme-christmas .s-header {
 }
 
 /* Badge événement sur les cartes film */
+/* Badge "✨ Nouveau" (films ajoutés récemment) */
+.badge-new-film {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: .03em;
+  padding: 2px 7px;
+  border-radius: 999px;
+  color: var(--gold);
+  background: linear-gradient(135deg, rgba(212,175,55,.24), rgba(212,175,55,.10));
+  border: 1px solid rgba(212,175,55,.5);
+  vertical-align: middle;
+  white-space: nowrap;
+  margin-left: 4px;
+}
+
 .film-event-badge {
   position: absolute;
   top: 8px;
@@ -6160,6 +6178,22 @@ body.theme-christmas .s-header {
   }
 
   /* Badge top-left : event_tag (Halloween / Noël) */
+  .fc-pc-new {
+    position: absolute;
+    top: 10px; left: 10px;
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .04em;
+    color: var(--gold);
+    background: rgba(0,0,0,.6);
+    border: 1px solid rgba(212,175,55,.6);
+    border-radius: 10px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 1;
+  }
+  .fc-pc-new.below { top: 40px; }  /* sous le badge Halloween/Noël */
   .fc-pc-badge {
     position: absolute;
     top: 10px; left: 10px;
@@ -19557,6 +19591,32 @@ const EVENT_FILTER_LABELS = {
 /** Helper : génère le HTML du badge "événement" pour un film (élève + admin).
     Utilisé partout où un film événementiel apparaît dans une liste.
     Retourne '' si f n'a pas d'event_tag. */
+/* ================================================================
+   BADGE "NOUVEAU" — films actifs ajoutés récemment
+   ----------------------------------------------------------------
+   Règle de base (admin + élève) : ajouté depuis moins de NEW_FILM_DAYS jours.
+   Côté élève, en plus : un film ajouté depuis la dernière visite de l'écran
+   de vote est "Nouveau" pour cette visite-là, même s'il a plus de 14 jours
+   (cas de l'élève qui ne s'est pas connecté depuis longtemps).
+   La date de dernière visite est stockée par élève dans localStorage.
+   ================================================================ */
+const NEW_FILM_DAYS = 14;
+
+function _isFilmRecent(film) {
+  const d = film && (film.added_at || film.created_at);
+  if (!d) return false;
+  const t = new Date(d).getTime();
+  return Number.isFinite(t) && (Date.now() - t) < NEW_FILM_DAYS * 86400000;
+}
+
+function _newFilmBadgeHtml() {
+  return '<span class="badge-new-film">✨ Nouveau</span>';
+}
+
+function _filmsSeenKey() {
+  return S.user?.id ? `ci_films_seen_at_${S.user.id}` : null;
+}
+
 function _filmEventBadgeHtml(eventTag, variant = 'inline') {
   if (!eventTag) return '';
   const label = EVENT_FILTER_LABELS[eventTag] || '🎉 Événement';
@@ -19634,6 +19694,18 @@ async function loadFilms() {
   S.films = films || [];
   S.votes = new Set((votes || []).map(v => v.film_id));
 
+  // Badge "Nouveau" : figé pour toute la visite (les re-rendus via le toggle
+  // gardent les mêmes badges), puis on enregistre la date de cette visite.
+  let lastSeenMs = 0;
+  const seenKey = _filmsSeenKey();
+  try { lastSeenMs = parseInt(localStorage.getItem(seenKey) || '0', 10) || 0; } catch (_) {}
+  S.newFilmIds = new Set(S.films.filter(f => {
+    if (_isFilmRecent(f)) return true;
+    const added = new Date(f.added_at || f.created_at || 0).getTime();
+    return lastSeenMs > 0 && added > lastSeenMs; // apparu depuis la dernière visite
+  }).map(f => f.id));
+  try { if (seenKey) localStorage.setItem(seenKey, String(Date.now())); } catch (_) {}
+
   // Réinitialiser le mode par défaut quand on (re)charge (utile si le thème change en live)
   const theme = S.eventTheme || 'none';
   if (theme === 'none') S.filmFilterMode = 'event'; // valeur ignorée mais on remet propre
@@ -19690,7 +19762,7 @@ function renderFilms() {
           : `<div class="no-poster">🎬</div>`}
       </div>
       <div class="film-card-body">
-        <div class="film-card-title">${f.title}</div>
+        <div class="film-card-title">${f.title}${S.newFilmIds && S.newFilmIds.has(f.id) ? _newFilmBadgeHtml() : ''}</div>
         <div class="film-card-meta">
           ${f.year ? `<span>${f.year}</span>` : ''}
           ${f.genre ? `<span>· ${f.genre}</span>` : ''}
@@ -24917,6 +24989,9 @@ async function loadAdminFilms() {
 
     // Badge event si le film est tagué (couleur dynamique)
     const eventBadge = _filmEventBadgeHtml(f.event_tag, 'inline').trim();
+    // Badge "Nouveau" : films actifs non programmés, ajoutés depuis < 14 jours
+    const newBadge = (status === 'active' && f.status === 'active' && !sessionInfo && _isFilmRecent(f))
+      ? _newFilmBadgeHtml() : '';
 
     return `
     <div class="ai" data-film-id="${f.id}">
@@ -24926,7 +25001,7 @@ async function loadAdminFilms() {
       </div>
       <div class="ai-info" style="cursor:pointer;"
            onclick="openAdminFilmDetailById('${f.id}')">
-        <div class="ai-title">${f.title}${eventBadge ? ' ' + eventBadge : ''}</div>
+        <div class="ai-title">${f.title}${eventBadge ? ' ' + eventBadge : ''}${newBadge}</div>
         <div class="ai-sub">${f.year || ''}${f.genre ? ' · ' + f.genre : ''}${f.screened_at && status === 'screened' ? ' · Vu le ' + fmtDateShort(f.screened_at.split('T')[0]) : ''}</div>
         <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px;">
           ${statusBadge}
@@ -24982,6 +25057,8 @@ async function loadAdminFilms() {
     <div class="fc-pc" style="${bgStyle}" onclick="openAdminFilmDetailById('${f.id}')">
       ${!f.poster_url ? '<div class="fc-pc-noposter">🎬</div>' : ''}
       ${eventBadgeHtml}
+      ${(status === 'active' && f.status === 'active' && !sessionInfo && _isFilmRecent(f))
+        ? `<div class="fc-pc-new${f.event_tag ? ' below' : ''}">✨ Nouveau</div>` : ''}
       ${sessionBadgeHtml}
       <div class="fc-pc-actions">${btns}</div>
       <div class="fc-pc-gradient"></div>
