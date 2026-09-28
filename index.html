@@ -11038,6 +11038,25 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 <!-- ================================================================
      MODAL: Paramètres de séance par défaut (heure + capacité)
      ================================================================ -->
+<!-- ================================================================
+     MODAL: Choix des élèves pour l'export PDF des fiches
+     ================================================================ -->
+<div class="overlay hidden" id="modal-export-pdf">
+  <div class="sheet" style="max-width:440px;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">📄 Fiches PDF — qui inclure ?</div>
+    <p class="text-sm text-muted" style="margin:-6px 0 16px;">
+      Seuls les élèves <strong>actifs</strong> qui n'ont <strong>jamais activé</strong> leur compte ont une fiche.
+    </p>
+    <div id="export-pdf-options"><!-- généré par exportStudentsPDF() --></div>
+    <div class="text-sm" id="export-pdf-total" style="margin:12px 0 4px;color:var(--text-2);"></div>
+    <div style="display:flex;gap:8px;margin-top:14px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('modal-export-pdf')">Annuler</button>
+      <button class="btn btn-gold" style="flex:1;" id="export-pdf-go" onclick="confirmExportStudentsPDF()">Générer le PDF</button>
+    </div>
+  </div>
+</div>
+
 <div class="overlay hidden" id="modal-default-session-settings">
   <div class="sheet" style="max-width:440px;">
     <div class="sheet-handle"></div>
@@ -11538,7 +11557,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
         <div class="sd-section">
           <div class="sd-section-title">📄 Export PDF élèves</div>
           <p class="text-sm text-muted" style="margin-bottom:12px;">
-            Génère une fiche PDF pour <strong>tous les élèves</strong> de la liste.<br>
+            Génère une fiche PDF pour les <strong>élèves actifs qui n'ont pas encore activé leur compte</strong>. Tu choisis ensuite qui inclure (filles, garçons, comptes test).<br>
             <span style="opacity:.7;font-size:11px;">Ordre : filles puis garçons, par ordre alphabétique. Format : 10 fiches par page A4.</span>
           </p>
           <button class="btn btn-gold btn-full" onclick="exportStudentsPDF()">
@@ -30249,11 +30268,12 @@ async function _generateStudentCardsPDF(students) {
     return;
   }
 
-  // Filtrer les élèves non activés (qui ont encore un PIN temporaire)
-  const withPIN = students.filter(s => !s.is_activated && s.activation_code);
+  // Élèves ACTIFS, jamais activés, avec un PIN temporaire. Les archivés sont
+  // toujours exclus (ils gardent leur ancien PIN en base après l'import annuel).
+  const withPIN = students.filter(s => s.is_active && !s.is_activated && s.activation_code);
   
   if (withPIN.length === 0) {
-    toast('Aucun élève avec un code PIN temporaire disponible pour l\'export', 'error');
+    toast('Aucun élève actif sans compte activé à exporter', 'error');
     return;
   }
 
@@ -30378,35 +30398,74 @@ async function _generateStudentCardsPDF(students) {
 }
 
 /* Export depuis Paramètres (tous les élèves sélectionnés) */
-/* Export global depuis Paramètres (tous les élèves) */
+/* Catégorie d'un élève pour l'export PDF : 'test' | 'F' | 'M' | 'X' (sexe non renseigné) */
+function _pdfCategory(st) {
+  if (_isTestClass(st.class_name)) return 'test';
+  const v = (st.sexe || '').toLowerCase().trim();
+  if (v === 'f' || v === 'fille' || v === 'femme') return 'F';
+  if (v === 'm' || v === 'garçon' || v === 'garcon' || v === 'homme') return 'M';
+  return 'X';
+}
+
+let _pdfExportPool = [];
+
+/* Export global depuis Paramètres : ouvre la fenêtre de choix */
 async function exportStudentsPDF() {
-  if (!_studentsAll || _studentsAll.length === 0) { 
-    toast('Aucun élève dans la liste', 'error'); 
-    return; 
+  // Toujours relire la base (la liste de l'onglet Élèves peut ne pas être chargée)
+  const { data, error } = await db.from('students').select('*').eq('is_active', true);
+  if (error) { toast('Erreur de chargement des élèves', 'error'); return; }
+  _pdfExportPool = (data || []).filter(st => !st.is_activated && st.activation_code);
+
+  if (!_pdfExportPool.length) {
+    toast('Aucun élève actif sans compte activé à exporter', 'info');
+    return;
   }
-  
-  // Trier TOUS les élèves : FILLES → GARÇONS, puis alpha sur nom
-  const allStudents = [..._studentsAll].sort((a, b) => {
-    const normalizeSexe = (val) => {
-      if (!val) return null;
-      const v = val.toLowerCase().trim();
-      if (v === 'f' || v === 'fille' || v === 'femme') return 'F';
-      if (v === 'm' || v === 'garçon' || v === 'garcon' || v === 'homme') return 'M';
-      return null;
-    };
-    
-    const sexA = normalizeSexe(a.sexe);
-    const sexB = normalizeSexe(b.sexe);
-    
-    // Filles (F) = 0, Garçons (M) = 1, Autres = 2
-    const sexOrder = s => s === 'F' ? 0 : s === 'M' ? 1 : 2;
-    const so = sexOrder(sexA) - sexOrder(sexB);
-    if (so !== 0) return so;
-    
-    return (a.last_name || '').localeCompare(b.last_name || '', 'fr');
-  });
-  
-  await _generateStudentCardsPDF(allStudents);
+
+  const counts = { F: 0, M: 0, X: 0, test: 0 };
+  _pdfExportPool.forEach(st => counts[_pdfCategory(st)]++);
+
+  const opts = [
+    { key: 'F',    label: '♀ Filles',                checked: true  },
+    { key: 'M',    label: '♂ Garçons',               checked: true  },
+    { key: 'X',    label: 'Sexe non renseigné',      checked: true  },
+    { key: 'test', label: '🧪 Comptes test',         checked: false },
+  ].filter(o => o.key !== 'X' || counts.X > 0); // ligne masquée si personne
+
+  document.getElementById('export-pdf-options').innerHTML = opts.map(o => `
+    <label style="display:flex;align-items:center;gap:10px;padding:11px 12px;margin-bottom:6px;border-radius:10px;background:var(--surface-2);border:1px solid var(--border);cursor:pointer;${counts[o.key] ? '' : 'opacity:.45;'}">
+      <input type="checkbox" class="export-pdf-cb" value="${o.key}" ${o.checked && counts[o.key] ? 'checked' : ''} ${counts[o.key] ? '' : 'disabled'}
+             onchange="_refreshExportPdfTotal()" style="width:18px;height:18px;accent-color:var(--gold);">
+      <span style="flex:1;font-weight:600;">${o.label}</span>
+      <span class="text-sm text-muted">${counts[o.key]} fiche${counts[o.key] > 1 ? 's' : ''}</span>
+    </label>`).join('');
+
+  _refreshExportPdfTotal();
+  openModal('modal-export-pdf');
+}
+
+function _pdfSelectedCategories() {
+  return new Set([...document.querySelectorAll('.export-pdf-cb:checked')].map(cb => cb.value));
+}
+
+function _refreshExportPdfTotal() {
+  const cats = _pdfSelectedCategories();
+  const n = _pdfExportPool.filter(st => cats.has(_pdfCategory(st))).length;
+  document.getElementById('export-pdf-total').textContent = `${n} fiche${n > 1 ? 's' : ''} à générer`;
+  const btn = document.getElementById('export-pdf-go');
+  if (btn) btn.disabled = n === 0;
+}
+
+async function confirmExportStudentsPDF() {
+  const cats = _pdfSelectedCategories();
+  // Ordre : filles, garçons, non renseigné, comptes test — puis alphabétique
+  const order = { F: 0, M: 1, X: 2, test: 3 };
+  const list = _pdfExportPool
+    .filter(st => cats.has(_pdfCategory(st)))
+    .sort((a, b) => (order[_pdfCategory(a)] - order[_pdfCategory(b)])
+                 || (a.last_name || '').localeCompare(b.last_name || '', 'fr'));
+  if (!list.length) { toast('Coche au moins une catégorie', 'error'); return; }
+  closeModal('modal-export-pdf');
+  await _generateStudentCardsPDF(list);
 }
 
 /* Export ciblé depuis la zone d'action de la liste élèves */
