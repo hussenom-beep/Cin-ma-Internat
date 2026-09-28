@@ -1047,6 +1047,26 @@ body.theme-christmas .s-header {
 }
 
 /* Badge événement sur les cartes film */
+/* Badges de classification d'âge (TMDB, classification française) */
+.age-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 26px; height: 18px; padding: 0 6px;
+  border-radius: 5px; border: 1px solid transparent;
+  font-size: 10.5px; font-weight: 900; letter-spacing: .02em; line-height: 1;
+  vertical-align: middle; white-space: nowrap;
+}
+.age-TP { color: #86efac; background: rgba(22,163,74,.18);  border-color: rgba(22,163,74,.45); }
+.age-10 { color: #fde047; background: rgba(234,179,8,.16);  border-color: rgba(234,179,8,.45); }
+.age-12 { color: #fdba74; background: rgba(249,115,22,.18); border-color: rgba(249,115,22,.5); }
+.age-16 { color: #fff;    background: rgba(220,38,38,.8);   border-color: rgba(248,113,113,.9); }
+.age-18 { color: #fff;    background: #7f1d1d;              border-color: #ef4444; }
+.age-unknown { color: var(--text-2); background: rgba(255,255,255,.07); border-color: var(--border); }
+.age-badge.clickable { cursor: pointer; }
+.age-badge.clickable:hover { filter: brightness(1.25); }
+.age-warn { font-size: 12.5px; line-height: 1.5; padding: 10px 12px; border-radius: 10px; margin-bottom: 14px; }
+.age-warn-16 { color: #fecaca; background: rgba(220,38,38,.12); border: 1px solid rgba(220,38,38,.45); }
+.age-warn-18 { color: #fff;    background: rgba(127,29,29,.55); border: 1px solid #ef4444; }
+
 /* Badge "✨ Nouveau" (films ajoutés récemment) */
 .badge-new-film {
   display: inline-flex;
@@ -9421,6 +9441,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 
         <div class="tmdb-d-title" id="tmdb-d-title">—</div>
         <div class="tmdb-d-meta" id="tmdb-d-meta"></div>
+        <div id="tmdb-d-agewarn" class="hidden"></div>
         <div class="tmdb-d-rating hidden" id="tmdb-d-rating"></div>
 
         <!-- Doublon warning -->
@@ -11039,6 +11060,26 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
      MODAL: Paramètres de séance par défaut (heure + capacité)
      ================================================================ -->
 <!-- ================================================================
+     MODAL: Correction manuelle de la classification d'âge d'un film
+     ================================================================ -->
+<div class="overlay hidden" id="modal-age-rating">
+  <div class="sheet" style="max-width:420px;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Classification d'âge</div>
+    <p class="text-sm text-muted" style="margin:-6px 0 14px;" id="age-edit-title">—</p>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+      <button class="btn btn-ghost" onclick="setFilmAgeRating('TP')"><span class="age-badge age-TP">TP</span></button>
+      <button class="btn btn-ghost" onclick="setFilmAgeRating('10')"><span class="age-badge age-10">-10</span></button>
+      <button class="btn btn-ghost" onclick="setFilmAgeRating('12')"><span class="age-badge age-12">-12</span></button>
+      <button class="btn btn-ghost" onclick="setFilmAgeRating('16')"><span class="age-badge age-16">-16</span></button>
+      <button class="btn btn-ghost" onclick="setFilmAgeRating('18')"><span class="age-badge age-18">🔞 -18</span></button>
+      <button class="btn btn-ghost" onclick="setFilmAgeRating('')"><span class="age-badge age-unknown">?</span></button>
+    </div>
+    <button class="btn btn-ghost btn-full" style="margin-top:14px;" onclick="closeModal('modal-age-rating')">Annuler</button>
+  </div>
+</div>
+
+<!-- ================================================================
      MODAL: Choix des élèves pour l'export PDF des fiches
      ================================================================ -->
 <div class="overlay hidden" id="modal-export-pdf">
@@ -11411,6 +11452,15 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
            ONGLET : 🛠️ MAINTENANCE
            ============================================================ -->
       <div class="sd-tab-panel" id="sd-spane-maintenance">
+
+        <div class="sd-section">
+          <div class="sd-section-title">🔞 Classifications d'âge</div>
+          <p class="text-sm text-muted" style="margin-bottom:12px;">
+            Récupère sur TMDB la classification française (TP, -10, -12, -16, -18) des films du catalogue et des propositions en attente qui n'en ont pas encore. Les nouveaux films la récupèrent automatiquement.
+          </p>
+          <button class="btn btn-ghost btn-full" id="age-backfill-btn" onclick="backfillAgeRatings()">Récupérer les classifications</button>
+          <div id="age-backfill-result" class="text-sm text-muted" style="margin-top:10px;"></div>
+        </div>
 
         <div class="sd-section">
           <div class="sd-section-title">🛠️ Mode maintenance</div>
@@ -19621,6 +19671,130 @@ const EVENT_FILTER_LABELS = {
    ================================================================ */
 const NEW_FILM_DAYS = 14;
 
+/* ================================================================
+   CLASSIFICATION D'ÂGE (classification française via TMDB)
+   ----------------------------------------------------------------
+   Valeurs stockées : 'TP' | '10' | '12' | '16' | '18' | null (inconnue).
+   Règles :
+   - -18 : interdit partout (proposition élève, ajout admin, acceptation),
+           masqué des votes élèves s'il est déjà au catalogue.
+   - -16 : proposable avec un message à l'élève ; avertissement visuel
+           côté admin, validation au cas par cas.
+   - inconnue : badge "?" côté admin (corrigeable à la main).
+   ================================================================ */
+const AGE_RATINGS = {
+  TP:  { short: 'TP',  title: 'Tous publics' },
+  '10': { short: '-10', title: 'Interdit aux moins de 10 ans' },
+  '12': { short: '-12', title: 'Interdit aux moins de 12 ans' },
+  '16': { short: '-16', title: 'Interdit aux moins de 16 ans' },
+  '18': { short: '🔞 -18', title: 'Interdit aux moins de 18 ans' },
+};
+
+function _normalizeFrCert(c) {
+  const v = String(c || '').trim().toUpperCase();
+  if (!v) return null;
+  if (['U', 'TP', 'TOUS PUBLICS', '0', 'ALL'].includes(v)) return 'TP';
+  const d = v.replace(/[^0-9]/g, '');
+  return ['10', '12', '16', '18'].includes(d) ? d : null;
+}
+
+const _ageRatingCache = new Map();
+
+/* Classification française d'un film TMDB. null si TMDB ne l'a pas. */
+async function _fetchFrAgeRating(tmdbId) {
+  if (!tmdbId || !CFG.TMDB_KEY) return null;
+  if (_ageRatingCache.has(tmdbId)) return _ageRatingCache.get(tmdbId);
+  try {
+    const r = await fetch(`https://api.themoviedb.org/3/movie/${tmdbId}/release_dates?api_key=${CFG.TMDB_KEY}`);
+    const j = await r.json();
+    const fr = (j.results || []).find(x => x.iso_3166_1 === 'FR');
+    let rating = null;
+    if (fr) {
+      const rel = fr.release_dates || [];
+      // Priorité à la sortie cinéma (type 3), sinon première classification trouvée
+      const ordered = rel.filter(d => d.type === 3).concat(rel);
+      for (const d of ordered) { rating = _normalizeFrCert(d.certification); if (rating) break; }
+    }
+    _ageRatingCache.set(tmdbId, rating);
+    return rating;
+  } catch (e) {
+    console.warn('[age] fetch error:', e);
+    return null; // pas mis en cache : on retentera
+  }
+}
+
+/* Badge d'âge. Côté élève, rien si inconnue ; côté admin, "?" */
+function _ageBadgeHtml(rating, forAdmin = false) {
+  const a = AGE_RATINGS[rating];
+  if (!a) return forAdmin ? '<span class="age-badge age-unknown" title="Classification inconnue — à vérifier">?</span>' : '';
+  return `<span class="age-badge age-${rating}" title="${a.title}">${a.short}</span>`;
+}
+
+/* Badge admin cliquable pour corriger la classification d'un film du catalogue */
+function _ageBadgeAdminFilm(f) {
+  const a = AGE_RATINGS[f.age_rating];
+  const cls = a ? `age-${f.age_rating}` : 'age-unknown';
+  const txt = a ? a.short : '?';
+  const tip = (a ? a.title : 'Classification inconnue') + ' — cliquer pour modifier';
+  return `<span class="age-badge ${cls} clickable" title="${tip}" onclick="event.stopPropagation(); openAgeRatingEditor('${f.id}')">${txt}</span>`;
+}
+
+let _ageEditFilmId = null;
+function openAgeRatingEditor(filmId) {
+  _ageEditFilmId = filmId;
+  const f = _adminFilmCache[filmId];
+  document.getElementById('age-edit-title').textContent = f ? f.title : 'Film';
+  openModal('modal-age-rating');
+}
+
+async function setFilmAgeRating(value) {
+  const id = _ageEditFilmId;
+  if (!id) return;
+  const v = value === '' ? null : value;
+  if (v === '18' && !confirm('Classer ce film -18 ?\n\nIl sera masqué des votes élèves. Pense à l\'archiver ou à le supprimer.')) return;
+  const { error } = await db.from('films').update({ age_rating: v }).eq('id', id);
+  if (error) { toast('Erreur : ' + error.message, 'error'); return; }
+  if (_adminFilmCache[id]) _adminFilmCache[id].age_rating = v;
+  closeModal('modal-age-rating');
+  toast('Classification mise à jour', 'success');
+  loadAdminFilms();
+}
+
+/* Rattrapage : récupère la classification des films et propositions en attente qui n'en ont pas */
+async function backfillAgeRatings() {
+  const btn = document.getElementById('age-backfill-btn');
+  const out = document.getElementById('age-backfill-result');
+  if (!CFG.TMDB_KEY) { toast('Clé TMDB non configurée', 'error'); return; }
+  btn.disabled = true;
+  try {
+    const [{ data: films }, { data: props }] = await Promise.all([
+      db.from('films').select('id, title, tmdb_id').is('age_rating', null).not('tmdb_id', 'is', null),
+      db.from('proposals').select('id, title, tmdb_id').is('age_rating', null).not('tmdb_id', 'is', null).eq('status', 'pending'),
+    ]);
+    const items = [...(films || []).map(x => ({ ...x, table: 'films' })), ...(props || []).map(x => ({ ...x, table: 'proposals' }))];
+    let found = 0, unknown = 0; const forbidden = [];
+    for (let i = 0; i < items.length; i++) {
+      const it = items[i];
+      btn.textContent = `Recherche… ${i + 1}/${items.length}`;
+      const r = await _fetchFrAgeRating(it.tmdb_id);
+      if (!r) { unknown++; continue; }
+      await db.from(it.table).update({ age_rating: r }).eq('id', it.id);
+      found++;
+      if (r === '18') forbidden.push(`${it.title}${it.table === 'proposals' ? ' (proposition)' : ''}`);
+    }
+    out.innerHTML = items.length
+      ? `✅ ${found} classification${found > 1 ? 's' : ''} trouvée${found > 1 ? 's' : ''} · ❔ ${unknown} inconnue${unknown > 1 ? 's' : ''} (à vérifier à la main)` +
+        (forbidden.length ? `<br><span style="color:#fca5a5;">🔞 Films -18 détectés : ${forbidden.map(_escapeHtml).join(', ')}</span>` : '')
+      : 'Tout est déjà à jour.';
+  } catch (e) {
+    console.warn('[age] backfill error:', e);
+    toast('Erreur pendant la récupération', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Récupérer les classifications';
+  }
+}
+
 function _isFilmRecent(film) {
   const d = film && (film.added_at || film.created_at);
   if (!d) return false;
@@ -19750,6 +19924,9 @@ function renderFilms() {
     visibleFilms = S.films.filter(f => f.event_tag === theme);
   }
 
+  // Films -18 : jamais visibles côté élève, même s'ils sont au catalogue
+  visibleFilms = visibleFilms.filter(f => f.age_rating !== '18');
+
   if (!visibleFilms.length) {
     // Message vide adapté au contexte
     let icon = '🎬';
@@ -19783,6 +19960,7 @@ function renderFilms() {
       <div class="film-card-body">
         <div class="film-card-title">${f.title}${S.newFilmIds && S.newFilmIds.has(f.id) ? _newFilmBadgeHtml() : ''}</div>
         <div class="film-card-meta">
+          ${_ageBadgeHtml(f.age_rating)}
           ${f.year ? `<span>${f.year}</span>` : ''}
           ${f.genre ? `<span>· ${f.genre}</span>` : ''}
           ${runtimeStr ? `<span>· ${runtimeStr}</span>` : ''}
@@ -20036,13 +20214,14 @@ async function openTMDBDetail(tmdbId, ctx) {
   }
 
   try {
-    const [detailRes, creditsRes] = await Promise.all([
+    const [detailRes, creditsRes, ageRating] = await Promise.all([
       fetch(`https://api.themoviedb.org/3/movie/${tmdbId}?api_key=${CFG.TMDB_KEY}&language=fr-FR`),
-      fetch(`https://api.themoviedb.org/3/movie/${tmdbId}/credits?api_key=${CFG.TMDB_KEY}&language=fr-FR`)
+      fetch(`https://api.themoviedb.org/3/movie/${tmdbId}/credits?api_key=${CFG.TMDB_KEY}&language=fr-FR`),
+      _fetchFrAgeRating(tmdbId)
     ]);
     const detail  = await detailRes.json();
     const credits = await creditsRes.json();
-    _tmdbMovie    = { ...detail, _credits: credits };
+    _tmdbMovie    = { ...detail, _credits: credits, _ageRating: ageRating };
 
     if (ctx === 'student') {
       await _renderTMDBScreen(detail, credits);
@@ -20080,6 +20259,15 @@ async function _renderTMDBScreen(detail, credits) {
 
   const dupHtml = msg
     ? `<div class="tmdb-d-warning ${cls}" style="margin-bottom:14px;"><span>${msg}</span></div>` : '';
+
+  // Classification d'âge : -18 non proposable, -16 proposable avec message
+  const ageRating = _tmdbMovie ? _tmdbMovie._ageRating : null;
+  const is18 = ageRating === '18';
+  const ageWarnHtml = is18
+    ? `<div class="age-warn age-warn-18">🔞 <strong>Film interdit aux moins de 18 ans.</strong> Il ne peut pas être proposé au cinéma de l'internat.</div>`
+    : ageRating === '16'
+    ? `<div class="age-warn age-warn-16">⚠️ <strong>Film interdit aux moins de 16 ans.</strong> Tu peux le proposer, mais il sera étudié au cas par cas par le surveillant avant d'être accepté.</div>`
+    : '';
 
   const crewHtml = [
     director ? `<div class="tmdb-crew-row"><span class="tmdb-crew-label">Réalisateur</span><span>${director.name}</span></div>` : '',
@@ -20120,19 +20308,21 @@ async function _renderTMDBScreen(detail, credits) {
         ${year ? `<span class="badge badge-muted">${year}</span>` : ''}
         ${genres ? `<span class="badge badge-muted">${genres}</span>` : ''}
         ${duration ? `<span class="badge badge-muted">${duration}</span>` : ''}
+        ${_ageBadgeHtml(ageRating)}
       </div>
       ${ratingHtml}
       ${eventBannerHtml}
       ${dupHtml}
+      ${ageWarnHtml}
       <div class="tmdb-d-synopsis" style="margin-bottom:16px;">${detail.overview || 'Aucun synopsis disponible.'}</div>
       <div class="tmdb-crew-block" style="margin-bottom:20px;">${crewHtml}</div>
       <div id="trailer-slot-student" style="margin-bottom:4px;"></div>
       ${hideProposeBtn ? '' : `<button id="tmdb-screen-action"
               class="btn btn-gold btn-full btn-lg"
               style="margin-bottom:10px;"
-              ${blocked ? 'disabled' : ''}
+              ${blocked || is18 ? 'disabled' : ''}
               onclick="confirmProposeFilm()">
-        ${blocked ? '🚫 Non disponible' : '💡 Proposer ce film'}
+        ${is18 ? '🔞 Non proposable' : blocked ? '🚫 Non disponible' : '💡 Proposer ce film'}
       </button>`}
     </div>`;
 
@@ -20156,8 +20346,23 @@ async function _renderTMDBModal(detail, credits) {
   const year     = detail.release_date ? detail.release_date.split('-')[0] : '';
   const genres   = (detail.genres || []).map(g => g.name).join(', ');
   const duration = detail.runtime ? formatRuntime(detail.runtime) : '';
+  const ageRating = _tmdbMovie ? _tmdbMovie._ageRating : null;
   document.getElementById('tmdb-d-meta').innerHTML =
-    [year, genres, duration].filter(Boolean).map(t => `<span class="badge badge-muted">${t}</span>`).join('');
+    [year, genres, duration].filter(Boolean).map(t => `<span class="badge badge-muted">${t}</span>`).join('')
+    + ' ' + _ageBadgeHtml(ageRating, true);
+  const ageWarnEl = document.getElementById('tmdb-d-agewarn');
+  if (ageWarnEl) {
+    if (ageRating === '18') {
+      ageWarnEl.className = 'age-warn age-warn-18';
+      ageWarnEl.innerHTML = '🔞 <strong>Film interdit aux moins de 18 ans.</strong> Il ne peut pas être ajouté ni accepté.';
+    } else if (ageRating === '16') {
+      ageWarnEl.className = 'age-warn age-warn-16';
+      ageWarnEl.innerHTML = '⚠️ <strong>Film -16.</strong> À valider au cas par cas.';
+    } else {
+      ageWarnEl.className = 'hidden';
+      ageWarnEl.innerHTML = '';
+    }
+  }
 
   const ratingEl = document.getElementById('tmdb-d-rating');
   if (detail.vote_average && detail.vote_count > 10) {
@@ -20193,9 +20398,13 @@ if (dup.msg) {
   dupEl.classList.remove('hidden');
 }
 
-actionBtn.textContent = dup.msg ? '🚫 Déjà au catalogue' : '🎬 Ajouter au catalogue';
-actionBtn.disabled = !!dup.msg;
-actionBtn.onclick = dup.msg ? null : confirmAddFilm;
+const _is18 = ageRating === '18';
+actionBtn.textContent = dup.msg ? '🚫 Déjà au catalogue' : _is18 ? '🔞 Interdit -18' : '🎬 Ajouter au catalogue';
+actionBtn.disabled = !!dup.msg || _is18;
+actionBtn.onclick = (dup.msg || _is18) ? null : confirmAddFilm;
+// Bouton "Accepter" d'une proposition : bloqué pour un -18
+const _acceptPropBtn = document.querySelector('#tmdb-d-proposal-actions .btn-green');
+if (_acceptPropBtn) _acceptPropBtn.disabled = _is18;
 
   // --- Contexte proposition ou film catalogue ---
   const proposalCommentEl  = document.getElementById('tmdb-d-proposal-comment');
@@ -20370,6 +20579,7 @@ async function confirmAddFilmWithChoice(mode) {
 async function _doAddFilmWithTag(eventTag) {
   if (!_tmdbMovie) return;
   const m = _tmdbMovie;
+  if (m._ageRating === '18') { toast('🔞 Film interdit aux moins de 18 ans', 'error'); return; }
   const btn = document.getElementById('tmdb-d-action');
 
   if (btn) {
@@ -20385,6 +20595,7 @@ async function _doAddFilmWithTag(eventTag) {
     synopsis:   m.overview || null,
     poster_url: m.poster_path ? `https://image.tmdb.org/t/p/w500${m.poster_path}` : null,
     tmdb_id:    m.id || null,
+    age_rating: m._ageRating || null,
     status:     'active',
     event_tag:  eventTag || null
   });
@@ -20485,6 +20696,7 @@ function setSelectedQuickReasons(containerId, reasons) {
 
 function confirmProposeFilm() {
   if (!_tmdbMovie || !S.user) return;
+  if (_tmdbMovie._ageRating === '18') { toast('🔞 Film interdit aux moins de 18 ans : il ne peut pas être proposé', 'error'); return; }
 
   const m = _tmdbMovie;
   _proposalDraft = m;
@@ -20617,9 +20829,18 @@ async function sendProposalConfirmed() {
     return;
   }
 
+  if (m._ageRating === '18') {
+    btn.disabled = false;
+    btn.textContent = 'Envoyer ✉️';
+    closeModal('modal-propose-confirm');
+    toast('🔞 Film interdit aux moins de 18 ans : il ne peut pas être proposé', 'error');
+    return;
+  }
+
   const { error } = await db.from('proposals').insert({
     student_id: S.user.id,
     title: m.title,
+    age_rating: m._ageRating || null,
     tmdb_id: m.id || null,
     poster_url: m.poster_path ? `https://image.tmdb.org/t/p/w500${m.poster_path}` : null,
     year: m.release_date ? parseInt(m.release_date.split('-')[0]) : null,
@@ -25021,7 +25242,7 @@ async function loadAdminFilms() {
       <div class="ai-info" style="cursor:pointer;"
            onclick="openAdminFilmDetailById('${f.id}')">
         <div class="ai-title">${f.title}${eventBadge ? ' ' + eventBadge : ''}${newBadge}</div>
-        <div class="ai-sub">${f.year || ''}${f.genre ? ' · ' + f.genre : ''}${f.screened_at && status === 'screened' ? ' · Vu le ' + fmtDateShort(f.screened_at.split('T')[0]) : ''}</div>
+        <div class="ai-sub">${_ageBadgeAdminFilm(f)} ${f.year || ''}${f.genre ? ' · ' + f.genre : ''}${f.screened_at && status === 'screened' ? ' · Vu le ' + fmtDateShort(f.screened_at.split('T')[0]) : ''}</div>
         <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px;">
           ${statusBadge}
           ${sessionBadge}
@@ -25082,7 +25303,7 @@ async function loadAdminFilms() {
       <div class="fc-pc-actions">${btns}</div>
       <div class="fc-pc-gradient"></div>
       <div class="fc-pc-info">
-        ${f.year ? `<div class="fc-pc-year">${f.year}</div>` : ''}
+        <div class="fc-pc-year">${_ageBadgeAdminFilm(f)} ${f.year || ''}</div>
         <div class="fc-pc-title">${_escapeHtml(f.title || 'Sans titre')}</div>
       </div>
     </div>`;
@@ -25556,9 +25777,16 @@ if (validDateLabels.length === 1) {
     if (status === 'rejected' && p.admin_refusal_reason) {
       extra += `<div class="text-sm text-muted mt-1" style="font-style:italic;color:var(--red);">❌ ${p.admin_refusal_reason}</div>`;
     }
+    // Avertissement classification d'âge
+    if (p.age_rating === '18') {
+      extra += `<div class="age-warn age-warn-18" style="margin:6px 0 0;padding:6px 10px;font-size:12px;">🔞 Interdit aux moins de 18 ans — à refuser</div>`;
+    } else if (p.age_rating === '16') {
+      extra += `<div class="age-warn age-warn-16" style="margin:6px 0 0;padding:6px 10px;font-size:12px;">⚠️ Film -16 — à valider au cas par cas</div>`;
+    }
     const hasDetail = p.poster_url || p.synopsis;
     const cardClick = hasDetail ? `onclick="openProposalDetail('${p.id}')"` : '';
-    const cardStyle = hasDetail ? 'cursor:pointer;' : '';
+    const cardStyle = (hasDetail ? 'cursor:pointer;' : '')
+      + ((p.age_rating === '16' || p.age_rating === '18') ? 'border-color:rgba(220,38,38,.6);' : '');
 
     return `
     <div class="ai" style="${cardStyle}position:relative;" ${cardClick}>
@@ -25569,13 +25797,13 @@ if (validDateLabels.length === 1) {
           : `<div class="ai-img">🎬</div>`}
       </div>
       <div class="ai-info">
-        <div class="ai-title">${p.title}${p.year ? ' (' + p.year + ')' : ''}</div>
+        <div class="ai-title">${p.title}${p.year ? ' (' + p.year + ')' : ''} ${_ageBadgeHtml(p.age_rating, true)}</div>
         <div class="ai-sub">Par ${studentLink}</div>
         ${extra}
       </div>
       ${status === 'pending' ? `
         <div class="ai-actions" onclick="event.stopPropagation()">
-          <button class="btn btn-sm btn-green" onclick="acceptProposal('${p.id}')">✅ Accepter</button>
+          <button class="btn btn-sm btn-green" onclick="acceptProposal('${p.id}')" ${p.age_rating === '18' ? 'disabled' : ''}>✅ Accepter</button>
           <button class="btn btn-sm btn-red"   onclick="openRejectProposal('${p.id}')">❌ Refuser</button>
         </div>` : ''}
     </div>`;
@@ -27019,11 +27247,24 @@ async function acceptProposal(id) {
     exists = !!(byTitle && byTitle.length > 0);
   }
 
+  // Classification d'âge : celle enregistrée à la proposition, sinon on la récupère
+  let ageRating = p.age_rating || null;
+  if (!ageRating && p.tmdb_id) {
+    ageRating = await _fetchFrAgeRating(p.tmdb_id);
+    if (ageRating) db.from('proposals').update({ age_rating: ageRating }).eq('id', id).then(() => {});
+  }
+  if (ageRating === '18') {
+    toast('🔞 Film interdit aux moins de 18 ans : il ne peut pas être accepté. Refuse la proposition.', 'error', 5000);
+    return;
+  }
+  if (ageRating === '16' && !confirm(`« ${p.title} » est interdit aux moins de 16 ans.\n\nConfirmer l'ajout au catalogue ?`)) return;
+
   if (!exists) {
     const { error } = await db.from('films').insert({
       title: p.title, tmdb_id: p.tmdb_id || null, poster_url: p.poster_url || null,
       year: p.year || null, synopsis: p.synopsis || null, genre: p.genre || null, status: 'active',
-      event_tag: p.event_tag || null
+      event_tag: p.event_tag || null,
+      age_rating: ageRating || null
     });
     if (error) { toast('Erreur ajout film : ' + error.message, 'error'); return; }
   } else {
