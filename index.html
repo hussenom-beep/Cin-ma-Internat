@@ -11613,6 +11613,18 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
           <button class="btn btn-gold btn-full" onclick="exportStudentsPDF()">
             📄 Générer le PDF des fiches
           </button>
+          <p class="text-sm text-muted" style="margin:16px 0 10px;">
+            Liste des identifiants des élèves actifs qui ont <strong>déjà activé</strong> leur compte (sans code PIN : ils gardent le leur). Filles puis garçons, et dans chaque groupe : secondes, premières, terminales. Comptes test exclus.
+          </p>
+          <button class="btn btn-ghost btn-full" onclick="exportActivatedLoginsPDF()">
+            📋 Liste des identifiants (comptes activés)
+          </button>
+          <button class="btn btn-ghost btn-full" style="margin-top:8px;" onclick="exportLoginTicketsPDF()">
+            ✂️ Tickets « nouvel identifiant » à découper
+          </button>
+          <p class="text-sm text-muted" style="margin-top:6px;font-size:11px;opacity:.75;">
+            Tickets : élèves inscrits avant cette rentrée ayant activé leur compte (ceux dont l'identifiant a changé). 24 par page, filles puis garçons.
+          </p>
         </div>
 
         <!-- Polices PDF Cinzel -->
@@ -30639,6 +30651,183 @@ async function _generateStudentCardsPDF(students) {
 }
 
 /* Export depuis Paramètres (tous les élèves sélectionnés) */
+/* PDF liste : identifiants des élèves actifs ayant déjà activé leur compte.
+   Pas de PIN (chacun garde le sien).
+   Organisation : Filles puis Garçons (chaque sexe sur une nouvelle page),
+   et dans chaque sexe : Secondes, Premières, Terminales (puis Autres),
+   classés par classe puis par nom. Comptes test exclus. */
+function _studentLevel(className) {
+  const c = String(className || '').trim().toUpperCase();
+  if (c.startsWith('2')) return { order: 0, label: 'Secondes' };
+  if (c.startsWith('1')) return { order: 1, label: 'Premières' };
+  if (c.startsWith('T')) return { order: 2, label: 'Terminales' };
+  return { order: 3, label: 'Autres' };
+}
+
+async function exportActivatedLoginsPDF() {
+  if (typeof window.jspdf === 'undefined') { toast('Bibliothèque PDF non chargée, réessayez.', 'error'); return; }
+  const { data, error } = await db.from('students')
+    .select('first_name, last_name, class_name, sexe, login_identifier, is_active, is_activated')
+    .eq('is_active', true).eq('is_activated', true);
+  if (error) { toast('Erreur de chargement des élèves', 'error'); return; }
+
+  const SEX_LABEL = { F: 'FILLES', M: 'GARÇONS', X: 'SEXE NON RENSEIGNÉ' };
+  const SEX_ORDER = { F: 0, M: 1, X: 2 };
+  const list = (data || [])
+    .filter(st => st.login_identifier && !_isTestClass(st.class_name))
+    .map(st => ({ ...st, _sex: _pdfCategory(st), _lvl: _studentLevel(st.class_name) }))
+    .sort((a, b) => (SEX_ORDER[a._sex] - SEX_ORDER[b._sex])
+                 || (a._lvl.order - b._lvl.order)
+                 || (a.class_name || '').localeCompare(b.class_name || '', 'fr', { numeric: true })
+                 || (a.last_name || '').localeCompare(b.last_name || '', 'fr')
+                 || (a.first_name || '').localeCompare(b.first_name || '', 'fr'));
+  if (!list.length) { toast('Aucun élève actif avec un compte activé', 'info'); return; }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+  const W = 210, M = 15, H = 297, ROW = 7, BOTTOM = H - 15;
+  const colNom = M + 3, colPrenom = M + 62, colClasse = M + 108, colId = M + 135;
+  const today = new Date().toLocaleDateString('fr-FR');
+
+  let y = M, currentSex = null;
+  const columnsHeader = () => {
+    doc.setFillColor(40, 40, 50); doc.rect(M, y, W - 2 * M, ROW, 'F');
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(255, 255, 255);
+    doc.text('NOM', colNom, y + 4.8); doc.text('PRÉNOM', colPrenom, y + 4.8);
+    doc.text('CLASSE', colClasse, y + 4.8); doc.text('IDENTIFIANT', colId, y + 4.8);
+    y += ROW;
+  };
+  const sexTitle = (suffix = '') => {
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(14); doc.setTextColor(30, 30, 30);
+    const n = list.filter(x => x._sex === currentSex).length;
+    doc.text(`${SEX_LABEL[currentSex]}${suffix}`, M, y + 6);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); doc.setTextColor(110, 110, 110);
+    doc.text(`${n} élève${n > 1 ? 's' : ''}`, W - M, y + 6, { align: 'right' });
+    y += 10;
+    columnsHeader();
+  };
+  const ensure = (h) => {
+    if (y + h > BOTTOM) { doc.addPage(); y = M; sexTitle(' (suite)'); }
+  };
+
+  // En-tête du document (page 1)
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(16); doc.setTextColor(30, 30, 30);
+  doc.text('Cinéma Internat — Identifiants de connexion', M, y + 6);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); doc.setTextColor(90, 90, 90);
+  doc.text(`Année ${getCurrentSchoolYear()} · ${list.length} élèves · édité le ${today}`, M, y + 12);
+  doc.text('Pour se connecter : identifiant ci-dessous + ton code PIN habituel (inchangé).', M, y + 17);
+  y += 25;
+
+  let currentLvl = null, zebra = false;
+  for (const st of list) {
+    // Nouveau sexe : nouvelle page (sauf le tout premier)
+    if (st._sex !== currentSex) {
+      if (currentSex !== null) { doc.addPage(); y = M; }
+      currentSex = st._sex; currentLvl = null;
+      sexTitle();
+    }
+    // Nouveau niveau : bandeau doré
+    if (st._lvl.label !== currentLvl) {
+      ensure(ROW * 2 + 2);
+      currentLvl = st._lvl.label; zebra = false;
+      const nLvl = list.filter(x => x._sex === currentSex && x._lvl.label === currentLvl).length;
+      doc.setFillColor(212, 175, 55); doc.rect(M, y + 1.5, W - 2 * M, ROW - 0.5, 'F');
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(30, 30, 30);
+      doc.text(currentLvl.toUpperCase(), colNom, y + 6.2);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+      doc.text(`${nLvl}`, W - M - 3, y + 6.2, { align: 'right' });
+      y += ROW + 2;
+    }
+    ensure(ROW);
+    if (zebra) { doc.setFillColor(242, 242, 245); doc.rect(M, y, W - 2 * M, ROW, 'F'); }
+    zebra = !zebra;
+    doc.setTextColor(30, 30, 30);
+    doc.setFont('helvetica', 'bold');   doc.setFontSize(10); doc.text((st.last_name || '').toUpperCase(), colNom, y + 4.8);
+    doc.setFont('helvetica', 'normal'); doc.text(st.first_name || '', colPrenom, y + 4.8);
+    doc.setFontSize(9);                 doc.text(st.class_name || '', colClasse, y + 4.8);
+    doc.setFont('courier', 'bold');     doc.setFontSize(11); doc.text(st.login_identifier, colId, y + 4.9);
+    y += ROW;
+  }
+
+  // Pied de page : numérotation
+  const pages = doc.getNumberOfPages();
+  for (let i = 1; i <= pages; i++) {
+    doc.setPage(i);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(130, 130, 130);
+    doc.text(`Page ${i} / ${pages}`, W - M, H - 8, { align: 'right' });
+  }
+  doc.save(`identifiants-comptes-actives-${new Date().toISOString().slice(0, 10)}.pdf`);
+  toast(`Liste générée : ${list.length} élèves`, 'success');
+}
+
+/* Tickets individuels à découper : "ton nouvel identifiant".
+   Élèves actifs, compte activé, inscrits AVANT la rentrée en cours (ce sont
+   ceux dont l'identifiant a été changé par l'import annuel). 3 × 8 par page A4.
+   Filles puis garçons (nouvelle page), puis secondes / premières / terminales. */
+async function exportLoginTicketsPDF() {
+  if (typeof window.jspdf === 'undefined') { toast('Bibliothèque PDF non chargée, réessayez.', 'error'); return; }
+  const y0 = parseInt(getCurrentSchoolYear().split('-')[0], 10);
+  const schoolYearStart = new Date(y0, 8, 1).toISOString(); // 1er septembre
+  const { data, error } = await db.from('students')
+    .select('first_name, last_name, class_name, sexe, login_identifier, created_at')
+    .eq('is_active', true).eq('is_activated', true)
+    .lt('created_at', schoolYearStart);
+  if (error) { toast('Erreur de chargement des élèves', 'error'); return; }
+
+  const SEX_ORDER = { F: 0, M: 1, X: 2 };
+  const list = (data || [])
+    .filter(st => st.login_identifier && !_isTestClass(st.class_name))
+    .map(st => ({ ...st, _sex: _pdfCategory(st), _lvl: _studentLevel(st.class_name) }))
+    .sort((a, b) => (SEX_ORDER[a._sex] - SEX_ORDER[b._sex])
+                 || (a._lvl.order - b._lvl.order)
+                 || (a.class_name || '').localeCompare(b.class_name || '', 'fr', { numeric: true })
+                 || (a.last_name || '').localeCompare(b.last_name || '', 'fr')
+                 || (a.first_name || '').localeCompare(b.first_name || '', 'fr'));
+  if (!list.length) { toast('Aucun élève concerné', 'info'); return; }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+  const COLS = 3, ROWS = 8, MX = 10, MY = 12;
+  const CW = (210 - 2 * MX) / COLS, CH = (297 - 2 * MY) / ROWS;
+
+  let slot = 0, currentSex = null, firstPage = true;
+  for (const st of list) {
+    // Nouvelle page à chaque changement de sexe (piles séparées)
+    if (st._sex !== currentSex) {
+      if (!firstPage) { doc.addPage(); slot = 0; }
+      currentSex = st._sex; firstPage = false;
+    } else if (slot === COLS * ROWS) {
+      doc.addPage(); slot = 0;
+    }
+    const col = slot % COLS, row = Math.floor(slot / COLS);
+    const x = MX + col * CW, y = MY + row * CH;
+
+    // Cadre pointillé (repère de découpe)
+    doc.setDrawColor(160, 160, 160); doc.setLineWidth(0.2);
+    doc.setLineDashPattern([1.5, 1.5], 0);
+    doc.rect(x, y, CW, CH);
+    doc.setLineDashPattern([], 0);
+
+    const cx = x + 4, w = CW - 8;
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(150, 120, 30);
+    doc.text('CINÉMA INTERNAT', cx, y + 5.5);
+    doc.setTextColor(30, 30, 30); doc.setFontSize(9.5);
+    const name = doc.splitTextToSize(`${(st.last_name || '').toUpperCase()} ${st.first_name || ''}`, w)[0];
+    doc.text(name, cx, y + 11);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(100, 100, 100);
+    doc.text(st.class_name || '', cx, y + 15);
+    doc.setTextColor(60, 60, 60); doc.setFontSize(7.5);
+    doc.text('Ton nouvel identifiant :', cx, y + 20.5);
+    doc.setFont('courier', 'bold'); doc.setFontSize(13); doc.setTextColor(0, 0, 0);
+    doc.text(st.login_identifier, cx, y + 26.5);
+    doc.setFont('helvetica', 'italic'); doc.setFontSize(6.8); doc.setTextColor(110, 110, 110);
+    doc.text('Ton code PIN ne change pas.', cx, y + 31.5);
+    slot++;
+  }
+  doc.save(`tickets-identifiants-${new Date().toISOString().slice(0, 10)}.pdf`);
+  toast(`${list.length} tickets générés`, 'success');
+}
+
 /* Catégorie d'un élève pour l'export PDF : 'test' | 'F' | 'M' | 'X' (sexe non renseigné) */
 function _pdfCategory(st) {
   if (_isTestClass(st.class_name)) return 'test';
@@ -30930,8 +31119,13 @@ async function importStudentsFromSettings() {
     const existing_s = r.eleve_uid ? byUid[r.eleve_uid] : null;
 
     if (existing_s) {
-      // Élève existant : recalculer identifiant avec nouvelle logique
-      let newLogin = buildLoginIdentifier(r.first_name, r.last_name);
+      // Élève existant : on CONSERVE son identifiant. Il n'est recalculé que
+      // s'il n'en a pas, ou si son nom a changé (l'identifiant ne correspond
+      // plus à "initiale prénom + nom + 3 chiffres").
+      const _base = normalizeLoginPart(r.first_name).charAt(0) + normalizeLoginPart(r.last_name);
+      const _cur  = existing_s.login_identifier || '';
+      const _keep = _cur && new RegExp('^' + _base + '\\d{3,}$').test(_cur);
+      let newLogin = _keep ? _cur : buildLoginIdentifier(r.first_name, r.last_name);
       let attempts = 0;
       // Garantir l'unicité en régénérant les 3 chiffres si besoin
       while (allLogins.has(newLogin) && newLogin !== existing_s.login_identifier && attempts < 50) {
