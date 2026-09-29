@@ -19757,8 +19757,40 @@ async function _fetchFrAgeRating(tmdbId) {
     return rating;
   } catch (e) {
     console.warn('[age] fetch error:', e);
-    return null; // pas mis en cache : on retentera
+    return undefined; // erreur réseau : pas mis en cache, on retentera
   }
+}
+
+/* Remplissage AUTOMATIQUE des classifications manquantes (films + propositions),
+   en arrière-plan, quand l'admin ouvre l'onglet Films ou Propositions.
+   - classification trouvée → enregistrée
+   - TMDB n'en a pas        → 'NR' (affiché "?"), pour ne pas re-interroger TMDB à chaque fois
+   - erreur réseau          → rien, on retentera plus tard
+   Puis relance le rendu de l'onglet pour afficher les badges. */
+const _ageAutoTried = new Set();
+const _ageAutoRunning = {};
+async function _autoFillAgeRatings(table, rows, rerender) {
+  if (!S.isAdmin || !CFG.TMDB_KEY || _ageAutoRunning[table]) return;
+  const todo = (rows || []).filter(r =>
+    r.tmdb_id && (r.age_rating === null || r.age_rating === undefined) && !_ageAutoTried.has(table + ':' + r.id));
+  if (!todo.length) return;
+  _ageAutoRunning[table] = true;
+  let changed = false;
+  try {
+    for (const r of todo) {
+      _ageAutoTried.add(table + ':' + r.id);
+      const v = await _fetchFrAgeRating(r.tmdb_id);
+      if (v === undefined) continue;          // erreur réseau
+      const val = v || 'NR';
+      const { error } = await db.from(table).update({ age_rating: val }).eq('id', r.id).is('age_rating', null);
+      if (error) { console.warn('[age] auto-fill update:', error); continue; }
+      r.age_rating = val; changed = true;
+      if (val === '18') toast(`🔞 « ${r.title} » est classé -18`, 'error', 5000);
+    }
+  } finally {
+    _ageAutoRunning[table] = false;
+  }
+  if (changed && typeof rerender === 'function') rerender();
 }
 
 /* Badge d'âge. Côté élève, rien si inconnue ; côté admin, "?" */
@@ -19806,8 +19838,8 @@ async function backfillAgeRatings() {
   btn.disabled = true;
   try {
     const [{ data: films }, { data: props }] = await Promise.all([
-      db.from('films').select('id, title, tmdb_id').is('age_rating', null).not('tmdb_id', 'is', null),
-      db.from('proposals').select('id, title, tmdb_id').is('age_rating', null).not('tmdb_id', 'is', null).eq('status', 'pending'),
+      db.from('films').select('id, title, tmdb_id').or('age_rating.is.null,age_rating.eq.NR').not('tmdb_id', 'is', null),
+      db.from('proposals').select('id, title, tmdb_id').or('age_rating.is.null,age_rating.eq.NR').not('tmdb_id', 'is', null).eq('status', 'pending'),
     ]);
     const items = [...(films || []).map(x => ({ ...x, table: 'films' })), ...(props || []).map(x => ({ ...x, table: 'proposals' }))];
     let found = 0, unknown = 0; const forbidden = [];
@@ -25380,6 +25412,9 @@ async function loadAdminFilms() {
   } else {
     list.innerHTML = wrapStart + displayData.map(render).join('') + wrapEnd;
   }
+
+  // Classifications d'âge manquantes : remplies en arrière-plan puis ré-affichées
+  _autoFillAgeRatings('films', data, loadAdminFilms);
 }
 
 async function setFilmStatus(id, status) {
@@ -25856,6 +25891,9 @@ if (validDateLabels.length === 1) {
   }).join('');
 
   refreshPendingProposalsBadge();
+
+  // Classifications d'âge manquantes : remplies en arrière-plan puis ré-affichées
+  _autoFillAgeRatings('proposals', data, loadAdminProposals);
 }
 
 /* ================================================================
@@ -27280,6 +27318,8 @@ async function deleteHandledRequest(requestId) {
 
 /* Accepter une proposition — utilise le cache, pas de JSON dans onclick */
 async function acceptProposal(id) {
+  // Garde-fou : jamais d'acceptation hors session admin
+  if (!S.isAdmin) { console.warn('[acceptProposal] refusé : pas admin'); return; }
   const p = _proposalCache[id];
   if (!p) { toast('Donnée introuvable, rechargez la page', 'error'); return; }
 
@@ -27317,7 +27357,8 @@ async function acceptProposal(id) {
     toast('Film déjà dans le catalogue', '');
   }
 
-  await db.from('proposals').update({ status: 'accepted', reviewed_at: new Date().toISOString() }).eq('id', id);
+  await db.from('proposals').update({ status: 'accepted', reviewed_at: new Date().toISOString() })
+    .eq('id', id).eq('status', 'pending');
 
   // Hook XP : +30 par proposition acceptée (étalée sur 5j si plusieurs en file)
   if (p.student_id) {
