@@ -755,6 +755,10 @@ select option:checked {
   background: var(--red);
   box-shadow: 0 0 4px rgba(239, 68, 68, 0.4);
 }
+.live-dot[data-state="stale"] {
+  background: #f59e0b;
+  box-shadow: 0 0 4px rgba(245, 158, 11, 0.45);
+}
 .live-dot[data-state="off"] {
   background: var(--text-3);
   opacity: .55;
@@ -12479,6 +12483,7 @@ async function enablePushNotifications() {
       return { ok: false, reason: 'db_error', error };
     }
 
+    try { localStorage.setItem('ci_push_endpoint', payload.endpoint); } catch (_) {}
     toast("🔔 Notifications activées !", 'success');
     _refreshPushButtons();
     return { ok: true };
@@ -12514,6 +12519,7 @@ async function disablePushNotifications() {
       const endpoint = sub.endpoint;
       // Unsubscribe côté navigateur
       await sub.unsubscribe();
+      try { localStorage.removeItem('ci_push_endpoint'); } catch (_) {}
       // Marquer inactive en BDD (on garde la trace plutôt que delete pur)
       await db.from('push_subscriptions')
         .update({ active: false, last_error: 'user_disabled', last_seen_at: new Date().toISOString() })
@@ -12618,14 +12624,33 @@ window._refreshPushButtons = _refreshPushButtons;
  */
 async function _silentRefreshPushSubscription() {
   try {
-    // Guards : on ne refresh pas si pas supporté / pas accordé
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
-    if (Notification.permission !== 'granted') return;
     if (!S.user || !S.user.id) return;
+
+    // Notifs coupées hors de l'appli (réglages du téléphone, permission retirée) :
+    // on désactive en BDD l'abonnement mémorisé de ce téléphone, pour que
+    // la pastille admin passe au rouge.
+    let storedEndpoint = null;
+    try { storedEndpoint = localStorage.getItem('ci_push_endpoint'); } catch (_) {}
+    const _markLost = async (reason) => {
+      if (!storedEndpoint) return;
+      await db.from('push_subscriptions')
+        .update({ active: false, last_error: reason, last_seen_at: new Date().toISOString() })
+        .eq('endpoint', storedEndpoint);
+      try { localStorage.removeItem('ci_push_endpoint'); } catch (_) {}
+      console.log('[push] abonnement désactivé :', reason);
+    };
+
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') {
+      await _markLost('permission_revoked');
+      return;
+    }
 
     const reg = await navigator.serviceWorker.ready;
     const sub = await reg.pushManager.getSubscription();
-    if (!sub) return; // pas de subscription côté navigateur, rien à faire
+    if (!sub) { await _markLost('subscription_lost'); return; }
+    // L'endpoint a changé (navigateur qui renouvelle) : l'ancien n'est plus valable
+    if (storedEndpoint && storedEndpoint !== sub.endpoint) await _markLost('endpoint_rotated');
 
     const json = sub.toJSON();
     const payload = {
@@ -12653,6 +12678,7 @@ async function _silentRefreshPushSubscription() {
     if (error) {
       console.warn('[push] silent refresh upsert error:', error);
     } else {
+      try { localStorage.setItem('ci_push_endpoint', payload.endpoint); } catch (_) {}
       console.log('[push] subscription resynchronisée silencieusement');
     }
   } catch (e) {
@@ -22218,6 +22244,8 @@ function startAdminRealtime() {
         () => _onAdminRTEvent('conversations'))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'conversation_messages' },
         () => _onAdminRTEvent('conversation_messages'))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'push_subscriptions' },
+        () => _onAdminRTEvent('push_subscriptions'))
     .subscribe((status) => {
       if (status === 'SUBSCRIBED') {
         console.log('[adminRT] ✓ abonné aux 7 tables');
@@ -22425,6 +22453,12 @@ function _onStudentRTEvent(table, payload) {
 
 function _onAdminRTEvent(table) {
   if (!S.isAdmin) return;
+
+  // Pastilles notifications (liste élèves + fiche élève) : mise à jour en direct
+  if (table === 'push_subscriptions') {
+    _adminRTDebounce('push-dots', _refreshPushDotsLive, 600);
+    return;
+  }
 
   // === (A) Refresh GLOBAL léger : badges, peu importe l'onglet ===
   // Coalescé sur 250ms pour éviter les bursts
@@ -28694,15 +28728,21 @@ async function openStudentDetail(studentId) {
   // Charger en parallèle : fiche élève + état push de cet élève
   const [studentRes, pushRes] = await Promise.all([
     db.from('students').select('*').eq('id', studentId).single(),
-    db.from('push_subscriptions').select('id', { count: 'exact', head: true })
+    db.from('push_subscriptions').select('last_seen_at')
       .eq('student_id', studentId).eq('active', true),
   ]);
   const s = studentRes.data;
   if (!s) { toast('Élève introuvable', 'error'); return; }
 
   // Mise à jour du cache pour ce student précis
-  if ((pushRes.count || 0) > 0) _studentsWithPush.add(studentId);
-  else _studentsWithPush.delete(studentId);
+  const _subs = pushRes.data || [];
+  if (_subs.length > 0) {
+    _studentsWithPush.add(studentId);
+    _studentPushSeen.set(studentId, Math.max(0, ..._subs.map(r => r.last_seen_at ? new Date(r.last_seen_at).getTime() : 0)));
+  } else {
+    _studentsWithPush.delete(studentId);
+    _studentPushSeen.delete(studentId);
+  }
 
   // Pastille notif à côté du nom (header + corps)
   const notifDotHtml = _renderNotifDot(s);
@@ -30103,11 +30143,11 @@ async function loadAdminStudents() {
   // Chargement parallèle : élèves + IDs des élèves ayant au moins une push_subscription active
   const [studentsRes, pushRes] = await Promise.all([
     db.from('students').select('*').order('last_name'),
-    db.from('push_subscriptions').select('student_id').eq('active', true).not('student_id', 'is', null),
+    db.from('push_subscriptions').select('student_id, last_seen_at').eq('active', true).not('student_id', 'is', null),
   ]);
   _studentsAll = studentsRes.data || [];
-  // Set des student_id ayant au moins un device avec notifs ON (lookup O(1))
-  _studentsWithPush = new Set((pushRes.data || []).map(r => r.student_id));
+  // Élèves avec au moins un device notifs ON + date de dernière ouverture
+  _indexPushSubs(pushRes.data);
 
   // Réinitialiser les filtres au chargement
   document.getElementById('filter-visibility').value = 'active';
@@ -30262,6 +30302,37 @@ function _renderLeaderboard() {
 // Cache des élèves ayant au moins une push_subscription active
 // (rempli par loadAdminStudents et openStudentDetail)
 let _studentsWithPush = new Set();
+// student_id → date (ms) de la dernière ouverture de l'appli avec notifs actives
+let _studentPushSeen = new Map();
+// Au-delà de ce délai sans ouverture de l'appli, la pastille passe à l'orange
+const PUSH_STALE_DAYS = 14;
+
+/* Remplit _studentsWithPush + _studentPushSeen à partir des abonnements actifs */
+function _indexPushSubs(rows) {
+  _studentsWithPush = new Set();
+  _studentPushSeen = new Map();
+  (rows || []).forEach(r => {
+    if (!r.student_id) return;
+    _studentsWithPush.add(r.student_id);
+    const t = r.last_seen_at ? new Date(r.last_seen_at).getTime() : 0;
+    if (t > (_studentPushSeen.get(r.student_id) || 0)) _studentPushSeen.set(r.student_id, t);
+  });
+}
+
+/* Temps réel : rechargement des abonnements + mise à jour de toutes les pastilles affichées */
+async function _refreshPushDotsLive() {
+  const { data, error } = await db.from('push_subscriptions')
+    .select('student_id, last_seen_at').eq('active', true).not('student_id', 'is', null);
+  if (error) { console.warn('[push dots] refresh error:', error); return; }
+  _indexPushSubs(data);
+  document.querySelectorAll('.live-dot[data-notif-student]').forEach(el => {
+    el.outerHTML = _renderNotifDot({
+      id: el.dataset.notifStudent,
+      is_active: el.dataset.active === '1',
+      is_activated: el.dataset.activated === '1'
+    });
+  });
+}
 
 /* Retourne le HTML d'une pastille "live" pour l'état notif d'un élève.
    3 états :
@@ -30277,11 +30348,21 @@ function _renderNotifDot(student) {
   } else if (!student.is_activated) {
     state = 'off';  title = 'Compte pas encore activé';
   } else if (_studentsWithPush.has(student.id)) {
-    state = 'open'; title = 'Notifications activées sur au moins un appareil';
+    const seen = _studentPushSeen.get(student.id) || 0;
+    const days = seen ? Math.floor((Date.now() - seen) / 86400000) : null;
+    if (days !== null && days < PUSH_STALE_DAYS) {
+      state = 'open';
+      title = `Notifications activées — appli ouverte ${days === 0 ? "aujourd'hui" : days === 1 ? 'hier' : `il y a ${days} jours`}`;
+    } else {
+      state = 'stale';
+      title = days === null
+        ? "Notifications activées, mais aucune ouverture récente connue — appli peut-être désinstallée"
+        : `Notifications activées, mais appli pas ouverte depuis ${days} jours — peut-être désinstallée`;
+    }
   } else {
     state = 'closed'; title = 'Compte activé, mais notifications désactivées';
   }
-  return `<span class="live-dot" data-state="${state}" title="${title}"></span>`;
+  return `<span class="live-dot" data-state="${state}" data-notif-student="${student.id}" data-active="${student.is_active ? 1 : 0}" data-activated="${student.is_activated ? 1 : 0}" title="${title}"></span>`;
 }
 
 function _renderStudentTable() {
