@@ -11064,6 +11064,45 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
      MODAL: Paramètres de séance par défaut (heure + capacité)
      ================================================================ -->
 <!-- ================================================================
+     MODAL: Modifier un élève (prénom, nom, classe, identifiant)
+     ================================================================ -->
+<div class="overlay hidden" id="modal-edit-student">
+  <div class="sheet" style="max-width:440px;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">✏️ Modifier l'élève</div>
+    <div class="fgroup">
+      <label class="flabel">Prénom</label>
+      <input type="text" class="finput" id="edit-stu-first" maxlength="60" oninput="_editStudentPreview()">
+    </div>
+    <div class="fgroup">
+      <label class="flabel">Nom</label>
+      <input type="text" class="finput" id="edit-stu-last" maxlength="60" oninput="_editStudentPreview()">
+    </div>
+    <div class="fgroup">
+      <label class="flabel">Classe</label>
+      <input type="text" class="finput" id="edit-stu-class" maxlength="30">
+    </div>
+    <div class="fgroup" style="margin-top:6px;">
+      <label class="flabel">Identifiant de connexion</label>
+      <div id="edit-stu-login" style="font-family:monospace;font-size:15px;font-weight:700;color:var(--gold);margin-bottom:8px;">—</div>
+      <label style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:10px;background:var(--surface-2);border:1px solid var(--border);cursor:pointer;">
+        <input type="checkbox" id="edit-stu-regen" onchange="_editStudentPreview()" style="width:18px;height:18px;margin-top:1px;accent-color:var(--gold);">
+        <span style="flex:1;">
+          <span style="font-weight:700;font-size:13px;">Générer un nouvel identifiant</span>
+          <span class="text-sm text-muted" id="edit-stu-regen-hint" style="display:block;font-size:11.5px;margin-top:2px;">
+            À cocher seulement si l'identifiant est faux. L'élève devra utiliser le nouveau (son code PIN ne change pas).
+          </span>
+        </span>
+      </label>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:16px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('modal-edit-student')">Annuler</button>
+      <button class="btn btn-gold" style="flex:1;" id="edit-stu-save" onclick="saveEditStudent()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
      MODAL: Correction manuelle de la classification d'âge d'un film
      ================================================================ -->
 <div class="overlay hidden" id="modal-age-rating">
@@ -28764,6 +28803,91 @@ if (!filmId) {
 let _sdCurrentStudentId = null;
 
 /* Ouverture par SQL id */
+/* ================================================================
+   MODIFIER UN ÉLÈVE (admin) — prénom, nom, classe, identifiant
+   L'identifiant ne change JAMAIS sauf si la case est cochée.
+   Écrit directement dans la table students (Supabase).
+   ================================================================ */
+let _editStudent = null;
+
+async function openEditStudent(studentId) {
+  const { data: st, error } = await db.from('students')
+    .select('id, first_name, last_name, class_name, login_identifier')
+    .eq('id', studentId).single();
+  if (error || !st) { toast('Élève introuvable', 'error'); return; }
+  _editStudent = st;
+  document.getElementById('edit-stu-first').value = st.first_name || '';
+  document.getElementById('edit-stu-last').value  = st.last_name  || '';
+  document.getElementById('edit-stu-class').value = st.class_name || '';
+  document.getElementById('edit-stu-regen').checked = false;
+  _editStudentPreview();
+  openModal('modal-edit-student');
+}
+
+/* Affiche l'identifiant actuel, ou l'aperçu du nouveau si la case est cochée */
+function _editStudentPreview() {
+  if (!_editStudent) return;
+  const el = document.getElementById('edit-stu-login');
+  const regen = document.getElementById('edit-stu-regen').checked;
+  if (!regen) {
+    el.textContent = _editStudent.login_identifier || '— (aucun)';
+    el.style.opacity = '1';
+    return;
+  }
+  const fn = document.getElementById('edit-stu-first').value;
+  const ln = document.getElementById('edit-stu-last').value;
+  const base = normalizeLoginPart(fn).charAt(0) + normalizeLoginPart(ln);
+  el.textContent = base ? `${base} + 3 chiffres (ex. ${base}427)` : 'Renseigne prénom et nom';
+  el.style.opacity = '.8';
+}
+
+/* Génère un identifiant libre (vérifié en base) */
+async function _generateUniqueLogin(firstName, lastName) {
+  for (let i = 0; i < 30; i++) {
+    const candidate = buildLoginIdentifier(firstName, lastName);
+    if (!candidate) return null;
+    const { data } = await db.from('students').select('id').eq('login_identifier', candidate).limit(1);
+    if (!data || data.length === 0) return candidate;
+  }
+  return null;
+}
+
+async function saveEditStudent() {
+  if (!_editStudent) return;
+  const first = document.getElementById('edit-stu-first').value.trim();
+  const last  = document.getElementById('edit-stu-last').value.trim();
+  const cls   = document.getElementById('edit-stu-class').value.trim();
+  const regen = document.getElementById('edit-stu-regen').checked;
+  if (!first || !last) { toast('Prénom et nom obligatoires', 'error'); return; }
+
+  const btn = document.getElementById('edit-stu-save');
+  btn.disabled = true;
+  try {
+    const patch = { first_name: first, last_name: last, class_name: cls || null };
+    let newLogin = null;
+    if (regen) {
+      newLogin = await _generateUniqueLogin(first, last);
+      if (!newLogin) { toast('Impossible de générer un identifiant, réessaie', 'error'); return; }
+      patch.login_identifier = newLogin;
+    }
+    const { error } = await db.from('students').update(patch).eq('id', _editStudent.id);
+    if (error) { toast('Erreur : ' + error.message, 'error'); return; }
+
+    // Mise à jour de la liste en mémoire + ré-affichage
+    const row = (_studentsAll || []).find(x => x.id === _editStudent.id);
+    if (row) Object.assign(row, patch);
+    if (typeof _renderStudentTable === 'function' && _studentsAll && _studentsAll.length) _renderStudentTable();
+
+    closeModal('modal-edit-student');
+    toast(newLogin
+      ? `✅ Élève modifié — nouvel identifiant : ${newLogin} (à transmettre à l'élève)`
+      : '✅ Élève modifié', 'success', newLogin ? 7000 : 3000);
+    openStudentDetail(_editStudent.id); // rafraîchit la fiche
+  } finally {
+    btn.disabled = false;
+  }
+}
+
 async function openStudentDetail(studentId) {
   _sdCurrentStudentId = studentId;
   // Charger en parallèle : fiche élève + état push de cet élève
@@ -28861,6 +28985,10 @@ async function openStudentDetail(studentId) {
       : `openArchiveStudent('${s.id}','${(s.first_name||'')} ${(s.last_name||'')}','unarchive')`;
 
     actionsEl.innerHTML = `
+      <button class="btn btn-ghost btn-full" style="justify-content:flex-start;gap:10px;text-align:left;"
+        onclick="openEditStudent('${s.id}')">
+        ✏️ Modifier l'élève (nom, prénom, classe, identifiant)
+      </button>
       <button class="btn btn-ghost btn-full" style="justify-content:flex-start;gap:10px;text-align:left;"
         onclick="openResetPin('${s.id}','${(s.first_name||'')} ${(s.last_name||'')}')">
         🔐 Réinitialiser le code secret
@@ -31241,12 +31369,10 @@ async function importStudentsFromSettings() {
     const existing_s = r.eleve_uid ? byUid[r.eleve_uid] : null;
 
     if (existing_s) {
-      // Élève existant : on CONSERVE son identifiant. Il n'est recalculé que
-      // s'il n'en a pas, ou si son nom a changé (l'identifiant ne correspond
-      // plus à "initiale prénom + nom + 3 chiffres").
-      const _base = normalizeLoginPart(r.first_name).charAt(0) + normalizeLoginPart(r.last_name);
+      // Élève existant : on CONSERVE toujours son identifiant (il n'est créé
+      // que s'il n'en a pas). Pour le changer : fiche élève → Modifier l'élève.
       const _cur  = existing_s.login_identifier || '';
-      const _keep = _cur && new RegExp('^' + _base + '\\d{3,}$').test(_cur);
+      const _keep = !!_cur;
       let newLogin = _keep ? _cur : buildLoginIdentifier(r.first_name, r.last_name);
       let attempts = 0;
       // Garantir l'unicité en régénérant les 3 chiffres si besoin
