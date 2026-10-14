@@ -17397,8 +17397,10 @@ async function loadEventThemeFromDB() {
     (data || []).forEach(r => { map[r.key] = (r.value || 'none').trim().toLowerCase(); });
     const theme = map.event_theme || 'none';
     S.eventTheme = EVENT_THEMES.includes(theme) ? theme : 'none';
-    // Rétro-compat : pas encore de clé event_mode → même valeur que le thème
-    const mode = ('event_mode' in map) ? map.event_mode : S.eventTheme;
+    // Rétro-compat : pas encore de clé event_mode → même valeur que le thème.
+    // Ne dure que jusqu'au premier enregistrement (voir saveEventTheme).
+    S._eventModeKeyExists = ('event_mode' in map);
+    const mode = S._eventModeKeyExists ? map.event_mode : S.eventTheme;
     S.eventMode = EVENT_MODES.includes(mode) ? mode : 'none';
   } catch (e) {
     console.warn('[event_theme] load exception:', e);
@@ -17565,6 +17567,7 @@ async function _writeEventMode(mode) {
     return false;
   }
   S.eventMode = mode;
+  S._eventModeKeyExists = true;
   _refreshEventMechanicsUI();
   return true;
 }
@@ -17606,6 +17609,14 @@ async function saveEventTheme() {
     // Revert visuel
     setEventThemeMode(current);
     return;
+  }
+
+  // L'événement doit exister EN BASE avant de changer le thème : sinon,
+  // à la relecture, il reprendrait la valeur du nouveau thème (rétro-compat)
+  // et se lancerait tout seul. On fige donc l'événement actuel d'abord.
+  if (!S._eventModeKeyExists) {
+    const ok = await _writeEventMode(S.eventMode || 'none');
+    if (!ok) { setEventThemeMode(current); return; }
   }
 
   // Upsert en BDD
