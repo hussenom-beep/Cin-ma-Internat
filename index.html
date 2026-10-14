@@ -8616,6 +8616,32 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
   #modal-admin-settings .sd-tabs-admin-settings .sd-tab .sd-tab-label { font-size: 9.5px; }
 }
 
+/* Fiche élève + Paramètres sur téléphone : panneau fixe, aucun glissement latéral */
+@media (max-width: 899.98px) {
+  #modal-student-detail, #modal-admin-settings { overflow: hidden; }
+  #modal-student-detail .sd-panel,
+  #modal-admin-settings .sd-panel { overflow-x: hidden; overscroll-behavior: contain; touch-action: pan-y; }
+  #modal-student-detail .sd-body,
+  #modal-admin-settings .sd-body { overflow-x: hidden; min-width: 0; }
+  /* Les longs libellés de bouton passent à la ligne au lieu d'élargir le panneau */
+  #modal-student-detail .btn,
+  #modal-admin-settings .sd-body .btn { white-space: normal; line-height: 1.3; min-width: 0; max-width: 100%; }
+  /* Onglets de la fiche : grille 3 × 2 au lieu d'une barre qui défile */
+  #modal-student-detail .sd-tabs {
+    display: grid; grid-template-columns: repeat(3, 1fr); grid-auto-rows: 1fr; gap: 6px;
+    overflow: visible; border-bottom: none; padding-bottom: 4px;
+  }
+  #modal-student-detail .sd-tab {
+    white-space: normal; text-align: center; padding: 9px 4px; margin: 0;
+    border: 1px solid var(--card-border); border-radius: var(--radius-pill);
+    background: rgba(255,255,255,.03); font-size: 11.5px; line-height: 1.2;
+    letter-spacing: -.01em; display: flex; align-items: center; justify-content: center;
+  }
+  #modal-student-detail .sd-tab.active {
+    color: var(--gold); border-color: var(--gold-line); background: var(--gold-soft);
+  }
+}
+
 /* ════════════════ ÉLÈVE ════════════════ */
 
 /* Navigation du bas : pilule flottante */
