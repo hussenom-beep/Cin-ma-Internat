@@ -11642,10 +11642,10 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 <div class="overlay hidden" id="modal-default-session-settings">
   <div class="sheet" style="max-width:440px;">
     <div class="sheet-handle"></div>
-    <div class="sheet-title">⚙️ Paramètres de séance par défaut</div>
+    <div class="sheet-title">⚙️ Paramètres des séances</div>
 
     <p class="text-sm text-muted" style="margin:-6px 0 18px;">
-      Valeurs préremplies automatiquement à la création d'une nouvelle séance.
+      L'heure et la capacité sont préremplies à la création d'une nouvelle séance.
     </p>
 
     <div class="fgroup">
@@ -11660,6 +11660,22 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
              placeholder="20">
       <div class="text-sm text-muted" style="margin-top:6px;font-size:11.5px;opacity:.7;">
         Entre 1 et 99 inscrits maximum par séance
+      </div>
+    </div>
+
+    <div class="fgroup">
+      <label class="flabel">Fermeture des inscriptions</label>
+      <select class="finput" id="dss-lock" style="font-size:15px;"></select>
+      <div class="text-sm text-muted" style="margin-top:6px;font-size:11.5px;opacity:.7;">
+        S'applique à toutes les séances, y compris celles déjà créées. Tu peux toujours inscrire un élève toi-même après.
+      </div>
+    </div>
+
+    <div class="fgroup">
+      <label class="flabel">Désistement tardif</label>
+      <select class="finput" id="dss-late" style="font-size:15px;"></select>
+      <div class="text-sm text-muted" style="margin-top:6px;font-size:11.5px;opacity:.7;">
+        Un élève qui se désinscrit dans ce délai est prévenu, et son désistement est noté comme tardif.
       </div>
     </div>
 
@@ -11843,7 +11859,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
           <button class="btn btn-gold btn-full" onclick="saveSupervisorName()">Enregistrer</button>
 
           <button class="btn btn-ghost btn-full" style="margin-top:18px;" onclick="openDefaultSessionSettings()">
-            ⚙️ Paramètres de séance par défaut
+            ⚙️ Paramètres des séances (heure, places, fermeture)
           </button>
         </div>
 
@@ -12374,7 +12390,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     <div class="sheet-handle"></div>
     <div class="sheet-title">⏰ Désistement tardif</div>
     <p class="text-sm" style="margin-bottom:10px;">
-      Tu es à moins de 4 heures du début de la séance prévue
+      Tu es à moins de <span id="late-cancel-hours">4 heures</span> du début de la séance prévue
       <strong id="late-cancel-session-info" style="color:var(--gold);">—</strong>.
     </p>
     <p class="text-sm text-muted" style="margin-bottom:14px;">
@@ -13478,7 +13494,7 @@ async function loadDefaultSessionTimeFromDB() {
     const { data, error } = await db
       .from('app_settings')
       .select('key, value')
-      .in('key', ['default_session_time', 'default_session_capacity']);
+      .in('key', ['default_session_time', 'default_session_capacity', 'registration_lock_minutes', 'late_cancel_hours']);
     if (error) {
       console.warn('[defaultSession] load error:', error);
       S.defaultSessionTime = '20:00';
@@ -13494,6 +13510,12 @@ async function loadDefaultSessionTimeFromDB() {
     // Capacité : entier entre 1 et 99, sinon fallback 20
     const capInt = parseInt(map.default_session_capacity || '', 10);
     S.defaultSessionCapacity = (capInt >= 1 && capInt <= 99) ? capInt : 20;
+    // Fermeture des inscriptions : minutes avant la séance (0 à 120), 15 par défaut
+    const lockInt = parseInt(map.registration_lock_minutes || '', 10);
+    _AUTO_LOCK_MINUTES = (lockInt >= 0 && lockInt <= 120) ? lockInt : 15;
+    // Désistement tardif : heures avant la séance (1 à 48), 4 par défaut
+    const lateInt = parseInt(map.late_cancel_hours || '', 10);
+    _LATE_CANCEL_HOURS = (lateInt >= 1 && lateInt <= 48) ? lateInt : 4;
   } catch (e) {
     console.warn('[defaultSession] load exception:', e);
     S.defaultSessionTime = '20:00';
@@ -22399,7 +22421,9 @@ function _renderRiskBadges({ lateCount = 0, absenceCount = 0 } = {}, opts = {}) 
    le désistement comme tardif. On confirme via modale dédiée et
    on log dans late_cancellations.
    ================================================================ */
-const _LATE_CANCEL_HOURS = 4; // h avant la séance = seuil tardif
+let _LATE_CANCEL_HOURS = 4; // h avant la séance = seuil tardif (réglable : app_settings.late_cancel_hours)
+const _LATE_CANCEL_CHOICES = [1, 2, 3, 4, 6, 8, 12, 24];
+function _lateCancelLabel(h) { return h + (h > 1 ? ' heures' : ' heure'); }
 
 function _isLateCancellation(sessionDate, sessionTime) {
   if (!sessionDate) return false;
@@ -22410,11 +22434,14 @@ function _isLateCancellation(sessionDate, sessionTime) {
   return Date.now() >= deadline.getTime();
 }
 
-/** Fenêtre de fermeture auto des inscriptions, en minutes avant la séance */
-const _AUTO_LOCK_MINUTES = 30;
+/** Fenêtre de fermeture auto des inscriptions, en minutes avant la séance.
+ *  Réglable par l'admin (app_settings.registration_lock_minutes), 15 par défaut.
+ *  Le serveur (register_student_to_session) lit la même clé. */
+let _AUTO_LOCK_MINUTES = 15;
+const _LOCK_MINUTES_CHOICES = [0, 5, 10, 15, 20, 30, 45, 60];
 
 /** Retourne true si la séance doit être considérée comme verrouillée
- *  (fermeture auto J - 30 min ou séance déjà passée).
+ *  (fermeture auto J - X min, réglable, ou séance déjà passée).
  *  Utilisé côté UI pour bloquer l'inscription élève même si le flag
  *  registrations_open est encore à true en base. */
 function _isSessionLocked(s) {
@@ -22524,6 +22551,8 @@ async function toggleReg(sessionId, action) {
         },
       };
       // Affiche la date/heure dans la modale
+      const lateHEl = document.getElementById('late-cancel-hours');
+      if (lateHEl) lateHEl.textContent = _lateCancelLabel(_LATE_CANCEL_HOURS);
       const sesDtEl = document.getElementById('late-cancel-session-info');
       if (sesDtEl && ses) {
         try {
@@ -27240,12 +27269,16 @@ async function openAdminToStudentMessaging(studentId) {
   if (!studentId) return;
 
   try {
-    // 1. Chercher conversation active pour cet élève
-    const { data: conv, error } = await db.from('conversations')
+    // 1. Chercher la conversation active la plus récente pour cet élève
+    //    (limit 1 et pas maybeSingle : après un message groupé, un élève peut
+    //     avoir plusieurs conversations actives → maybeSingle échouait)
+    const { data: convRows, error } = await db.from('conversations')
       .select('id')
       .eq('student_id', studentId)
       .eq('status', 'active')
-      .maybeSingle();
+      .order('last_message_at', { ascending: false, nullsFirst: false })
+      .limit(1);
+    const conv = convRows?.[0];
 
     if (error) {
       console.error('[admin-messagerie] check conv error:', error);
@@ -27330,11 +27363,15 @@ async function createAdminConversation() {
 
   try {
     // 1. Vérifier qu'il n'y a pas déjà une conversation active (sécurité)
-    const { data: existing } = await db.from('conversations')
+    // (limit 1 et pas maybeSingle : un élève peut avoir plusieurs conversations
+    //  actives après un message groupé, maybeSingle renverrait alors une erreur)
+    const { data: existingRows } = await db.from('conversations')
       .select('id')
       .eq('student_id', studentId)
       .eq('status', 'active')
-      .maybeSingle();
+      .order('last_message_at', { ascending: false, nullsFirst: false })
+      .limit(1);
+    const existing = existingRows?.[0];
 
     if (existing) {
       toast('Une conversation active existe déjà', 'info');
@@ -28557,51 +28594,88 @@ async function confirmBroadcastSession() {
   const studentIds = Array.from(ids);
   const nowIso = new Date().toISOString();
 
-  try {
-    // 1. Créer N conversations (option A : nouvelle conv par broadcast)
-    const convPayload = studentIds.map(sid => ({
-      student_id: sid,
-      subject:    subject,
-      status:     'active',
-      created_at: nowIso,
-      last_message_at: nowIso,
-      unread_student:  true
-    }));
-    const { data: createdConvs, error: convErr } = await db.from('conversations')
-      .insert(convPayload).select('id, student_id');
-    if (convErr) throw convErr;
-
-    // 2. Insérer le message initial dans chaque conv
-    const msgPayload = (createdConvs || []).map(c => ({
-      conversation_id: c.id,
-      sender_type:     'admin',
-      content:         content,
-      created_at:      nowIso
-    }));
-    if (msgPayload.length) {
-      const { error: msgErr } = await db.from('conversation_messages').insert(msgPayload);
-      if (msgErr) throw msgErr;
+  // Envoi élève par élève : un échec isolé ne bloque plus tout l'envoi.
+  //  - cas normal : nouvelle conversation + message initial
+  //  - si l'élève a déjà une conversation active (la base peut n'en autoriser
+  //    qu'une) : le message est ajouté dans cette conversation existante.
+  const sent = [];
+  let lastErr = null;
+  for (const sid of studentIds) {
+    try {
+      await _broadcastToOneStudent(sid, subject, content, nowIso);
+      sent.push(sid);
+    } catch (e) {
+      lastErr = e;
+      console.error('[broadcast] échec pour', sid, e);
     }
-
-    // 3. Logger les events en BDD (uniquement pour les abonnés push)
-    await _notifyAllStudents(session.id, 'broadcast_message', {
-      message: subject,
-      studentIds: studentIds
-    });
-
-    // 4. ENVOI RÉEL DE LA PUSH WEB à chaque destinataire individuellement.
-    //    On utilise le sujet comme titre et le contenu comme body.
-    const pushTitle = `💬 ${subject}`;
-    const pushBody  = content.length > 120 ? content.slice(0, 117) + '…' : content;
-    studentIds.forEach(sid => {
-      _invokeSendPush({ type: 'student', id: sid }, pushTitle, pushBody, '/');
-    });
-
-    toast(`✅ Message envoyé à ${studentIds.length} élève${studentIds.length > 1 ? 's' : ''}`, 'success');
-  } catch (e) {
-    console.error('[broadcast] error:', e);
-    toast('Erreur lors de l\'envoi du message', 'error');
   }
+
+  if (!sent.length) {
+    const why = lastErr?.message || lastErr?.details || '';
+    toast('Erreur lors de l\'envoi du message' + (why ? ' : ' + why : ''), 'error');
+    return;
+  }
+
+  // Logger les events en BDD (uniquement pour les abonnés push)
+  await _notifyAllStudents(session.id, 'broadcast_message', {
+    message: subject,
+    studentIds: sent
+  });
+
+  // Push web à chaque destinataire (sujet en titre, contenu en corps)
+  const pushTitle = `💬 ${subject}`;
+  const pushBody  = content.length > 120 ? content.slice(0, 117) + '…' : content;
+  sent.forEach(sid => _invokeSendPush({ type: 'student', id: sid }, pushTitle, pushBody, '/'));
+
+  const failed = studentIds.length - sent.length;
+  toast(failed
+    ? `⚠️ Message envoyé à ${sent.length} élève${sent.length > 1 ? 's' : ''}, échec pour ${failed}`
+    : `✅ Message envoyé à ${sent.length} élève${sent.length > 1 ? 's' : ''}`,
+    failed ? 'info' : 'success');
+}
+
+/** Dépose un message admin chez un élève (utilisé par le message groupé). */
+async function _broadcastToOneStudent(studentId, subject, content, nowIso) {
+  const { data: conv, error: convErr } = await db.from('conversations')
+    .insert({
+      student_id:      studentId,
+      subject:         subject,
+      status:          'active',
+      created_at:      nowIso,
+      last_message_at: nowIso,
+      unread_student:  true,
+      unread_admin:    false,
+      initiated_by:    'admin'
+    })
+    .select('id')
+    .single();
+
+  let convId = conv?.id;
+  let prefix = '';
+  if (convErr || !convId) {
+    // Repli : conversation active déjà ouverte avec cet élève
+    const { data: existing } = await db.from('conversations')
+      .select('id')
+      .eq('student_id', studentId)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(1);
+    convId = existing?.[0]?.id;
+    if (!convId) throw (convErr || new Error('conversation non créée'));
+    prefix = `📢 ${subject}\n\n`;
+    const { error: upErr } = await db.from('conversations')
+      .update({ unread_student: true, last_message_at: nowIso })
+      .eq('id', convId);
+    if (upErr) throw upErr;
+  }
+
+  const { error: msgErr } = await db.from('conversation_messages').insert({
+    conversation_id: convId,
+    sender_type:     'admin',
+    content:         prefix + content,
+    created_at:      nowIso
+  });
+  if (msgErr) throw msgErr;
 }
 
 async function toggleSesOpen(id, cur) {
@@ -31992,6 +32066,26 @@ async function openDefaultSessionSettings() {
     inpTime.value = S.defaultSessionTime || '20:00';
     inpCap.value  = String(S.defaultSessionCapacity || 20);
   }
+  const selLock = document.getElementById('dss-lock');
+  if (selLock) {
+    const opts = _LOCK_MINUTES_CHOICES.includes(_AUTO_LOCK_MINUTES)
+      ? _LOCK_MINUTES_CHOICES
+      : [..._LOCK_MINUTES_CHOICES, _AUTO_LOCK_MINUTES].sort((a, b) => a - b);
+    selLock.innerHTML = opts.map(m =>
+      `<option value="${m}">${m === 0 ? "Jusqu'au début de la séance" : m + ' min avant la séance'}</option>`
+    ).join('');
+    selLock.value = String(_AUTO_LOCK_MINUTES);
+  }
+  const selLate = document.getElementById('dss-late');
+  if (selLate) {
+    const opts = _LATE_CANCEL_CHOICES.includes(_LATE_CANCEL_HOURS)
+      ? _LATE_CANCEL_CHOICES
+      : [..._LATE_CANCEL_CHOICES, _LATE_CANCEL_HOURS].sort((a, b) => a - b);
+    selLate.innerHTML = opts.map(h =>
+      `<option value="${h}">Moins de ${_lateCancelLabel(h)} avant la séance</option>`
+    ).join('');
+    selLate.value = String(_LATE_CANCEL_HOURS);
+  }
 
   openModal('modal-default-session-settings');
 }
@@ -32012,10 +32106,17 @@ async function saveDefaultSessionSettings() {
     return;
   }
 
-  // Upsert des 2 settings en une seule query
+  const lockVal = parseInt(document.getElementById('dss-lock')?.value ?? '', 10);
+  const lock = (lockVal >= 0 && lockVal <= 120) ? lockVal : _AUTO_LOCK_MINUTES;
+  const lateVal = parseInt(document.getElementById('dss-late')?.value ?? '', 10);
+  const late = (lateVal >= 1 && lateVal <= 48) ? lateVal : _LATE_CANCEL_HOURS;
+
+  // Upsert des 4 settings en une seule query
   const { error } = await db.from('app_settings').upsert([
-    { key: 'default_session_time',     value: t },
-    { key: 'default_session_capacity', value: String(cap) }
+    { key: 'default_session_time',      value: t },
+    { key: 'default_session_capacity',  value: String(cap) },
+    { key: 'registration_lock_minutes', value: String(lock) },
+    { key: 'late_cancel_hours',         value: String(late) }
   ], { onConflict: 'key' });
 
   if (error) {
@@ -32026,7 +32127,9 @@ async function saveDefaultSessionSettings() {
 
   S.defaultSessionTime     = t;
   S.defaultSessionCapacity = cap;
-  toast(`✅ Paramètres enregistrés (${t} · ${cap} inscrits max)`);
+  _AUTO_LOCK_MINUTES = lock;
+  _LATE_CANCEL_HOURS = late;
+  toast('✅ Paramètres des séances enregistrés');
   closeModal('modal-default-session-settings');
 }
 
