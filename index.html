@@ -8664,6 +8664,86 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 .push-prompt-banner,
 .push-help-box { border-radius: var(--radius); }
 
+/* Cartes de séance (accueil + onglet Séances) : affiche plus grande,
+   pastilles en ligne, bouton pleine largeur */
+.session-banner, .session-card-student {
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(240,165,0,.26);
+  box-shadow: var(--shadow-2);
+}
+.session-banner-poster, .sc-poster {
+  opacity: .38;
+  filter: blur(2px) saturate(120%);
+  transform: scale(1.08);
+}
+.session-banner-overlay, .sc-overlay {
+  background: linear-gradient(to top, rgba(8,8,15,.97) 0%, rgba(8,8,15,.74) 50%, rgba(8,8,15,.22) 100%);
+}
+.session-banner-inner, .sc-inner { padding: 20px 18px 18px; }
+.session-banner-bottom, .sc-bottom { align-items: stretch; gap: 16px; margin-top: 16px; }
+.session-banner-thumb, .sc-thumb { width: 92px; flex-shrink: 0; }
+.session-banner-thumb img, .sc-thumb img,
+.session-banner-thumb-empty, .sc-thumb-empty {
+  width: 92px; height: 138px;
+  border-radius: 12px;
+  box-shadow: 0 10px 26px rgba(0,0,0,.65);
+  border: 1px solid rgba(255,255,255,.14);
+  object-fit: cover;
+}
+.session-banner-content, .sc-content {
+  align-items: stretch;
+  justify-content: flex-end;
+  gap: 10px;
+  min-width: 0;
+}
+.session-banner-footer, .sc-footer {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+}
+.session-banner-footer .badge, .sc-footer .badge { margin-top: 0 !important; }
+.session-banner-action {
+  width: 100%;
+  justify-content: center;
+  text-transform: none;
+  letter-spacing: .01em;
+  font-size: 13.5px;
+  padding: 11px 14px;
+  border-radius: var(--radius-pill);
+}
+/* S'inscrire / liste d'attente : bouton doré plein (le rouge « se désinscrire » garde son style) */
+.session-banner-action:not(.is-disabled):not([style]) {
+  background: var(--gold-grad);
+  color: var(--gold-ink);
+  border: none;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 6px 18px rgba(240,165,0,.25);
+}
+.sc-actions { width: 100%; }
+.sc-actions .btn, .sc-actions .session-btn-register { flex: 1 1 auto; justify-content: center; border-radius: var(--radius-pill); }
+.session-help-text { border-radius: var(--radius-sm); }
+
+/* Élève sur ordinateur : contenu centré, plus de cartes étirées sur tout l'écran */
+@media (min-width: 720px) {
+  #screen-home > :not(.s-header),
+  #screen-session > :not(.s-header),
+  #screen-propose > :not(.s-header),
+  #screen-film-detail > :not(.s-header) { max-width: 760px; margin-left: auto; margin-right: auto; }
+  #screen-films > :not(.s-header) { max-width: 1240px; margin-left: auto; margin-right: auto; }
+}
+
+/* Mes propositions : une carte arrondie par film */
+#prop-history-list { display: flex; flex-direction: column; gap: 10px; padding: 0 18px; }
+#prop-history-list .history-item {
+  padding: 12px; border: 1px solid var(--card-border); border-radius: var(--radius);
+  background: var(--card-bg);
+}
+#prop-history-list .history-item:last-child { border-bottom: 1px solid var(--card-border); }
+#prop-history-list .history-poster,
+#prop-history-list .history-poster-ph { width: 54px; height: 81px; border-radius: 10px; }
+#prop-history-list > p { padding: 0 !important; }
+
 /* ════════════════ ADMIN ════════════════ */
 
 /* Liste élèves : tableau dans une carte arrondie */
@@ -12403,8 +12483,8 @@ function _pwaRenderBanner() {
   const { isIOS } = _pwaDetectDevice();
 
   const titleTxt = isIOS
-    ? "📲 Installe l'app sur ton iPhone"
-    : "📲 Installe l'app pour ne rien manquer";
+    ? "Installe l'app sur ton iPhone"
+    : "Installe l'app pour ne rien manquer";
 
   const descTxt = isIOS
     ? "C'est gratuit et ça prend 5 secondes. Tu pourras la lancer comme une vraie application — avec notifications instantanées."
