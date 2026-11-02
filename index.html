@@ -8923,6 +8923,15 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 
   </style>
 <body>
+<script>
+  /* Thème visuel appliqué AVANT le premier affichage (pas de flash du thème de base).
+     Valeur mémorisée au dernier lancement ; corrigée ensuite par applyEventTheme()
+     si l'admin a changé de thème entre-temps. */
+  try {
+    var _t = localStorage.getItem('ci_theme_cache');
+    if (_t && /^[a-z0-9-]+$/.test(_t) && _t !== 'none') document.body.classList.add('theme-' + _t);
+  } catch (e) {}
+</script>
 <div id="app">
 
 <!-- ================================================================
@@ -18005,6 +18014,8 @@ function applyEventTheme() {
     if (t !== 'none') body.classList.remove('theme-' + t);
   });
   if (theme !== 'none') body.classList.add('theme-' + theme);
+  // Mémoriser pour l'appliquer d'entrée au prochain lancement (cf. script en tête de <body>)
+  try { localStorage.setItem('ci_theme_cache', theme); } catch (_) {}
 
   // Image héros sur l'écran login (si URL fournie)
   const hero = document.getElementById('login-hero-img');
