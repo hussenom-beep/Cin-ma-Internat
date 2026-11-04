@@ -14340,7 +14340,7 @@ const BADGES_CATEGORY_LABELS = {
      - { type: 'proposals_accepted', count: N }     (events 'proposal_accepted')
      - { type: 'login_before_hour', hour: N }       (login_first_daily avant hh)
      - { type: 'login_after_hour', hour: N }        (login_first_daily après hh ou avant 5h le lendemain)
-     - { type: 'no_penalty_days', days: N }         (aucune pénalité sur N jours)
+     - { type: 'no_penalty_days', days: N }         (présent depuis ≥ N jours, aucune pénalité sur N jours, + ≥1 séance, ≥1 vote, ≥1 proposition sur N jours)
      - { type: 'votes_in_one_day', count: N }       (X votes dans un même jour)
      - { type: 'fast_accepted_weeks', count: N, hours: H }  (N propositions acceptées en <H h, sur N semaines différentes)
      - { type: 'sessions_streak_with_pardon', count: N }     (N séances présent d'affilée, avec tolérance "stage" : 1 cycle de 2 mois max où le retour <2 semaines casse rétroactivement)
@@ -14525,7 +14525,7 @@ const BADGES_CATALOG = [
     category: 'cache', rarity: 'emeraude', hidden: true, emoji: '🏃',
     condition: { type: 'votes_in_one_day', count: 5 } },
 
-  { slug: 'cache-mois-irreprochable', name: 'Mois irréprochable',   description: '30 jours sans aucune pénalité',
+  { slug: 'cache-mois-irreprochable', name: 'Mois irréprochable',   description: '30 jours sans pénalité, avec au moins 1 séance, 1 vote et 1 proposition',
     category: 'cache', rarity: 'diamant', hidden: true, emoji: '💯',
     condition: { type: 'no_penalty_days', days: 30 } },
 
@@ -14821,10 +14821,22 @@ function evaluateBadgeCondition(condition, stats) {
       // Si la fenêtre N jours déborderait avant le cutoff → badge non débloquable
       if (windowStartMs < cutoffMs) return false;
       const since = new Date(windowStartMs).toISOString();
-      const recent = stats.eventsAll.filter(e => e.created_at >= since);
+      // L'élève doit être présent dans l'appli depuis au moins N jours :
+      // son tout premier event XP doit dater d'avant le début de la fenêtre.
+      // (Sans ça, un élève qui se connecte pour la 1re fois validait le badge
+      //  immédiatement : bonus de 1re connexion = event positif, aucune pénalité.)
+      const all = stats.eventsAll || [];
+      const firstEventAt = all.reduce((min, e) =>
+        (e.created_at && (!min || e.created_at < min)) ? e.created_at : min, null);
+      if (!firstEventAt || firstEventAt > since) return false;
+      const recent = all.filter(e => e.created_at >= since);
       const hasPenalty = recent.some(e => e.event_type === 'session_absent' || e.event_type === 'session_left');
-      const hasPositive = recent.some(e => (e.xp_amount || 0) > 0);
-      return !hasPenalty && hasPositive;
+      if (hasPenalty) return false;
+      // Sur la même fenêtre : au moins 1 séance vue, 1 vote et 1 proposition envoyée
+      const hasSession  = recent.some(e => e.event_type === 'session_attended' || e.event_type === 'event_attended');
+      const hasVote     = recent.some(e => e.event_type === 'vote' || e.event_type === 'vote_first_of_month');
+      const hasProposal = (stats.proposalsDetail || []).some(p => p.proposed_at && p.proposed_at >= since);
+      return hasSession && hasVote && hasProposal;
     }
 
     case 'fast_accepted_weeks': {
