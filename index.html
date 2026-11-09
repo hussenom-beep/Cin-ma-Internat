@@ -13589,7 +13589,8 @@ function _invokeSendPush(target, title, body, url) {
   }
 
   // ============================================================
-  // FILTRAGE MAINTENANCE
+  // FILTRAGE MAINTENANCE (vérifié juste avant chaque envoi, état relu
+  // s'il date de plus d'1 min ; état inconnu → rien n'est envoyé aux élèves)
   // - 'admins'  → toujours autorisé
   // - 'student' ciblé sur l'élève de test → autorisé
   // - 'student' ciblé sur un autre élève → bloqué
@@ -13597,29 +13598,34 @@ function _invokeSendPush(target, title, body, url) {
   //   (pour qu'il reçoive bien les notifs broadcast pendant ses tests).
   //   Si aucun élève de test défini → bloqué.
   // ============================================================
-  const m = S.maintenance || { mode: 'off' };
-  if (m.mode === 'on') {
-    if (targetObj.type === 'admins') {
-      // OK : passe
-    } else if (targetObj.type === 'student') {
-      const isTestStudent = m.testStudentId && targetObj.id === m.testStudentId;
-      if (!isTestStudent) {
-        console.log('[push] bloqué par maintenance : target=', targetObj, '| titre="' + title + '"');
+  (async () => {
+    if (targetObj.type !== 'admins') {
+      const m = await _getFreshMaintenance();
+      if (!m) {
+        console.log('[push] bloqué : état de maintenance inconnu | titre="' + title + '"');
         return;
       }
-      // sinon : passe (élève autorisé)
-    } else {
-      // Type broadcast (students_all, etc.) → rediriger vers l'élève de test
-      if (m.testStudentId) {
-        console.log('[push] redirigé vers élève test (maintenance) : était', { ...targetObj }, '| titre="' + title + '"');
-        targetObj = { type: 'student', id: m.testStudentId };
-      } else {
-        console.log('[push] bloqué par maintenance (pas d\'élève test défini) : target=', targetObj, '| titre="' + title + '"');
-        return;
+      if (m.mode === 'on') {
+        if (targetObj.type === 'student') {
+          const isTestStudent = m.testStudentId && targetObj.id === m.testStudentId;
+          if (!isTestStudent) {
+            console.log('[push] bloqué par maintenance : target=', targetObj, '| titre="' + title + '"');
+            return;
+          }
+        } else if (m.testStudentId) {
+          console.log('[push] redirigé vers élève test (maintenance) : était', { ...targetObj }, '| titre="' + title + '"');
+          targetObj = { type: 'student', id: m.testStudentId };
+        } else {
+          console.log('[push] bloqué par maintenance (pas d\'élève test défini) : target=', targetObj, '| titre="' + title + '"');
+          return;
+        }
       }
     }
-  }
-  
+    _sendPushNow(targetObj, title, body, url);
+  })();
+}
+
+function _sendPushNow(targetObj, title, body, url) {
   const payload = { 
     target: targetObj, 
     title, 
@@ -13847,7 +13853,12 @@ const _MAINT_DEFAULT_MSG = 'Application en maintenance. Merci de revenir plus ta
 
 /** Charger les 3 clés maintenance depuis Supabase au démarrage */
 async function loadMaintenanceFromDB() {
-  S.maintenance = { mode: 'off', message: _MAINT_DEFAULT_MSG, testUid: '', testStudentId: null };
+  // L'état précédent reste en place pendant la lecture et en cas d'échec :
+  // on ne repasse JAMAIS à « off » par défaut (sinon des notifications
+  // pourraient partir pendant une maintenance). loadedAt n'est mis à jour
+  // qu'après une lecture réussie.
+  const next = { mode: 'off', message: _MAINT_DEFAULT_MSG, testUid: '', testStudentId: null, loadedAt: 0 };
+  if (!S.maintenance) S.maintenance = { ...next };
   try {
     const { data, error } = await db
       .from('app_settings')
@@ -13859,24 +13870,51 @@ async function loadMaintenanceFromDB() {
       return;
     }
     (data || []).forEach(row => {
-      if (row.key === 'maintenance_mode')     S.maintenance.mode    = (row.value === 'on') ? 'on' : 'off';
-      if (row.key === 'maintenance_message')  S.maintenance.message = row.value || _MAINT_DEFAULT_MSG;
-      if (row.key === 'maintenance_test_uid') S.maintenance.testUid = (row.value || '').trim();
+      if (row.key === 'maintenance_mode')     next.mode    = (row.value === 'on') ? 'on' : 'off';
+      if (row.key === 'maintenance_message')  next.message = row.value || _MAINT_DEFAULT_MSG;
+      if (row.key === 'maintenance_test_uid') next.testUid = (row.value || '').trim();
     });
     // Résoudre l'ID interne de l'élève autorisé pour pouvoir filtrer les push
     // (les push utilisent students.id alors que testUid est students.eleve_uid)
+    const prevTestId = (S.maintenance.testUid === next.testUid) ? S.maintenance.testStudentId : null;
+    next.testStudentId = prevTestId;
+    S.maintenance = next;
     await _resolveMaintenanceTestStudentId();
+    S.maintenance.loadedAt = Date.now();
   } catch (err) {
     console.warn('[maintenance] load exception:', err);
   }
 }
 
+/* État de maintenance sûr pour décider d'un envoi aux élèves :
+   relu s'il date de plus d'1 min (une seule lecture même si 50 envois partent
+   en même temps). Renvoie null si l'état est inconnu ou trop ancien (> 5 min,
+   ex. pas de réseau) → dans ce cas on n'envoie RIEN aux élèves. */
+let _maintFreshPromise = null;
+async function _getFreshMaintenance() {
+  const m0 = S.maintenance;
+  if (!m0 || !m0.loadedAt || Date.now() - m0.loadedAt > 60000) {
+    if (!_maintFreshPromise) _maintFreshPromise = loadMaintenanceFromDB().finally(() => { _maintFreshPromise = null; });
+    await _maintFreshPromise;
+  }
+  const m = S.maintenance;
+  if (!m || !m.loadedAt || Date.now() - m.loadedAt > 5 * 60000) return null;
+  return m;
+}
+
+/* true si, à cause de la maintenance, cet élève ne doit rien recevoir */
+async function _maintenanceBlocksStudent(studentId) {
+  const m = await _getFreshMaintenance();
+  if (!m) return true;                       // état inconnu → prudence
+  if (m.mode !== 'on') return false;
+  return !(m.testStudentId && studentId === m.testStudentId);
+}
+
 /** Résout S.maintenance.testStudentId depuis testUid (eleve_uid → students.id) */
 async function _resolveMaintenanceTestStudentId() {
   if (!S.maintenance) return;
-  S.maintenance.testStudentId = null;
   const uid = (S.maintenance.testUid || '').trim();
-  if (!uid) return;
+  if (!uid) { S.maintenance.testStudentId = null; return; }
   try {
     const { data } = await db.from('students')
       .select('id')
@@ -28950,6 +28988,14 @@ async function _notifyAllStudents(sessionId, eventType, opts = {}) {
       students = data;
     }
 
+    // Maintenance : aucun élève ne reçoit rien, sauf le compte test
+    const m = await _getFreshMaintenance();
+    if (!m) return;
+    if (m.mode === 'on') {
+      students = students.filter(s => m.testStudentId && s.id === m.testStudentId);
+      if (!students.length) return;
+    }
+
     let defaultMessage = opts.message || null;
     if (!defaultMessage) {
       const map = {
@@ -29498,13 +29544,15 @@ async function unbanStudent(sessionId, studentId, date) {
   await db.from('session_bans').delete()
     .eq('session_id', sessionId).eq('student_id', studentId);
 
-  // Créer une nouveauté côté élève
-  await db.from('student_events').insert({
-    student_id: studentId,
-    session_id: sessionId,
-    event_type: 'session_unbanned',
-    message:    'Tu peux de nouveau t\'inscrire à une séance'
-  });
+  // Créer une nouveauté côté élève (sauf pendant la maintenance, hors compte test)
+  if (!(await _maintenanceBlocksStudent(studentId))) {
+    await db.from('student_events').insert({
+      student_id: studentId,
+      session_id: sessionId,
+      event_type: 'session_unbanned',
+      message:    'Tu peux de nouveau t\'inscrire à une séance'
+    });
+  }
 
   // Push à l'élève débloqué (récupère le titre du film pour personnaliser)
   db.from('cinema_sessions')
