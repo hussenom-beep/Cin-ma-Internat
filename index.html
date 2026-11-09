@@ -6538,6 +6538,18 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
   -webkit-backdrop-filter: blur(6px);
 }
 
+.nsc-votes-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  width: fit-content; margin-top: -4px;
+  padding: 6px 13px; border-radius: 999px;
+  background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.16);
+  color: #fff; font: inherit; font-size: 12.5px; font-weight: 700;
+  cursor: pointer; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  transition: background .2s, border-color .2s, transform .15s;
+}
+.nsc-votes-pill:hover { background: rgba(255,255,255,.14); border-color: rgba(240,165,0,.5); transform: translateY(-1px); }
+.nsc-votes-pill-see { color: var(--gold); font-weight: 700; }
+
 .nsc-badge-clickable {
   cursor: pointer;
   transition: background .2s, border-color .2s, transform .15s;
@@ -8770,6 +8782,81 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 #prop-history-list .history-poster-ph { width: 54px; height: 81px; border-radius: 10px; }
 #prop-history-list > p { padding: 0 !important; }
 
+/* Case « Me le reproposer plus tard » des fenêtres notifications / rester connecté */
+.prompt-snooze {
+  display: flex; align-items: center; justify-content: center; gap: 9px;
+  margin: 14px 0 6px; font-size: 13px; color: var(--text-2); cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.prompt-snooze input { width: 18px; height: 18px; accent-color: var(--gold); flex: 0 0 auto; margin: 0; }
+.prompt-snooze small { color: var(--text-3); font-size: 11.5px; }
+
+/* ════════════════ PAVÉ NUMÉRIQUE PIN (connexion élève) ════════════════
+   L'écran passe en mode compact (.pin-mode) pour que tout tienne
+   sans défilement, du petit Android au grand iPhone, et en paysage. */
+#screen-login.pin-mode {
+  min-height: 100vh; min-height: 100dvh;
+  padding: max(12px, env(safe-area-inset-top)) 16px max(12px, env(safe-area-inset-bottom));
+}
+#screen-login.pin-mode .login-cinema-icon { font-size: 34px; margin-bottom: 6px; }
+#screen-login.pin-mode .login-title { font-size: 22px; margin-bottom: 4px; }
+#screen-login.pin-mode .login-title::after { display: none; }
+#screen-login.pin-mode .login-sub { display: none; }
+#screen-login.pin-mode .login-box { padding: 18px 18px 12px; margin-top: 12px; max-width: 360px; }
+.pinpad-head { text-align: center; }
+.pinpad-wave { font-size: 30px; line-height: 1; margin-bottom: 6px; }
+.pinpad-hello { font-size: 17px; }
+#login-name { margin-top: 2px; }
+.pinpad-cells { margin: 14px 0 4px; gap: 7px; }
+.pinpad-cells .pin {
+  width: clamp(38px, 11vw, 46px); height: clamp(42px, 6.4dvh, 52px);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px; line-height: 1; user-select: none; -webkit-user-select: none;
+}
+.pinpad-cells.is-error { animation: pinpadShake .38s ease; }
+.pinpad-cells.is-error .pin { border-color: rgba(255,92,92,.7); }
+@keyframes pinpadShake {
+  0%,100% { transform: translateX(0); } 20% { transform: translateX(-8px); }
+  40% { transform: translateX(7px); } 60% { transform: translateX(-5px); } 80% { transform: translateX(3px); }
+}
+.pinpad-status {
+  min-height: 18px; margin: 2px 0 8px; text-align: center;
+  font-size: 12.5px; font-weight: 600; color: var(--text-3);
+}
+.pinpad-status.is-busy { color: var(--gold); }
+.pinpad-status.is-error { color: #ff7a7a; }
+.pinpad {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: clamp(6px, 1.1dvh, 10px);
+  user-select: none; -webkit-user-select: none; touch-action: manipulation;
+}
+.pinpad-key {
+  height: clamp(42px, 7dvh, 60px); border-radius: 16px;
+  border: 1px solid var(--card-border, rgba(255,255,255,.08));
+  background: rgba(255,255,255,.05); color: var(--text);
+  font: 700 clamp(20px, 3.2dvh, 26px)/1 'DM Sans', system-ui, sans-serif;
+  cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+  transition: background .12s, transform .08s, border-color .12s;
+}
+.pinpad-key:hover { background: rgba(255,255,255,.08); }
+.pinpad-key.is-pressed, .pinpad-key:active { background: rgba(240,165,0,.22); border-color: rgba(240,165,0,.5); transform: scale(.95); }
+.pinpad-key-back { font-size: clamp(18px, 2.8dvh, 22px); color: var(--text-2); background: transparent; }
+.pinpad-spacer { display: block; }
+.pinpad.is-busy .pinpad-key { opacity: .45; pointer-events: none; }
+.pinpad-backbtn { margin-top: 8px; }
+/* Petits écrans en hauteur : on retire le superflu */
+@media (max-height: 640px) {
+  #screen-login.pin-mode .login-cinema-icon { display: none; }
+  .pinpad-wave { display: none; }
+}
+@media (max-height: 520px) {
+  #screen-login.pin-mode .login-title { display: none; }
+  #screen-login.pin-mode .login-box { margin-top: 0; padding-top: 12px; }
+  .pinpad-hello { display: none; }
+  .pinpad-cells { margin-top: 8px; }
+  .pinpad-key { height: 40px; }
+  .pinpad-backbtn { margin-top: 4px; }
+}
+
 /* ════════════════ ADMIN ════════════════ */
 
 /* Liste élèves : tableau dans une carte arrondie */
@@ -9022,23 +9109,38 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       <button class="btn btn-ghost btn-full btn-sm mt-1" onclick="backCode()">← Retour</button>
     </div>
 
-    <!-- Étape 3 : connexion (compte existant) — PIN 6 chiffres masqués -->
+    <!-- Étape 3 : connexion (compte existant) — 6 cases + pavé numérique intégré
+         (pas de clavier du téléphone : aucune frappe perdue, tout tient à l'écran) -->
     <div id="ls-pin" class="hidden">
-      <div class="text-center mb-2">
-        <div style="font-size:40px;margin-bottom:12px;">👋</div>
-        <div class="fw-bold" style="font-size:18px;">Bon retour !</div>
-        <div class="text-sm text-muted mt-1" id="login-name"></div>
+      <div class="pinpad-head">
+        <div class="pinpad-wave">👋</div>
+        <div class="fw-bold pinpad-hello">Bon retour !</div>
+        <div class="text-sm text-muted" id="login-name"></div>
       </div>
-      <div class="pins" id="pins-login" style="margin:22px 0;">
-        <input type="text" inputmode="numeric" maxlength="1" class="pin" id="p1" autocomplete="off">
-		<input type="text" inputmode="numeric" maxlength="1" class="pin" id="p2" autocomplete="off">
-		<input type="text" inputmode="numeric" maxlength="1" class="pin" id="p3" autocomplete="off">
-		<input type="text" inputmode="numeric" maxlength="1" class="pin" id="p4" autocomplete="off">
-		<input type="text" inputmode="numeric" maxlength="1" class="pin" id="p5" autocomplete="off">
-		<input type="text" inputmode="numeric" maxlength="1" class="pin" id="p6" autocomplete="off">
+      <div class="pins pinpad-cells" id="pins-login" aria-label="Code secret">
+        <div class="pin" id="p1"></div>
+        <div class="pin" id="p2"></div>
+        <div class="pin" id="p3"></div>
+        <div class="pin" id="p4"></div>
+        <div class="pin" id="p5"></div>
+        <div class="pin" id="p6"></div>
       </div>
-      <!-- texte retiré : auto-login déjà implicite -->
-      <button class="btn btn-ghost btn-full btn-sm" onclick="backCode()">← Retour</button>
+      <div class="pinpad-status" id="pinpad-status" aria-live="polite"></div>
+      <div class="pinpad" id="pinpad">
+        <button type="button" class="pinpad-key" data-k="1">1</button>
+        <button type="button" class="pinpad-key" data-k="2">2</button>
+        <button type="button" class="pinpad-key" data-k="3">3</button>
+        <button type="button" class="pinpad-key" data-k="4">4</button>
+        <button type="button" class="pinpad-key" data-k="5">5</button>
+        <button type="button" class="pinpad-key" data-k="6">6</button>
+        <button type="button" class="pinpad-key" data-k="7">7</button>
+        <button type="button" class="pinpad-key" data-k="8">8</button>
+        <button type="button" class="pinpad-key" data-k="9">9</button>
+        <span class="pinpad-spacer" aria-hidden="true"></span>
+        <button type="button" class="pinpad-key" data-k="0">0</button>
+        <button type="button" class="pinpad-key pinpad-key-back" data-k="back" aria-label="Effacer">⌫</button>
+      </div>
+      <button class="btn btn-ghost btn-full btn-sm pinpad-backbtn" onclick="backCode()">← Retour</button>
     </div>
 
     <!-- Accès admin — caché, accessible uniquement via appui long sur le logo -->
@@ -10733,8 +10835,12 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     <button class="btn btn-gold btn-full btn-lg" onclick="pushPromptActivate()">
       🔔 Activer maintenant
     </button>
-    <button class="btn btn-ghost btn-full" style="margin-top:10px;" onclick="closeModal('modal-push-firstlogin')">
-      Plus tard
+    <label class="prompt-snooze">
+      <input type="checkbox" id="push-prompt-snooze" onchange="_promptSetSnooze('push', this.checked)">
+      <span>Me le reproposer plus tard <small>(dans 5 connexions)</small></span>
+    </label>
+    <button class="btn btn-ghost btn-full" onclick="closeModal('modal-push-firstlogin')">
+      Fermer
     </button>
   </div>
 </div>
@@ -10742,12 +10848,11 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 <!-- ================================================================
      STAY-LOGGED — Modale onboarding "Rester connecté"
      ================================================================
-     Proposée aux élèves après 3 logins réussis sur PWA installée.
-     - Activer        → enregistre la préférence, ferme la modale
-     - Plus tard      → re-proposera dans 24 h
-     - Non merci      → re-proposera dans 30 jours
-     Dans tous les cas (sauf Activer), un petit message rappelle que la
-     fonctionnalité est dans le profil. -->
+     Proposée à chaque ouverture de l'app installée, juste après la fenêtre
+     des notifications, tant que l'option n'est pas activée.
+     - Activer                       → enregistre la préférence
+     - Fermer                        → reviendra à la prochaine ouverture
+     - Case « reproposer plus tard » → ne revient qu'après 5 ouvertures -->
 <div class="overlay hidden" id="modal-stay-logged-firstlogin">
   <div class="sheet" onclick="event.stopPropagation()" style="max-width:440px;">
     <div class="pwa-flogin-emoji">🔒</div>
@@ -10766,11 +10871,12 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     <button class="btn btn-gold btn-full btn-lg" onclick="stayLoggedPromptActivate()">
       🔒 Activer maintenant
     </button>
-    <button class="btn btn-ghost btn-full" style="margin-top:10px;" onclick="stayLoggedPromptLater()">
-      Plus tard
-    </button>
-    <button class="btn btn-ghost btn-full" style="margin-top:6px;font-size:13px;color:var(--text-3);" onclick="stayLoggedPromptDismiss()">
-      Non merci
+    <label class="prompt-snooze">
+      <input type="checkbox" id="stay-prompt-snooze" onchange="_promptSetSnooze('stay', this.checked)">
+      <span>Me le reproposer plus tard <small>(dans 5 connexions)</small></span>
+    </label>
+    <button class="btn btn-ghost btn-full" onclick="stayLoggedPromptClose()">
+      Fermer
     </button>
     <div style="text-align:center;margin-top:14px;font-size:12px;color:var(--text-3);line-height:1.5;">
       💡 Tu pourras toujours activer cette option<br>plus tard depuis ton profil.
@@ -12703,19 +12809,19 @@ function pwaCheckAndShow() {
    ----------------------------------------------------------------
    Stratégie :
    - Ne s'active QUE si l'app est en standalone (PWA installée)
-   - Au tout premier lancement de la PWA : modale obligatoire
-     "Active les notifs" (700ms après le loadHome)
-   - Aux lancements suivants si pas activées : bannière persistante
-     dans le même slot que la bannière PWA install
+   - À chaque ouverture tant que non activées : modale "Active les notifs"
+     (700ms après le loadHome), sauf report « dans 5 connexions »
+   - Bannière persistante en plus, dans le même slot que la bannière PWA install
    - Si l'élève a refusé (Notification.permission === 'denied') :
      bannière "comment réactiver" avec modale tutoriel par OS
    - Si activées (granted + subscription valide) → tout caché
 
    Persistance localStorage :
-   - cinema_push_first_seen : true après la 1re modale
+   - ci_prompt_snooze_push_<id> : n° d'ouverture à partir duquel reproposer
 */
 
 let _pushPromptCheckedThisLoad = false;
+let _pushPromptModalPending = false; // fenêtre programmée mais pas encore ouverte
 
 /** Render de la bannière. Variante différente selon état :
     - 'available' : invitation classique (pulsation dorée + cloche)
@@ -12861,22 +12967,20 @@ async function pushPromptCheckAndShow() {
     return;
   }
 
-  // Cas 'available' : on peut proposer
-  let firstSeen = false;
-  try {
-    firstSeen = localStorage.getItem('cinema_push_first_seen') === 'true';
-  } catch (_) {}
-
-  if (!firstSeen) {
-    // Premier lancement de la PWA → modale obligatoire
-    try { localStorage.setItem('cinema_push_first_seen', 'true'); } catch (_) {}
-    setTimeout(() => openModal('modal-push-firstlogin'), 700);
-    _pushPromptRenderBanner('available');
-    return;
-  }
-
-  // Lancements suivants → bannière persistante
+  // Cas 'available' : fenêtre à chaque ouverture de l'app, sauf si l'élève
+  // a coché « Me le reproposer plus tard » (alors : dans 5 ouvertures).
+  // La bannière reste affichée dans tous les cas.
   _pushPromptRenderBanner('available');
+  if (!_promptIsSnoozed('push')) {
+    _pushPromptModalPending = true;
+    setTimeout(() => {
+      _pushPromptModalPending = false;
+      if (!S.user || S.isAdmin || _getPushSupportStatus() !== 'available') return;
+      const cb = document.getElementById('push-prompt-snooze');
+      if (cb) cb.checked = false;
+      openModal('modal-push-firstlogin');
+    }, 700);
+  }
 }
 
 /* ================================================================
@@ -15117,7 +15221,7 @@ function _processBadgeNotifQueue() {
   // Garde-fou : tant qu'une modale prioritaire est visible (What's New,
   // rappel anniversaire, onboarding), on diffère (re-poll dans 1.5s).
   const _vis = id => { const el = document.getElementById(id); return el && !el.classList.contains('hidden'); };
-  const onboarding = (typeof _isOnboardingModalOpen === 'function') && _isOnboardingModalOpen();
+  const onboarding = (typeof _onboardingBusy === 'function') && _onboardingBusy();
   if (_vis('modal-whatsnew') || _vis('modal-birthday-prompt') || onboarding) {
     _badgeNotifProcessing = true;
     setTimeout(_processBadgeNotifQueue, 1500);
@@ -17039,6 +17143,19 @@ function whatsNewClose() {
    tuto iOS d'installation, ou demande d'activation push). Le tuto What's New,
    le rappel de date de naissance et le check de badges après login attendent
    tous que ces modales soient fermées avant de s'afficher. */
+/* Séquence d'accueil en cours ? (fenêtre ouverte, ou notifications / rester
+   connecté pas encore décidés). Les autres fenêtres (nouveautés, anniversaire,
+   badges, niveaux) attendent leur tour. Plafonné à 25 s par sécurité. */
+let _onboardingSeqStart = 0;
+let _stayPromptSettled = false;
+function _onboardingBusy() {
+  if (_isOnboardingModalOpen()) return true;
+  if (!S.user || S.isAdmin) return false;
+  if (!_onboardingSeqStart || Date.now() - _onboardingSeqStart > 25000) return false;
+  if (typeof _pwaIsStandalone === 'function' && !_pwaIsStandalone()) return false;
+  return !_pushPromptCheckedThisLoad || _pushPromptModalPending || !_stayPromptSettled;
+}
+
 function _isOnboardingModalOpen() {
   const ids = ['modal-pwa-firstlogin', 'modal-pwa-ios-tuto', 'modal-push-firstlogin', 'modal-stay-logged-firstlogin'];
   for (const id of ids) {
@@ -17049,64 +17166,96 @@ function _isOnboardingModalOpen() {
 }
 
 /* ============================================================================
-   STAY-LOGGED ONBOARDING — Modale "Rester connecté" pour les élèves
+   OUVERTURES DE L'APP + REPORT DES FENÊTRES D'ACCUEIL
    ============================================================================
-   Conditions d'affichage (toutes doivent être vraies) :
-   - L'utilisateur est un élève (pas l'admin)
-   - L'app tourne en PWA installée (pas dans le navigateur web)
-   - Le toggle n'est pas DÉJÀ activé
-   - L'élève s'est connecté >= 3 fois (compteur ci_login_count_<id>)
-   - On n'est pas dans une période de report (Plus tard 24h ou Non merci 30j)
+   Une « connexion » = chaque ouverture de l'app par l'élève : connexion avec
+   le code, session restaurée au lancement, ou retour dans l'app après au
+   moins 30 min en arrière-plan. Compteur par élève et par appareil.
+
+   Fenêtres « Notifications » puis « Rester connecté » : proposées à chaque
+   ouverture tant que la fonction n'est pas activée. Si l'élève coche
+   « Me le reproposer plus tard », la fenêtre ne revient qu'après 5 ouvertures.
    ============================================================================ */
-const STAY_LOGGED_LOGIN_COUNT_KEY = 'ci_stay_logged_login_count';
-const STAY_LOGGED_REMIND_AFTER_KEY = 'ci_stay_logged_remind_after';
-const STAY_LOGGED_MIN_LOGINS = 3;
-const STAY_LOGGED_LATER_DELAY = 24 * 60 * 60 * 1000;        // 24 h
-const STAY_LOGGED_DISMISS_DELAY = 30 * 24 * 60 * 60 * 1000; // 30 j
+const APP_OPEN_COUNT_KEY = 'ci_app_open_count';
+const PROMPT_SNOOZE_OPENINGS = 5;
+const APP_REOPEN_AFTER_MS = 30 * 60 * 1000; // retour au premier plan = nouvelle ouverture
 
-/* Compteur de logins par élève (clé localStorage avec son id) */
-function _stayLoggedIncrementLoginCount() {
-  if (!S.user || S.isAdmin) return;
-  try {
-    const key = `${STAY_LOGGED_LOGIN_COUNT_KEY}_${S.user.id}`;
-    const cur = parseInt(localStorage.getItem(key) || '0', 10);
-    localStorage.setItem(key, String(cur + 1));
-  } catch (_) {}
-}
-
-function _stayLoggedGetLoginCount() {
+function _appGetOpenCount() {
   if (!S.user || S.isAdmin) return 0;
-  try {
-    const key = `${STAY_LOGGED_LOGIN_COUNT_KEY}_${S.user.id}`;
-    return parseInt(localStorage.getItem(key) || '0', 10);
-  } catch (_) { return 0; }
+  try { return parseInt(localStorage.getItem(`${APP_OPEN_COUNT_KEY}_${S.user.id}`) || '0', 10) || 0; }
+  catch (_) { return 0; }
 }
 
-function _stayLoggedIsInRemindWindow() {
+function _registerAppOpening() {
+  if (!S.user || S.isAdmin) return;
+  // Nouvelle séquence de fenêtres d'accueil : notifications → rester connecté → le reste
+  _onboardingSeqStart = Date.now();
+  _stayPromptSettled = false;
+  try { localStorage.setItem(`${APP_OPEN_COUNT_KEY}_${S.user.id}`, String(_appGetOpenCount() + 1)); } catch (_) {}
+}
+
+function _promptSnoozeKey(kind) { return `ci_prompt_snooze_${kind}_${S.user ? S.user.id : ''}`; }
+
+function _promptIsSnoozed(kind) {
+  if (!S.user) return false;
   try {
-    const remindAfter = parseInt(localStorage.getItem(STAY_LOGGED_REMIND_AFTER_KEY) || '0', 10);
-    return remindAfter > Date.now();
+    const until = parseInt(localStorage.getItem(_promptSnoozeKey(kind)) || '0', 10) || 0;
+    return _appGetOpenCount() < until;
   } catch (_) { return false; }
 }
 
-/* Affiche la modale onboarding si toutes les conditions sont remplies.
-   Appelée après les autres modales d'onboarding pour ne pas chevaucher. */
-async function checkAndShowStayLogged() {
-  if (S.isAdmin || !S.user) return;
+/* Case cochée → reproposer dans 5 ouvertures ; décochée → à chaque ouverture */
+function _promptSetSnooze(kind, on) {
+  if (!S.user) return;
+  try {
+    if (on) localStorage.setItem(_promptSnoozeKey(kind), String(_appGetOpenCount() + PROMPT_SNOOZE_OPENINGS));
+    else localStorage.removeItem(_promptSnoozeKey(kind));
+  } catch (_) {}
+}
+
+/* Retour dans l'app après ≥ 30 min en arrière-plan = nouvelle ouverture */
+let _appHiddenAt = 0;
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') { _appHiddenAt = Date.now(); return; }
+  if (!_appHiddenAt || Date.now() - _appHiddenAt < APP_REOPEN_AFTER_MS) return;
+  _appHiddenAt = 0;
+  if (!S.user || S.isAdmin) return;
+  _registerAppOpening();
+  if (typeof _pwaIsStandalone === 'function' && _pwaIsStandalone()) {
+    _pushPromptCheckedThisLoad = false;
+    pushPromptCheckAndShow();
+    setTimeout(checkAndShowStayLogged, 1200);
+  }
+});
+
+/* Fenêtre « Rester connecté » : app installée, option non activée, pas de report.
+   Toujours APRÈS la décision sur la fenêtre des notifications. */
+async function checkAndShowStayLogged(attempt = 0) {
+  const settle = () => { _stayPromptSettled = true; };
+  if (S.isAdmin || !S.user) return settle();
   // PWA uniquement
-  if (typeof _pwaIsStandalone === 'function' && !_pwaIsStandalone()) return;
+  if (typeof _pwaIsStandalone === 'function' && !_pwaIsStandalone()) return settle();
   // Déjà activé
-  if (isStudentPersistEnabled()) return;
-  // Compteur de logins
-  if (_stayLoggedGetLoginCount() < STAY_LOGGED_MIN_LOGINS) return;
-  // Période de report
-  if (_stayLoggedIsInRemindWindow()) return;
-  // Attendre les autres modales
-  if (_isOnboardingModalOpen()) {
-    setTimeout(checkAndShowStayLogged, 1500);
+  if (isStudentPersistEnabled()) return settle();
+  // Report « dans 5 connexions »
+  if (_promptIsSnoozed('stay')) return settle();
+  const modal = document.getElementById('modal-stay-logged-firstlogin');
+  if (modal && !modal.classList.contains('hidden')) return settle();
+  // Attendre que la fenêtre des notifications soit décidée / fermée
+  // (au plus ~30 s, au cas où l'accueil ne finirait pas de charger)
+  const pushPending = !_pushPromptCheckedThisLoad || _pushPromptModalPending;
+  if ((pushPending || _isOnboardingModalOpen()) && attempt < 20) {
+    setTimeout(() => checkAndShowStayLogged(attempt + 1), 1500);
     return;
   }
-  setTimeout(() => openModal('modal-stay-logged-firstlogin'), 400);
+  if (_isOnboardingModalOpen()) return settle();
+  setTimeout(() => {
+    settle();
+    if (!S.user || S.isAdmin || isStudentPersistEnabled()) return;
+    const cb = document.getElementById('stay-prompt-snooze');
+    if (cb) cb.checked = false;
+    openModal('modal-stay-logged-firstlogin');
+  }, 400);
 }
 
 /* Bouton "Activer maintenant" */
@@ -17119,20 +17268,8 @@ function stayLoggedPromptActivate() {
   toast('🔒 Tu resteras connecté sur cet appareil', 'success');
 }
 
-/* Bouton "Plus tard" → re-proposera dans 24h */
-function stayLoggedPromptLater() {
-  try {
-    localStorage.setItem(STAY_LOGGED_REMIND_AFTER_KEY, String(Date.now() + STAY_LOGGED_LATER_DELAY));
-  } catch (_) {}
-  closeModal('modal-stay-logged-firstlogin');
-  toast('Tu retrouves cette option dans ton profil 👤', 'info', 3500);
-}
-
-/* Bouton "Non merci" → re-proposera dans 30 jours */
-function stayLoggedPromptDismiss() {
-  try {
-    localStorage.setItem(STAY_LOGGED_REMIND_AFTER_KEY, String(Date.now() + STAY_LOGGED_DISMISS_DELAY));
-  } catch (_) {}
+/* Bouton "Fermer" (le report éventuel est déjà enregistré par la case) */
+function stayLoggedPromptClose() {
   closeModal('modal-stay-logged-firstlogin');
   toast('Tu retrouves cette option dans ton profil 👤', 'info', 3500);
 }
@@ -17146,8 +17283,8 @@ async function checkAndShowWhatsNew() {
   if (S.isAdmin) return;
   if (!S.user || !S.user.id) return;
 
-  // Attendre la fermeture des modales d'onboarding
-  if (_isOnboardingModalOpen()) {
+  // Attendre la fin de la séquence d'accueil (notifications, rester connecté)
+  if (_onboardingBusy()) {
     setTimeout(checkAndShowWhatsNew, 1500);
     return;
   }
@@ -17209,8 +17346,8 @@ function checkAndShowBirthdayPrompt() {
 
   if (!_shouldShowBirthdayPrompt()) return;
 
-  // Attendre la fermeture des modales d'onboarding (PWA install, push)
-  if (typeof _isOnboardingModalOpen === 'function' && _isOnboardingModalOpen()) {
+  // Attendre la fin de la séquence d'accueil (PWA install, notifications, rester connecté)
+  if (typeof _onboardingBusy === 'function' && _onboardingBusy()) {
     setTimeout(checkAndShowBirthdayPrompt, 1500);
     return;
   }
@@ -18821,6 +18958,11 @@ function showLS(id) {
   ['ls-code','ls-activate','ls-pin','ls-admin'].forEach(i =>
     document.getElementById(i).classList.toggle('hidden', i !== 'ls-' + id));
 
+  // Écran compact + pavé numérique uniquement à l'étape du code secret
+  document.getElementById('screen-login')?.classList.toggle('pin-mode', id === 'pin');
+  // Particules en pause pendant la saisie du code (téléphones modestes)
+  window._loginParticlesPaused = (id === 'pin');
+
   if (id === 'code') return;
 
   if (id === 'activate') {
@@ -18829,7 +18971,10 @@ function showLS(id) {
   }
 
   if (id === 'pin') {
-    setupPins('p1','p2','p3','p4','p5','p6', handleLogin);
+    // Fermer le clavier du téléphone resté ouvert sur l'identifiant
+    try { document.activeElement && document.activeElement.blur(); } catch (_) {}
+    pinPadInit();
+    pinPadReset();
   }
 
   if (id === 'admin') {
@@ -19019,6 +19164,104 @@ function setupPins(...args) {
   });
 }
 
+/* ── Pavé numérique de connexion ──────────────────────────────
+   Valeur gardée en mémoire (jamais dans un champ de saisie) :
+   chaque appui est pris en compte au moment du contact du doigt,
+   donc aucune frappe rapide ne peut se perdre. */
+let _pinPadValue = '';
+let _pinPadBusy = false;
+let _pinPadInitDone = false;
+
+function pinPadInit() {
+  if (_pinPadInitDone) return;
+  const pad = document.getElementById('pinpad');
+  if (!pad) return;
+  _pinPadInitDone = true;
+  const handle = (btn) => {
+    const k = btn.dataset.k;
+    btn.classList.add('is-pressed');
+    setTimeout(() => btn.classList.remove('is-pressed'), 110);
+    if (k === 'back') pinPadBackspace(); else pinPadPress(k);
+  };
+  // Au contact du doigt (plus réactif que le clic, et pas de double-tap zoom)
+  pad.addEventListener('pointerdown', (e) => {
+    const btn = e.target.closest('.pinpad-key');
+    if (!btn) return;
+    e.preventDefault();
+    handle(btn);
+  });
+  // Activation au clavier (Tab + Entrée) : clic sans pointeur
+  pad.addEventListener('click', (e) => {
+    const btn = e.target.closest('.pinpad-key');
+    if (btn && e.detail === 0) handle(btn);
+  });
+  // Ordinateur : saisie au clavier physique
+  document.addEventListener('keydown', (e) => {
+    const box = document.getElementById('ls-pin');
+    const login = document.getElementById('screen-login');
+    if (!box || box.classList.contains('hidden') || !login || login.classList.contains('hidden')) return;
+    if (/^[0-9]$/.test(e.key)) { e.preventDefault(); pinPadPress(e.key); }
+    else if (e.key === 'Backspace') { e.preventDefault(); pinPadBackspace(); }
+  });
+}
+
+function _pinPadRender() {
+  for (let i = 0; i < 6; i++) {
+    const el = document.getElementById('p' + (i + 1));
+    if (!el) continue;
+    const filled = i < _pinPadValue.length;
+    el.textContent = filled ? '•' : '';
+    el.classList.toggle('is-filled', filled);
+    el.classList.toggle('is-active', !_pinPadBusy && i === _pinPadValue.length);
+  }
+  document.getElementById('pinpad')?.classList.toggle('is-busy', _pinPadBusy);
+}
+
+function _pinPadStatus(text, kind) {
+  const st = document.getElementById('pinpad-status');
+  if (!st) return;
+  st.textContent = text || '';
+  st.classList.toggle('is-busy', kind === 'busy');
+  st.classList.toggle('is-error', kind === 'error');
+}
+
+function pinPadPress(d) {
+  if (_pinPadBusy || _pinPadValue.length >= 6) return;
+  _pinPadValue += d;
+  if (_pinPadValue.length === 1) _pinPadStatus('');
+  try { navigator.vibrate && navigator.vibrate(8); } catch (_) {}
+  if (_pinPadValue.length === 6) {
+    _pinPadBusy = true;
+    _pinPadRender();
+    _pinPadStatus('Connexion…', 'busy');
+    // Laisser le 6e point s'afficher avant le calcul
+    setTimeout(handleLogin, 30);
+    return;
+  }
+  _pinPadRender();
+}
+
+function pinPadBackspace() {
+  if (_pinPadBusy || !_pinPadValue) return;
+  _pinPadValue = _pinPadValue.slice(0, -1);
+  _pinPadRender();
+}
+
+function pinPadReset(errorText) {
+  _pinPadValue = '';
+  _pinPadBusy = false;
+  _pinPadRender();
+  _pinPadStatus(errorText || '', errorText ? 'error' : null);
+  if (errorText) {
+    const cells = document.getElementById('pins-login');
+    if (cells) {
+      cells.classList.remove('is-error'); void cells.offsetWidth; cells.classList.add('is-error');
+      setTimeout(() => cells.classList.remove('is-error'), 420);
+    }
+    try { navigator.vibrate && navigator.vibrate([30, 40, 30]); } catch (_) {}
+  }
+}
+
 function getPin(...ids) {
   return ids.map(id => document.getElementById(id).dataset.real || '').join('');
 }
@@ -19135,7 +19378,6 @@ async function handleCode() {
     document.getElementById('login-name').textContent =
       `${data.first_name} ${data.last_name}`;
     showLS('pin');
-    openPinKeyboard('p1');
   }
 }
 
@@ -19153,8 +19395,9 @@ async function handleActivate() {
     }
 
     const hash = await sha256(initialPin);
-    if (hash !== _tmpStudent.password_hash) {
-      toast('PIN initial incorrect', 'error');
+    const res = await _verifyStudentPin(_tmpStudent.id, hash, _tmpStudent.password_hash);
+    if (!res.ok) {
+      toast(res.code === 'WRONG' ? 'PIN initial incorrect' : _pinErrorText(res), 'error');
       setupVisiblePins('a1','a2','a3','a4','a5','a6', { autoFocus: true });
       return;
     }
@@ -19228,21 +19471,63 @@ async function handleActivate() {
 // Connexion — PIN 6 chiffres
 let _loginInProgress = false;
 
+/* Vérifie un code secret élève CÔTÉ SERVEUR (fonction verify_student_pin) :
+   l'empreinte du code n'est jamais envoyée au téléphone, et le serveur bloque
+   le compte 15 min après 5 erreurs.
+   Repli (uniquement tant que le SQL n'est pas installé) : comparaison locale
+   avec l'empreinte fournie, comme avant.
+   Retour : { ok, code: 'OK'|'WRONG'|'LOCKED'|'NETWORK'|'NO_RPC', remaining, locked_until } */
+async function _verifyStudentPin(studentId, pinHash, localHash) {
+  try {
+    const { data, error } = await db.rpc('verify_student_pin', {
+      p_student_id: studentId, p_pin_hash: pinHash
+    });
+    if (!error && data && typeof data === 'object') return data;
+    const missing = error && (error.code === 'PGRST202' || error.code === '42883' ||
+      /could not find the function|does not exist/i.test(error.message || ''));
+    if (missing) {
+      if (localHash) return { ok: pinHash === localHash, code: pinHash === localHash ? 'OK' : 'WRONG' };
+      return { ok: false, code: 'NO_RPC' };
+    }
+    console.warn('[verifyPin] erreur:', error);
+    return { ok: false, code: 'NETWORK' };
+  } catch (e) {
+    console.warn('[verifyPin] exception:', e);
+    return { ok: false, code: 'NETWORK' };
+  }
+}
+
+function _pinErrorText(r) {
+  if (!r) return 'Code incorrect';
+  if (r.code === 'LOCKED') {
+    const ms = r.locked_until ? (new Date(r.locked_until).getTime() - Date.now()) : 15 * 60000;
+    const min = Math.max(1, Math.ceil(ms / 60000));
+    return `Trop d'essais. Réessaie dans ${min} min.`;
+  }
+  if (r.code === 'NETWORK') return 'Pas de connexion, réessaie.';
+  if (r.code === 'NOT_FOUND') return 'Compte introuvable.';
+  if (typeof r.remaining === 'number' && r.remaining <= 2) {
+    return r.remaining > 0
+      ? `Code incorrect — encore ${r.remaining} essai${r.remaining > 1 ? 's' : ''}`
+      : 'Code incorrect';
+  }
+  return 'Code incorrect';
+}
+
 async function handleLogin() {
   if (_loginInProgress) return;
   _loginInProgress = true;
   try {
-    const pin = getPin('p1','p2','p3','p4','p5','p6');
+    const pin = _pinPadValue;
     if (pin.length !== 6) {
-      toast('Entre ton code secret à 6 chiffres', 'error');
-      setupPins('p1','p2','p3','p4','p5','p6', handleLogin);
+      pinPadReset();
       return;
     }
 
     const hash = await sha256(pin);
-    if (hash !== _tmpStudent.password_hash) {
-      toast('Code incorrect', 'error');
-      setupPins('p1','p2','p3','p4','p5','p6', handleLogin);
+    const res = await _verifyStudentPin(_tmpStudent.id, hash, _tmpStudent.password_hash);
+    if (!res.ok) {
+      pinPadReset(_pinErrorText(res));
       return;
     }
 
@@ -19365,8 +19650,8 @@ async function loginAs(student) {
 
   navigateTo('home');
 
-  // Incrémenter le compteur de logins (utilisé par l'onboarding "Rester connecté")
-  _stayLoggedIncrementLoginCount();
+  // Compter l'ouverture (fenêtres notifications / rester connecté)
+  _registerAppOpening();
 
   // Affichage des tutoriels What's New non vus (silencieux si aucun)
   checkAndShowWhatsNew();
@@ -19376,7 +19661,7 @@ async function loginAs(student) {
   // attend la fermeture de la modale What's New si elle est encore visible.
   setTimeout(checkAndShowBirthdayPrompt, 1200);
 
-  // Modale onboarding "Rester connecté" (PWA + 3+ logins)
+  // Modale "Rester connecté" (PWA, après la fenêtre des notifications)
   setTimeout(checkAndShowStayLogged, 2000);
 
   // Batch C3 — Check rétroactif des badges à chaque login : débloque ceux que
@@ -19527,6 +19812,10 @@ async function _resumeStudentSession() {
 
   navigateTo('home');
 
+  // Compter l'ouverture (fenêtres notifications / rester connecté)
+  _registerAppOpening();
+  setTimeout(checkAndShowStayLogged, 2000);
+
   // Resync silencieuse de la subscription push (uniquement pour un compte actif)
   _silentRefreshPushSubscription();
 
@@ -19543,7 +19832,7 @@ async function _resumeStudentSession() {
 function _checkBadgesAfterLogin() {
   if (!S.user || S.isAdmin) return;
   // Attendre la fermeture des modales d'onboarding (PWA install, push)
-  if (typeof _isOnboardingModalOpen === 'function' && _isOnboardingModalOpen()) {
+  if (typeof _onboardingBusy === 'function' && _onboardingBusy()) {
     setTimeout(_checkBadgesAfterLogin, 1500);
     return;
   }
@@ -24037,10 +24326,11 @@ async function loadNextSessionCard() {
       return;
     }
     
-    // Compter inscrits et liste d'attente
+    // Compter inscrits, liste d'attente et votes reçus par le film
     const [
       { count: registeredCount },
-      { count: waitlistCount }
+      { count: waitlistCount },
+      { count: filmVotesCount }
     ] = await Promise.all([
       db.from('registrations')
         .select('id', { count: 'exact', head: true })
@@ -24049,7 +24339,10 @@ async function loadNextSessionCard() {
       db.from('registrations')
         .select('id', { count: 'exact', head: true })
         .eq('session_id', session.id)
-        .eq('status', 'waitlist')
+        .eq('status', 'waitlist'),
+      session.films?.id
+        ? db.from('votes').select('id', { count: 'exact', head: true }).eq('film_id', session.films.id)
+        : Promise.resolve({ count: 0 })
     ]);
     
     const film = session.films || {};
@@ -24111,6 +24404,10 @@ async function loadNextSessionCard() {
         <div class="nsc-top">
           <div class="nsc-badge nsc-badge-clickable" onclick="event.stopPropagation(); openEditSession('${session.id}', '${(filmTitle || '').replace(/'/g, "\\'")}', '${session.films?.id || ''}')" title="Cliquer pour modifier la séance">📅 ${sessionDate} • ${session.session_time || '20:00'} <span style="opacity:.6;font-size:10px;margin-left:4px;">✏️</span></div>
           <h2 class="nsc-title">${filmTitle}</h2>
+          ${film.id ? `
+            <button class="nsc-votes-pill" onclick="event.stopPropagation(); viewFilmVoters('${film.id}', '${(filmTitle || '').replace(/'/g, "\\'")}', '${session.id}')" title="Voir qui avait voté pour ce film">
+              🗳️ ${filmVotesCount || 0} vote${(filmVotesCount || 0) > 1 ? 's' : ''} <span class="nsc-votes-pill-see">· voir qui</span>
+            </button>` : ''}
         </div>
         <div class="nsc-bottom">
           <div class="nsc-stats">
@@ -26550,7 +26847,7 @@ async function loadAdminVotes() {
     </div>`).join('');
 }
 
-async function viewFilmVoters(filmId, filmTitle) {
+async function viewFilmVoters(filmId, filmTitle, sessionId) {
   const titleEl = document.getElementById('modal-voters-title');
   const contentEl = document.getElementById('modal-voters-content');
 
@@ -26558,25 +26855,51 @@ async function viewFilmVoters(filmId, filmTitle) {
   contentEl.innerHTML = '<div class="loader" style="padding:24px;"><div class="spinner"></div></div>';
   openModal('modal-voters');
 
-  const { data, error } = await db
-    .from('votes')
-    .select('students(id, first_name, last_name, class_name)')
-    .eq('film_id', filmId);
+  const [{ data, error }, regRes] = await Promise.all([
+    db.from('votes')
+      .select('students(id, first_name, last_name, class_name)')
+      .eq('film_id', filmId),
+    // Depuis la carte de séance : savoir si chaque votant s'est inscrit
+    sessionId
+      ? db.from('registrations').select('student_id, status').eq('session_id', sessionId)
+      : Promise.resolve({ data: null })
+  ]);
 
   if (error || !data?.length) {
     contentEl.innerHTML = '<p class="text-muted text-center" style="padding:20px;">Aucun vote pour ce film.</p>';
     return;
   }
 
+  const regBy = {};
+  (regRes?.data || []).forEach(r => { regBy[r.student_id] = r.status; });
+  const withSession = !!sessionId && Array.isArray(regRes?.data);
+  const rank = st => st === 'registered' ? 0 : (st === 'waitlist' ? 1 : 2);
+  const rows = data.filter(v => v.students).sort((a, b) => {
+    if (withSession) {
+      const d = rank(regBy[a.students.id]) - rank(regBy[b.students.id]);
+      if (d) return d;
+    }
+    return `${a.students.last_name} ${a.students.first_name}`.localeCompare(`${b.students.last_name} ${b.students.first_name}`, 'fr');
+  });
+  const nbInscrits = withSession ? rows.filter(v => regBy[v.students.id] === 'registered').length : 0;
+  const statusBadge = st => st === 'registered'
+    ? '<span class="badge badge-green">✅ Inscrit</span>'
+    : st === 'waitlist'
+      ? '<span class="badge badge-gold">⏳ Attente</span>'
+      : '<span class="badge badge-muted">Pas inscrit</span>';
+
   contentEl.innerHTML = `
-    <p class="text-sm text-muted mb-1">${data.length} vote${data.length > 1 ? 's' : ''}</p>
+    <p class="text-sm text-muted mb-1">${rows.length} vote${rows.length > 1 ? 's' : ''}${withSession ? ` · ${nbInscrits} inscrit${nbInscrits > 1 ? 's' : ''} à la séance` : ''}</p>
     <div style="display:flex;flex-direction:column;gap:7px;">
-      ${data.map(v => `
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--surface-2);border-radius:8px;">
-          <button class="admin-student-link" onclick="openStudentDetail('${v.students?.id}')">
-            ${v.students?.first_name || ''} ${v.students?.last_name || ''}
+      ${rows.map(v => `
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 12px;background:var(--surface-2);border-radius:8px;">
+          <button class="admin-student-link" style="text-align:left;" onclick="closeModal('modal-voters'); openStudentDetail('${v.students.id}')">
+            ${v.students.first_name || ''} ${v.students.last_name || ''}
           </button>
-          <span class="badge badge-muted">${v.students?.class_name || '—'}</span>
+          <span style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
+            ${withSession ? statusBadge(regBy[v.students.id]) : ''}
+            <span class="badge badge-muted">${v.students.class_name || '—'}</span>
+          </span>
         </div>
       `).join('')}
     </div>
@@ -33060,9 +33383,14 @@ async function handleChangePIN() {
   }
 
   const oldHash = await sha256(oldPin);
-  const { data: student } = await db.from('students').select('password_hash').eq('id', S.user.id).single();
-  if (!student || oldHash !== student.password_hash) {
-    toast('Code actuel incorrect', 'error');
+  let check = await _verifyStudentPin(S.user.id, oldHash, null);
+  if (check.code === 'NO_RPC') {
+    // Repli tant que le SQL n'est pas installé (ancienne méthode)
+    const { data: student } = await db.from('students').select('password_hash').eq('id', S.user.id).single();
+    check = { ok: !!student && oldHash === student.password_hash, code: 'WRONG' };
+  }
+  if (!check.ok) {
+    toast(check.code === 'WRONG' ? 'Code actuel incorrect' : _pinErrorText(check), 'error');
     resetChangePins();
     return;
   }
@@ -33788,7 +34116,8 @@ function initLoginParticles() {
   // Boucle d'animation OPTIMISÉE avec limitation FPS
   function animate(currentTime) {
     animationId = requestAnimationFrame(animate);
-    
+    if (window._loginParticlesPaused) return; // saisie du code en cours
+
     const elapsed = currentTime - lastFrame;
     if (elapsed < frameInterval) return; // Skip frames pour atteindre target FPS
     
