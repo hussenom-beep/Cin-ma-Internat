@@ -8131,6 +8131,10 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 .tp-res-bar { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, rgba(240,165,0,.25), rgba(240,165,0,.08)); }
 .tp-res span, .tp-res b { position: relative; }
 .tp-res b { font-size: 16px; }
+.tp-hero--tight { margin-bottom: 14px; }
+.tn-toggle { display: inline-flex; gap: 4px; padding: 4px; border-radius: 999px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.10); font-size: 13px; font-weight: 700; }
+.tn-toggle span { padding: 7px 12px; border-radius: 999px; color: var(--text-2); }
+.tn-toggle .tn-on { background: var(--gold-soft, rgba(240,165,0,.16)); border: 1px solid rgba(240,165,0,.55); color: var(--gold); }
 
 /* Footer fixe : dots + checkbox (last slide) + boutons */
 .whatsnew-footer {
@@ -10054,6 +10058,12 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     <div class="sheet-handle"></div>
     <div class="sheet-title">🗳️ Nouveau sondage de film</div>
     <p class="text-sm text-muted" style="margin:-6px 0 14px;">Les élèves choisissent parmi les films cochés. C'est toi qui programmes le film à la fin.</p>
+
+    <!-- Visible seulement quand un événement est actif (Noël, Halloween…) -->
+    <div class="polldl-modes hidden" id="pollc-kind">
+      <button type="button" data-k="event" onclick="_pollCreateSetKind('event')">🎄 Soirée de Noël</button>
+      <button type="button" data-k="classic" onclick="_pollCreateSetKind('classic')">🎬 Séance classique</button>
+    </div>
 
     <div class="pollc-label">Films en lice <span id="pollc-count" class="pollc-count">0</span></div>
     <div class="text-xs text-muted" style="margin-bottom:8px;">Triés par nombre de votes. Coche au moins 2 films.</div>
@@ -17050,6 +17060,7 @@ const WHATSNEW_TUTORIALS = [
   {
     slug: 'halloween_2026',
     category: 'events',
+    requiresEventMode: 'halloween',
     title: '🎃 Halloween 2026',
     createdAt: '2026-10-01',
     slides: [
@@ -17180,6 +17191,77 @@ const WHATSNEW_TUTORIALS = [
       label: '🗳️ Aller voter',
       action: 'goToFilmPoll'
     }
+  },
+  {
+    slug: 'christmas_2026',
+    category: 'events',
+    requiresEventMode: 'christmas',   // affiché seulement pendant l'événement Noël
+    title: '🎄 Noël 2026',
+    createdAt: '2026-11-10',
+    slides: [
+      {
+        title: '🎄 Noël arrive au cinéma',
+        body: "Une grande soirée de Noël se prépare : le dernier mercredi avant les vacances, tout l'internat est convié pour un film de Noël. Pas besoin de t'inscrire, il suffit de venir !",
+        image: 'bandeau_noel.png'
+      },
+      {
+        title: '🗳️ Deux espaces de vote',
+        bodyHtml: `
+          <div class="tp-mock tp-mock--center">
+            <div class="tn-toggle"><span class="tn-on">🎄 Noël</span><span>🎬 Année complète</span></div>
+            <div class="tp-mock-warn">Tes votes comptent des deux côtés</div>
+          </div>
+          <p class="whatsnew-slide-body">
+            Jusqu'aux vacances, les votes sont séparés en deux : <strong>les films de Noël</strong> d'un côté, <strong>les films classiques</strong> de l'autre.
+            Bascule entre les deux en haut de l'onglet <strong>Votes</strong>. Tu peux voter des deux côtés !
+          </p>
+        `
+      },
+      {
+        title: '💡 Propose ton film de Noël',
+        bodyHtml: `
+          <div class="tp-mock tp-mock--center">
+            <div class="tn-toggle"><span class="tn-on">🎄 Pour Noël</span><span>🎬 Année complète</span></div>
+            <div class="tp-mock-btn tp-mock-btn--gold tp-mock-btn--wide">📨 Envoyer ma proposition</div>
+          </div>
+          <p class="whatsnew-slide-body">
+            Un film de Noël qui doit absolument passer ? Dans <strong>Proposer</strong>, choisis « 🎄 Pour Noël » avant d'envoyer.
+            S'il est validé, il rejoint les votes de Noël.
+          </p>
+        `
+      },
+      {
+        title: '🏆 Le vote final',
+        bodyHtml: `
+          <div class="tp-hero tp-hero--tight">
+            <div class="tp-mini-poster" style="--h:150"><span>🥈</span></div>
+            <div class="tp-mini-poster tp-mini-poster--mid" style="--h:0"><span>🥇</span></div>
+            <div class="tp-mini-poster" style="--h:120"><span>🥉</span></div>
+          </div>
+          <p class="whatsnew-slide-body">
+            Quelques jours avant la soirée, <strong>les 3 films de Noël les plus votés</strong> s'affrontent dans un vote final, en haut de l'Accueil.
+            Un seul vote, et il est définitif : choisis bien !
+          </p>
+        `
+      },
+      {
+        title: '🎁 Une soirée qui rapporte',
+        bodyHtml: `
+          <div class="tuto-xp-list">
+            <div class="tuto-xp-item"><span class="tuto-xp-icon">🎄</span><span class="tuto-xp-label">Présence à la soirée de Noël</span><span class="tuto-xp-value">+{{XP:event_attended}} XP</span></div>
+            <div class="tuto-xp-item"><span class="tuto-xp-icon">🗳️</span><span class="tuto-xp-label">Vote final</span><span class="tuto-xp-value">+{{XP:poll_vote}} XP</span></div>
+            <div class="tuto-xp-item"><span class="tuto-xp-icon">🤫</span><span class="tuto-xp-label">Un badge secret à débloquer…</span><span class="tuto-xp-value">???</span></div>
+          </div>
+          <p class="whatsnew-slide-body">
+            Vote, propose et viens à la soirée pour finir l'année en beauté. Joyeux Noël ! 🎅
+          </p>
+        `
+      }
+    ],
+    cta: {
+      label: '🎄 Voir les votes de Noël',
+      action: 'goToVotesEvent'
+    }
   }
 ];
 
@@ -17233,6 +17315,8 @@ async function getTutorialsToShowForStudent(studentId) {
   ]);
   return WHATSNEW_TUTORIALS
     .filter(t => !disabled.has(t.slug) && !dismissed.has(t.slug))
+    // Tuto d'événement : seulement pendant l'événement correspondant
+    .filter(t => !t.requiresEventMode || (S.eventMode || 'none') === t.requiresEventMode)
     .sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''));
 }
 
@@ -18936,6 +19020,21 @@ function formatRuntime(minutes) {
   if (h === 0) return `${m} min`;
   if (m === 0) return `${h}h`;
   return `${h}h ${m.toString().padStart(2, '0')}`;
+}
+
+/* Soirée de Noël : le dernier mercredi avant les vacances
+   (= dernier mercredi au plus tard le 20 décembre). */
+function christmasEveningDate() {
+  const now = new Date();
+  const pick = (y) => {
+    const d = new Date(y, 11, 20);
+    d.setDate(20 - ((d.getDay() - 3 + 7) % 7));
+    return d;
+  };
+  let d = pick(now.getFullYear());
+  if (d.getTime() + 86400000 < now.getTime()) d = pick(now.getFullYear() + 1);
+  const p2 = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`;
 }
 
 function nextWednesday() {
@@ -30418,9 +30517,15 @@ async function renderStudentPoll() {
   if (sig === _pollSig.student && body.innerHTML) return;
   _pollSig.student = sig;
 
+  const secTitle = wrap.querySelector('.home-section-title');
+  if (secTitle) secTitle.textContent = poll.event_tag
+    ? `${_pollEventEmoji(poll.event_tag)} Vote final : la ${_pollEventLabelLow(poll.event_tag)}`
+    : '🗳️ Choisis le film de la séance';
   const head = `
     <div class="poll-head">
-      <div class="poll-when">🎬 Séance du <strong>${_pollEsc(_pollSessionLabel(poll))}</strong></div>
+      <div class="poll-when">${poll.event_tag
+        ? `${_pollEventEmoji(poll.event_tag)} ${_pollEsc(_pollEventLabel(poll.event_tag))} du <strong>${_pollEsc(_pollSessionLabel(poll))}</strong> — tout l'internat est convié`
+        : `🎬 Séance du <strong>${_pollEsc(_pollSessionLabel(poll))}</strong>`}</div>
       ${_pollCountdownHtml(poll)}
     </div>`;
 
@@ -30601,8 +30706,8 @@ async function renderAdminPoll() {
   el.innerHTML = `
     <div class="poll-admin-head">
       <div>
-        <div class="poll-admin-kicker">🗳️ Sondage ${open ? 'en cours' : 'terminé'}</div>
-        <div class="poll-admin-title">Séance du ${_pollEsc(_pollSessionLabel(poll))}</div>
+        <div class="poll-admin-kicker">${poll.event_tag ? _pollEventEmoji(poll.event_tag) + ' Sondage ' + _pollEsc(_pollEventLabel(poll.event_tag)) : '🗳️ Sondage'} ${open ? 'en cours' : 'terminé'}</div>
+        <div class="poll-admin-title">${poll.event_tag ? 'Soirée' : 'Séance'} du ${_pollEsc(_pollSessionLabel(poll))}</div>
       </div>
       ${_pollCountdownHtml(poll)}
     </div>
@@ -30675,6 +30780,37 @@ function _pollDeadlinePreview(prefix) {
 
 /* Création */
 let _pollCreateFilms = [];
+let _pollCreateAll = [];          // tous les films actifs (avec votes)
+let _pollCreateKind = 'classic';  // 'event' (soirée Noël/Halloween) | 'classic'
+
+function _pollEventLabel(tag) {
+  return { christmas: 'Soirée de Noël', halloween: 'Soirée Halloween' }[tag] || 'Soirée événement';
+}
+function _pollEventLabelLow(tag) {   // dans une phrase : « la soirée de Noël »
+  return { christmas: 'soirée de Noël', halloween: 'soirée Halloween' }[tag] || 'soirée événement';
+}
+function _pollEventEmoji(tag) {
+  return (THEME_CATALOG[tag] && THEME_CATALOG[tag].emoji) || '🎉';
+}
+
+/* Bascule Soirée événement / Séance classique : liste, date et films cochés */
+function _pollCreateSetKind(kind) {
+  const ev = S.eventMode || 'none';
+  _pollCreateKind = (kind === 'event' && ev !== 'none') ? 'event' : 'classic';
+  document.querySelectorAll('#pollc-kind button').forEach(b => b.classList.toggle('active', b.dataset.k === _pollCreateKind));
+  _pollCreateFilms = _pollCreateAll.filter(f =>
+    _pollCreateKind === 'event' ? f.event_tag === ev : !f.event_tag);
+  const dateEl = document.getElementById('pollc-date');
+  if (dateEl) dateEl.value = (_pollCreateKind === 'event' && ev === 'christmas') ? christmasEveningDate() : nextWednesday();
+  const list = document.getElementById('pollc-films');
+  if (!_pollCreateFilms.length) {
+    if (list) list.innerHTML = `<p class="text-muted text-center" style="padding:16px;">Aucun film ${_pollCreateKind === 'event' ? (EVENT_FILTER_LABELS[ev] || 'de l\'événement') : 'classique'} disponible.</p>`;
+    _pollCreateCount();
+  } else {
+    _pollCreateRender(new Set(_pollCreateFilms.slice(0, 3).map(f => f.id)));
+  }
+  _pollDeadlinePreview('pollc');
+}
 async function openPollCreate() {
   const { data: existing, error: exErr } = await db.from('film_polls').select('id').eq('status', 'open').limit(1);
   if (exErr) { toast('Lance d\'abord le SQL du sondage (sondage_1_tables.sql)', 'error', 5000); return; }
@@ -30689,6 +30825,8 @@ async function openPollCreate() {
   document.getElementById('pollc-date').value = nextWednesday();
   document.getElementById('pollc-time').value = getDefaultSessionTime();
   document.getElementById('pollc-notify').checked = true;
+  document.getElementById('pollc-kind')?.classList.add('hidden');
+  _pollCreateAll = []; _pollCreateFilms = [];
   _pollDeadlineRender('pollc', { days: 2, hours: 0 });
   openModal('modal-poll-create');
 
@@ -30699,20 +30837,22 @@ async function openPollCreate() {
   const vc = {};
   (votes || []).forEach(v => { vc[v.film_id] = (vc[v.film_id] || 0) + 1; });
   const evMode = S.eventMode || 'none';
-  _pollCreateFilms = (films || [])
+  _pollCreateAll = (films || [])
     .filter(f => f.age_rating !== '18')
     // Films de l'événement en cours (ex. Noël) acceptés ; ceux d'un autre événement non
     .filter(f => !f.event_tag || f.event_tag === evMode)
     .map(f => ({ ...f, votes: vc[f.id] || 0 }))
     .sort((a, b) => b.votes - a.votes || String(a.title).localeCompare(String(b.title), 'fr'));
-  if (!_pollCreateFilms.length) {
-    list.innerHTML = '<p class="text-muted text-center" style="padding:16px;">Aucun film disponible au vote.</p>';
-    _pollCreateCount();
-    return;
+  // Événement actif : choix « Soirée de Noël » (par défaut) / « Séance classique »
+  const kindBox = document.getElementById('pollc-kind');
+  if (kindBox) {
+    kindBox.classList.toggle('hidden', evMode === 'none');
+    const evBtn = kindBox.querySelector('[data-k="event"]');
+    if (evBtn) evBtn.textContent = `${_pollEventEmoji(evMode)} ${_pollEventLabel(evMode)}`;
   }
-  _pollCreateRender(new Set(_pollCreateFilms.slice(0, 3).map(f => f.id)));
+  _pollCreateSetKind(evMode !== 'none' ? 'event' : 'classic');
   // Durées manquantes → TMDB, puis on redessine en gardant les cases cochées
-  _autoFillDurations(_pollCreateFilms, () => _pollCreateRender(new Set(_pollCreateSelected())));
+  _autoFillDurations(_pollCreateAll, () => _pollCreateRender(new Set(_pollCreateSelected())));
 }
 function _pollCreateRender(checked) {
   const list = document.getElementById('pollc-films');
@@ -30757,12 +30897,16 @@ async function pollCreate() {
   const btn = document.getElementById('pollc-submit');
   if (btn) btn.disabled = true;
   try {
-    const { data: poll, error } = await db.from('film_polls').insert({
-      status: 'open', session_date: date, session_time: time, ends_at: new Date(ends).toISOString()
-    }).select('id').single();
+    const evTag = (_pollCreateKind === 'event' && (S.eventMode || 'none') !== 'none') ? S.eventMode : null;
+    const row = { status: 'open', session_date: date, session_time: time, ends_at: new Date(ends).toISOString() };
+    if (evTag) row.event_tag = evTag;
+    const { data: poll, error } = await db.from('film_polls').insert(row).select('id').single();
     if (error || !poll) {
       console.error('[poll] create:', error);
-      toast(/duplicate|unique/i.test(error?.message || '') ? 'Un sondage est déjà en cours' : 'Erreur lors de la création du sondage', 'error');
+      const msg = error?.message || '';
+      toast(/duplicate|unique/i.test(msg) ? 'Un sondage est déjà en cours'
+        : /event_tag/i.test(msg) ? 'Lance d\'abord sondage_3_evenement.sql dans Supabase'
+        : 'Erreur lors de la création du sondage', 'error', 5000);
       return;
     }
     // Ordre d'affichage = ordre de la liste (plus votés en premier)
@@ -30777,10 +30921,17 @@ async function pollCreate() {
     }
     if (document.getElementById('pollc-notify')?.checked) {
       const lbl = _pollSessionLabel({ session_date: date, session_time: time });
-      _invokeSendPush({ type: 'students_all' },
-        '🗳️ À toi de choisir le film !',
-        `${order.length} films en lice pour la séance du ${lbl}. Vote avant le ${_pollEndLabel(ends)}.`,
-        '/');
+      if (evTag) {
+        _invokeSendPush({ type: 'students_all' },
+          `${_pollEventEmoji(evTag)} Vote final : le film de la ${_pollEventLabelLow(evTag)} !`,
+          `${order.length} films s'affrontent pour la soirée du ${lbl}. Vote avant le ${_pollEndLabel(ends)}.`,
+          '/');
+      } else {
+        _invokeSendPush({ type: 'students_all' },
+          '🗳️ À toi de choisir le film !',
+          `${order.length} films en lice pour la séance du ${lbl}. Vote avant le ${_pollEndLabel(ends)}.`,
+          '/');
+      }
     }
     closeModal('modal-poll-create');
     toast('Sondage lancé 🗳️', 'success');
@@ -30840,7 +30991,24 @@ async function pollCancel() {
 async function pollScheduleFilm(filmId) {
   if (!_poll) return;
   const pollId = _poll.id, date = _poll.session_date, time = String(_poll.session_time || '').slice(0, 5);
+  const evTag = _poll.event_tag || null;
+  const film = _poll.options.find(o => o.film_id === filmId)?.films;
   await openCreateSessionModal(filmId);
+  // Sondage de soirée événement → séance événement (tout l'internat convié)
+  const evCb = document.getElementById('ses-event-tag');
+  if (evCb && evTag && (S.eventMode || 'none') === evTag && !evCb.checked) {
+    evCb.checked = true;
+    await _onSesEventToggle();
+  }
+  const sel = document.getElementById('ses-film');
+  if (sel) {
+    if (![...sel.options].some(o => o.value === filmId)) {
+      const opt = document.createElement('option');
+      opt.value = filmId; opt.textContent = film?.title || 'Film du sondage';
+      sel.appendChild(opt);
+    }
+    sel.value = filmId;
+  }
   const d = document.getElementById('ses-date'); if (d && date) d.value = date;
   const t = document.getElementById('ses-time'); if (t && time) t.value = time;
   _pollScheduling = { pollId, filmId };
