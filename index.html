@@ -8804,8 +8804,14 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 @keyframes pollPulse { 50% { box-shadow: 0 0 0 5px rgba(255,92,92,.10); } }
 .poll-hint { font-size: 13px; color: var(--text-2); margin: 0 0 12px; line-height: 1.45; }
 .poll-films { display: grid; gap: 10px; grid-template-columns: repeat(var(--poll-cols, 2), minmax(0, 1fr)); }
-.poll-films.is-scroll { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 6px; -webkit-overflow-scrolling: touch; }
-.poll-films.is-scroll .poll-film { flex: 0 0 136px; scroll-snap-align: start; }
+.poll-films { row-gap: 18px; }
+/* 4 films ou plus : 2 par ligne sur téléphone (2 + 2, 2 + 2 + 1 centré),
+   tous côte à côte sur grand écran (5 max par ligne) */
+.poll-films.is-many { --poll-cols: 2; }
+@media (min-width: 700px) { .poll-films.is-many { --poll-cols: var(--poll-n, 4); } }
+@media (max-width: 699.98px) {
+  .poll-films.is-many.is-odd > .poll-film:last-child { grid-column: 1 / -1; justify-self: center; width: calc(50% - 5px); }
+}
 .poll-film { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .poll-poster {
   position: relative; aspect-ratio: 2 / 3; border-radius: 14px; overflow: hidden;
@@ -8815,7 +8821,13 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 .poll-poster img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .poll-poster .no-poster { display: flex; align-items: center; justify-content: center; height: 100%; font-size: 30px; }
 .poll-poster .age-badge { position: absolute; top: 6px; left: 6px; }
-.poll-film-title { font-weight: 700; font-size: 13.5px; line-height: 1.25; color: var(--text); overflow-wrap: anywhere; }
+.poll-film-title {
+  font-weight: 700; font-size: 13.5px; line-height: 1.25; color: var(--text); overflow-wrap: anywhere;
+  /* 3 lignes max (titre complet dans la fiche) */
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+/* Boutons Voter / Fiche alignés en bas de chaque carte, quelle que soit la longueur du titre */
+.poll-film .poll-vote-btn { margin-top: auto; }
 .poll-film-meta { font-size: 12px; color: var(--text-3); margin-top: -3px; }
 .poll-film .btn { width: 100%; padding: 8px 6px; font-size: 12.5px; border-radius: 999px; }
 .poll-film .poll-vote-btn:disabled { background: rgba(255,255,255,.06); color: var(--text-3); box-shadow: none; border-color: rgba(255,255,255,.08); opacity: 1; cursor: not-allowed; }
@@ -21098,6 +21110,46 @@ async function _autoFillAgeRatings(table, rows, rerender) {
   if (changed && typeof rerender === 'function') rerender();
 }
 
+/* ── Durée des films (minutes) récupérée sur TMDB quand elle manque ──
+   Les films ajoutés en acceptant une proposition n'avaient pas de durée.
+   Rempli côté admin uniquement, une fois par film et par session. */
+async function _fetchTmdbRuntime(tmdbId) {
+  if (!tmdbId || !CFG.TMDB_KEY) return undefined;
+  try {
+    const r = await fetch(`https://api.themoviedb.org/3/movie/${tmdbId}?api_key=${CFG.TMDB_KEY}&language=fr-FR`);
+    if (!r.ok) return undefined;
+    const d = await r.json();
+    return (d && d.runtime > 0) ? d.runtime : null;
+  } catch (e) { return undefined; }
+}
+const _durAutoTried = new Set();
+async function _autoFillDurations(rows, rerender) {
+  if (!S.isAdmin || !CFG.TMDB_KEY) return;
+  const todo = (rows || []).filter(r => r && r.id && r.tmdb_id && !r.duration && !_durAutoTried.has(r.id));
+  if (!todo.length) return;
+  todo.forEach(r => _durAutoTried.add(r.id));
+  let changed = false;
+  // 4 requêtes TMDB à la fois
+  for (let i = 0; i < todo.length; i += 4) {
+    await Promise.all(todo.slice(i, i + 4).map(async r => {
+      const rt = await _fetchTmdbRuntime(r.tmdb_id);
+      if (!rt) return;
+      const { error } = await db.from('films').update({ duration: rt }).eq('id', r.id).is('duration', null);
+      if (error) { console.warn('[duration] auto-fill update:', error); return; }
+      r.duration = rt; changed = true;
+    }));
+  }
+  if (changed && typeof rerender === 'function') rerender();
+}
+/* Accueil admin : complète en arrière-plan toutes les durées manquantes du catalogue */
+let _durBackfillDone = false;
+async function _backfillFilmDurations() {
+  if (_durBackfillDone || !S.isAdmin || !CFG.TMDB_KEY) return;
+  _durBackfillDone = true;
+  const { data } = await db.from('films').select('id, title, tmdb_id, duration').is('duration', null).not('tmdb_id', 'is', null);
+  await _autoFillDurations((data || []).filter(f => !f.duration), null);
+}
+
 /* Badge d'âge. Côté élève, rien si inconnue ; côté admin, "?" */
 function _ageBadgeHtml(rating, forAdmin = false) {
   const a = AGE_RATINGS[rating];
@@ -24126,6 +24178,9 @@ async function loadAdminDashboard() {
   // Sondage de film en cours (non bloquant)
   renderAdminPoll();
 
+  // Durées manquantes du catalogue → TMDB (arrière-plan, une fois par session)
+  _backfillFilmDurations();
+
   // Bannière anniversaire (non-bloquante)
   renderTodayBirthdays();
 
@@ -26779,6 +26834,7 @@ async function loadAdminFilms() {
 
   // Classifications d'âge manquantes : remplies en arrière-plan puis ré-affichées
   _autoFillAgeRatings('films', data, loadAdminFilms);
+  _autoFillDurations(data, loadAdminFilms);
 }
 
 async function setFilmStatus(id, status) {
@@ -28744,11 +28800,13 @@ async function acceptProposal(id) {
   if (ageRating === '16' && !confirm(`« ${p.title} » est interdit aux moins de 16 ans.\n\nConfirmer l'ajout au catalogue ?`)) return;
 
   if (!exists) {
+    const runtime = p.tmdb_id ? await _fetchTmdbRuntime(p.tmdb_id) : null;
     const { error } = await db.from('films').insert({
       title: p.title, tmdb_id: p.tmdb_id || null, poster_url: p.poster_url || null,
       year: p.year || null, synopsis: p.synopsis || null, genre: p.genre || null, status: 'active',
       event_tag: p.event_tag || null,
-      age_rating: ageRating || null
+      age_rating: ageRating || null,
+      duration: runtime || null
     });
     if (error) { toast('Erreur ajout film : ' + error.message, 'error'); return; }
   } else {
@@ -30198,7 +30256,7 @@ async function renderStudentPoll() {
 
   if (!showResults) {
     const n = poll.options.length;
-    const scroll = n > 3;
+    const many = n >= 4;
     const films = poll.options.map(o => {
       const f = o.films;
       const blocked = _pollAgeBlocked(f, poll.session_date);
@@ -30210,7 +30268,7 @@ async function renderStudentPoll() {
             ${_ageBadgeHtml(f.age_rating)}
             ${blocked ? `<div class="poll-blocked-tag">Interdit -${parseInt(f.age_rating, 10)} ans</div>` : ''}
           </div>
-          <div class="poll-film-title">${_pollEsc(f.title)}</div>
+          <div class="poll-film-title" title="${_pollEsc(f.title)}">${_pollEsc(f.title)}</div>
           <div class="poll-film-meta">${runtime || '&nbsp;'}</div>
           <button class="btn btn-gold poll-vote-btn" ${blocked ? 'disabled' : ''} onclick="pollAskVote('${f.id}')">${blocked ? '🔒 Non' : '🗳️ Voter'}</button>
           <button class="btn poll-fiche-btn" onclick="pollOpenFiche('${f.id}')">Fiche du film</button>
@@ -30221,7 +30279,7 @@ async function renderStudentPoll() {
       <div class="poll-card">
         ${head}
         <p class="poll-hint">Vote pour le film que tu veux voir. <strong>Un seul vote, et il est définitif</strong> — les résultats s'affichent dès que tu as voté.</p>
-        <div class="poll-films ${scroll ? 'is-scroll' : ''}" style="--poll-cols:${Math.min(n, 3)}">${films}</div>
+        <div class="poll-films ${many ? 'is-many' : ''} ${many && n % 2 ? 'is-odd' : ''}" style="${many ? '--poll-n:' + Math.min(n, 5) : '--poll-cols:' + n}">${films}</div>
         <div class="poll-participants">${nb ? `👥 ${nb} élève${nb > 1 ? 's ont' : ' a'} déjà voté` : 'Sois le premier à voter !'}</div>
       </div>`;
     return;
@@ -30386,6 +30444,7 @@ async function renderAdminPoll() {
       ${open ? '<button class="btn btn-ghost btn-sm" onclick="pollCloseNow()">⏹️ Clôturer maintenant</button>' : ''}
       <button class="btn btn-ghost btn-sm" onclick="pollCancel()">🗑️ Annuler le sondage</button>
     </div>`;
+  _autoFillDurations(poll.options.map(o => o.films), () => { _pollSig.admin = ''; renderAdminPoll(); });
 }
 
 /* Widget « Fin du vote » (création + prolongation) */
@@ -30464,7 +30523,7 @@ async function openPollCreate() {
   openModal('modal-poll-create');
 
   const [{ data: films }, { data: votes }] = await Promise.all([
-    db.from('films').select('id, title, poster_url, duration, year, age_rating, event_tag, status').eq('status', 'active'),
+    db.from('films').select('id, title, poster_url, duration, year, age_rating, event_tag, status, tmdb_id').eq('status', 'active'),
     db.from('votes').select('film_id')
   ]);
   const vc = {};
@@ -30478,12 +30537,20 @@ async function openPollCreate() {
     _pollCreateCount();
     return;
   }
-  list.innerHTML = _pollCreateFilms.map((f, i) => {
+  _pollCreateRender(new Set(_pollCreateFilms.slice(0, 3).map(f => f.id)));
+  // Durées manquantes → TMDB, puis on redessine en gardant les cases cochées
+  _autoFillDurations(_pollCreateFilms, () => _pollCreateRender(new Set(_pollCreateSelected())));
+}
+function _pollCreateRender(checked) {
+  const list = document.getElementById('pollc-films');
+  if (!list) return;
+  list.innerHTML = _pollCreateFilms.map(f => {
+    const on = checked.has(f.id);
     const runtime = f.duration ? formatRuntime(f.duration) : '';
     const meta = [runtime, f.year].filter(Boolean).join(' · ');
     return `
-      <label class="pollc-film ${i < 3 ? 'is-on' : ''}">
-        <input type="checkbox" value="${f.id}" ${i < 3 ? 'checked' : ''} onchange="this.closest('.pollc-film').classList.toggle('is-on', this.checked); _pollCreateCount()">
+      <label class="pollc-film ${on ? 'is-on' : ''}">
+        <input type="checkbox" value="${f.id}" ${on ? 'checked' : ''} onchange="this.closest('.pollc-film').classList.toggle('is-on', this.checked); _pollCreateCount()">
         ${f.poster_url ? `<img src="${_pollEsc(f.poster_url)}" alt="" loading="lazy">` : '<span class="pollc-noposter">🎬</span>'}
         <span class="pollc-film-info">
           <span class="pollc-film-title">${_pollEsc(f.title)} ${_ageBadgeHtml(f.age_rating)}</span>
