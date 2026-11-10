@@ -4738,6 +4738,23 @@ body.theme-christmas .s-header {
 .home-news-text { flex: 1; font-size: 13.5px; color: var(--text-2); line-height: 1.5; }
 .home-news-arrow { color: var(--text-3); font-size: 14px; }
 .home-news-empty { font-size: 13px; color: var(--text-3); padding: 10px 2px; }
+/* Messages de la notification générale (7 jours) */
+.ann-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+.ann-card {
+  position: relative; padding: 12px 14px; border-radius: var(--radius, 18px);
+  background: var(--card-bg, rgba(255,255,255,.03)); border: 1px solid var(--card-border, rgba(255,255,255,.08));
+}
+.ann-card.is-unread { border-color: var(--gold-line, rgba(240,165,0,.45)); background: radial-gradient(120% 100% at 100% 0%, rgba(240,165,0,.10), transparent 60%), var(--card-bg, rgba(255,255,255,.03)); }
+.ann-head { display: flex; align-items: center; gap: 8px; }
+.ann-icon { font-size: 18px; flex: 0 0 auto; }
+.ann-title { font-weight: 700; font-size: 14.5px; color: var(--text); flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.ann-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 8px var(--gold); flex: 0 0 auto; }
+.ann-body { font-size: 13.5px; color: var(--text-2); line-height: 1.5; margin-top: 6px; white-space: pre-line; overflow-wrap: anywhere; }
+.ann-meta { font-size: 11.5px; color: var(--text-3); margin-top: 8px; }
+.ann-admin-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 12px; background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.07); margin-bottom: 6px; }
+.ann-admin-info { flex: 1; min-width: 0; }
+.ann-admin-title { font-weight: 700; font-size: 13.5px; overflow-wrap: anywhere; }
+.ann-admin-meta { font-size: 11.5px; color: var(--text-3); margin-top: 2px; }
 
 /* ================================================================
    FICHE ÉLÈVE ADMIN — panneau latéral / modal
@@ -12610,6 +12627,34 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
           <button class="btn btn-gold btn-full" id="bcast-send-btn" onclick="openBroadcastConfirm()" disabled>
             📢 Envoyer la notification
           </button>
+          <p class="text-sm text-muted" style="margin-top:10px;font-size:12px;">
+            Le message reste aussi affiché 7 jours dans les Nouveautés de l'accueil des élèves.
+          </p>
+        </div>
+        <div class="sd-section hidden" id="bcast-history-wrap">
+          <div class="flabel" style="margin-bottom:8px;">Messages affichés aux élèves (7 derniers jours)</div>
+          <div id="bcast-history"></div>
+        </div>
+        <div class="sd-section">
+          <button class="btn btn-ghost btn-full btn-sm" onclick="document.getElementById('bcast-old-form').classList.toggle('hidden')">➕ Ajouter un message déjà envoyé</button>
+          <div class="hidden" id="bcast-old-form" style="margin-top:12px;">
+            <p class="text-sm text-muted" style="margin-bottom:10px;font-size:12px;">
+              Pour une notification envoyée avant cette mise à jour : recopie-la ici. Elle apparaît dans les Nouveautés (jusqu'à 7 jours après sa date), <strong>sans renvoyer de notification</strong>.
+            </p>
+            <div class="fgroup">
+              <label class="flabel">Titre</label>
+              <input type="text" class="finput" id="bcast-old-title" maxlength="60" placeholder="Titre de la notification">
+            </div>
+            <div class="fgroup">
+              <label class="flabel">Message</label>
+              <textarea class="ftextarea" id="bcast-old-body" rows="3" maxlength="200" placeholder="Texte de la notification"></textarea>
+            </div>
+            <div class="fgroup">
+              <label class="flabel">Envoyée le</label>
+              <input type="datetime-local" class="finput" id="bcast-old-date">
+            </div>
+            <button class="btn btn-gold btn-full" onclick="addOldAnnouncement()">📌 Ajouter aux Nouveautés</button>
+          </div>
         </div>
     <button class="btn btn-ghost btn-full" style="margin-top:10px;" onclick="closeModal('modal-broadcast')">Fermer</button>
   </div>
@@ -13808,6 +13853,10 @@ async function confirmBroadcastSend() {
   // Push broadcast (filtrage maintenance appliqué dans _invokeSendPush)
   _invokeSendPush({ type: 'students_all' }, title, body, '/');
 
+  // Garder le message dans l'appli (Nouveautés de l'accueil, 7 jours).
+  // Pendant la maintenance : visible uniquement par les comptes test.
+  const saved = await _saveAnnouncement(title, body);
+
   // Reset UI
   setTimeout(() => {
     closeModal('modal-broadcast-confirm');
@@ -13818,8 +13867,127 @@ async function confirmBroadcastSend() {
     document.getElementById('bcast-title').value = '';
     document.getElementById('bcast-body').value  = '';
     _updateBcastUI();
-    toast('📢 Notification envoyée', 'success');
+    toast(saved ? '📢 Notification envoyée' : '📢 Notification envoyée (pas enregistrée dans l\'appli : lance annonces.sql)', saved ? 'success' : 'info', saved ? 2500 : 5000);
+    loadAnnouncementsHistory();
   }, 300);
+}
+
+/* ================================================================
+   ANNONCES — messages de la notification générale gardés 7 jours
+   dans les Nouveautés de l'accueil élève (table announcements)
+   ================================================================ */
+const ANNOUNCEMENT_DAYS = 7;
+let _annSeenSnapshot = null;
+
+async function _saveAnnouncement(title, body) {
+  try {
+    const m = await _getFreshMaintenance();
+    const testOnly = !m || m.mode === 'on';   // doute ou maintenance → comptes test seulement
+    const { error } = await db.from('announcements').insert({
+      title, body, author: getSupervisorName(), test_only: testOnly
+    });
+    if (error) { console.warn('[announcements] insert:', error); return false; }
+    return true;
+  } catch (e) { console.warn('[announcements] insert exception:', e); return false; }
+}
+
+async function _fetchRecentAnnouncements() {
+  const since = new Date(Date.now() - ANNOUNCEMENT_DAYS * 86400000).toISOString();
+  const { data, error } = await db.from('announcements')
+    .select('id, title, body, author, test_only, created_at')
+    .gte('created_at', since)
+    .order('created_at', { ascending: false })
+    .limit(20);
+  if (error) return [];
+  // Filet de sécurité côté appli aussi (au cas où le filtre de date serait ignoré)
+  return (data || []).filter(a => new Date(a.created_at).getTime() >= Date.now() - ANNOUNCEMENT_DAYS * 86400000);
+}
+
+function _annDateLabel(iso) {
+  const d = new Date(iso);
+  const day = d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+  return day + ' à ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+}
+
+/* Admin : historique dans la modale, avec suppression */
+async function loadAnnouncementsHistory() {
+  const wrap = document.getElementById('bcast-history-wrap');
+  const el = document.getElementById('bcast-history');
+  if (!wrap || !el) return;
+  const list = await _fetchRecentAnnouncements();
+  if (!list.length) { wrap.classList.add('hidden'); el.innerHTML = ''; return; }
+  wrap.classList.remove('hidden');
+  el.innerHTML = list.map(a => `
+    <div class="ann-admin-item">
+      <div class="ann-admin-info">
+        <div class="ann-admin-title">${_escapeHtml(a.title)}${a.test_only ? ' <span class="badge badge-muted">compte test</span>' : ''}</div>
+        <div class="ann-admin-meta">${_escapeHtml(_annDateLabel(a.created_at))}</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="deleteAnnouncement('${a.id}')" title="Retirer de l'accueil des élèves">🗑️</button>
+    </div>`).join('');
+}
+
+/* Ancienne notification (envoyée avant la mise à jour) → Nouveautés, sans push */
+async function addOldAnnouncement() {
+  const title = (document.getElementById('bcast-old-title')?.value || '').trim();
+  const body  = (document.getElementById('bcast-old-body')?.value || '').trim();
+  const dv    = document.getElementById('bcast-old-date')?.value || '';
+  if (!title || !body) { toast('Titre et message obligatoires', 'error'); return; }
+  const t = dv ? new Date(dv).getTime() : NaN;
+  if (!Number.isFinite(t)) { toast('Indique la date d\'envoi', 'error'); return; }
+  if (t > Date.now() + 60000) { toast('La date ne peut pas être dans le futur', 'error'); return; }
+  if (t < Date.now() - ANNOUNCEMENT_DAYS * 86400000) { toast('Plus de 7 jours : elle ne serait plus affichée', 'error'); return; }
+  const { error } = await db.from('announcements').insert({
+    title, body, author: getSupervisorName(), test_only: false, created_at: new Date(t).toISOString()
+  });
+  if (error) { toast('Erreur (as-tu lancé annonces.sql ?)', 'error', 5000); return; }
+  ['bcast-old-title', 'bcast-old-body'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  document.getElementById('bcast-old-form')?.classList.add('hidden');
+  toast('📌 Ajouté aux Nouveautés des élèves', 'success');
+  loadAnnouncementsHistory();
+}
+
+async function deleteAnnouncement(id) {
+  if (!confirm('Retirer ce message des Nouveautés des élèves ?\n\n(La notification déjà reçue sur les téléphones ne peut pas être annulée.)')) return;
+  const { error } = await db.from('announcements').delete().eq('id', id);
+  if (error) { toast('Erreur lors de la suppression', 'error'); return; }
+  toast('Message retiré', 'success');
+  loadAnnouncementsHistory();
+}
+
+/* Élève : messages en tête des Nouveautés, point doré si pas encore vu */
+async function _renderHomeAnnouncements() {
+  if (!S.user || S.isAdmin) return '';
+  let list = [];
+  try { list = await _fetchRecentAnnouncements(); } catch (_) { list = []; }
+  const isTest = _isTestClass(S.user.className || S.currentStudent?.class_name);
+  list = list.filter(a => !a.test_only || isTest);
+  if (!list.length) return '';
+  const key = `ci_ann_seen_${S.user.id}`;
+  // « Déjà vu » figé à la 1re lecture de cette ouverture de l'appli : si l'accueil
+  // se redessine (retour sur l'accueil, rafraîchissement), le point doré reste.
+  if (!_annSeenSnapshot || _annSeenSnapshot.uid !== S.user.id) {
+    let v = '';
+    try { v = localStorage.getItem(key) || ''; } catch (_) {}
+    _annSeenSnapshot = { uid: S.user.id, val: v };
+  }
+  const seen = _annSeenSnapshot.val;
+  const html = list.map(a => {
+    const unread = !seen || a.created_at > seen;
+    return `
+      <div class="ann-card ${unread ? 'is-unread' : ''}">
+        <div class="ann-head">
+          <span class="ann-icon">📢</span>
+          <span class="ann-title">${_escapeHtml(a.title)}</span>
+          ${unread ? '<span class="ann-dot" aria-label="Nouveau"></span>' : ''}
+        </div>
+        <div class="ann-body">${_escapeHtml(a.body)}</div>
+        <div class="ann-meta">${_escapeHtml(_annDateLabel(a.created_at))}${a.author ? ' · ' + _escapeHtml(a.author) : ''}</div>
+      </div>`;
+  }).join('');
+  // Marqué comme vu pour la prochaine fois (le point reste affiché cette fois-ci)
+  try { localStorage.setItem(key, list[0].created_at); } catch (_) {}
+  return `<div class="ann-list">${html}</div>`;
 }
 
 /* ----------------------------------------------------------------
@@ -21252,12 +21420,14 @@ async function loadHomeNews() {
     target: 'session'
   });
 
+  const annHtml = await _renderHomeAnnouncements();
+
   if (!lines.length) {
-    el.innerHTML = `<div class="home-news-empty">Aucune nouveauté depuis ta dernière connexion.</div>`;
+    el.innerHTML = annHtml || `<div class="home-news-empty">Aucune nouveauté depuis ta dernière connexion.</div>`;
     return;
   }
 
-  el.innerHTML = lines.map(l => `
+  el.innerHTML = annHtml + lines.map(l => `
     <div class="home-news-item" onclick="navigateTo('${l.target}')">
       <span class="home-news-icon">${l.icon}</span>
       <span class="home-news-text">${l.text}</span>
@@ -34425,6 +34595,13 @@ function openModal(id) {
     if (bcastBody)  bcastBody.value  = '';
     _updateBcastUI();
     loadBroadcastRecipientCount();
+    loadAnnouncementsHistory();
+    const od = document.getElementById('bcast-old-date');
+    if (od) {
+      const d = new Date(Date.now() - 86400000), p2 = n => String(n).padStart(2, '0');
+      od.value = `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}T${p2(d.getHours())}:${p2(d.getMinutes())}`;
+    }
+    document.getElementById('bcast-old-form')?.classList.add('hidden');
   }
 
   // Rafraîchir le label du bouton "Activer notifications" à chaque ouverture
