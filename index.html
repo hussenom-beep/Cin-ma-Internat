@@ -6411,6 +6411,29 @@ body.theme-christmas .s-header {
 .ai-actions { display: flex; gap: 5px; flex-shrink: 0; flex-direction: column; }
 
 /* Vote bar */
+/* Journal « Derniers votes » (admin) */
+.vlog-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.vlog-chip { padding: 6px 11px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text-2); font: 600 12px/1.2 inherit; font-family: inherit; cursor: pointer; display: inline-flex; gap: 6px; align-items: center; }
+.vlog-chip b { color: var(--text-3); font-weight: 700; }
+@media (max-width: 560px) { .vlog-chips { display: grid; grid-template-columns: 1fr 1fr; } .vlog-chip { justify-content: center; } }
+.vlog-chip.active { border-color: rgba(240,165,0,.45); background: var(--gold-soft, rgba(240,165,0,.12)); color: var(--gold); }
+.vlog-chip.active b { color: var(--gold); }
+.vlog-day { font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--text-3); margin: 16px 2px 7px; }
+.vlog-day:first-child { margin-top: 0; }
+.vlog-row { display: flex; align-items: center; gap: 10px; padding: 9px 11px; background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--vlog-c, var(--border)); border-radius: var(--radius-sm); margin-bottom: 6px; min-width: 0; }
+.vlog-row.k-vote { --vlog-c: #3ecf8e; }
+.vlog-row.k-unvote { --vlog-c: #e5534b; }
+.vlog-row.k-poll_vote { --vlog-c: var(--gold); }
+.vlog-time { font-size: 11.5px; font-weight: 700; color: var(--text-3); width: 38px; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+.vlog-poster { width: 28px; height: 42px; border-radius: 4px; background: var(--surface-2); flex-shrink: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; font-size: 13px; }
+.vlog-poster img { width: 100%; height: 100%; object-fit: cover; }
+.vlog-main { flex: 1; min-width: 0; }
+.vlog-who { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.vlog-who .admin-student-link { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.vlog-who .badge { flex-shrink: 0; font-size: 10px; }
+.vlog-what { font-size: 12.5px; color: var(--text-2); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vlog-what em { font-style: normal; color: var(--text); font-weight: 600; }
+.vlog-more { display: block; margin: 12px auto 0; }
 .vote-bar-row { display: flex; align-items: center; gap: 11px; padding: 12px 13px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); }
 .vote-bar-poster { width: 36px; height: 54px; object-fit: cover; border-radius: 4px; background: var(--surface-2); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 16px; overflow: hidden; }
 .vbr-info { flex: 1; }
@@ -9664,9 +9687,18 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     <!-- Votes panel -->
     <div class="admin-panel hidden" id="ap-votes">
       <div class="admin-panel-title" style="flex-direction:column;align-items:flex-start;gap:4px;">
-        Résultats des votes
+        Votes
         <span class="text-sm text-muted" style="font-weight:400;">Non visible par les élèves</span>
       </div>
+      <div class="sub-tabs" id="votes-subtabs">
+        <button class="sub-tab active" onclick="setAdminVotesView('results')">📊 Résultats</button>
+        <button class="sub-tab" onclick="setAdminVotesView('log')">🕒 Derniers votes</button>
+      </div>
+      <div id="votes-log-wrap" class="hidden">
+        <div class="vlog-chips" id="vlog-chips"></div>
+        <div id="vlog-list"><div class="loader"><div class="spinner"></div></div></div>
+      </div>
+      <div id="votes-results-wrap">
       <!-- Toggle de filtre événement (visible uniquement si thème actif) -->
       <div id="admin-votes-event-filter" class="event-filter-bar hidden">
         <button type="button" id="admin-votes-filter-event" class="event-filter-btn active" onclick="setAdminVoteEventFilter('event')">
@@ -9677,6 +9709,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
         </button>
       </div>
       <div class="admin-list" id="admin-votes-list"><div class="loader"><div class="spinner"></div></div></div>
+      </div>
     </div>
 
     <!-- Proposals panel -->
@@ -27523,7 +27556,125 @@ async function saveFilm() {
 /* ================================================================
    ADMIN — VOTES
    ================================================================ */
+/* ================================================================
+   ADMIN VOTES — « 🕒 Derniers votes » (journal 30 jours, table vote_log)
+   ================================================================ */
+let _adminVotesView = 'results';   // 'results' | 'log'
+let _vlogFilter = 'all';           // 'all' | 'vote' | 'unvote' | 'poll_vote'
+let _vlogShown = 60;
+let _vlogRows = [];
+const _VLOG_PAGE = 60;
+const _VLOG_KINDS = {
+  vote:      { icon: '✅', text: 'a voté pour',              chip: '✅ Ajouts' },
+  unvote:    { icon: '❌', text: 'a retiré son vote pour',   chip: '❌ Retraits' },
+  poll_vote: { icon: '🗳️', text: 'a voté au sondage pour',   chip: '🗳️ Sondage' },
+};
+
+function setAdminVotesView(view) {
+  _adminVotesView = view === 'log' ? 'log' : 'results';
+  document.querySelectorAll('#votes-subtabs .sub-tab').forEach((btn, i) => {
+    btn.classList.toggle('active', ['results', 'log'][i] === _adminVotesView);
+  });
+  document.getElementById('votes-results-wrap')?.classList.toggle('hidden', _adminVotesView !== 'results');
+  document.getElementById('votes-log-wrap')?.classList.toggle('hidden', _adminVotesView !== 'log');
+  if (_adminVotesView === 'log') { _vlogShown = _VLOG_PAGE; loadVoteLog(); }
+  else loadAdminVotes();
+}
+
+function setVoteLogFilter(kind) {
+  _vlogFilter = kind;
+  _vlogShown = _VLOG_PAGE;
+  _renderVoteLog();
+}
+
+function voteLogMore() {
+  _vlogShown += _VLOG_PAGE;
+  _renderVoteLog();
+}
+
+async function loadVoteLog() {
+  const list = document.getElementById('vlog-list');
+  if (!list) return;
+  if (!_vlogRows.length) list.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
+  const since = new Date(Date.now() - 30 * 86400000).toISOString();
+  const [logRes, stuRes, filmRes] = await Promise.all([
+    db.from('vote_log').select('id,student_id,film_id,kind,created_at')
+      .gte('created_at', since).order('created_at', { ascending: false }).limit(1000),
+    db.from('students').select('id,first_name,last_name,class_name'),
+    db.from('films').select('id,title,poster_url'),
+  ]);
+  if (logRes.error) {
+    const missing = /vote_log|42P01|PGRST205|does not exist|schema cache/i.test(`${logRes.error.code} ${logRes.error.message}`);
+    _vlogRows = [];
+    document.getElementById('vlog-chips').innerHTML = '';
+    list.innerHTML = missing
+      ? `<div class="empty"><div class="icon">🕒</div><h3>Journal pas encore activé</h3><p>Lance le fichier <strong>journal_votes.sql</strong> dans Supabase, puis reviens ici.</p></div>`
+      : `<div class="empty"><div class="icon">⚠️</div><h3>Impossible de charger le journal</h3><p>${_escapeHtml(logRes.error.message || '')}</p></div>`;
+    return;
+  }
+  const stu = {}; (stuRes.data || []).forEach(x => { stu[x.id] = x; });
+  const fil = {}; (filmRes.data || []).forEach(x => { fil[x.id] = x; });
+  _vlogRows = (logRes.data || []).map(r => ({ ...r, s: stu[r.student_id] || null, f: fil[r.film_id] || null }));
+  _renderVoteLog();
+}
+
+function _vlogDayLabel(d) {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const day = new Date(d); day.setHours(0, 0, 0, 0);
+  const diff = Math.round((today - day) / 86400000);
+  if (diff === 0) return "Aujourd'hui";
+  if (diff === 1) return 'Hier';
+  return day.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+}
+
+function _renderVoteLog() {
+  const chips = document.getElementById('vlog-chips');
+  const list = document.getElementById('vlog-list');
+  if (!chips || !list) return;
+  const count = k => k === 'all' ? _vlogRows.length : _vlogRows.filter(r => r.kind === k).length;
+  chips.innerHTML = ['all', 'vote', 'unvote', 'poll_vote'].map(k => `
+    <button type="button" class="vlog-chip${_vlogFilter === k ? ' active' : ''}" onclick="setVoteLogFilter('${k}')">
+      ${k === 'all' ? 'Tout' : _VLOG_KINDS[k].chip} <b>${count(k)}</b>
+    </button>`).join('');
+
+  const rows = _vlogFilter === 'all' ? _vlogRows : _vlogRows.filter(r => r.kind === _vlogFilter);
+  if (!rows.length) {
+    list.innerHTML = `<div class="empty"><div class="icon">🕒</div><h3>Rien sur les 30 derniers jours</h3><p>Les votes des élèves apparaîtront ici au fur et à mesure.</p></div>`;
+    return;
+  }
+  const testId = S.maintenance?.testStudentId || null;
+  let html = '', lastDay = '';
+  rows.slice(0, _vlogShown).forEach(r => {
+    const d = new Date(r.created_at);
+    const day = _vlogDayLabel(d);
+    if (day !== lastDay) { html += `<div class="vlog-day">${day}</div>`; lastDay = day; }
+    const k = _VLOG_KINDS[r.kind] || _VLOG_KINDS.vote;
+    const name = r.s ? `${r.s.first_name || ''} ${r.s.last_name || ''}`.trim() : 'Élève supprimé';
+    const who = r.s
+      ? `<button class="admin-student-link" style="text-align:left;" onclick="openStudentDetail('${r.s.id}')">${_escapeHtml(name)}</button>`
+      : `<span class="text-muted">${name}</span>`;
+    const title = r.f ? _escapeHtml(r.f.title || '—') : 'film supprimé';
+    html += `
+      <div class="vlog-row k-${r.kind}">
+        <div class="vlog-time">${d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</div>
+        <div class="vlog-poster">${r.f?.poster_url ? `<img src="${r.f.poster_url}" alt="" loading="lazy">` : '🎬'}</div>
+        <div class="vlog-main">
+          <div class="vlog-who">${who}
+            ${r.s?.class_name ? `<span class="badge badge-muted">${_escapeHtml(r.s.class_name)}</span>` : ''}
+            ${testId && r.student_id === testId ? '<span class="badge badge-gold">🧪 test</span>' : ''}
+          </div>
+          <div class="vlog-what">${k.icon} ${k.text} <em>${title}</em></div>
+        </div>
+      </div>`;
+  });
+  if (rows.length > _vlogShown) {
+    html += `<button type="button" class="btn btn-ghost btn-sm vlog-more" onclick="voteLogMore()">Voir plus (${rows.length - _vlogShown} restants)</button>`;
+  }
+  list.innerHTML = html;
+}
+
 async function loadAdminVotes() {
+  if (_adminVotesView === 'log') return loadVoteLog();
   const list = document.getElementById('admin-votes-list');
   list.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
 
