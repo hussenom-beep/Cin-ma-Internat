@@ -31391,10 +31391,14 @@ function _pollManualReminderAt(pollId) {
 function _pollReminderInfoHtml(poll) {
   const parts = [];
   const manual = _pollManualReminderAt(poll.id);
+  const r24 = poll.reminder_24_sent_at, r12 = poll.reminder_12_sent_at;
+  // Quand le rappel 12 h part, la base marque aussi le 24 h (même heure) pour
+  // qu'il ne parte pas après coup : dans ce cas le 24 h n'a pas été envoyé.
+  const sent24 = r24 && !(r12 && new Date(r24).getTime() === new Date(r12).getTime());
   if (manual) parts.push(`manuel ${_pollWhen(manual)}`);
-  if (poll.reminder_24_sent_at) parts.push('auto 24 h envoyé');
-  if (poll.reminder_12_sent_at) parts.push('auto 12 h envoyé');
-  return parts.length ? `<div class="poll-remind-info">🔔 Dernier rappel : ${parts.join(' · ')}</div>` : '';
+  if (sent24) parts.push(`auto 24 h ${_pollWhen(r24)}`);
+  if (r12) parts.push(`auto 12 h ${_pollWhen(r12)}`);
+  return parts.length ? `<div class="poll-remind-info">🔔 Rappels envoyés : ${parts.join(' · ')}</div>` : '';
 }
 async function pollSendReminder() {
   if (!_poll || !_pollIsOpen(_poll)) return;
