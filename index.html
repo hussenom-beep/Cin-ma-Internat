@@ -8964,6 +8964,16 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 .poll-admin-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .poll-admin-actions .btn { flex: 1 1 auto; border-radius: 999px; }
 .poll-tie { font-size: 12.5px; color: var(--gold); margin: -4px 0 10px; }
+.poll-admin .poll-res { cursor: pointer; }
+.poll-admin .poll-res:active { transform: scale(.99); }
+.poll-res-see { color: var(--gold); font-weight: 700; }
+.poll-admin-sub button { background: none; border: none; padding: 0; color: var(--gold); font: inherit; font-weight: 700; cursor: pointer; }
+.poll-remind-info { font-size: 11.5px; color: var(--text-3); margin-top: 8px; text-align: center; }
+.pollv-list { display: flex; flex-direction: column; gap: 7px; max-height: 55vh; overflow-y: auto; }
+.pollv-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 12px; background: var(--surface-2); border-radius: 8px; min-width: 0; }
+.pollv-row .admin-student-link { text-align: left; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pollv-tags { display: flex; gap: 6px; flex-shrink: 0; align-items: center; }
+.pollv-time { font-size: 11px; color: var(--text-3); font-variant-numeric: tabular-nums; }
 /* Modale de création */
 .pollc-label { font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--text-2); margin: 6px 0 4px; display: flex; align-items: center; gap: 8px; }
 .pollc-count { background: var(--gold-soft, rgba(240,165,0,.14)); color: var(--gold); border-radius: 999px; padding: 1px 9px; font-size: 12px; letter-spacing: 0; }
@@ -30998,7 +31008,8 @@ async function renderAdminPoll() {
   const { data: studs } = await db.from('students').select('id, class_name').eq('is_active', true);
   const eligible = (studs || []).filter(s => !_isTestClass(s.class_name)).length;
   const open = _pollIsOpen(poll);
-  const sig = [poll.id, poll.ends_at, open, eligible, poll.votes.map(v => v.film_id).sort().join(',')].join('|');
+  const sig = [poll.id, poll.ends_at, open, eligible, poll.votes.map(v => v.film_id).sort().join(','),
+    poll.reminder_24_sent_at, poll.reminder_12_sent_at, _pollManualReminderAt(poll.id)].join('|');
   el.classList.remove('hidden');
   _pollStartTimers();
   if (sig === _pollSig.admin && el.innerHTML) return;
@@ -31014,14 +31025,14 @@ async function renderAdminPoll() {
     const isLead = total > 0 && o.count === top;
     const runtime = f.duration ? formatRuntime(f.duration) : '';
     return `
-      <div class="poll-res ${isLead ? 'is-lead' : ''}">
+      <div class="poll-res ${isLead ? 'is-lead' : ''}" onclick="pollViewVoters('${f.id}')">
         <div class="poll-res-bar" style="width:${pct}%"></div>
         ${f.poster_url ? `<img class="poll-res-thumb" src="${_pollEsc(f.poster_url)}" alt="" loading="lazy">` : '<div class="poll-res-thumb"></div>'}
         <div class="poll-res-info">
           <div class="poll-res-title">${isLead ? '🏆 ' : ''}${_pollEsc(f.title)}</div>
-          <div class="poll-res-meta">${runtime || ''}${runtime ? ' · ' : ''}${o.count} vote${o.count > 1 ? 's' : ''} · ${pct}%</div>
+          <div class="poll-res-meta">${runtime || ''}${runtime ? ' · ' : ''}${o.count} vote${o.count > 1 ? 's' : ''} · ${pct}%${o.count ? ' · <span class="poll-res-see">voir qui ›</span>' : ''}</div>
         </div>
-        <button class="btn ${isLead ? 'btn-gold' : 'btn-ghost'}" onclick="pollScheduleFilm('${f.id}')">📅 Programmer</button>
+        <button class="btn ${isLead ? 'btn-gold' : 'btn-ghost'}" onclick="event.stopPropagation(); pollScheduleFilm('${f.id}')">📅 Programmer</button>
       </div>`;
   }).join('');
   el.innerHTML = `
@@ -31032,14 +31043,16 @@ async function renderAdminPoll() {
       </div>
       ${_pollCountdownHtml(poll)}
     </div>
-    <div class="poll-admin-sub">👥 ${total} votant${total > 1 ? 's' : ''} sur ${eligible} élève${eligible > 1 ? 's' : ''} · fin du vote : ${_pollEndLabel(_pollEndsMs(poll))}</div>
+    <div class="poll-admin-sub">👥 ${total} votant${total > 1 ? 's' : ''} sur ${eligible} élève${eligible > 1 ? 's' : ''}${eligible > total ? ` · <button type="button" onclick="pollViewNonVoters()">${eligible - total} pas encore voté ›</button>` : ''} · fin du vote : ${_pollEndLabel(_pollEndsMs(poll))}</div>
     ${tie ? '<div class="poll-tie">⚖️ Égalité en tête : à toi de trancher.</div>' : ''}
     <div class="poll-results">${rows}</div>
     <div class="poll-admin-actions">
+      ${open && eligible > total ? '<button class="btn btn-ghost btn-sm" onclick="pollSendReminder()">🔔 Rappel de vote</button>' : ''}
       <button class="btn btn-ghost btn-sm" onclick="openPollExtend()">⏱️ Prolonger</button>
       ${open ? '<button class="btn btn-ghost btn-sm" onclick="pollCloseNow()">⏹️ Clôturer maintenant</button>' : ''}
       <button class="btn btn-ghost btn-sm" onclick="pollCancel()">🗑️ Annuler le sondage</button>
-    </div>`;
+    </div>
+    ${_pollReminderInfoHtml(poll)}`;
   _autoFillDurations(poll.options.map(o => o.films), () => { _pollSig.admin = ''; renderAdminPoll(); });
 }
 
@@ -31304,6 +31317,106 @@ async function pollCancel() {
   const { error } = await db.from('film_polls').update({ status: 'cancelled', closed_at: new Date().toISOString() }).eq('id', _poll.id);
   if (error) { toast('Erreur', 'error'); return; }
   toast('Sondage annulé', 'info');
+  _pollSig.admin = '';
+  renderAdminPoll();
+}
+
+/* Qui a voté pour ce film (admin) */
+function _pollWhen(iso) {
+  if (!iso) return '';
+  const d = new Date(iso), today = new Date();
+  const t = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  if (d.toDateString() === today.toDateString()) return t;
+  return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) + ' ' + t;
+}
+function _pollStudentRow(st, rightHtml) {
+  const name = `${st.first_name || ''} ${st.last_name || ''}`.trim() || '—';
+  return `
+    <div class="pollv-row">
+      <button class="admin-student-link" onclick="closeModal('modal-voters'); openStudentDetail('${st.id}')">${_pollEsc(name)}</button>
+      <span class="pollv-tags">${rightHtml || ''}
+        ${_isTestClass(st.class_name) ? '<span class="badge badge-gold">🧪 test</span>' : `<span class="badge badge-muted">${_pollEsc(st.class_name || '—')}</span>`}
+      </span>
+    </div>`;
+}
+async function pollViewVoters(filmId) {
+  if (!_poll) return;
+  const film = _poll.options.find(o => o.film_id === filmId)?.films;
+  const titleEl = document.getElementById('modal-voters-title');
+  const contentEl = document.getElementById('modal-voters-content');
+  titleEl.textContent = `Sondage — ${film?.title || 'Film'}`;
+  contentEl.innerHTML = '<div class="loader" style="padding:24px;"><div class="spinner"></div></div>';
+  openModal('modal-voters');
+  const { data, error } = await db.from('film_poll_votes')
+    .select('student_id, created_at, students(id, first_name, last_name, class_name)')
+    .eq('poll_id', _poll.id).eq('film_id', filmId);
+  if (error) { contentEl.innerHTML = '<p class="text-muted text-center" style="padding:20px;">Impossible de charger les votes.</p>'; return; }
+  const rows = (data || []).filter(v => v.students).sort((a, b) =>
+    `${a.students.last_name} ${a.students.first_name}`.localeCompare(`${b.students.last_name} ${b.students.first_name}`, 'fr'));
+  if (!rows.length) { contentEl.innerHTML = '<p class="text-muted text-center" style="padding:20px;">Aucun vote pour ce film.</p>'; return; }
+  const real = rows.filter(v => !_isTestClass(v.students.class_name)).length;
+  contentEl.innerHTML = `
+    <p class="text-sm text-muted mb-1">${real} vote${real > 1 ? 's' : ''}</p>
+    <div class="pollv-list">${rows.map(v => _pollStudentRow(v.students, `<span class="pollv-time">${_pollWhen(v.created_at)}</span>`)).join('')}</div>`;
+}
+
+/* Élèves qui n'ont pas encore voté (hors comptes test) */
+async function _pollNonVoters() {
+  const [{ data: studs }, { data: votes }] = await Promise.all([
+    db.from('students').select('id, first_name, last_name, class_name').eq('is_active', true),
+    db.from('film_poll_votes').select('student_id').eq('poll_id', _poll.id),
+  ]);
+  const voted = new Set((votes || []).map(v => v.student_id));
+  return (studs || []).filter(st => !_isTestClass(st.class_name) && !voted.has(st.id))
+    .sort((a, b) => `${a.last_name} ${a.first_name}`.localeCompare(`${b.last_name} ${b.first_name}`, 'fr'));
+}
+async function pollViewNonVoters() {
+  if (!_poll) return;
+  const contentEl = document.getElementById('modal-voters-content');
+  document.getElementById('modal-voters-title').textContent = 'Pas encore voté';
+  contentEl.innerHTML = '<div class="loader" style="padding:24px;"><div class="spinner"></div></div>';
+  openModal('modal-voters');
+  const list = await _pollNonVoters();
+  contentEl.innerHTML = list.length
+    ? `<p class="text-sm text-muted mb-1">${list.length} élève${list.length > 1 ? 's' : ''}</p>
+       <div class="pollv-list">${list.map(st => _pollStudentRow(st)).join('')}</div>
+       ${_pollIsOpen(_poll) ? '<button class="btn btn-gold btn-full mt-2" onclick="closeModal(\'modal-voters\'); pollSendReminder()">🔔 Leur envoyer un rappel</button>' : ''}`
+    : '<p class="text-muted text-center" style="padding:20px;">Tout le monde a voté 🎉</p>';
+}
+
+/* Rappel de vote manuel : notification aux élèves qui n'ont pas encore voté */
+function _pollManualReminderAt(pollId) {
+  try { return localStorage.getItem('ci_poll_reminder_' + pollId) || ''; } catch (_) { return ''; }
+}
+function _pollReminderInfoHtml(poll) {
+  const parts = [];
+  const manual = _pollManualReminderAt(poll.id);
+  if (manual) parts.push(`manuel ${_pollWhen(manual)}`);
+  if (poll.reminder_24_sent_at) parts.push('auto 24 h envoyé');
+  if (poll.reminder_12_sent_at) parts.push('auto 12 h envoyé');
+  return parts.length ? `<div class="poll-remind-info">🔔 Dernier rappel : ${parts.join(' · ')}</div>` : '';
+}
+async function pollSendReminder() {
+  if (!_poll || !_pollIsOpen(_poll)) return;
+  const poll = _poll;
+  const list = await _pollNonVoters();
+  if (!list.length) { toast('Tout le monde a déjà voté 🎉', 'info'); return; }
+  const { data: subs } = await db.from('push_subscriptions').select('student_id').eq('active', true);
+  const withPush = new Set((subs || []).map(x => x.student_id));
+  const reachable = list.filter(st => withPush.has(st.id)).length;
+  const maint = S.maintenance?.mode === 'on';
+  const manual = _pollManualReminderAt(poll.id);
+  const msg = `Envoyer un rappel aux ${list.length} élève${list.length > 1 ? 's' : ''} qui n'ont pas encore voté ?\n\n`
+    + `${reachable} ont les notifications activées.`
+    + (manual ? `\nDernier rappel manuel : ${_pollWhen(manual)}.` : '')
+    + (maint ? '\n\n🛠️ Maintenance active : seul le compte test le recevra (s\'il n\'a pas voté).' : '');
+  if (!confirm(msg)) return;
+  const what = poll.event_tag ? `la ${_pollEventLabelLow(poll.event_tag)}` : `la séance du ${_pollSessionLabel(poll)}`;
+  const title = '🗳️ N\'oublie pas de voter !';
+  const body = `Choisis le film de ${what}. Fin du vote : ${_pollEndLabel(_pollEndsMs(poll))}.`;
+  list.forEach(st => _invokeSendPush(st.id, title, body, '/'));
+  try { localStorage.setItem('ci_poll_reminder_' + poll.id, new Date().toISOString()); } catch (_) {}
+  toast(maint ? 'Rappel envoyé (compte test uniquement, maintenance)' : `Rappel envoyé à ${reachable} élève${reachable > 1 ? 's' : ''}`, 'success');
   _pollSig.admin = '';
   renderAdminPoll();
 }
