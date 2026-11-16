@@ -9759,6 +9759,9 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 .sd2 .sd-section .sd-li-btn { padding-left: 0; padding-right: 0; }
 #modal-student-detail .sd2 .sd-deco-badges-count { margin-left: 0; }
 .adm-row.has-cult .btn-red { background: rgba(14,10,16,.82); }
+.adm-row.has-cult .badge, .adm-row.has-cult .pollv-time { background: rgba(8,8,15,.78); }
+.adm-row.has-cult .vlog-what, .adm-row.has-cult .vlog-time { text-shadow: 0 1px 3px #000; }
+.adm-row.has-cult [style*="color:var(--text-2)"] { text-shadow: 0 1px 3px #000; }
 @media (max-width: 1023.98px) {
   #modal-student-detail .sd2:not(.sd-in-sub) .sd-main { display: none; }
   #modal-student-detail .sd2.sd-in-sub .sd-hero,
@@ -26464,7 +26467,7 @@ function _ccdRender() {
     const primary   = mode === 'recent' ? `dernière à ${fmtTime(s.lastAt)}` : cntLabel;
     const secondary = mode === 'recent' ? cntLabel : `dernière à ${fmtTime(s.lastAt)}`;
     return `
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface-2);border-radius:8px;gap:10px;">
+      <div data-deco-sid="${s.studentId || ''}" style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface-2);border-radius:8px;gap:10px;">
         <div style="flex:1;min-width:0;">
           <button class="admin-student-link" onclick="event.stopPropagation(); openStudentDetail('${s.studentId}')" title="Voir la fiche élève">${fullName}</button>${clsBadge}
         </div>
@@ -26477,6 +26480,7 @@ function _ccdRender() {
   }).join('');
 
   contentEl.innerHTML = `<div style="display:flex;flex-direction:column;gap:7px;max-height:60vh;overflow-y:auto;">${rowsHtml}</div>`;
+  _admApplyDeco(contentEl);
 }
 
 /* Switch entre les 2 modes (recent / count) */
@@ -29181,7 +29185,7 @@ function _renderVoteLog() {
       : `<span class="text-muted">${name}</span>`;
     const title = r.f ? _escapeHtml(r.f.title || '—') : 'film supprimé';
     html += `
-      <div class="vlog-row k-${r.kind}">
+      <div class="vlog-row k-${r.kind}"${r.s ? ` data-deco-sid="${r.s.id}"` : ''}>
         <div class="vlog-time">${d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</div>
         <div class="vlog-poster">${r.f?.poster_url ? `<img src="${r.f.poster_url}" alt="" loading="lazy">` : '🎬'}</div>
         <div class="vlog-main">
@@ -29197,6 +29201,7 @@ function _renderVoteLog() {
     html += `<button type="button" class="btn btn-ghost btn-sm vlog-more" onclick="voteLogMore()">Voir plus (${rows.length - _vlogShown} restants)</button>`;
   }
   list.innerHTML = html;
+  _admApplyDeco(list, { keepBorder: true });
 }
 
 async function loadAdminVotes() {
@@ -29370,7 +29375,7 @@ async function viewFilmVoters(filmId, filmTitle, sessionId) {
     <p class="text-sm text-muted mb-1">${rows.length} vote${rows.length > 1 ? 's' : ''}${withSession ? ` · ${nbInscrits} inscrit${nbInscrits > 1 ? 's' : ''} à la séance` : ''}</p>
     <div style="display:flex;flex-direction:column;gap:7px;">
       ${rows.map(v => `
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 12px;background:var(--surface-2);border-radius:8px;">
+        <div data-deco-sid="${v.students.id}" style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 12px;background:var(--surface-2);border-radius:8px;">
           <button class="admin-student-link" style="text-align:left;" onclick="closeModal('modal-voters'); openStudentDetail('${v.students.id}')">
             ${v.students.first_name || ''} ${v.students.last_name || ''}
           </button>
@@ -29382,6 +29387,7 @@ async function viewFilmVoters(filmId, filmTitle, sessionId) {
       `).join('')}
     </div>
   `;
+  _admApplyDeco(contentEl);
 }
 
 /* ================================================================
@@ -31584,10 +31590,28 @@ function _admRowLook(deco) {
   const cult = deco && deco.cultFilm;
   const img = cult ? _tmdbImg(cult.backdrop_path || cult.poster_path, 'w300') : '';
   return {
+    col,
     cls: 'reg-row adm-row' + (img ? ' has-cult' : ''),
     style: col ? `border-left:3px solid ${col};` : '',
     img: img ? `<img class="reg-cult" src="${img}" alt="" loading="lazy">` : '',
   };
+}
+/* Même rendu, posé après coup sur une liste déjà affichée : lignes [data-deco-sid="<id élève>"] */
+async function _admApplyDeco(root, opts = {}) {
+  if (!root) return;
+  const rows = [...root.querySelectorAll('[data-deco-sid]')];
+  const ids = [...new Set(rows.map(r => r.dataset.decoSid).filter(Boolean))];
+  if (!ids.length) return;
+  let map;
+  try { map = await loadStudentsBusinessCards(ids); } catch (e) { console.warn('[deco] liste:', e); return; }
+  rows.forEach(r => {
+    if (!r.isConnected || r.dataset.decoDone) return;
+    r.dataset.decoDone = '1';
+    const L = _admRowLook(map.get(r.dataset.decoSid));
+    r.classList.add(...L.cls.split(' '));
+    if (L.img) r.insertAdjacentHTML('afterbegin', L.img);
+    if (L.col && !opts.keepBorder) r.style.borderLeft = `3px solid ${L.col}`;
+  });
 }
 
 async function viewRegistrants(sesId, date) {
@@ -32940,7 +32964,7 @@ function _pollWhen(iso) {
 function _pollStudentRow(st, rightHtml) {
   const name = `${st.first_name || ''} ${st.last_name || ''}`.trim() || '—';
   return `
-    <div class="pollv-row">
+    <div class="pollv-row" data-deco-sid="${st.id}">
       <button class="admin-student-link" onclick="closeModal('modal-voters'); openStudentDetail('${st.id}')">${_pollEsc(name)}</button>
       <span class="pollv-tags">${rightHtml || ''}
         ${_isTestClass(st.class_name) ? '<span class="badge badge-gold">🧪 test</span>' : `<span class="badge badge-muted">${_pollEsc(st.class_name || '—')}</span>`}
@@ -32966,6 +32990,7 @@ async function pollViewVoters(filmId) {
   contentEl.innerHTML = `
     <p class="text-sm text-muted mb-1">${real} vote${real > 1 ? 's' : ''}</p>
     <div class="pollv-list">${rows.map(v => _pollStudentRow(v.students, `<span class="pollv-time">${_pollWhen(v.created_at)}</span>`)).join('')}</div>`;
+  _admApplyDeco(contentEl);
 }
 
 /* Élèves qui n'ont pas encore voté (hors comptes test) */
@@ -32990,6 +33015,7 @@ async function pollViewNonVoters() {
        <div class="pollv-list">${list.map(st => _pollStudentRow(st)).join('')}</div>
        ${_pollIsOpen(_poll) ? '<button class="btn btn-gold btn-full mt-2" onclick="closeModal(\'modal-voters\'); pollSendReminder()">🔔 Leur envoyer un rappel</button>' : ''}`
     : '<p class="text-muted text-center" style="padding:20px;">Tout le monde a voté 🎉</p>';
+  _admApplyDeco(contentEl);
 }
 
 /* Rappel de vote manuel : notification aux élèves qui n'ont pas encore voté */
