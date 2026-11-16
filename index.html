@@ -9599,6 +9599,31 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 .abn-center .abn-i { transition: transform .3s cubic-bezier(.2,.9,.25,1.2); }
 .admin-bnav.fab-quick .abn-center .abn-i { transform: rotate(45deg); }
 .admin-bnav.fab-more .abn[data-bn="more"] { color: var(--gold); }
+
+/* Rond de niveau dans la couleur de l'élève */
+.mini-xp-ring.has-color .xp-ring-progress { stroke: var(--ring-c); }
+.mini-xp-ring.has-color .xp-ring-track { stroke: var(--ring-t); }
+.mini-xp-ring.has-color .xp-ring-level { color: var(--ring-c); }
+/* Bannière vide sur la carte du Profil */
+.pp-card.has-ban-empty { padding-top: 10px; }
+.pp-ban-empty { width: 100%; height: 118px; padding-bottom: 30px; border-radius: 16px; border: 2px dashed rgba(240,165,0,.5); cursor: pointer; font-family: inherit; color: var(--text);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; margin-bottom: -44px;
+  background: repeating-linear-gradient(135deg, rgba(240,165,0,.06) 0 12px, transparent 12px 24px); }
+.pp-ban-empty.hidden { display: none; }
+.pp-ban-empty b { color: var(--gold); font-size: 15px; }
+.pp-ban-empty small { color: var(--text-2); font-size: 12px; }
+.pp-ban-ic { font-size: 24px; line-height: 1; }
+.pp-card.has-ban-empty .profile-xp-ring { position: relative; z-index: 1; background-color: var(--surface); border-radius: 50%; }
+/* Personnaliser : avant → après */
+.cz-ab { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.cz-ab-mini { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 8px; border-radius: 14px; border: 1px solid var(--border-2); background: var(--surface); font-size: 11.5px; color: var(--text-2); text-align: center; }
+.cz-ab-mini.after { color: #e8e8f0; border-color: rgba(240,165,0,.5); background: linear-gradient(180deg, rgba(8,8,15,.3), rgba(8,8,15,.85)), linear-gradient(120deg, #1d3b6b, #0a1a33 45%, #3a6fb0 80%, #9cc4ff); }
+.cz-ab-ring { width: 32px; height: 32px; border-radius: 50%; border: 3px solid var(--gold); background: #12121c; }
+.cz-ab-arrow { color: var(--gold); font-size: 20px; }
+.cz-cult-pick { width: 100%; padding: 13px; border-radius: 14px; border: none; background: linear-gradient(135deg, #ffbe33, var(--gold)); color: #1a1200; font: 800 14.5px/1.2 inherit; font-family: inherit; cursor: pointer; }
+.cz-xp { text-align: center; color: var(--gold); font-weight: 700; font-size: 12.5px; margin-top: 8px; }
+/* Liste des inscrits : rappel bannière */
+.reg-nudge { width: 100%; margin-top: 10px; padding: 11px 13px; border-radius: 12px; border: 1.5px dashed rgba(240,165,0,.5); background: rgba(240,165,0,.04); color: var(--gold); font: 700 13px/1.2 inherit; font-family: inherit; text-align: left; cursor: pointer; }
   </style>
 <body>
 <script>
@@ -9912,6 +9937,11 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     <button class="pp-iconbtn" onclick="navigateTo('settings')" aria-label="Réglages" title="Réglages">⚙️</button>
   </div>
   <div class="pp-card">
+    <button class="pp-ban-empty hidden" id="pp-ban-empty" onclick="openCultFilmPicker()">
+      <span class="pp-ban-ic">🎬</span>
+      <b>Ajoute ta bannière</b>
+      <small id="pp-ban-sub">Choisis ton film culte</small>
+    </button>
     <div class="profile-xp-ring" id="prof-xp-ring">
       <svg class="xp-ring-svg" viewBox="0 0 80 80">
         <circle class="xp-ring-track" cx="40" cy="40" r="36"></circle>
@@ -14852,6 +14882,7 @@ const XP_AMOUNTS_DEFAULTS = {
   profile_birthday_set: 10,   // bonus 1ère saisie de la date de naissance (Batch C2b)
   tutorial_xp_completed: 10,  // bonus de bienvenue à la fin du tuto XP & Badges (Batch C4)
   poll_vote:            15,   // participation au sondage « Quel film mercredi ? »
+  cult_film_set:        10,   // 1er film culte choisi (bannière du profil), une seule fois
 };
 
 // Objet mutable réellement utilisé partout dans le code. Écrasé au boot par les
@@ -16793,7 +16824,7 @@ function invalidateStudentDecoCache(studentId) {
    Args : level (1..XP_MAX_LEVEL), totalXp (pour calculer l'anneau de progression).
    Si totalXp absent, le calcul de progression est fait depuis level uniquement
    (donc anneau vide ou plein selon le niveau max). */
-function renderLevelRondHTML(level, totalXp) {
+function renderLevelRondHTML(level, totalXp, color) {
   let n = parseInt(level, 10);
   if (!Number.isFinite(n) || n < 1) n = 1;
   if (typeof XP_MAX_LEVEL === 'number' && n > XP_MAX_LEVEL) n = XP_MAX_LEVEL;
@@ -16814,7 +16845,9 @@ function renderLevelRondHTML(level, totalXp) {
   const dash = isMax ? C : (pct / 100) * C;
   const dashArray = `${dash.toFixed(2)} ${C.toFixed(2)}`;
 
-  return `<span class="mini-xp-ring${isMax ? ' xp-max' : ''}" title="Niveau ${n}">
+  // Couleur choisie par l'élève (sinon doré)
+  const col = (typeof _validProfileColor === 'function') ? _validProfileColor(color) : null;
+  return `<span class="mini-xp-ring${isMax ? ' xp-max' : ''}${col ? ' has-color' : ''}" title="Niveau ${n}"${col ? ` style="--ring-c:${col};--ring-t:${_hexA(col, .22)};"` : ''}>
     <svg class="xp-ring-svg" viewBox="0 0 32 32">
       <circle class="xp-ring-track" cx="16" cy="16" r="14"/>
       <circle class="xp-ring-progress" cx="16" cy="16" r="14" stroke-dasharray="${dashArray}"/>
@@ -18589,7 +18622,8 @@ const XP_EVENT_LABELS = {
   monthly_loyalty:       { icon: '🎖️', label: 'Fidélité mensuelle' },
   profile_birthday_set:  { icon: '🎂', label: 'Date de naissance renseignée' },
   tutorial_xp_completed: { icon: '🎁', label: 'Tutoriel découvert' },
-  poll_vote:             { icon: '🗳️', label: 'Vote au sondage du film' }
+  poll_vote:             { icon: '🗳️', label: 'Vote au sondage du film' },
+  cult_film_set:         { icon: '🎬', label: 'Bannière ajoutée' }
 };
 
 /* Date relative simple : "aujourd'hui", "hier", "il y a 3 jours", "il y a 2 sem.", "le DD/MM/YYYY" */
@@ -18912,6 +18946,7 @@ function _journeyRenderGain() {
       r('🎖️', 'Fidélité mensuelle', A.monthly_loyalty),
       r('📅', 'Date de naissance renseignée', A.profile_birthday_set, 'Une seule fois'),
       r('🎓', 'Tutoriel XP découvert', A.tutorial_xp_completed, 'Une seule fois'),
+      r('🎬', 'Film culte choisi (bannière)', A.cult_film_set, 'Une seule fois'),
     ]) +
     `<div class="jrn-gain-group">
       <div class="jrn-gain-title">📈 Échelle des niveaux</div>
@@ -21542,6 +21577,15 @@ async function loadProfileScreen() {
     const el = document.getElementById('profile-deco-row');
     if (el) el.innerHTML = renderStudentDecorationHTML(deco, { compact: false });
     _applyProfileLook(document.querySelector('#screen-profile .pp-card'), deco);
+    // Pas encore de bannière : on l'invite à en choisir une
+    const ban = document.getElementById('pp-ban-empty');
+    const showBan = _profileColsOk && !deco.cultFilm;
+    ban?.classList.toggle('hidden', !showBan);
+    document.querySelector('#screen-profile .pp-card')?.classList.toggle('has-ban-empty', showBan);
+    if (showBan) _cultXpHint().then(xp => {
+      const sub = document.getElementById('pp-ban-sub');
+      if (sub) sub.textContent = 'Choisis ton film culte' + (xp ? ` · +${xp} XP` : '');
+    });
   }).catch(() => {});
 
   _renderProfileStats();
@@ -21704,7 +21748,13 @@ async function loadCustomizeScreen() {
            </div>
          </div>
        </div>`
-    : `<button class="cz-cult-empty" onclick="openCultFilmPicker()">🔍 Choisir mon film culte</button>`;
+    : `<div class="cz-ab">
+         <div class="cz-ab-mini"><span class="cz-ab-ring"></span>Sans bannière</div>
+         <span class="cz-ab-arrow">→</span>
+         <div class="cz-ab-mini after"><span class="cz-ab-ring"></span>Avec ton film culte</div>
+       </div>
+       <button class="cz-cult-pick" onclick="openCultFilmPicker()">🔍 Choisir mon film culte</button>`;
+  const cultXp = myCult ? 0 : await _cultXpHint();
 
   const titles = LEVEL_TITLES.map(t => {
     const ok = level >= t.min;
@@ -21734,14 +21784,15 @@ async function loadCustomizeScreen() {
     <div class="cz-hint">Aperçu : c'est ce que les autres voient à côté de ton nom</div>
     ${_profileColsOk ? `
     <div class="pp-sec">
-      <div class="pp-sec-t">🎨 Ma couleur</div>
-      <div class="cz-pal">${palette}</div>
-      <div class="cz-note" style="text-align:left;">Elle colore ton anneau, ton titre et le contour de ta carte.</div>
+      <div class="pp-sec-t">🖼️ Ma bannière (film culte)</div>
+      ${cultHtml}
+      ${cultXp ? `<div class="cz-xp">⭐ +${cultXp} XP la première fois</div>` : ''}
+      <div class="cz-note" style="text-align:left;">L'image de ton film culte devient la bannière de ta carte : tout le monde la voit dans la liste des inscrits et sur ton profil.</div>
     </div>
     <div class="pp-sec">
-      <div class="pp-sec-t">🎬 Mon film culte</div>
-      ${cultHtml}
-      <div class="cz-note" style="text-align:left;">Son image sert de fond à ta carte, et les autres le voient sur ton profil.</div>
+      <div class="pp-sec-t">🎨 Ma couleur</div>
+      <div class="cz-pal">${palette}</div>
+      <div class="cz-note" style="text-align:left;">Elle colore ton anneau, ton niveau, ton titre et le contour de ta carte.</div>
     </div>` : ''}
     <div class="pp-sec">
       <div class="pp-sec-t">🎭 Mon titre</div>
@@ -21819,6 +21870,35 @@ async function customizeRemoveCult() {
 async function settingsTogglePublic() {
   const cur = ((await loadStudentsBusinessCards([S.user.id])).get(S.user.id) || {}).isPublic !== false;
   if (await _saveMyProfile({ profile_public: !cur }, cur ? '🔒 Ton profil est masqué' : '👁 Ton profil est visible')) loadSettingsScreen();
+}
+
+/* ---------- Bannière (film culte) : XP une seule fois + raccourcis ---------- */
+let _cultXpGiven = null;   // null = pas encore vérifié
+async function _cultXpAlreadyGiven() {
+  if (!S.user) return true;
+  if (_cultXpGiven !== null) return _cultXpGiven;
+  try {
+    const { count } = await db.from('xp_events').select('id', { count: 'exact', head: true })
+      .eq('student_id', S.user.id).eq('event_type', 'cult_film_set');
+    _cultXpGiven = (count || 0) > 0;
+  } catch (_) { _cultXpGiven = false; }
+  return _cultXpGiven;
+}
+async function _awardCultFilmXpOnce() {
+  const amount = XP_AMOUNTS.cult_film_set || 0;
+  if (!S.user || amount <= 0) return;
+  _cultXpGiven = null;
+  if (await _cultXpAlreadyGiven()) return;
+  _cultXpGiven = true;
+  await addXpEventWithFeedback(S.user.id, 'cult_film_set', amount, {});
+}
+async function _cultXpHint() {
+  const amount = XP_AMOUNTS.cult_film_set || 0;
+  return amount > 0 && !(await _cultXpAlreadyGiven()) ? amount : 0;
+}
+async function goChooseCultFilm() {
+  await navigateTo('customize');
+  openCultFilmPicker();
 }
 
 /* ---------- Choix du film culte : recherche → film → image large ---------- */
@@ -21909,9 +21989,10 @@ async function cultChooseImage(k) {
     backdrop_path: k >= 0 ? (_cult.images[k] || null) : null,
     poster_path: m.poster_path || null
   };
-  if (await _saveMyProfile({ cult_film: film }, '🎬 Film culte enregistré')) {
+  if (await _saveMyProfile({ cult_film: film }, '🎬 Bannière enregistrée')) {
     closeModal('modal-cult-film');
-    loadCustomizeScreen();
+    await _awardCultFilmXpOnce();
+    if (S.screen === 'profile') loadProfileScreen(); else loadCustomizeScreen();
   }
 }
 
@@ -24892,7 +24973,7 @@ async function viewStudentRegistrants(sesId, date) {
       const className = r.students?.class_name || '—';
       const deco = decoMap.get(r.student_id);
       const decoHtml = renderStudentDecorationHTML(deco, { compact: true });
-      const levelHtml = renderLevelRondHTML(deco?.level || 1, deco?.totalXp);
+      const levelHtml = renderLevelRondHTML(deco?.level || 1, deco?.totalXp, deco?.color);
 
       // Film culte en fond (à droite, fondu vers la gauche) + couleur de l'élève en bordure
       const pub = !deco || deco.isPublic !== false;
@@ -24923,6 +25004,15 @@ async function viewStudentRegistrants(sesId, date) {
     }
     
     console.log('[viewStudentRegistrants] Lignes affichées:', registered.length + waitlist.length);
+    // Rappel « bannière » pour l'élève qui n'a pas encore de film culte
+    if (S.user && !S.isAdmin && _profileColsOk) {
+      try {
+        const me = (await loadStudentsBusinessCards([S.user.id])).get(S.user.id);
+        if (_profileColsOk && me && !me.cultFilm) {
+          html += `<button class="reg-nudge" onclick="closeModal('modal-student-registrants'); goChooseCultFilm()">🎬 Toi aussi, ajoute ta bannière ›</button>`;
+        }
+      } catch (_) {}
+    }
     el.innerHTML = html;
     openModal('modal-student-registrants');
     
@@ -31385,7 +31475,7 @@ async function viewRegistrants(sesId, date) {
       const decoHtml = (typeof renderStudentDecorationHTML === 'function')
         ? renderStudentDecorationHTML(deco, { compact: true }) : '';
       const levelHtml = (typeof renderLevelRondHTML === 'function')
-        ? renderLevelRondHTML(deco?.level || 1, deco?.totalXp) : '';
+        ? renderLevelRondHTML(deco?.level || 1, deco?.totalXp, deco?.color) : '';
       return `
       <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--surface-2);border-radius:8px;gap:8px;">
         <div style="flex:1;min-width:0;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
@@ -31414,7 +31504,7 @@ async function viewRegistrants(sesId, date) {
     const waitRow = w => {
       const deco = _viewDecoMap.get(w.studentId);
       const levelHtml = (typeof renderLevelRondHTML === 'function')
-        ? renderLevelRondHTML(deco?.level || 1, deco?.totalXp) : '';
+        ? renderLevelRondHTML(deco?.level || 1, deco?.totalXp, deco?.color) : '';
       return `
       <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--surface-2);border-radius:8px;gap:8px;">
         <div style="flex:1;min-width:0;display:flex;align-items:center;gap:8px;">
@@ -31443,7 +31533,7 @@ async function viewRegistrants(sesId, date) {
     const banRow = b => {
       const deco = _viewDecoMap.get(b.studentId);
       const levelHtml = (typeof renderLevelRondHTML === 'function')
-        ? renderLevelRondHTML(deco?.level || 1, deco?.totalXp) : '';
+        ? renderLevelRondHTML(deco?.level || 1, deco?.totalXp, deco?.color) : '';
       return `
       <div style="display:flex;flex-direction:column;gap:6px;padding:10px 12px;background:var(--surface-2);border-radius:8px;border-left:3px solid var(--red);">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
@@ -33264,6 +33354,7 @@ const _XP_AMOUNT_LABELS = {
   profile_birthday_set: '1ère saisie date de naissance',
   tutorial_xp_completed:'Fin du tuto XP & Badges',
   poll_vote:            'Vote au sondage du film de la séance',
+  cult_film_set:        '1er film culte choisi (bannière)',
 };
 const _XP_TUNING_LABELS = {
   XP_DAILY_VOTE_CAP:        'Votes max comptés / jour',
