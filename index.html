@@ -25754,7 +25754,7 @@ async function loadConnectionsChart() {
 
   try {
     const { data, error } = await db.from('student_logins')
-      .select('student_id, logged_at')
+      .select('student_id, logged_at, students(class_name)')
       .gte('logged_at', startISO);
 
     if (error) {
@@ -25771,7 +25771,9 @@ async function loadConnectionsChart() {
       const key = _ccDayKey(d);
       byDay[key] = { date: d, total: 0, uniqueIds: new Set() };
     }
-    (data || []).forEach(row => {
+    // Les comptes test ne comptent pas dans le graphique (ils restent visibles
+    // dans la liste du jour, marqués 🧪)
+    (data || []).filter(row => !_isTestClass(row.students?.class_name)).forEach(row => {
       const d = new Date(row.logged_at);
       d.setHours(0, 0, 0, 0);
       const key = _ccDayKey(d);
@@ -25919,7 +25921,9 @@ function _ccdRender() {
 
   const rowsHtml = sorted.map(s => {
     const fullName = `${s.firstName} ${s.lastName}`.trim() || '— inconnu —';
-    const clsBadge = s.className ? `<span class="badge badge-muted" style="margin-left:6px;">${s.className}</span>` : '';
+    const clsBadge = s.isTest
+      ? `<span class="badge badge-gold" style="margin-left:6px;" title="Compte test : pas compté dans le graphique">🧪 test</span>`
+      : (s.className ? `<span class="badge badge-muted" style="margin-left:6px;">${s.className}</span>` : '');
     const cntLabel = `${s.count} connexion${s.count > 1 ? 's' : ''}`;
     // En mode 'recent', l'heure est mise en avant ; en mode 'count', c'est le compteur
     const primary   = mode === 'recent' ? `dernière à ${fmtTime(s.lastAt)}` : cntLabel;
@@ -26015,11 +26019,16 @@ async function openConnectionsDayDetail(dayKey) {
     });
 
     const list = Array.from(byStudent.values());
-    const totalCnx    = data.length;
-    const uniqueCount = list.length;
+    list.forEach(x => { x.isTest = _isTestClass(x.className); });
+    // Chiffres du résumé = mêmes règles que le graphique (sans les comptes test)
+    const real        = list.filter(x => !x.isTest);
+    const totalCnx    = real.reduce((n, x) => n + x.count, 0);
+    const uniqueCount = real.length;
+    const testCount   = list.length - real.length;
 
     if (summaryEl) {
-      summaryEl.textContent = `${uniqueCount} élève${uniqueCount > 1 ? 's' : ''} • ${totalCnx} connexion${totalCnx > 1 ? 's' : ''} au total`;
+      summaryEl.textContent = `${uniqueCount} élève${uniqueCount > 1 ? 's' : ''} • ${totalCnx} connexion${totalCnx > 1 ? 's' : ''} au total`
+        + (testCount ? ` (+ ${testCount} compte${testCount > 1 ? 's' : ''} test, non compté${testCount > 1 ? 's' : ''})` : '');
     }
 
     // Stocke la liste et affiche le switch + le rendu initial
