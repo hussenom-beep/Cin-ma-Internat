@@ -9450,6 +9450,13 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
   .admin-tabs .admin-tab-wrap .admin-tab { padding-top: 8px; padding-bottom: 8px; }
   .admin-tabs .admin-sidebar-section { padding: 10px 12px 4px; }
 }
+.ic-power { width: 1.05em; height: 1.05em; display: inline-block; vertical-align: -0.15em; flex-shrink: 0; }
+.at-ic .ic-power { width: 18px; height: 18px; vertical-align: middle; }
+.admin-drawer-logout-top .ic-power { width: 18px; height: 18px; }
+/* Lisibilité sur les bandeaux à thème (Noël, Halloween) */
+.admin-head-btn.btn-ghost { background: rgba(8,8,15,.85); border-color: rgba(255,255,255,.18); color: var(--text); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.admin-brand-txt b, .admin-brand-txt small, #admin-header-title { text-shadow: 0 1px 6px rgba(0,0,0,.85), 0 0 2px rgba(0,0,0,.9); }
+.admin-brand-txt small { color: #c9c9d6; }
   </style>
 <body>
 <script>
@@ -9803,7 +9810,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       <button class="pp-row" onclick="openStudentFAQ()"><span class="pp-ic">❔</span><span class="pp-tx">Aide / FAQ</span><span class="pp-ar">›</span></button>
     </div>
   </div>
-  <button class="pp-logout" onclick="profileLogout()">⏻ Se déconnecter</button>
+  <button class="pp-logout" onclick="profileLogout()"><svg class="ic-power" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 3v8"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/></svg> Se déconnecter</button>
   <div class="pp-who" id="prof-identifier"></div>
 </div>
 
@@ -9850,7 +9857,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 
   <div class="admin-tabs" id="admin-tabs">
     <!-- Bouton Déconnexion : positionné en haut à droite du drawer mobile -->
-    <button class="admin-drawer-logout-top" onclick="logout()" title="Déconnexion" aria-label="Déconnexion">⏻</button>
+    <button class="admin-drawer-logout-top" onclick="logout()" title="Déconnexion" aria-label="Déconnexion"><svg class="ic-power" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 3v8"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/></svg></button>
 
     <span class="admin-sidebar-section">Pilotage</span>
     <button class="admin-tab active" data-tab="dashboard" onclick="aTab('dashboard')"><span class="at-ic">🏠</span><span class="at-tx">Accueil</span></button>
@@ -9879,7 +9886,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     <div class="admin-side-foot">
       <button class="admin-maint-pill hidden" id="admin-maint-pill" onclick="aTab('settings'); sdSwitchSettingsTab('systeme')" title="Ouvrir les réglages de maintenance">🛠 Maintenance active</button>
     <button class="admin-tab" data-tab="settings" onclick="aTab('settings')"><span class="at-ic">⚙️</span><span class="at-tx">Paramètres</span></button>
-    <button class="admin-tab admin-tab-logout admin-desktop-only" onclick="logout()"><span class="at-ic">⏻</span><span class="at-tx">Déconnexion</span></button>
+    <button class="admin-tab admin-tab-logout admin-desktop-only" onclick="logout()"><span class="at-ic"><svg class="ic-power" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 3v8"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/></svg></span><span class="at-tx">Déconnexion</span></button>
     </div>
   </div>
 
