@@ -9624,6 +9624,196 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 .cz-xp { text-align: center; color: var(--gold); font-weight: 700; font-size: 12.5px; margin-top: 8px; }
 /* Liste des inscrits : rappel bannière */
 .reg-nudge { width: 100%; margin-top: 10px; padding: 11px 13px; border-radius: 12px; border: 1.5px dashed rgba(240,165,0,.5); background: rgba(240,165,0,.04); color: var(--gold); font: 700 13px/1.2 inherit; font-family: inherit; text-align: left; cursor: pointer; }
+
+/* ═══════════ Paramètres sur téléphone : liste + sous-pages ═══════════ */
+.set-home, .set-subhead { display: none; }
+.set-savebar { display: none; }
+.xp-frow { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.xp-frow .flabel { flex: 1; min-width: 0; margin: 0; text-transform: none; letter-spacing: 0; color: var(--text); font-weight: 600; line-height: 1.3; }
+.xp-step { display: flex; align-items: stretch; flex-shrink: 0; border: 1px solid var(--border-2); border-radius: 12px; overflow: hidden; background: var(--surface-2); }
+.xp-step .xp-sb { width: 36px; border: none; background: none; color: var(--text-2); font-family: inherit; font-weight: 800; font-size: 18px; line-height: 1; cursor: pointer; }
+.xp-step .xp-sb:active { background: var(--surface-3); }
+.xp-step input.finput { width: 58px; min-width: 0; padding: 8px 2px; border: none; border-radius: 0; background: none; text-align: center; font-size: 15px; font-weight: 700; -moz-appearance: textfield; box-shadow: none; }
+.xp-step input::-webkit-outer-spin-button, .xp-step input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+@media (max-width: 1023.98px) {
+  #ap-settings .sd-tabs.sd-tabs-admin-settings { display: none !important; }
+  #ap-settings:not(.set-in-sub) .sd-tab-panel { display: none !important; }
+  #ap-settings:not(.set-in-sub) .set-home { display: block; }
+  #ap-settings.set-in-sub .set-subhead { display: flex; }
+  #ap-settings.set-in-sub .set-savebtn,
+  #ap-settings.set-in-sub .th-apply { display: none !important; }
+  #ap-settings[data-sub="maint"] #sd-spane-systeme .sd-section:not([data-sset="maint"]),
+  #ap-settings[data-sub="notif"] #sd-spane-systeme .sd-section:not([data-sset="notif"]),
+  #ap-settings[data-sub="security"] #sd-spane-systeme .sd-section:not([data-sset="security"]),
+  #ap-settings[data-sub="age"] #sd-spane-systeme .sd-section:not([data-sset="age"]) { display: none !important; }
+  #ap-settings.set-bar-open .sd-body { padding-bottom: 96px; }
+  .set-subhead { position: sticky; top: var(--header-h, 0px); z-index: 7; align-items: center; gap: 10px; margin: -4px 0 14px; padding: 8px 0; background: var(--bg); }
+  .set-back { height: 38px; padding: 0 12px 0 9px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--border-2); color: var(--gold); font-family: inherit; font-weight: 700; font-size: 14px; line-height: 1; cursor: pointer; flex-shrink: 0; }
+  .set-sub-title { font-family: 'Playfair Display', serif; font-size: 19px; font-weight: 700; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .set-now { margin-top: 2px; padding: 12px 13px; border-radius: 16px; border: 1px solid rgba(240,165,0,.3); background: radial-gradient(120% 120% at 100% 0%, rgba(240,165,0,.13), transparent 55%), var(--surface); }
+  .set-now > b { font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--gold); font-weight: 800; }
+  .set-chips { display: flex; gap: 7px; margin-top: 9px; flex-wrap: wrap; }
+  .set-chip { padding: 7px 10px; border-radius: 11px; background: var(--surface-2); border: 1px solid var(--border-2); font-size: 12.5px; font-weight: 700; }
+  .set-chip.red { border-color: rgba(232,64,64,.5); color: #ff8080; background: rgba(232,64,64,.1); }
+  .set-sec { font-size: 10.5px; font-weight: 800; letter-spacing: .12em; color: var(--text-3); text-transform: uppercase; margin: 18px 6px 7px; }
+  .set-grp { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+  .set-li { display: flex; align-items: center; gap: 12px; width: 100%; padding: 11px 13px; border: none; border-top: 1px solid var(--border); background: none; color: var(--text); font-family: inherit; font-weight: 700; font-size: 14.5px; line-height: 1.25; text-align: left; cursor: pointer; }
+  .set-li:first-child { border-top: none; }
+  .set-li:active { background: var(--surface-2); }
+  .set-ic { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0; background: var(--surface-3); }
+  .set-ic.g { background: rgba(240,165,0,.15); } .set-ic.b { background: rgba(80,140,255,.16); } .set-ic.v { background: rgba(192,132,252,.16); }
+  .set-ic.gr { background: rgba(74,222,128,.14); } .set-ic.r { background: rgba(232,64,64,.14); }
+  .set-tx { flex: 1; min-width: 0; }
+  .set-tx small { display: block; font-weight: 500; color: var(--text-2); font-size: 12px; margin-top: 2px; }
+  .set-v { font-size: 12.5px; font-weight: 600; color: var(--text-2); max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .set-v.red { color: #ff8080; }
+  .set-ch { color: var(--text-3); font-size: 18px; font-weight: 700; }
+  .set-savebar:not(.hidden) { display: flex; align-items: center; gap: 6px; position: fixed; left: 10px; right: 10px; bottom: calc(90px + env(safe-area-inset-bottom, 0px)); z-index: 60;
+    padding: 8px 8px 8px 14px; border-radius: 18px; background: rgba(26,26,40,.97); border: 1px solid rgba(240,165,0,.45); box-shadow: 0 10px 30px rgba(0,0,0,.6); animation: setBarIn .2s ease-out both; }
+  .set-sb-txt { flex: 1; min-width: 0; font-size: 13px; }
+  .set-sb-txt b { display: block; font-weight: 800; }
+  .set-sb-txt small { display: block; color: var(--text-2); font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .set-savebar .btn { padding: 10px 13px; font-size: 13.5px; flex-shrink: 0; }
+  .set-savebar .btn-ghost { border: none; background: none; color: var(--text-2); }
+}
+@keyframes setBarIn { from { transform: translateY(14px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* ═══════════ Fiche élève admin : bannière, plein écran (tel), grand panneau (PC) ═══════════ */
+#modal-student-detail.overlay { padding: 0; align-items: stretch; justify-content: flex-end; }
+#modal-student-detail .sd-panel.sd2 {
+  --sd-c: #f0a500;
+  position: relative; display: block; width: 100%; max-width: none; height: 100vh; height: 100dvh; max-height: none;
+  margin: 0; border: none; border-radius: 0; box-shadow: none; background: var(--bg);
+  overflow-x: hidden; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+  animation: sdSlideIn .25s cubic-bezier(.32,1,.64,1) both;
+}
+#modal-student-detail .sd2 .sd-body { overflow: visible; padding: 0 0 48px; flex: none; }
+#modal-student-detail .sd2 .sd-header { position: sticky; top: 0; z-index: 20; display: block; height: 0; padding: 0; border: none; background: none; border-radius: 0; backdrop-filter: none; -webkit-backdrop-filter: none; }
+#modal-student-detail .sd2 .sd-hbar { position: absolute; left: 0; right: 0; top: 0; height: 60px; display: flex; align-items: center; gap: 12px; padding: 0 14px; border-bottom: 1px solid transparent; transition: background .2s, border-color .2s; }
+#modal-student-detail .sd2.scrolled .sd-hbar { background: rgba(10,10,18,.93); border-bottom-color: var(--border); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+#modal-student-detail .sd2 .sd-header-close { width: 40px; height: 40px; border-radius: 13px; background: rgba(10,10,16,.62); border: 1px solid rgba(255,255,255,.16); color: #fff; font-size: 18px; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+#modal-student-detail .sd2 .sd-header-title { opacity: 0; transition: opacity .2s; font-family: 'Playfair Display', serif; font-size: 18px; }
+#modal-student-detail .sd2.scrolled .sd-header-title { opacity: 1; }
+.sd2 .sd-hero { position: relative; height: 210px; overflow: hidden;
+  background: radial-gradient(120% 130% at 75% 0%, color-mix(in srgb, var(--sd-c) 32%, transparent), transparent 62%), var(--surface); }
+.sd2 .sd-hero-img { position: absolute; inset: 0; background: center 30% / cover no-repeat; }
+.sd2 .sd-hero::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(8,8,15,.25) 0%, rgba(8,8,15,.3) 45%, var(--bg) 100%); }
+.sd2 .sd-hero-cult { position: absolute; right: 14px; top: 17px; z-index: 2; max-width: 55%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 6px 11px; border-radius: 999px; background: rgba(10,10,16,.62); border: 1px solid rgba(255,255,255,.16); font-size: 12px; font-weight: 700; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+#modal-student-detail .sd2 .sd-identity { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 0; margin: -64px 0 0; padding: 0 16px; border: none; background: none; }
+#modal-student-detail .sd2 .sd-avatar-ring { width: 96px; height: 96px; min-width: 96px; background: #12121c; box-shadow: 0 0 22px color-mix(in srgb, var(--sd-c) 40%, transparent), 0 0 0 5px var(--bg); }
+.sd2 .sd-avatar-ring .xp-ring-progress { stroke: var(--sd-c); filter: drop-shadow(0 0 3px color-mix(in srgb, var(--sd-c) 55%, transparent)); }
+.sd2 .sd-avatar-ring .xp-ring-track { stroke: color-mix(in srgb, var(--sd-c) 22%, transparent); }
+.sd2 .sd-avatar-ring .xp-ring-level { color: var(--sd-c); font-size: 34px; }
+.sd2 .sd-id-main { width: 100%; min-width: 0; }
+#modal-student-detail .sd2 .sd-name { font-size: 26px; margin: 10px 0 0; line-height: 1.15; }
+.sd2 .sd-meta { justify-content: center; margin: 8px 0 0; }
+#modal-student-detail .sd2 .sd-deco-row { justify-content: center; gap: 12px; margin-top: 8px; }
+#modal-student-detail .sd2 .sd-xp-title-line { display: none; }
+#modal-student-detail .sd2 .sd-xp-row { padding: 0; border: none; background: none; }
+.sd2 .sd-xp-row { width: 100%; max-width: 380px; margin: 10px auto 0; text-align: left; }
+.sd-quick { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; width: 100%; margin-top: 14px; }
+.sd-quick:empty { display: none; }
+.sd-qa { display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 0; border: none; background: none; color: var(--text-2); font-family: inherit; font-weight: 700; font-size: 11.5px; line-height: 1.2; cursor: pointer; }
+.sd-qa i { font-style: normal; display: flex; align-items: center; justify-content: center; width: 100%; height: 48px; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--border-2); font-size: 20px; }
+.sd-qa.gold { color: var(--gold); }
+.sd-qa.gold i { background: linear-gradient(135deg, #ffbe33, var(--gold)); border-color: transparent; }
+.sd2 .sd-grid { padding: 16px 14px 0; }
+.sd-alert { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 12px; padding: 9px 12px; border-radius: 12px; background: rgba(232,64,64,.1); border: 1px solid rgba(232,64,64,.35); }
+.sd-alert:empty { display: none; }
+.sd-alert-t { font-size: 12.5px; font-weight: 800; color: #ff9a9a; margin-right: 2px; }
+#modal-student-detail .sd2 .sd-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+#modal-student-detail .sd2 .sd-stat { text-align: center; padding: 10px 6px; }
+.sd2 .sd-stat .sd-stat-val { font-size: 20px; }
+.sd2 .sd-stat.bad .sd-stat-val { color: #ff7b7b; }
+.sd-histo { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+.sd-histo button { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 13px; border: none; border-top: 1px solid var(--border); background: none; color: var(--text); font-family: inherit; font-weight: 700; font-size: 14.5px; line-height: 1.2; text-align: left; cursor: pointer; }
+.sd-histo button:first-child { border-top: none; }
+.sd-histo button:active { background: var(--surface-2); }
+.sd-histo .ic { width: 32px; height: 32px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; background: var(--surface-3); }
+.sd-histo .tx { flex: 1; }
+.sd-histo .ch { color: var(--text-3); font-size: 17px; }
+@media (min-width: 1024px) and (max-width: 1399.98px) { #modal-student-detail .sd2 .sd-tab .ti { display: none; } }
+@media (min-width: 1024px) and (max-width: 1279.98px) {
+  #modal-student-detail.overlay .sd-panel.sd2 { width: 94vw; }
+  #modal-student-detail.overlay .sd2 .sd-grid { grid-template-columns: 290px minmax(0, 1fr); gap: 20px; padding: 22px 22px 0; }
+}
+.sd-histo i, .sd2 .sd-tab i { font-style: normal; font-size: 11.5px; font-weight: 800; padding: 2px 8px; border-radius: 8px; background: var(--surface-3); color: var(--text-2); }
+.sd-histo i:empty, .sd2 .sd-tab i:empty { display: none; }
+.sd-histo i.r, .sd2 .sd-tab i.r { background: rgba(232,64,64,.18); color: #ff8080; }
+.sd-kv { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 2px 13px; }
+.sd-kv .sd-repere-row { align-items: center; gap: 10px; }
+.sd-kv .sd-repere-val { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; min-width: 0; }
+.sd-code { font-family: ui-monospace, 'SFMono-Regular', Menlo, monospace; font-size: 12px; color: var(--text-2); user-select: all; -webkit-user-select: all; word-break: break-all; }
+.sd-dot { width: 14px; height: 14px; border-radius: 50%; display: inline-block; }
+.sd-mini-red { padding: 4px 9px; border-radius: 9px; border: 1px solid rgba(232,64,64,.4); background: none; color: #ff8080; font-family: inherit; font-weight: 700; font-size: 11.5px; line-height: 1; cursor: pointer; }
+.sd-manage { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+.sd-li-btn { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 13px 14px; border: none; background: none; color: var(--text); font-family: inherit; font-weight: 700; font-size: 14px; line-height: 1.2; text-align: left; cursor: pointer; }
+#sd-danger-actions .sd-li-btn { border-top: 1px solid var(--border); }
+.sd-li-btn.green { color: var(--green); }
+.sd-li-btn.danger { color: #ff7b7b; }
+.sd-li-btn .ch { color: var(--text-3); font-size: 17px; }
+.sd2 .sd-subhead { display: none; }
+/* Les sections sont déjà des cartes : pas de deuxième cadre à l'intérieur */
+.sd2 .sd-section .sd-kv, .sd2 .sd-section .sd-manage, .sd2 .sd-section .sd-histo { background: none; border: none; border-radius: 0; padding: 0; }
+.sd2 .sd-section .sd-histo button { padding-left: 0; padding-right: 0; }
+.sd2 .sd-section .sd-li-btn { padding-left: 0; padding-right: 0; }
+#modal-student-detail .sd2 .sd-deco-badges-count { margin-left: 0; }
+.adm-row.has-cult .btn-red { background: rgba(14,10,16,.82); }
+@media (max-width: 1023.98px) {
+  #modal-student-detail .sd2:not(.sd-in-sub) .sd-main { display: none; }
+  #modal-student-detail .sd2.sd-in-sub .sd-hero,
+  #modal-student-detail .sd2.sd-in-sub .sd-identity,
+  #modal-student-detail .sd2.sd-in-sub .sd-side,
+  #modal-student-detail .sd2.sd-in-sub .sd-header { display: none !important; }
+  #modal-student-detail .sd2 .sd-tabs { display: none !important; }
+  #modal-student-detail .sd2.sd-in-sub .sd-grid { padding-top: 0; }
+  .sd2 .sd-subhead { display: flex; position: sticky; top: 0; z-index: 15; height: 60px; align-items: center; gap: 12px; margin: 0 -14px 12px; padding: 0 14px;
+    background: rgba(10,10,18,.94); border-bottom: 1px solid var(--border); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+  .sd-sub-back { height: 38px; padding: 0 12px 0 9px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--border-2); color: var(--gold); font-family: inherit; font-weight: 700; font-size: 14px; line-height: 1; cursor: pointer; flex-shrink: 0; max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sd-sub-title { font-family: 'Playfair Display', serif; font-size: 19px; font-weight: 700; }
+}
+@media (min-width: 1024px) {
+  #modal-student-detail .sd-panel.sd2 { width: min(1160px, 84vw); border-left: 1px solid var(--border); border-radius: 22px 0 0 22px; box-shadow: -30px 0 70px rgba(0,0,0,.55); }
+  .sd2 .sd-hero { height: 250px; }
+  .sd2 .sd-hero-cult { top: 18px; right: 22px; }
+  #modal-student-detail .sd2 .sd-hbar { padding: 0 22px; }
+  #modal-student-detail .sd2 .sd-identity { flex-direction: row; align-items: flex-end; text-align: left; gap: 20px; margin-top: -118px; padding: 0 30px; }
+  #modal-student-detail .sd2 .sd-avatar-ring { width: 108px; height: 108px; min-width: 108px; }
+  .sd2 .sd-avatar-ring .xp-ring-level { font-size: 38px; }
+  .sd2 .sd-id-main { flex: 1; width: auto; }
+  #modal-student-detail .sd2 .sd-name { font-size: 34px; margin: 0; }
+  .sd2 .sd-meta, #modal-student-detail .sd2 .sd-deco-row { justify-content: flex-start; }
+  .sd2 .sd-xp-row { margin: 10px 0 0; max-width: 420px; }
+  .sd-quick { display: flex; flex-wrap: wrap; justify-content: flex-end; width: auto; max-width: 300px; margin: 0 0 4px; gap: 8px; }
+  .sd-qa { flex-direction: row; gap: 7px; padding: 9px 13px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--border-2); color: var(--text); font-size: 13.5px; }
+  .sd-qa i { width: auto; height: auto; background: none; border: none; font-size: 15px; }
+  .sd-qa.gold { background: linear-gradient(135deg, #ffbe33, var(--gold)); color: #1a1200; border-color: transparent; }
+  .sd-qa.gold i { background: none; }
+  .sd2 .sd-grid { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 24px; align-items: start; padding: 24px 30px 0; }
+  .sd2 .sd-histo-sec { display: none; }
+  #modal-student-detail .sd2 .sd-tabs { position: sticky; top: 60px; z-index: 6; display: flex; flex-wrap: wrap; gap: 0 2px; margin: 0 0 14px; padding: 0; overflow: visible; background: var(--bg); border-bottom: 1px solid var(--border); }
+  #modal-student-detail .sd2 .sd-tab .ti { font-size: 13px; }
+  #modal-student-detail .sd2 .sd-tab { display: inline-flex; align-items: center; gap: 5px; padding: 12px 7px; font-size: 13.5px; white-space: nowrap; border: none; border-bottom: 2px solid transparent; border-radius: 0; background: none; margin: 0; }
+  #modal-student-detail .sd2 .sd-tab.active { color: var(--gold); border-bottom-color: var(--gold); background: none; }
+}
+
+/* ═══════════ Bannières côté admin : inscrits, attente, classement, liste Élèves ═══════════ */
+.adm-row.has-cult .admin-student-link, .adm-row.has-cult .lb-row-name { text-shadow: 0 1px 3px #000; }
+.lb-row.adm-row { position: relative; overflow: hidden; }
+.stbl tbody tr.stu-row { position: relative; z-index: 0; }
+.stu-cult { position: absolute; top: 0; right: 0; height: 100%; width: 42%; object-fit: cover; opacity: .55; pointer-events: none; z-index: -1;
+  -webkit-mask-image: linear-gradient(to left, #000 20%, transparent 100%); mask-image: linear-gradient(to left, #000 20%, transparent 100%); }
+.stbl tbody tr.stu-col td:first-child { box-shadow: inset 3px 0 0 var(--stu-c); }
+.stu-risk .risk-badge { vertical-align: 1px; }
+.stu-watch { width: 100%; padding: 6px 10px; font-family: inherit; font-weight: 600; font-size: 12.5px; line-height: 1.4; text-align: left; border-radius: var(--radius-sm, 8px); border: 1px solid var(--border-2); background: var(--surface-2); color: var(--text); cursor: pointer; }
+.stu-watch.on { border-color: rgba(232,64,64,.55); background: rgba(232,64,64,.12); color: #ff8a8a; }
+.stu-watch:disabled { opacity: .55; cursor: default; }
+@media (max-width: 719.98px) {
+  #ap-students .stbl tbody tr.stu-row { overflow: hidden; }
+  #ap-students .stbl tbody tr.stu-col { border-left: 3px solid var(--stu-c); }
+  .stbl tbody tr.stu-col td:first-child { box-shadow: none; }
+  .stu-cult { width: 55%; }
+}
   </style>
 <body>
 <script>
@@ -10110,6 +10300,10 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     </div>
     <div class="sd-body">
 
+      <!-- Téléphone : liste des rubriques + en-tête de sous-page -->
+      <div class="set-home" id="set-home"></div>
+      <div class="set-subhead"><button class="set-back" onclick="settingsHome()">‹ Paramètres</button><span class="set-sub-title" id="set-sub-title"></span></div>
+
       <!-- ============================================================
            ONGLET : ⚙️ GÉNÉRAL
            ============================================================ -->
@@ -10128,7 +10322,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
               Ce nom apparaîtra dans l'accès admin et la messagerie élève
             </div>
           </div>
-          <button class="btn btn-gold btn-full" onclick="saveSupervisorName()">Enregistrer</button>
+          <button class="btn btn-gold btn-full set-savebtn" onclick="saveSupervisorName()">Enregistrer</button>
 
         </div>
 
@@ -10173,7 +10367,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       </div>
     </div>
 
-          <button class="btn btn-gold btn-full" style="margin-top:6px;" onclick="saveDefaultSessionSettings()">Enregistrer</button>
+          <button class="btn btn-gold btn-full set-savebtn" style="margin-top:6px;" onclick="saveDefaultSessionSettings()">Enregistrer</button>
         </div>
       </div>
 
@@ -10358,7 +10552,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 
         <div style="display:flex;gap:8px;margin-top:4px;">
           <button class="btn btn-ghost" style="flex:1;" onclick="resetXpSettings()">↺ Réinitialiser</button>
-          <button class="btn btn-gold" style="flex:1;" onclick="saveXpSettings()">Enregistrer</button>
+          <button class="btn btn-gold set-savebtn" style="flex:1;" onclick="saveXpSettings()">Enregistrer</button>
         </div>
 
       </div>
@@ -10369,7 +10563,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       <div class="sd-tab-panel" id="sd-spane-systeme">
 
         <!-- Notifications push admin -->
-        <div class="sd-section">
+        <div class="sd-section" data-sset="notif">
           <div class="sd-section-title">Notifications</div>
           <button class="profile-install-card profile-push-card" data-push-toggle onclick="togglePushNotifications()" style="border:none;width:100%;text-align:left;font-family:inherit;cursor:pointer;margin-bottom:0;">
             <div class="profile-install-icon" data-push-icon>🔕</div>
@@ -10382,7 +10576,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
         </div>
 
 <!-- Rester connecté sur cet appareil (toggle par device) -->
-        <div class="sd-section">
+        <div class="sd-section" data-sset="notif">
           <div class="sd-section-title">Session</div>
           <button class="profile-install-card" id="admin-persist-card" onclick="toggleAdminPersist()" style="border:none;width:100%;text-align:left;font-family:inherit;cursor:pointer;margin-bottom:0;">
             <div class="profile-install-icon" id="admin-persist-icon">🔓</div>
@@ -10395,7 +10589,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
         </div>
 
 <!-- Mot de passe admin -->
-        <div class="sd-section">
+        <div class="sd-section" data-sset="security">
           <div class="sd-section-title">🔐 Mot de passe admin</div>
           <p class="text-sm text-muted" style="margin-bottom:14px;">
             Modifie le mot de passe utilisé pour accéder à l'espace admin.
@@ -10422,7 +10616,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
         </div>
 
 <!-- Sessions / Déconnexion globale -->
-        <div class="sd-section">
+        <div class="sd-section" data-sset="security">
           <div class="sd-section-title">📱 Sessions</div>
           <p class="text-sm text-muted" style="margin-bottom:14px;">
             Déconnecte tous les appareils où ce compte admin est resté connecté
@@ -10435,7 +10629,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
         </div>
 
 
-        <div class="sd-section">
+        <div class="sd-section" data-sset="age">
           <div class="sd-section-title">🔞 Classifications d'âge</div>
           <p class="text-sm text-muted" style="margin-bottom:12px;">
             Récupère sur TMDB la classification française (TP, -10, -12, -16, -18) des films du catalogue et des propositions en attente qui n'en ont pas encore. Les nouveaux films la récupèrent automatiquement.
@@ -10444,7 +10638,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
           <div id="age-backfill-result" class="text-sm text-muted" style="margin-top:10px;"></div>
         </div>
 
-        <div class="sd-section">
+        <div class="sd-section" data-sset="maint">
           <div class="sd-section-title">🛠️ Mode maintenance</div>
 
           <div class="fgroup">
@@ -10477,7 +10671,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
             </div>
           </div>
 
-          <button class="btn btn-gold btn-full" onclick="saveMaintenanceSettings()">Enregistrer la maintenance</button>
+          <button class="btn btn-gold btn-full set-savebtn" onclick="saveMaintenanceSettings()">Enregistrer la maintenance</button>
         </div>
 
       </div>
@@ -10494,6 +10688,12 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       <button class="sd-tab"        id="sd-stab-theme"   onclick="sdSwitchSettingsTab('theme')"><span class="sd-tab-icon">🎨</span><span class="sd-tab-label">Thème</span></button>
       <button class="sd-tab"        id="sd-stab-xp"      onclick="sdSwitchSettingsTab('xp')"><span class="sd-tab-icon">⭐</span><span class="sd-tab-label">XP</span></button>
       <button class="sd-tab"        id="sd-stab-systeme" onclick="sdSwitchSettingsTab('systeme')"><span class="sd-tab-icon">🛡️</span><span class="sd-tab-label">Système</span></button>
+    </div>
+    <!-- Téléphone : barre « Enregistrer » qui n'apparaît que s'il y a un changement -->
+    <div class="set-savebar hidden" id="set-savebar">
+      <span class="set-sb-txt"><b id="set-sb-n">1 modification</b><small id="set-sb-d"></small></span>
+      <button class="btn btn-ghost" onclick="settingsBarCancel()">Annuler</button>
+      <button class="btn btn-gold" id="set-sb-save" onclick="settingsBarSave()">Enregistrer</button>
     </div>
   </div>
     </div>
@@ -10713,6 +10913,10 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
             <option value="F">Filles</option>
             <option value="M">Garçons</option>
           </select>
+        </div>
+        <div style="flex:1; min-width:140px;">
+          <label style="display:block; font-size:10.5px; font-weight:700; text-transform:uppercase; color:var(--text-3); margin-bottom:4px; letter-spacing:0.3px;">Suivi · 30 jours</label>
+          <button type="button" class="stu-watch" id="stu-watch-btn" onclick="toggleStudentWatch()" title="Élèves avec au moins 1 absence ou 2 désistements tardifs sur les 30 derniers jours">⚠️ À suivre</button>
         </div>
       </div>
 
@@ -12847,29 +13051,26 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 <!-- ================================================================
      MODAL: Fiche élève admin — panneau latéral
      ================================================================ -->
-<div class="overlay hidden" id="modal-student-detail">
-  <div class="sd-panel">
+<div class="overlay hidden" id="modal-student-detail" onclick="if(event.target===this)closeModal('modal-student-detail')">
+  <div class="sd-panel sd2" id="sd-panel">
 
-    <!-- Header sticky -->
+    <!-- Barre du haut : transparente sur la bannière, opaque en défilant -->
     <div class="sd-header">
-      <button class="sd-header-close" onclick="closeModal('modal-student-detail')">←</button>
-      <span class="sd-header-title" id="sd-header-title">Fiche élève</span>
+      <div class="sd-hbar">
+        <button class="sd-header-close" onclick="sdBack()" aria-label="Retour">←</button>
+        <span class="sd-header-title" id="sd-header-title">Fiche élève</span>
+      </div>
     </div>
 
-    <!-- Corps -->
     <div class="sd-body">
 
-      <!-- Onglets -->
-      <div class="sd-tabs">
-        <button class="sd-tab active" id="sd-tab-overview"   onclick="sdSwitchTab('overview')">Vue d'ensemble</button>
-        <button class="sd-tab"        id="sd-tab-proposals"  onclick="sdSwitchTab('proposals')">Films proposés</button>
-        <button class="sd-tab"        id="sd-tab-votes"      onclick="sdSwitchTab('votes')">Votes</button>
-        <button class="sd-tab"        id="sd-tab-sessions"   onclick="sdSwitchTab('sessions')">Inscriptions</button>
-        <button class="sd-tab"        id="sd-tab-watched"    onclick="sdSwitchTab('watched')">Films vus</button>
-        <button class="sd-tab"        id="sd-tab-missed"     onclick="sdSwitchTab('missed')">Absences</button>
+      <!-- Bannière (film culte de l'élève) -->
+      <div class="sd-hero" id="sd-hero">
+        <div class="sd-hero-img" id="sd-hero-img"></div>
+        <span class="sd-hero-cult hidden" id="sd-hero-cult"></span>
       </div>
 
-      <!-- Identité (toujours visible en haut) -->
+      <!-- Identité -->
       <div class="sd-identity">
         <div class="sd-avatar-ring" id="sd-avatar-ring">
           <svg class="xp-ring-svg" viewBox="0 0 64 64">
@@ -12879,103 +13080,104 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
           </svg>
           <span class="xp-ring-level" id="sd-avatar-ring-level">1</span>
         </div>
-        <div style="flex:1;min-width:0;">
+        <div class="sd-id-main">
           <div class="sd-name" id="sd-name">—</div>
           <div class="sd-meta">
             <span id="sd-class-badge"></span>
             <span id="sd-sexe-badge" style="display:none;"></span>
             <span id="sd-status-badge"></span>
-            <span id="sd-risk-badges"></span>
           </div>
-          <div>
-            <span class="sd-uid" id="sd-uid" title="Identifiant connexion"></span>
-            <span class="sd-uid" id="sd-eleve-uid" style="margin-left:5px;" title="EleveUID permanent"></span>
-          </div>
-          <!-- Barre XP (Profil cinéma intégré) -->
+          <div class="sd-deco-row" id="sd-deco-row" style="display:none;"></div>
           <div class="sd-xp-row" id="sd-xp-row" style="display:none;">
             <div class="sd-xp-title-line" id="sd-xp-title-line"></div>
             <div class="sd-xp-bar"><div class="sd-xp-fill" id="sd-xp-fill" style="width:0%;"></div></div>
             <div class="sd-xp-text" id="sd-xp-text"></div>
           </div>
-          <!-- Ligne déco : titre + 3 badges + compteur X / 44 -->
-          <div class="sd-deco-row" id="sd-deco-row" style="display:none;"></div>
-          <div class="sd-perso" id="sd-perso-row" style="display:none;"></div>
-          <!-- Bouton Contacter l'élève -->
-          <div id="sd-contact-btn" style="margin-top:10px;"></div>
-          <!-- Bouton Inscrire à une séance (admin force-register) -->
-          <div id="sd-register-btn" style="margin-top:6px;"></div>
         </div>
+        <div class="sd-quick" id="sd-quick"></div>
       </div>
 
-      <!-- ---- ONGLET : Vue d'ensemble ---- -->
-      <div id="sd-pane-overview">
-        <div class="sd-section">
-          <div class="sd-section-title">Repères</div>
-          <div style="display:flex;flex-direction:column;gap:7px;" id="sd-account-info"></div>
-        </div>
-        <div class="sd-section">
-          <div class="sd-section-title">Activité</div>
+      <div class="sd-grid">
+
+        <!-- Colonne résumé (téléphone : toute la fiche) -->
+        <div class="sd-side">
+          <div class="sd-alert" id="sd-risk-badges"></div>
           <div class="sd-stats" id="sd-stats"></div>
-        </div>
-        <div class="sd-section">
-          <div class="sd-section-title">Suivi séance — 30 derniers jours</div>
-          <div class="sd-track-counters" id="sd-track-counters">
-            <div class="loader" style="padding:14px;"><div class="spinner"></div></div>
+
+          <div class="sd-section">
+            <div class="sd-section-title">Suivi séance — 30 derniers jours</div>
+            <div class="sd-track-counters" id="sd-track-counters">
+              <div class="loader" style="padding:14px;"><div class="spinner"></div></div>
+            </div>
+            <div id="sd-track-history"></div>
           </div>
-          <div id="sd-track-history"></div>
-        </div>
-        <div class="sd-section">
-          <div class="sd-section-title">Activité récente</div>
-          <div id="sd-recent">
-            <div class="loader" style="padding:20px;"><div class="spinner"></div></div>
+
+          <div class="sd-section sd-histo-sec">
+            <div class="sd-section-title">Historique</div>
+            <div class="sd-histo">
+              <button onclick="sdOpenSection('sessions')"><span class="ic" style="background:rgba(240,165,0,.15)">🎟️</span><span class="tx">Inscriptions</span><i data-sdcnt="sessions"></i><span class="ch">›</span></button>
+              <button onclick="sdOpenSection('watched')"><span class="ic" style="background:rgba(80,140,255,.16)">🎬</span><span class="tx">Films vus</span><i data-sdcnt="watched"></i><span class="ch">›</span></button>
+              <button onclick="sdOpenSection('missed')"><span class="ic" style="background:rgba(232,64,64,.14)">❌</span><span class="tx">Absences</span><i data-sdcnt="missed"></i><span class="ch">›</span></button>
+              <button onclick="sdOpenSection('votes')"><span class="ic" style="background:rgba(192,132,252,.16)">🗳️</span><span class="tx">Votes</span><i data-sdcnt="votes"></i><span class="ch">›</span></button>
+              <button onclick="sdOpenSection('proposals')"><span class="ic" style="background:rgba(74,222,128,.14)">💡</span><span class="tx">Films proposés</span><i data-sdcnt="proposals"></i><span class="ch">›</span></button>
+              <button onclick="sdOpenSection('overview')"><span class="ic">🕘</span><span class="tx">Activité récente</span><span class="ch">›</span></button>
+            </div>
+          </div>
+
+          <div class="sd-section">
+            <div class="sd-section-title">Compte</div>
+            <div class="sd-kv" id="sd-account-info"></div>
+          </div>
+
+          <div class="sd-section" id="sd-perso-sec">
+            <div class="sd-section-title">Personnalisation</div>
+            <div class="sd-kv" id="sd-perso-row"></div>
+          </div>
+
+          <div class="sd-section">
+            <div class="sd-section-title">Gérer</div>
+            <div class="sd-manage">
+              <div id="sd-actions"></div>
+              <div id="sd-danger-actions"></div>
+            </div>
           </div>
         </div>
 
-        <!-- Actions principales -->
-        <div class="sd-section">
-          <div class="sd-section-title">Actions</div>
-          <div style="display:flex;flex-direction:column;gap:8px;" id="sd-actions"></div>
-        </div>
+        <!-- Détails (PC : onglets à droite · téléphone : sous-page) -->
+        <div class="sd-main">
+          <div class="sd-subhead">
+            <button class="sd-sub-back" id="sd-sub-back" onclick="sdBack()">‹ Retour</button>
+            <span class="sd-sub-title" id="sd-sub-title"></span>
+          </div>
+          <div class="sd-tabs">
+            <button class="sd-tab" id="sd-tab-sessions"  onclick="sdSwitchTab('sessions')"><span class="ti">🎟️</span>Inscriptions <i data-sdcnt="sessions"></i></button>
+            <button class="sd-tab" id="sd-tab-watched"   onclick="sdSwitchTab('watched')"><span class="ti">🎬</span>Films vus <i data-sdcnt="watched"></i></button>
+            <button class="sd-tab" id="sd-tab-missed"    onclick="sdSwitchTab('missed')"><span class="ti">❌</span>Absences <i data-sdcnt="missed"></i></button>
+            <button class="sd-tab" id="sd-tab-votes"     onclick="sdSwitchTab('votes')"><span class="ti">🗳️</span>Votes <i data-sdcnt="votes"></i></button>
+            <button class="sd-tab" id="sd-tab-proposals" onclick="sdSwitchTab('proposals')"><span class="ti">💡</span>Propositions <i data-sdcnt="proposals"></i></button>
+            <button class="sd-tab" id="sd-tab-overview"  onclick="sdSwitchTab('overview')"><span class="ti">🕘</span>Activité</button>
+          </div>
 
-        <!-- Zone danger -->
-        <div class="sd-danger-zone">
-          <div class="sd-danger-zone-title">⚠ Zone de danger</div>
-          <div id="sd-danger-actions"></div>
-        </div>
-      </div>
-
-      <!-- ---- ONGLET : Films proposés ---- -->
-      <div id="sd-pane-proposals" class="hidden">
-        <div id="sd-proposals-content">
-          <div class="loader" style="padding:28px;"><div class="spinner"></div></div>
-        </div>
-      </div>
-
-      <!-- ---- ONGLET : Votes ---- -->
-      <div id="sd-pane-votes" class="hidden">
-        <div id="sd-votes-content">
-          <div class="loader" style="padding:28px;"><div class="spinner"></div></div>
-        </div>
-      </div>
-
-      <!-- ---- ONGLET : Inscriptions ---- -->
-      <div id="sd-pane-sessions" class="hidden">
-        <div id="sd-sessions-content">
-          <div class="loader" style="padding:28px;"><div class="spinner"></div></div>
-        </div>
-      </div>
-
-      <!-- ---- ONGLET : Films vus ---- -->
-      <div id="sd-pane-watched" class="hidden">
-        <div id="sd-watched-content">
-          <div class="loader" style="padding:28px;"><div class="spinner"></div></div>
-        </div>
-      </div>
-
-      <!-- ---- ONGLET : Films loupés ---- -->
-      <div id="sd-pane-missed" class="hidden">
-        <div id="sd-missed-content">
-          <div class="loader" style="padding:28px;"><div class="spinner"></div></div>
+          <div id="sd-pane-overview" class="hidden">
+            <div id="sd-recent">
+              <div class="loader" style="padding:20px;"><div class="spinner"></div></div>
+            </div>
+          </div>
+          <div id="sd-pane-sessions" class="hidden">
+            <div id="sd-sessions-content"><div class="loader" style="padding:28px;"><div class="spinner"></div></div></div>
+          </div>
+          <div id="sd-pane-watched" class="hidden">
+            <div id="sd-watched-content"><div class="loader" style="padding:28px;"><div class="spinner"></div></div></div>
+          </div>
+          <div id="sd-pane-missed" class="hidden">
+            <div id="sd-missed-content"><div class="loader" style="padding:28px;"><div class="spinner"></div></div></div>
+          </div>
+          <div id="sd-pane-votes" class="hidden">
+            <div id="sd-votes-content"><div class="loader" style="padding:28px;"><div class="spinner"></div></div></div>
+          </div>
+          <div id="sd-pane-proposals" class="hidden">
+            <div id="sd-proposals-content"><div class="loader" style="padding:28px;"><div class="spinner"></div></div></div>
+          </div>
         </div>
       </div>
 
@@ -14614,6 +14816,7 @@ function loadMaintenanceUI() {
   const uidEl = document.getElementById('maintenance-test-uid-input');
   if (msgEl) msgEl.value = (m.message === _MAINT_DEFAULT_MSG) ? '' : (m.message || '');
   if (uidEl) uidEl.value = m.testUid || '';
+  _setTakeSnap();
 }
 
 /** Enregistre les 3 valeurs en BDD + met à jour le cache mémoire */
@@ -14643,6 +14846,8 @@ async function saveMaintenanceSettings() {
   // Résoudre l'ID interne pour le filtrage des push pendant la maintenance
   await _resolveMaintenanceTestStudentId();
   toast(mode === 'on' ? '🛠️ Mode maintenance activé' : '✅ Mode maintenance désactivé', 'success');
+  _updateAdminMaintPill();
+  return true;
 }
 
 /* ----------------------------------------------------------------
@@ -19361,6 +19566,7 @@ function _refreshThemeApplyState() {
   const eb = document.getElementById('event-apply-btn'), eh = document.getElementById('event-apply-hint');
   if (eb) eb.disabled = (_pendingEventMode || 'none') === m;
   if (eh) eh.innerHTML = (_pendingEventMode || 'none') === m ? 'Choisis un autre événement pour le changer.' : `${lbl(m, 'Aucun')} → <strong>${lbl(_pendingEventMode, 'Aucun')}</strong>`;
+  _setBarRefresh();
 }
 
 /** Pré-sélection visuelle d'un thème (sans sauvegarde) */
@@ -22130,12 +22336,18 @@ async function loadPublicProfileScreen() {
 function _sdRenderPerso(studentId, deco) {
   const row = document.getElementById('sd-perso-row');
   if (!row) return;
-  const parts = [];
-  if (deco && deco.color) parts.push(`<span class="chip"><span class="dot" style="background:${deco.color}"></span>Couleur <button onclick="adminResetPerso('${studentId}','color')">Retirer</button></span>`);
-  if (deco && deco.cultFilm) parts.push(`<span class="chip">🎬 ${_escapeHtml(deco.cultFilm.title || 'Film culte')} <button onclick="adminResetPerso('${studentId}','cult')">Retirer</button></span>`);
-  if (deco && deco.isPublic === false) parts.push('<span class="chip">🔒 Profil masqué aux élèves</span>');
-  row.innerHTML = parts.join('');
-  row.style.display = parts.length ? '' : 'none';
+  const sec = document.getElementById('sd-perso-sec');
+  if (sec) sec.style.display = _profileColsOk ? '' : 'none';
+  const col = deco && _validProfileColor(deco.color);
+  const cult = deco && deco.cultFilm;
+  const line = (label, val) => `<div class="sd-repere-row"><span class="sd-repere-label">${label}</span><span class="sd-repere-val">${val}</span></div>`;
+  const none = t => `<span style="color:var(--text-3);font-weight:400;font-style:italic;">${t}</span>`;
+  row.innerHTML = [
+    line('Couleur', col ? `<span class="sd-dot" style="background:${col}"></span><button class="sd-mini-red" onclick="adminResetPerso('${studentId}','color')">Retirer</button>` : none('Dorée (par défaut)')),
+    line('Bannière', cult ? `${_escapeHtml(cult.title || 'Film culte')}<button class="sd-mini-red" onclick="adminResetPerso('${studentId}','cult')">Retirer</button>` : none('Pas encore choisie')),
+    line('Profil public', deco && deco.isPublic === false ? '🔒 Masqué aux élèves' : 'Oui'),
+  ].join('');
+  row.style.display = '';
 }
 async function adminResetPerso(studentId, what) {
   const label = what === 'cult' ? 'le film culte' : 'la couleur';
@@ -22146,6 +22358,7 @@ async function adminResetPerso(studentId, what) {
   toast(what === 'cult' ? 'Film culte retiré' : 'Couleur retirée', 'success');
   const deco = (await loadStudentsBusinessCards([studentId])).get(studentId);
   _sdRenderPerso(studentId, deco);
+  if (_sdCurrentStudentId === studentId) _sdApplyLook(deco);
 }
 
 /* ================================================================
@@ -25223,10 +25436,11 @@ function _renderWriteToStudent() {
 function _adminSettingsOnOpen() {
   setImportMode('ponctuel');
   document.getElementById('import-result')?.classList.add('hidden');
-  loadSupervisorName();
-  loadMaintenanceFromDB().then(() => { loadMaintenanceUI(); _updateAdminMaintPill(); });
-  loadEventThemeFromDB().then(() => loadEventThemeUI());
   sdSwitchSettingsTab('general');
+  settingsHome();
+  Promise.resolve(loadSupervisorName()).then(_renderSettingsHome);
+  loadMaintenanceFromDB().then(() => { loadMaintenanceUI(); _updateAdminMaintPill(); _renderSettingsHome(); });
+  loadEventThemeFromDB().then(() => { loadEventThemeUI(); _renderSettingsHome(); });
   ['adm-pwd-current','adm-pwd-new','adm-pwd-confirm'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
@@ -31364,6 +31578,18 @@ async function toggleSesOpenFromHome(id, cur) {
   loadNextSessionCard();
 }
 
+/* Admin : film culte en fond + couleur de l'élève (l'admin voit tout, même un profil masqué) */
+function _admRowLook(deco) {
+  const col = deco && _validProfileColor(deco.color);
+  const cult = deco && deco.cultFilm;
+  const img = cult ? _tmdbImg(cult.backdrop_path || cult.poster_path, 'w300') : '';
+  return {
+    cls: 'reg-row adm-row' + (img ? ' has-cult' : ''),
+    style: col ? `border-left:3px solid ${col};` : '',
+    img: img ? `<img class="reg-cult" src="${img}" alt="" loading="lazy">` : '',
+  };
+}
+
 async function viewRegistrants(sesId, date) {
   document.getElementById('modal-reg-title').textContent = `Participants — ${fmtDateShort(date)}`;
   document.getElementById('modal-registrants').dataset.sesId = sesId;
@@ -31476,8 +31702,10 @@ async function viewRegistrants(sesId, date) {
         ? renderStudentDecorationHTML(deco, { compact: true }) : '';
       const levelHtml = (typeof renderLevelRondHTML === 'function')
         ? renderLevelRondHTML(deco?.level || 1, deco?.totalXp, deco?.color) : '';
+      const L = _admRowLook(deco);
       return `
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--surface-2);border-radius:8px;gap:8px;">
+      <div class="${L.cls}" style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--surface-2);border-radius:8px;gap:8px;${L.style}">
+        ${L.img}
         <div style="flex:1;min-width:0;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
           ${levelHtml}
           <button class="admin-student-link" onclick="openStudentDetail('${r.studentId}')">
@@ -31505,8 +31733,10 @@ async function viewRegistrants(sesId, date) {
       const deco = _viewDecoMap.get(w.studentId);
       const levelHtml = (typeof renderLevelRondHTML === 'function')
         ? renderLevelRondHTML(deco?.level || 1, deco?.totalXp, deco?.color) : '';
+      const L = _admRowLook(deco);
       return `
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--surface-2);border-radius:8px;gap:8px;">
+      <div class="${L.cls}" style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--surface-2);border-radius:8px;gap:8px;${L.style}">
+        ${L.img}
         <div style="flex:1;min-width:0;display:flex;align-items:center;gap:8px;">
           <span style="font-size:13px;font-weight:700;color:var(--text-2);min-width:24px;">#${w.rank}</span>
           ${levelHtml}
@@ -33111,6 +33341,7 @@ async function saveEditStudent() {
 
 async function openStudentDetail(studentId) {
   _sdCurrentStudentId = studentId;
+  _sdPrepare();
   // Charger en parallèle : fiche élève + état push de cet élève
   const [studentRes, pushRes] = await Promise.all([
     db.from('students').select('*').eq('id', studentId).single(),
@@ -33176,21 +33407,16 @@ async function openStudentDetail(studentId) {
     statusBadge.textContent = '○ En attente';
   }
 
-  const uidEl = document.getElementById('sd-uid');
-  uidEl.textContent   = s.login_identifier ? `🔑 ${s.login_identifier}` : '';
-  uidEl.style.display = s.login_identifier ? '' : 'none';
+  _sdFirstName = s.first_name || '';
 
-  const eleveUidEl = document.getElementById('sd-eleve-uid');
-  eleveUidEl.textContent = s.eleve_uid ? `🪪 ${s.eleve_uid}` : "— pas d'eleveUid";
-  eleveUidEl.style.color = s.eleve_uid ? '' : 'var(--text-3)';
-
-  // Risk badges (désistements tardifs / absences sur 30 jours)
+  // Alerte « À suivre » (désistements tardifs / absences sur 30 jours)
   const riskEl = document.getElementById('sd-risk-badges');
   if (riskEl) {
     riskEl.innerHTML = ''; // reset pendant le fetch
     _fetchRiskCountsForOne(studentId).then(risk => {
-      // version non-compacte (texte explicite) sur la fiche élève
-      riskEl.innerHTML = _renderRiskBadges(risk, { compact: false });
+      if (_sdCurrentStudentId !== studentId) return;
+      const html = _renderRiskBadges(risk, { compact: false });
+      riskEl.innerHTML = html ? `<span class="sd-alert-t">⚠️ À suivre</span>${html}` : '';
     });
   }
 
@@ -33206,26 +33432,16 @@ async function openStudentDetail(studentId) {
       : `openArchiveStudent('${s.id}','${(s.first_name||'')} ${(s.last_name||'')}','unarchive')`;
 
     actionsEl.innerHTML = `
-      <button class="btn btn-ghost btn-full" style="justify-content:flex-start;gap:10px;text-align:left;"
-        onclick="openEditStudent('${s.id}')">
-        ✏️ Modifier l'élève (nom, prénom, classe, identifiant)
-      </button>
-      <button class="btn btn-ghost btn-full" style="justify-content:flex-start;gap:10px;text-align:left;"
-        onclick="openResetPin('${s.id}','${(s.first_name||'')} ${(s.last_name||'')}')">
-        🔐 Réinitialiser le code secret
-      </button>
-      <button class="btn ${isActive ? 'btn-ghost' : 'btn-green'} btn-full"
-              style="justify-content:flex-start;gap:10px;text-align:left;"
-              onclick="${archiveFn}">
-        ${archiveLabel}
+      <button class="sd-li-btn${isActive ? '' : ' green'}" onclick="${archiveFn}">
+        <span>${isActive ? '📦 Archiver l\'élève' : '↩ Désarchiver l\'élève'}</span><span class="ch">›</span>
       </button>`;
   }
 
   if (dangerEl) {
     dangerEl.innerHTML = `
-      <button class="btn-danger-subtle"
+      <button class="sd-li-btn danger"
         onclick="openDeleteStudent('${s.id}','${(s.first_name||'')} ${(s.last_name||'')}')">
-        🗑 Supprimer définitivement cet élève
+        <span>🗑 Supprimer définitivement</span><span class="ch">›</span>
       </button>`;
   }
 
@@ -33241,7 +33457,17 @@ async function openStudentDetail(studentId) {
     }
   }
 
-  // ✅ NOUVEAU : Bouton Contacter l'élève dans le bloc identité (sous l'UID)
+  // Actions rapides : Écrire · Inscrire · Modifier · Code
+  const quickEl = document.getElementById('sd-quick');
+  if (quickEl) {
+    const fullName = `${s.first_name || ''} ${s.last_name || ''}`.trim();
+    const nameAttr = JSON.stringify(fullName).replace(/"/g, '&quot;');
+    quickEl.innerHTML = `
+      <button class="sd-qa gold" onclick="openAdminToStudentMessaging('${s.id}')"><i>💬</i><span>Écrire</span></button>
+      <button class="sd-qa" onclick="openAdminRegisterStudentModal('${s.id}', ${nameAttr})"><i>➕</i><span>Inscrire</span></button>
+      <button class="sd-qa" onclick="openEditStudent('${s.id}')"><i>✏️</i><span>Modifier</span></button>
+      <button class="sd-qa" onclick="openResetPin('${s.id}', ${nameAttr})"><i>🔐</i><span>Code</span></button>`;
+  }
   const contactBtnEl = document.getElementById('sd-contact-btn');
   if (contactBtnEl) {
     contactBtnEl.innerHTML = `
@@ -33271,10 +33497,14 @@ async function openStudentDetail(studentId) {
        </span>
      </div>`;
 
+  const since = s.activated_at ? new Date(s.activated_at).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' }) : '';
   document.getElementById('sd-account-info').innerHTML = [
+    repere('Identifiant', s.login_identifier ? `<code class="sd-code">${_escapeHtml(s.login_identifier)}</code>` : 'Pas encore activé', !s.login_identifier),
+    repere('EleveUID', s.eleve_uid ? `<code class="sd-code">${_escapeHtml(s.eleve_uid)}</code>` : "Pas d'eleveUid", !s.eleve_uid),
     repere('Année scolaire', s.school_year || '—'),
     repere('Dernière connexion',
       s.last_login_at ? fmtDateTime(s.last_login_at) : 'Jamais', !s.last_login_at),
+    ...(since ? [repere('Membre depuis', since)] : []),
   ].join('');
 
   document.getElementById('sd-stats').innerHTML =
@@ -33288,7 +33518,7 @@ async function openStudentDetail(studentId) {
   document.getElementById('sd-sessions-content').innerHTML =
     '<div class="loader" style="padding:28px;"><div class="spinner"></div></div>';
 
-  sdSwitchTab('overview');
+  sdSwitchTab(_setIsPhone() ? 'overview' : 'sessions');
   openModal('modal-student-detail');
   _sdLoadOverview(studentId);
   _sdLoadCinemaProfile(studentId);
@@ -33299,6 +33529,73 @@ async function openStudentDetailByUid(eleveUid) {
   const { data: s } = await db.from('students').select('id').eq('eleve_uid', eleveUid).maybeSingle();
   if (!s) { toast('Élève introuvable (uid)', 'error'); return; }
   await openStudentDetail(s.id);
+}
+
+/* ---------- Fiche élève : bannière, sous-pages (téléphone), barre du haut ---------- */
+let _sdFirstName = '';
+let _sdScrollBack = 0;
+const _SD_TAB_TITLES = { sessions: 'Inscriptions', watched: 'Films vus', missed: 'Absences', votes: 'Votes', proposals: 'Films proposés', overview: 'Activité récente' };
+function _sdPrepare() {
+  const p = document.getElementById('sd-panel');
+  if (!p) return;
+  p.classList.remove('sd-in-sub', 'scrolled');
+  p.scrollTop = 0;
+  if (!p._sdBound) {
+    p._sdBound = true;
+    p.addEventListener('scroll', () => {
+      p.classList.toggle('scrolled', !p.classList.contains('sd-in-sub') && p.scrollTop > 130);
+    }, { passive: true });
+  }
+  _sdApplyLook(null);
+  document.querySelectorAll('#sd-panel [data-sdcnt]').forEach(el => { el.textContent = ''; el.classList.remove('r'); });
+  const q = document.getElementById('sd-quick'); if (q) q.innerHTML = '';
+  ['sd-actions', 'sd-danger-actions', 'sd-account-info', 'sd-perso-row'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = ''; });
+}
+/* Couleur + film culte de l'élève (l'admin les voit même si le profil est masqué) */
+function _sdApplyLook(deco) {
+  const p = document.getElementById('sd-panel');
+  if (!p) return;
+  const col = _validProfileColor(deco && deco.color);
+  const cult = deco && deco.cultFilm;
+  const img = cult ? _tmdbImg(cult.backdrop_path || cult.poster_path, 'w1280') : '';
+  p.style.setProperty('--sd-c', col || '#f0a500');
+  p.classList.toggle('has-color', !!col);
+  const hero = document.getElementById('sd-hero');
+  const heroImg = document.getElementById('sd-hero-img');
+  if (heroImg) heroImg.style.backgroundImage = img ? `url('${img}')` : '';
+  hero?.classList.toggle('has-cult', !!img);
+  const chip = document.getElementById('sd-hero-cult');
+  if (chip) {
+    chip.textContent = cult ? `🎬 ${cult.title || 'Film culte'}` : '';
+    chip.classList.toggle('hidden', !cult);
+  }
+}
+function sdOpenSection(tab) {
+  const p = document.getElementById('sd-panel');
+  if (!p) return;
+  _sdScrollBack = p.scrollTop;
+  p.classList.remove('scrolled');
+  p.classList.add('sd-in-sub');
+  sdSwitchTab(tab);
+  const t = document.getElementById('sd-sub-title'); if (t) t.textContent = _SD_TAB_TITLES[tab] || '';
+  const b = document.getElementById('sd-sub-back'); if (b) b.textContent = `‹ ${_sdFirstName || 'Fiche'}`;
+  p.scrollTop = 0;
+}
+function sdBack() {
+  const p = document.getElementById('sd-panel');
+  if (p && p.classList.contains('sd-in-sub')) {
+    p.classList.remove('sd-in-sub');
+    p.scrollTop = _sdScrollBack || 0;
+    p.classList.toggle('scrolled', p.scrollTop > 130);
+    return;
+  }
+  closeModal('modal-student-detail');
+}
+function _sdSetCount(key, n, red) {
+  document.querySelectorAll(`#sd-panel [data-sdcnt="${key}"]`).forEach(el => {
+    el.textContent = (n || n === 0) ? String(n) : '';
+    el.classList.toggle('r', !!red && n > 0);
+  });
 }
 
 /* Gestion des onglets */
@@ -33318,7 +33615,7 @@ function sdSwitchTab(tab) {
 /* ----------------------------------------------------------------
    Onglets de la modale Paramètres admin (#modal-admin-settings)
    ---------------------------------------------------------------- */
-function sdSwitchSettingsTab(tab) {
+function sdSwitchSettingsTab(tab, sub) {
   // 5 onglets : Général · Élèves · Thème & événements · XP · Système
   ['general','seances','eleves','theme','xp','systeme'].forEach(t => {
     document.getElementById(`sd-stab-${t}`)?.classList.toggle('active', t === tab);
@@ -33333,7 +33630,197 @@ function sdSwitchSettingsTab(tab) {
     renderXpSettingsFields();
   }
   if (tab === 'seances') _fillDefaultSessionSettings();
+  // Téléphone : la rubrique s'ouvre en sous-page (« ‹ Paramètres » pour revenir)
+  const ap = document.getElementById('ap-settings');
+  if (ap) {
+    ap.dataset.sub = sub || tab;
+    ap.classList.add('set-in-sub');
+    const t = document.getElementById('set-sub-title');
+    if (t) t.textContent = (_SET_SUBS[ap.dataset.sub] || {}).title || '';
+    if (_setIsPhone()) _setScrollTop();
+    _setTakeSnap();
+  }
 }
+
+/* ---------- Paramètres sur téléphone : liste de rubriques + sous-pages ---------- */
+const _SET_SUBS = {
+  general:  { pane: 'general', title: 'Nom du surveillant' },
+  seances:  { pane: 'seances', title: 'Séances' },
+  eleves:   { pane: 'eleves',  title: 'Élèves' },
+  xp:       { pane: 'xp',      title: 'XP & niveaux' },
+  theme:    { pane: 'theme',   title: 'Thème & événement' },
+  maint:    { pane: 'systeme', title: 'Mode maintenance' },
+  notif:    { pane: 'systeme', title: 'Notifications & session' },
+  security: { pane: 'systeme', title: 'Mot de passe & appareils' },
+  age:      { pane: 'systeme', title: "Classifications d'âge" },
+  systeme:  { pane: 'systeme', title: 'Système' },
+};
+const _SET_BAR_SAVE = {
+  general: () => saveSupervisorName(),
+  seances: () => saveDefaultSessionSettings(),
+  xp:      () => saveXpSettings(),
+  maint:   () => saveMaintenanceSettings(),
+};
+function _setIsPhone() { return window.matchMedia('(max-width: 1023.98px)').matches; }
+function _setScrollTop() {
+  try { window.scrollTo(0, 0); } catch (_) {}
+  document.querySelector('#screen-admin .admin-panels-container')?.scrollTo(0, 0);
+}
+function settingsOpen(key) {
+  const d = _SET_SUBS[key];
+  if (d) sdSwitchSettingsTab(d.pane, key);
+}
+function settingsHome() {
+  const ap = document.getElementById('ap-settings');
+  if (!ap) return;
+  ap.classList.remove('set-in-sub');
+  _setSnap = null;
+  _setBarRefresh();
+  _renderSettingsHome();
+  _setScrollTop();
+}
+function _renderSettingsHome() {
+  const host = document.getElementById('set-home');
+  if (!host) return;
+  const m = !!(S.maintenance && S.maintenance.mode === 'on');
+  const lbl = (k, none) => (!k || k === 'none') ? none : _themeLabel(k);
+  const th = lbl(S.eventTheme, '🎬 Classique'), ev = lbl(S.eventMode, 'Aucun événement');
+  const name = (document.getElementById('supervisor-name-input')?.value || S.supervisorName || '').trim();
+  const time = String(S.defaultSessionTime || '20:00').slice(0, 5);
+  const cap = S.defaultSessionCapacity || 20;
+  const row = (key, ic, tone, title, sub, val, valCls) => `
+    <button class="set-li" data-set="${key}" onclick="settingsOpen('${key}')">
+      <span class="set-ic ${tone}">${ic}</span>
+      <span class="set-tx">${title}${sub ? `<small>${sub}</small>` : ''}</span>
+      ${val ? `<span class="set-v${valCls ? ' ' + valCls : ''}">${val}</span>` : ''}
+      <span class="set-ch">›</span>
+    </button>`;
+  host.innerHTML = `
+    <div class="set-now"><b>En ce moment</b>
+      <div class="set-chips">
+        <span class="set-chip${m ? ' red' : ''}">${m ? '🛠 Maintenance activée' : '✅ Maintenance désactivée'}</span>
+        <span class="set-chip">${th}</span>
+        <span class="set-chip">🎉 ${ev}</span>
+      </div>
+    </div>
+    <div class="set-sec">Séances & élèves</div>
+    <div class="set-grp">
+      ${row('seances', '🎟️', 'g', 'Séances', `Mercredi par défaut ${time} · ${cap} places`)}
+      ${row('eleves', '👥', 'b', 'Élèves', 'Import annuel, codes, PDF')}
+      ${row('xp', '⭐', 'v', 'XP & niveaux', 'Gains, malus, limites')}
+    </div>
+    <div class="set-sec">Apparence</div>
+    <div class="set-grp">${row('theme', '🎨', 'g', 'Thème & événement', `${th} · ${ev}`)}</div>
+    <div class="set-sec">Système</div>
+    <div class="set-grp">
+      ${row('maint', '🛠', 'r', 'Mode maintenance', '', m ? 'Activé' : 'Désactivé', m ? 'red' : '')}
+      ${row('notif', '🔔', 'gr', 'Notifications & session', 'Alertes admin, rester connecté')}
+      ${row('security', '🔐', 'n', 'Mot de passe & appareils', '')}
+      ${row('age', '🔞', 'n', "Classifications d'âge", '')}
+    </div>
+    <div class="set-sec">Moi</div>
+    <div class="set-grp">${row('general', '👤', 'g', 'Nom du surveillant', '', name ? _escapeHtml(name) : 'À renseigner')}</div>`;
+}
+/* Barre « Enregistrer » : compare les champs de la sous-page à leur état d'ouverture */
+let _setSnap = null;
+function _setRoot() {
+  const ap = document.getElementById('ap-settings');
+  const key = ap && ap.dataset.sub;
+  if (!key) return null;
+  if (key === 'maint') return ap.querySelector('[data-sset="maint"]');
+  const d = _SET_SUBS[key];
+  return d ? document.getElementById('sd-spane-' + d.pane) : null;
+}
+function _setFields(root) {
+  const out = [];
+  if (!root) return out;
+  root.querySelectorAll('input, select, textarea').forEach(el => {
+    if (el.disabled || ['file', 'password', 'checkbox', 'radio', 'button'].includes(el.type)) return;
+    const label = (el.closest('.fgroup')?.querySelector('.flabel')?.textContent || '').replace(/\s*\(.*?\)\s*/g, ' ').trim();
+    const shown = el.tagName === 'SELECT' ? (el.options[el.selectedIndex]?.text || el.value) : el.value;
+    out.push({ el, label, v: el.value, shown: String(shown).trim() });
+  });
+  const mb = root.querySelector('[data-maint-mode].active');
+  if (mb) out.push({ el: null, maint: true, label: 'Maintenance', v: mb.dataset.maintMode, shown: mb.dataset.maintMode === 'on' ? 'activée' : 'désactivée' });
+  return out;
+}
+function _setTakeSnap() {
+  const ap = document.getElementById('ap-settings');
+  const key = ap && ap.dataset.sub;
+  _setSnap = (key && _SET_BAR_SAVE[key]) ? { key, vals: _setFields(_setRoot()) } : null;
+  _setBarRefresh();
+}
+function _setChanges() {
+  const ap = document.getElementById('ap-settings');
+  if (!ap || !ap.classList.contains('set-in-sub') || ap.classList.contains('hidden') || !_setIsPhone()) return [];
+  const key = ap.dataset.sub;
+  if (key === 'theme') {
+    const lbl = (k, none) => (!k || k === 'none') ? none : _themeLabel(k);
+    const ch = [];
+    if ((_pendingEventTheme || 'none') !== (S.eventTheme || 'none')) ch.push(`Thème → ${lbl(_pendingEventTheme, 'Classique')}`);
+    if ((_pendingEventMode || 'none') !== (S.eventMode || 'none')) ch.push(`Événement → ${lbl(_pendingEventMode, 'Aucun')}`);
+    return ch;
+  }
+  if (!_setSnap || _setSnap.key !== key) return [];
+  const now = _setFields(_setRoot());
+  const ch = [];
+  now.forEach((f, i) => {
+    const o = _setSnap.vals[i];
+    if (o && o.v !== f.v) ch.push(`${f.label || 'Valeur'} : ${o.shown || '—'} → ${f.shown || '—'}`);
+  });
+  return ch;
+}
+function _setBarRefresh() {
+  const bar = document.getElementById('set-savebar');
+  if (!bar) return;
+  const ch = _setChanges();
+  bar.classList.toggle('hidden', !ch.length);
+  document.getElementById('ap-settings')?.classList.toggle('set-bar-open', !!ch.length);
+  if (!ch.length) return;
+  document.getElementById('set-sb-n').textContent = ch.length > 1 ? `${ch.length} modifications` : '1 modification';
+  document.getElementById('set-sb-d').textContent = ch.length === 1 ? ch[0] : ch.slice(0, 2).join(' · ') + (ch.length > 2 ? ' …' : '');
+}
+async function settingsBarSave() {
+  const ap = document.getElementById('ap-settings');
+  const key = ap && ap.dataset.sub;
+  const btn = document.getElementById('set-sb-save');
+  if (btn) btn.disabled = true;
+  try {
+    if (key === 'theme') {
+      if ((_pendingEventTheme || 'none') !== (S.eventTheme || 'none')) await saveEventTheme();
+      if ((_pendingEventMode || 'none') !== (S.eventMode || 'none')) await saveEventMode();
+    } else if (_SET_BAR_SAVE[key]) {
+      if ((await _SET_BAR_SAVE[key]()) === true) _setTakeSnap();
+    }
+  } finally {
+    if (btn) btn.disabled = false;
+    _setBarRefresh();
+  }
+}
+function settingsBarCancel() {
+  const key = document.getElementById('ap-settings')?.dataset.sub;
+  if (key === 'theme') {
+    setEventThemeMode(S.eventTheme || 'none');
+    setEventModeChoice(S.eventMode || 'none');
+  } else if (_setSnap) {
+    _setSnap.vals.forEach(o => {
+      if (o.maint) setMaintenanceMode(o.v);
+      else if (o.el) o.el.value = o.v;
+    });
+  }
+  _setBarRefresh();
+}
+(function _setBindBar() {
+  const bind = () => {
+    const ap = document.getElementById('ap-settings');
+    if (!ap || ap._setBound) return;
+    ap._setBound = true;
+    ap.addEventListener('input', _setBarRefresh);
+    ap.addEventListener('change', _setBarRefresh);
+    ap.addEventListener('click', () => setTimeout(_setBarRefresh, 0));
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind); else bind();
+})();
 
 /* ----------------------------------------------------------------
    Panneau Taux XP (Paramètres admin → onglet ⭐ XP)
@@ -33364,13 +33851,25 @@ const _XP_TUNING_LABELS = {
 
 function _xpFieldRow(key, label, value, allowNeg) {
   return `
-    <div class="fgroup" style="margin-bottom:10px;">
+    <div class="fgroup xp-frow">
       <label class="flabel" style="font-size:12.5px;">${label}</label>
-      <input type="number" class="finput xp-setting-input"
-             data-xpkey="${key}" value="${value}"
-             step="1" ${allowNeg ? '' : 'min="0"'}
-             style="font-size:15px;">
+      <div class="xp-step">
+        <button type="button" class="xp-sb" onclick="_xpStep(this,-1)" aria-label="Moins">−</button>
+        <input type="number" class="finput xp-setting-input"
+               data-xpkey="${key}" value="${value}"
+               step="1" ${allowNeg ? '' : 'min="0"'} inputmode="numeric">
+        <button type="button" class="xp-sb" onclick="_xpStep(this,1)" aria-label="Plus">+</button>
+      </div>
     </div>`;
+}
+function _xpStep(btn, d) {
+  const inp = btn.parentNode.querySelector('input');
+  if (!inp) return;
+  const min = inp.min !== '' ? parseInt(inp.min, 10) : -Infinity;
+  let v = parseInt(inp.value, 10);
+  if (!Number.isFinite(v)) v = 0;
+  inp.value = String(Math.max(min, v + d));
+  inp.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
 function renderXpSettingsFields() {
@@ -33387,6 +33886,7 @@ function renderXpSettingsFields() {
       _xpFieldRow(k, _XP_TUNING_LABELS[k] || k, XP_TUNING[k], false)
     ).join('');
   }
+  _setTakeSnap();
 }
 
 async function saveXpSettings() {
@@ -33429,6 +33929,7 @@ async function saveXpSettings() {
   Object.keys(tuning).forEach(k => { if (k in XP_TUNING) XP_TUNING[k] = tuning[k]; });
 
   toast('✅ Taux XP enregistrés');
+  return true;
 }
 
 async function resetXpSettings() {
@@ -33575,6 +34076,10 @@ async function _sdLoadCinemaProfile(studentId) {
 
     const level   = deco.level || 1;
     const totalXp = deco.totalXp || 0;
+    if (_sdCurrentStudentId !== studentId) return;
+    _sdApplyLook(deco);
+    const xpTile = document.getElementById('sd-stat-xp');
+    if (xpTile) xpTile.textContent = totalXp.toLocaleString('fr-FR');
 
     // 3. Progression XP
     let progress = { percent: 0, xpInLevel: 0, xpNeededForNext: 0, isMax: false };
@@ -33645,16 +34150,23 @@ async function _sdLoadOverview(studentId) {
     db.from('student_missed_films').select('id',{count:'exact',head:true}).eq('student_id',studentId)
   ]);
 
-  const stat = (val, label) =>
-    `<div class="sd-stat"><div class="sd-stat-val">${val ?? '—'}</div><div class="sd-stat-label">${label}</div></div>`;
+  if (_sdCurrentStudentId !== studentId) return;
+  const stat = (val, label, cls) =>
+    `<div class="sd-stat${cls ? ' ' + cls : ''}"><div class="sd-stat-val">${val ?? '—'}</div><div class="sd-stat-label">${label}</div></div>`;
   const statsEl = document.getElementById('sd-stats');
-  // Absences retirées d'ici (doublon avec le bloc "Suivi séance")
-  // En attente retirée d'ici (peu utile sur la fiche)
+  const xpNow = document.getElementById('sd-stat-xp')?.textContent;
   statsEl.innerHTML = [
-    stat(voteCount,'🗳️ Votes'), stat(propCount,'💡 Propositions'),
-    stat(regCount,'✅ Inscriptions'), stat(watchedCount,'🎬 Films vus')
+    stat(watchedCount, 'films vus'), stat(regCount, 'inscriptions'),
+    stat(missedCount, 'absences', missedCount > 0 ? 'bad' : ''),
+    stat(voteCount, 'votes'), stat(propCount, 'propositions'),
+    `<div class="sd-stat"><div class="sd-stat-val" id="sd-stat-xp">${xpNow || '—'}</div><div class="sd-stat-label">XP</div></div>`,
   ].join('');
-  if (banCount > 0) statsEl.insertAdjacentHTML('beforeend', stat(banCount,'🚫 Blocages'));
+  if (banCount > 0) statsEl.insertAdjacentHTML('beforeend', stat(banCount, '🚫 blocages', 'bad'));
+  _sdSetCount('sessions', (regCount || 0) + (waitCount || 0));
+  _sdSetCount('watched', watchedCount || 0);
+  _sdSetCount('missed', missedCount || 0, true);
+  _sdSetCount('votes', voteCount || 0);
+  _sdSetCount('proposals', propCount || 0);
 
   const [
     { data: lastVote }, { data: lastProp },
@@ -34548,6 +35060,36 @@ async function loadAdminStudents() {
   document.getElementById('filter-visibility').value = 'active';
   document.getElementById('filter-activation').value = 'all';
   document.getElementById('filter-sexe').value = 'all';
+  _stuWatchOnly = false;
+  _renderStudentTable();
+  _loadStudentRisk();
+}
+
+/* « À suivre » : au moins 1 absence ou 2 désistements tardifs sur 30 jours
+   (mêmes règles que les badges ⚠️ / ⛔ / ⏰ de la fiche et des inscrits) */
+let _stuRisk = new Map();
+let _stuWatchOnly = false;
+async function _loadStudentRisk() {
+  const since = new Date(Date.now() - _RISK_DAYS * 86400000).toISOString();
+  try {
+    const [late, miss] = await Promise.all([
+      db.from('late_cancellations').select('student_id').gte('cancelled_at', since).is('cleared_at', null),
+      db.from('student_missed_films').select('student_id').gte('missed_at', since),
+    ]);
+    const m = new Map();
+    const get = id => { if (!m.has(id)) m.set(id, { lateCount: 0, absenceCount: 0 }); return m.get(id); };
+    (late.data || []).forEach(r => { if (r.student_id) get(r.student_id).lateCount++; });
+    (miss.data || []).forEach(r => { if (r.student_id) get(r.student_id).absenceCount++; });
+    _stuRisk = m;
+  } catch (e) { console.warn('[students] risk:', e); }
+  _renderStudentTable();
+}
+function _stuIsWatch(id) {
+  const r = _stuRisk.get(id);
+  return !!r && (r.absenceCount >= 1 || r.lateCount >= 2);
+}
+function toggleStudentWatch() {
+  _stuWatchOnly = !_stuWatchOnly;
   _renderStudentTable();
 }
 
@@ -34610,6 +35152,11 @@ async function loadAdminLeaderboard() {
         badgeCount: badgesByStudent.get(s.id) || 0
       };
     });
+
+    try {
+      const decos = await loadStudentsBusinessCards(ids);
+      _leaderboardData.forEach(r => { r.deco = decos.get(r.id) || null; });
+    } catch (e) { console.warn('[leaderboard] deco:', e); }
 
     _renderLeaderboard();
   } catch (e) {
@@ -34681,8 +35228,10 @@ function _renderLeaderboard() {
       ${rest.map((s, i) => {
         const rank = i + 4;
         const cakeHtml = _isBirthdayToday(s.date_of_birth) ? _renderBirthdayCake() : '';
+        const L = _admRowLook(s.deco);
         return `
-        <div class="lb-row" onclick="openStudentDetail('${s.id}')" style="cursor:pointer;">
+        <div class="lb-row ${L.cls}" onclick="openStudentDetail('${s.id}')" style="cursor:pointer;${L.style}">
+          ${L.img}
           <div class="lb-row-rank">${rank}</div>
           <div class="lb-row-name">${_escapeHtml(s.first_name)} ${_escapeHtml(s.last_name)}${cakeHtml}</div>
           ${s.class_name ? `<div class="lb-row-class">${_escapeHtml(s.class_name)}</div>` : ''}
@@ -34770,6 +35319,8 @@ function _renderStudentTable() {
 
   // Filtre principal
   let rows = _studentsAll.filter(s => {
+    // Filtre « À suivre »
+    if (_stuWatchOnly && !_stuIsWatch(s.id)) return false;
     // Filtre visibilité
     if (filterVisibility === 'active' && !s.is_active) return false;
     if (filterVisibility === 'archived' && s.is_active) return false;
@@ -34820,6 +35371,15 @@ function _renderStudentTable() {
     return 0;
   });
 
+  // Bouton « À suivre »
+  const watchBtn = document.getElementById('stu-watch-btn');
+  if (watchBtn) {
+    const nWatch = _studentsAll.filter(s => s.is_active && _stuIsWatch(s.id)).length;
+    watchBtn.textContent = nWatch ? `⚠️ À suivre · ${nWatch}` : (_stuWatchOnly ? '⚠️ À suivre · 0' : 'Personne à suivre');
+    watchBtn.classList.toggle('on', _stuWatchOnly);
+    watchBtn.disabled = !nWatch && !_stuWatchOnly;
+  }
+
   // Compteur
   const act = rows.filter(s => s.is_activated).length;
   const countLabel = filterVisibility === 'archived'
@@ -34830,6 +35390,7 @@ function _renderStudentTable() {
   const tbody = document.getElementById('students-tbody');
   if (!rows.length) {
     const msg = q ? 'Aucun élève correspondant à la recherche'
+      : _stuWatchOnly ? 'Aucun élève à suivre en ce moment'
       : filterVisibility === 'archived' ? 'Aucun élève archivé'
       : 'Aucun élève importé';
     tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--text-3);padding:20px;">${msg}</td></tr>`;
@@ -34843,10 +35404,16 @@ function _renderStudentTable() {
     // 🎂 si c'est l'anniversaire aujourd'hui
     const isBirthday = _isBirthdayToday(s.date_of_birth);
     const cakeInline = isBirthday ? _renderBirthdayCake() : '';
+    // Couleur + film culte de l'élève
+    const col = _validProfileColor(s.profile_color);
+    const cult = (s.cult_film && s.cult_film.tmdb_id) ? s.cult_film : null;
+    const cultImg = cult ? _tmdbImg(cult.backdrop_path || cult.poster_path, 'w300') : '';
+    const risk = _stuRisk.get(s.id);
+    const riskHtml = risk ? _renderRiskBadges(risk, { compact: true }) : '';
 
     return `
-    <tr class="${selClass}" data-student-id="${s.id}" style="cursor:pointer;" onclick="toggleStudentSelectionFromRow('${s.id}')">
-      <td class="td-check"><input type="checkbox" ${checked}
+    <tr class="stu-row${selClass}${col ? ' stu-col' : ''}${cultImg ? ' stu-has-cult' : ''}" data-student-id="${s.id}" style="cursor:pointer;${col ? `--stu-c:${col};` : ''}" onclick="toggleStudentSelectionFromRow('${s.id}')">
+      <td class="td-check">${cultImg ? `<img class="stu-cult" src="${cultImg}" alt="" loading="lazy">` : ''}<input type="checkbox" ${checked}
           onclick="event.stopPropagation(); toggleStudentSelection('${s.id}', this.checked)"></td>
       <td style="font-weight:600;">
         <span onclick="event.stopPropagation(); openStudentDetail('${s.id}')" style="cursor:pointer; text-decoration:underline; text-decoration-color:rgba(0,0,0,0.15);">
@@ -34856,7 +35423,7 @@ function _renderStudentTable() {
       <td>
         ${_renderNotifDot(s)}<span onclick="event.stopPropagation(); openStudentDetail('${s.id}')" style="cursor:pointer; text-decoration:underline; text-decoration-color:rgba(0,0,0,0.15);">
           ${s.first_name || '—'}
-        </span>${cakeInline}
+        </span>${cakeInline}${riskHtml ? ` <span class="stu-risk">${riskHtml}</span>` : ''}
       </td>
       <td>${s.class_name || '—'}</td>
       <td>${_sexeBadgeHTML(s.sexe)}</td>
@@ -35443,6 +36010,7 @@ async function saveSupervisorName() {
   // Mettre à jour la valeur en mémoire
   S.supervisorName = name;
   toast('✅ Nom du surveillant enregistré');
+  return true;
 }
 
 async function loadSupervisorName() {
@@ -35463,6 +36031,8 @@ async function loadSupervisorName() {
   }
   
   input.value = data?.value || '';
+  if (data?.value) S.supervisorName = data.value;
+  _setTakeSnap();
 }
 
 /* ----------------------------------------------------------------
@@ -35507,6 +36077,7 @@ async function _fillDefaultSessionSettings() {
     ).join('');
     selLate.value = String(_LATE_CANCEL_HOURS);
   }
+  _setTakeSnap();
 }
 
 async function saveDefaultSessionSettings() {
@@ -35550,6 +36121,7 @@ async function saveDefaultSessionSettings() {
   _LATE_CANCEL_HOURS = late;
   toast('✅ Paramètres des séances enregistrés');
   closeModal('modal-default-session-settings');
+  return true;
 }
 
 /* ----------------------------------------------------------------
