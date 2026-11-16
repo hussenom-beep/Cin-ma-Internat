@@ -9403,6 +9403,53 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 .sd-perso .chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border-2); }
 .sd-perso .dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
 .sd-perso button { background: none; border: none; color: var(--red); font: 700 11.5px/1 inherit; font-family: inherit; cursor: pointer; padding: 0 2px; }
+
+/* ================================================================
+   ADMIN PC — barre de gauche, barre du haut, Paramètres en page
+   ================================================================ */
+.at-ic { width: 22px; text-align: center; flex-shrink: 0; }
+.admin-sidebar-section { display: block; font-size: 10.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--text-3); padding: 14px 12px 6px; }
+.admin-side-foot { display: flex; flex-direction: column; gap: 3px; margin-top: auto; padding-top: 12px; border-top: 1px solid var(--border); }
+.admin-maint-pill { margin: 0 2px 8px; padding: 9px 12px; border-radius: 11px; background: rgba(232,64,64,.1); border: 1px solid rgba(232,64,64,.38); color: #ff7b7b; font: 700 13px/1.2 inherit; font-family: inherit; text-align: left; cursor: pointer; }
+.admin-maint-pill.hidden { display: none; }
+.admin-tabs .admin-tab.admin-tab-logout { color: #ff7b7b; }
+.admin-tabs .admin-tab.admin-tab-logout:hover { background: rgba(232,64,64,.08); color: #ff8f8f; }
+.admin-brand { display: flex; align-items: center; gap: 11px; flex-shrink: 0; }
+.admin-brand-logo { width: 38px; height: 38px; border-radius: 11px; background: linear-gradient(135deg, #ffbe33, #c98a00); display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 2px 10px rgba(240,165,0,.3); }
+.admin-brand-txt { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
+.admin-brand-txt b { font-family: 'Playfair Display', serif; font-size: 17px; white-space: nowrap; }
+.admin-brand-txt small { font-size: 12px; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.admin-head-actions { margin-left: auto; display: flex; gap: 10px; align-items: center; }
+.admin-head-btn { border-radius: 999px; padding: 9px 16px; font-size: 13.5px; white-space: nowrap; }
+/* Paramètres en page */
+#ap-settings .sd-panel-inline { display: flex; flex-direction: column; background: none; border: none; width: auto; height: auto; max-width: none; max-height: none; overflow: visible; animation: none; box-shadow: none; }
+#ap-settings .sd-header { display: none; }
+#ap-settings .sd-tabs.sd-tabs-admin-settings { order: 1; position: sticky; top: 0; z-index: 6; display: flex; gap: 2px; margin: 0 0 18px; padding: 0; background: var(--bg); border-bottom: 1px solid var(--border); overflow-x: auto; scrollbar-width: none; box-shadow: none; }
+#ap-settings .sd-tabs.sd-tabs-admin-settings::-webkit-scrollbar { display: none; }
+#ap-settings .sd-tabs-admin-settings .sd-tab { flex: 0 0 auto; display: inline-flex; align-items: center; padding: 14px 16px 12px; font-size: 14.5px; font-weight: 700; border-bottom: 2px solid transparent; background: none; }
+#ap-settings .sd-tabs-admin-settings .sd-tab.active { color: var(--gold); border-bottom-color: var(--gold); }
+#ap-settings .sd-tabs-admin-settings .sd-tab .sd-tab-icon { font-size: 16px; margin-right: 6px; }
+#ap-settings .sd-body { order: 2; padding: 0; overflow: visible; max-width: 860px; }
+#ap-settings { padding: 0 14px 30px; }
+@media (min-width: 1024px) {
+  #screen-admin { --header-h: 64px; grid-template-columns: 268px 1fr; }
+  #screen-admin .s-header { padding: 0 28px 0 16px; gap: 14px; }
+  .admin-brand { width: 236px; }
+  #admin-header-title { font-family: 'Playfair Display', serif; font-size: 23px; font-weight: 700; flex: 0 1 auto; }
+  .admin-tabs { display: flex; flex-direction: column; padding: 10px 14px 14px; gap: 2px; }
+  .admin-tabs .admin-tab,
+  .admin-tabs .admin-tab-wrap .admin-tab { font-size: 15.5px; padding: 11px 12px; gap: 13px; border-radius: 11px; }
+  .admin-tabs .admin-tab-wrap .admin-tab { padding-right: 46px; }
+  .admin-tabs .at-ic { font-size: 18px; }
+  .admin-tabs .admin-sidebar-section { font-size: 11px; padding: 16px 12px 6px; }
+  .admin-tabs .admin-tab-wrap .pending-badge { right: 12px; min-width: 22px; height: 22px; font-size: 12px; border-radius: 7px; }
+  #ap-settings { padding: 0 32px 40px; }
+}
+@media (min-width: 1024px) and (max-height: 820px) {
+  .admin-tabs .admin-tab,
+  .admin-tabs .admin-tab-wrap .admin-tab { padding-top: 8px; padding-bottom: 8px; }
+  .admin-tabs .admin-sidebar-section { padding: 10px 12px 4px; }
+}
   </style>
 <body>
 <script>
@@ -9790,8 +9837,12 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       <span class="admin-burger-icon">☰</span>
       <span class="admin-burger-dot hidden" id="admin-burger-dot"></span>
     </button>
+    <div class="admin-brand admin-desktop-only">
+      <span class="admin-brand-logo">🎬</span>
+      <span class="admin-brand-txt"><b>Cinéma Internat</b><small id="admin-brand-sub">Administration</small></span>
+    </div>
     <h1 id="admin-header-title">⚙️ Administration</h1>
-    <button class="admin-settings-btn admin-desktop-only" onclick="openModal('modal-admin-settings'); refreshAdminPersistCard();" title="Paramètres">⚙️ Paramètres</button>
+    <div class="admin-head-actions admin-desktop-only" id="admin-head-actions"></div>
   </div>
 
   <!-- Backdrop du drawer mobile (clic pour fermer) -->
@@ -9801,33 +9852,446 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     <!-- Bouton Déconnexion : positionné en haut à droite du drawer mobile -->
     <button class="admin-drawer-logout-top" onclick="logout()" title="Déconnexion" aria-label="Déconnexion">⏻</button>
 
-    <button class="admin-tab active" data-tab="dashboard" onclick="aTab('dashboard')">🏠 Accueil</button>
-    <button class="admin-tab" data-tab="votes" onclick="aTab('votes')">🗳️ Votes</button>
+    <span class="admin-sidebar-section">Pilotage</span>
+    <button class="admin-tab active" data-tab="dashboard" onclick="aTab('dashboard')"><span class="at-ic">🏠</span><span class="at-tx">Accueil</span></button>
+    <button class="admin-tab" data-tab="sessions" onclick="aTab('sessions')"><span class="at-ic">🎟️</span><span class="at-tx">Séances</span></button>
+    <button class="admin-tab" data-tab="votes" onclick="aTab('votes')"><span class="at-ic">🗳️</span><span class="at-tx">Votes</span></button>
+    <span class="admin-sidebar-section">Catalogue</span>
+    <button class="admin-tab" data-tab="films" onclick="aTab('films')"><span class="at-ic">🎬</span><span class="at-tx">Films</span></button>
     <div class="admin-tab-wrap">
-      <button class="admin-tab" data-tab="proposals" onclick="aTab('proposals')">💡 Propositions</button>
+      <button class="admin-tab" data-tab="proposals" onclick="aTab('proposals')"><span class="at-ic">💡</span><span class="at-tx">Propositions</span></button>
       <span class="pending-badge hidden" id="pending-proposals-badge">0</span>
     </div>
+    <span class="admin-sidebar-section">Élèves</span>
+    <button class="admin-tab" data-tab="students" onclick="aTab('students')"><span class="at-ic">👥</span><span class="at-tx">Élèves</span></button>
     <div class="admin-tab-wrap">
-      <button class="admin-tab" data-tab="messages" onclick="aTab('messages')">💬 Messages</button>
+      <button class="admin-tab" data-tab="messages" onclick="aTab('messages')"><span class="at-ic">💬</span><span class="at-tx">Messages</span></button>
       <span class="pending-badge hidden" id="pending-messages-badge">0</span>
     </div>
-    <button class="admin-tab" data-tab="films" onclick="aTab('films')">🎬 Films</button>
-    <button class="admin-tab" data-tab="sessions" onclick="aTab('sessions')">🎟️ Séances</button>
     <div class="admin-tab-wrap">
-      <button class="admin-tab" data-tab="requests" onclick="aTab('requests')">📨 Demandes</button>
+      <button class="admin-tab" data-tab="requests" onclick="aTab('requests')"><span class="at-ic">📨</span><span class="at-tx">Demandes</span></button>
       <span class="pending-badge hidden" id="pending-requests-badge">0</span>
     </div>
-    <button class="admin-tab" data-tab="students" onclick="aTab('students')">👥 Élèves</button>
-    <button class="admin-tab" data-tab="leaderboard" onclick="aTab('leaderboard')">🏆 Classement</button>
-    <button class="admin-tab" data-tab="tutorials" onclick="aTab('tutorials')">📚 Tutoriels</button>
+    <button class="admin-tab" data-tab="leaderboard" onclick="aTab('leaderboard')"><span class="at-ic">🏆</span><span class="at-tx">Classement</span></button>
+    <button class="admin-tab" data-tab="tutorials" onclick="aTab('tutorials')"><span class="at-ic">📚</span><span class="at-tx">Tutoriels</span></button>
 
-    <!-- Footer : Paramètres uniquement (déconnexion est en haut à droite) -->
-    <div class="admin-drawer-footer">
-      <button class="admin-tab admin-drawer-action" onclick="adminDrawerClose(); openModal('modal-admin-settings'); refreshAdminPersistCard();">⚙️ Paramètres</button>
+    <!-- Bas de la barre : maintenance, Paramètres, Déconnexion -->
+    <div class="admin-side-foot">
+      <button class="admin-maint-pill hidden" id="admin-maint-pill" onclick="aTab('settings'); sdSwitchSettingsTab('systeme')" title="Ouvrir les réglages de maintenance">🛠 Maintenance active</button>
+    <button class="admin-tab" data-tab="settings" onclick="aTab('settings')"><span class="at-ic">⚙️</span><span class="at-tx">Paramètres</span></button>
+    <button class="admin-tab admin-tab-logout admin-desktop-only" onclick="logout()"><span class="at-ic">⏻</span><span class="at-tx">Déconnexion</span></button>
     </div>
   </div>
 
   <div class="admin-panels-container">
+
+    <!-- Paramètres (ouverts comme un onglet) -->
+    <div class="admin-panel hidden" id="ap-settings">
+  <div class="sd-panel sd-panel-inline">
+    <div class="sd-header">
+      <button class="sd-header-close" onclick="closeModal('modal-admin-settings')">←</button>
+      <span class="sd-header-title">⚙ Paramètres</span>
+    </div>
+    <div class="sd-body">
+
+      <!-- ============================================================
+           ONGLET : ⚙️ GÉNÉRAL
+           ============================================================ -->
+      <div class="sd-tab-panel active" id="sd-spane-general">
+
+        <!-- Personnalisation -->
+        <div class="sd-section">
+          <div class="sd-section-title">Personnalisation</div>
+          <div class="fgroup">
+            <label class="flabel">Nom du surveillant</label>
+            <input type="text" class="finput" id="supervisor-name-input" 
+                   placeholder="Votre prénom (ex: Mathias)" 
+                   maxlength="30"
+                   style="font-size:15px;">
+            <div class="text-sm text-muted" style="margin-top:6px;font-size:11.5px;opacity:.7;">
+              Ce nom apparaîtra dans l'accès admin et la messagerie élève
+            </div>
+          </div>
+          <button class="btn btn-gold btn-full" onclick="saveSupervisorName()">Enregistrer</button>
+
+        </div>
+
+      </div>
+
+
+      <!-- ============================================================
+           ONGLET : 🎟️ SÉANCES (heure, places, fermeture, désistement)
+           ============================================================ -->
+      <div class="sd-tab-panel" id="sd-spane-seances">
+        <div class="sd-section">
+          <div class="sd-section-title">Paramètres des séances</div>
+          <p class="text-sm text-muted" style="margin:0 0 14px;">L'heure et la capacité sont préremplies à la création d'une nouvelle séance.</p>
+    <div class="fgroup">
+      <label class="flabel">Heure de la séance</label>
+      <input type="time" class="finput" id="dss-time" style="font-size:15px;">
+    </div>
+
+    <div class="fgroup">
+      <label class="flabel">Capacité max (nombre d'inscrits)</label>
+      <input type="number" class="finput" id="dss-capacity"
+             min="1" max="99" step="1" style="font-size:15px;"
+             placeholder="20">
+      <div class="text-sm text-muted" style="margin-top:6px;font-size:11.5px;opacity:.7;">
+        Entre 1 et 99 inscrits maximum par séance
+      </div>
+    </div>
+
+    <div class="fgroup">
+      <label class="flabel">Fermeture des inscriptions</label>
+      <select class="finput" id="dss-lock" style="font-size:15px;"></select>
+      <div class="text-sm text-muted" style="margin-top:6px;font-size:11.5px;opacity:.7;">
+        S'applique à toutes les séances, y compris celles déjà créées. Tu peux toujours inscrire un élève toi-même après.
+      </div>
+    </div>
+
+    <div class="fgroup">
+      <label class="flabel">Désistement tardif</label>
+      <select class="finput" id="dss-late" style="font-size:15px;"></select>
+      <div class="text-sm text-muted" style="margin-top:6px;font-size:11.5px;opacity:.7;">
+        Un élève qui se désinscrit dans ce délai est prévenu, et son désistement est noté comme tardif.
+      </div>
+    </div>
+
+          <button class="btn btn-gold btn-full" style="margin-top:6px;" onclick="saveDefaultSessionSettings()">Enregistrer</button>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           ONGLET : 👥 ÉLÈVES (import, exports)
+           ============================================================ -->
+      <div class="sd-tab-panel" id="sd-spane-eleves">
+
+        <!-- Import élèves -->
+        <div class="sd-section">
+          <div class="sd-section-title">Import élèves</div>
+          <p class="text-sm text-muted" style="margin-bottom:14px;">
+            Format CSV : <code>prénom,nom,classe,eleveUid,année,sexe</code>
+            <br><span style="opacity:.6;font-size:11.5px;">L'année scolaire est lue automatiquement depuis le fichier (5e colonne). Le sexe (6e colonne) : <code>F</code> pour filles, <code>M</code> pour garçons.</span>
+          </p>
+
+          <!-- Switch mode -->
+          <div class="import-switch-wrap">
+            <button class="import-switch-btn active" id="import-btn-ponctuel"
+                    onclick="setImportMode('ponctuel')">
+              📋 Import ponctuel<br>
+              <span style="font-size:10.5px;font-weight:500;opacity:.7;">Ajoute / met à jour</span>
+            </button>
+            <button class="import-switch-btn annual" id="import-btn-annual"
+                    onclick="setImportMode('annual')">
+              🎓 Import annuel<br>
+              <span style="font-size:10.5px;font-weight:500;opacity:.7;">Rentrée / réinitialise</span>
+            </button>
+          </div>
+
+          <!-- Warning annuel (masqué par défaut) -->
+          <div class="import-annual-warning hidden" id="import-annual-warning">
+            ⚠️ Cet import mettra à jour l'année scolaire active, archivera les élèves absents du fichier et <strong>supprimera les votes, refusera les propositions en attente et clôturera les conversations des élèves archivés</strong>. Les comptes test (classe se terminant par TEST) ne sont jamais archivés. XP, badges et historique sont conservés pour tout le monde.
+          </div>
+
+          <!-- CSV -->
+          <div class="fgroup">
+            <label class="flabel">Données CSV</label>
+            <textarea class="ftextarea" id="csv-data" rows="6"
+              placeholder="Jean,Dupont,Terminale A,UID123,2025-2026&#10;Marie,Martin,Première B,UID456,2025-2026&#10;..."></textarea>
+          </div>
+
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+            <input type="file" id="csv-file" accept=".csv,.txt" style="display:none;" onchange="onCSVFile(event)">
+            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('csv-file').click()">📁 Charger fichier</button>
+          </div>
+
+          <!-- Mot de passe annuel (masqué par défaut) -->
+          <div class="fgroup hidden" id="import-annual-pwd-wrap">
+            <label class="flabel">Mot de passe admin (obligatoire pour import annuel)</label>
+            <input type="password" class="finput" id="import-annual-pwd" placeholder="••••••••">
+          </div>
+
+          <button class="btn btn-gold btn-full" onclick="importStudentsFromSettings()">Importer les élèves ↑</button>
+
+          <!-- Résultat import -->
+          <div id="import-result" class="hidden"></div>
+        </div>
+
+        <!-- Export codes -->
+        <div class="sd-section">
+          <div class="sd-section-title">Export codes</div>
+          <p class="text-sm text-muted" style="margin-bottom:12px;">
+            Exporte les codes d'activation des élèves.
+          </p>
+          <button class="btn btn-ghost btn-full" onclick="exportCodes()">⬇ Télécharger codes CSV</button>
+        </div>
+
+        <!-- Export PDF élèves -->
+        <div class="sd-section">
+          <div class="sd-section-title">📄 Export PDF élèves</div>
+          <p class="text-sm text-muted" style="margin-bottom:12px;">
+            Génère une fiche PDF pour les <strong>élèves actifs qui n'ont pas encore activé leur compte</strong>. Tu choisis ensuite qui inclure (filles, garçons, comptes test).<br>
+            <span style="opacity:.7;font-size:11px;">Ordre : filles puis garçons, par ordre alphabétique. Format : 10 fiches par page A4.</span>
+          </p>
+          <button class="btn btn-gold btn-full" onclick="exportStudentsPDF()">
+            📄 Générer le PDF des fiches
+          </button>
+          <p class="text-sm text-muted" style="margin:16px 0 10px;">
+            Liste des identifiants des élèves actifs qui ont <strong>déjà activé</strong> leur compte (sans code PIN : ils gardent le leur). Filles puis garçons, et dans chaque groupe : secondes, premières, terminales. Comptes test exclus.
+          </p>
+          <button class="btn btn-ghost btn-full" onclick="exportActivatedLoginsPDF()">
+            📋 Liste des identifiants (comptes activés)
+          </button>
+          <button class="btn btn-ghost btn-full" style="margin-top:8px;" onclick="exportLoginTicketsPDF()">
+            ✂️ Tickets « nouvel identifiant » à découper
+          </button>
+          <p class="text-sm text-muted" style="margin-top:6px;font-size:11px;opacity:.75;">
+            Tickets : élèves inscrits avant cette rentrée ayant activé leur compte (ceux dont l'identifiant a changé). 24 par page, filles puis garçons.
+          </p>
+        </div>
+
+        <!-- Polices PDF Cinzel -->
+        <div class="sd-section">
+          <div class="sd-section-title">🎨 Police PDF (Cinzel)</div>
+          <p class="text-sm text-muted" style="margin-bottom:12px;">
+            <span id="cinzel-status-text">
+              Les polices Cinzel sont chargées automatiquement depuis les CDN. Si ça ne fonctionne pas, vous pouvez les uploader manuellement.
+            </span>
+          </p>
+          <div id="cinzel-upload-zone" style="display:none;">
+            <div class="fgroup">
+              <label class="flabel">Cinzel-Regular.ttf</label>
+              <input type="file" class="finput" id="cinzel-regular-file" accept=".ttf" style="padding:8px;">
+            </div>
+            <div class="fgroup">
+              <label class="flabel">Cinzel-Bold.ttf</label>
+              <input type="file" class="finput" id="cinzel-bold-file" accept=".ttf" style="padding:8px;">
+            </div>
+            <button class="btn btn-gold btn-full" onclick="uploadCinzelFonts()">📥 Installer les polices</button>
+            <p class="text-sm text-muted" style="margin-top:8px;font-size:11px;opacity:.7;">
+              Téléchargez les fichiers depuis <a href="https://fonts.google.com/specimen/Cinzel" target="_blank" style="color:var(--gold);">Google Fonts</a>
+            </p>
+          </div>
+          <button class="btn btn-ghost btn-full" id="cinzel-toggle-btn" onclick="toggleCinzelUpload()">
+            📤 Uploader manuellement
+          </button>
+          <button class="btn btn-ghost btn-full" id="cinzel-clear-btn" onclick="clearCinzelFonts()" style="display:none;">
+            🗑️ Supprimer les polices stockées
+          </button>
+        </div>
+
+      </div>
+
+      <!-- ============================================================
+           ONGLET : 🎨 THÈME & ÉVÉNEMENTS
+           ============================================================ -->
+      <div class="sd-tab-panel" id="sd-spane-theme">
+
+        <div class="text-sm text-muted" id="theme-event-status" style="margin:0 0 14px;"></div>
+
+        <!-- Thème visuel -->
+        <div class="sd-section">
+          <div class="sd-section-title">🎨 Thème visuel</div>
+          <p class="text-sm text-muted" style="margin-bottom:14px;">
+            Change uniquement l'apparence de l'application (couleurs, décor, image de connexion). En lançant un thème, tu pourras choisir de lancer aussi l'événement assorti.
+          </p>
+          <div class="fgroup">
+            <div class="cc-toggle-group" id="theme-mode-buttons" role="group" aria-label="Thème visuel" style="margin-bottom:4px;flex-wrap:wrap;"></div>
+            <div class="text-sm text-muted" style="margin-top:6px;font-size:11.5px;opacity:.7;">
+              Le changement s'applique immédiatement à tous les élèves connectés.
+            </div>
+          </div>
+          <button class="btn btn-gold btn-full" onclick="saveEventTheme()">Appliquer le thème</button>
+        </div>
+
+        <!-- Événement -->
+        <div class="sd-section">
+          <div class="sd-section-title">🎉 Événement</div>
+          <p class="text-sm text-muted" style="margin-bottom:14px;">
+            Active la mécanique d'événement : vote de film spécial, case « pour l'événement » à la proposition, séance événement. Indépendant du thème visuel.
+          </p>
+          <div class="fgroup">
+            <div class="cc-toggle-group" id="event-mode-buttons" role="group" aria-label="Événement" style="margin-bottom:4px;flex-wrap:wrap;"></div>
+          </div>
+          <button class="btn btn-ghost btn-full" onclick="saveEventMode()">Appliquer l'événement</button>
+        </div>
+
+      </div>
+
+      <!-- ============================================================
+           ONGLET : ⭐ XP & BADGES
+           ============================================================ -->
+      <div class="sd-tab-panel" id="sd-spane-xp">
+
+        <div class="sd-section">
+          <div class="sd-section-title">Taux XP — Gains</div>
+          <p class="text-sm text-muted" style="margin-bottom:14px;">
+            Modifie les points gagnés pour chaque action. Les changements
+            s'appliquent <strong>uniquement aux futurs gains</strong> : l'XP déjà
+            attribué et les niveaux actuels ne bougent pas.
+          </p>
+          <div id="xp-amounts-fields"><!-- généré par renderXpSettingsFields() --></div>
+        </div>
+
+        <div class="sd-section">
+          <div class="sd-section-title">Réglages avancés</div>
+          <p class="text-sm text-muted" style="margin-bottom:14px;">
+            Limites quotidiennes et conditions. Valeurs entières positives.
+          </p>
+          <div id="xp-tuning-fields"><!-- généré par renderXpSettingsFields() --></div>
+
+          <div class="fgroup" style="margin-top:14px;opacity:.6;">
+            <label class="flabel">Niveau maximum (lecture seule)</label>
+            <input type="number" class="finput" value="25" disabled
+                   style="font-size:15px;cursor:not-allowed;">
+            <div class="text-sm text-muted" style="margin-top:6px;font-size:11.5px;">
+              Non modifiable ici : changer le niveau max recalculerait toute la
+              courbe de progression et ferait bouger les niveaux des élèves.
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-top:4px;">
+          <button class="btn btn-ghost" style="flex:1;" onclick="resetXpSettings()">↺ Réinitialiser</button>
+          <button class="btn btn-gold" style="flex:1;" onclick="saveXpSettings()">Enregistrer</button>
+        </div>
+
+      </div>
+
+      <!-- ============================================================
+           ONGLET : 🛡️ SYSTÈME (sécurité, notifications admin, maintenance)
+           ============================================================ -->
+      <div class="sd-tab-panel" id="sd-spane-systeme">
+
+        <!-- Notifications push admin -->
+        <div class="sd-section">
+          <div class="sd-section-title">Notifications</div>
+          <button class="profile-install-card profile-push-card" data-push-toggle onclick="togglePushNotifications()" style="border:none;width:100%;text-align:left;font-family:inherit;cursor:pointer;margin-bottom:0;">
+            <div class="profile-install-icon" data-push-icon>🔕</div>
+            <div class="profile-install-content">
+              <div class="profile-install-title" data-push-label>Activer les notifications</div>
+              <div class="profile-install-text" data-push-sub>Sois averti des nouvelles demandes, désistements tardifs et propositions</div>
+            </div>
+            <div class="profile-install-arrow">›</div>
+          </button>
+        </div>
+
+<!-- Rester connecté sur cet appareil (toggle par device) -->
+        <div class="sd-section">
+          <div class="sd-section-title">Session</div>
+          <button class="profile-install-card" id="admin-persist-card" onclick="toggleAdminPersist()" style="border:none;width:100%;text-align:left;font-family:inherit;cursor:pointer;margin-bottom:0;">
+            <div class="profile-install-icon" id="admin-persist-icon">🔓</div>
+            <div class="profile-install-content">
+              <div class="profile-install-title" id="admin-persist-title">Rester connecté sur cet appareil</div>
+              <div class="profile-install-text" id="admin-persist-sub">Désactive la déconnexion automatique. À activer uniquement sur tes appareils personnels.</div>
+            </div>
+            <div class="profile-install-arrow" id="admin-persist-arrow">›</div>
+          </button>
+        </div>
+
+<!-- Mot de passe admin -->
+        <div class="sd-section">
+          <div class="sd-section-title">🔐 Mot de passe admin</div>
+          <p class="text-sm text-muted" style="margin-bottom:14px;">
+            Modifie le mot de passe utilisé pour accéder à l'espace admin.
+          </p>
+
+          <div class="fgroup">
+            <label class="flabel">Mot de passe actuel</label>
+            <input type="password" class="finput" id="adm-pwd-current" autocomplete="current-password" placeholder="••••••••">
+          </div>
+
+          <div class="fgroup">
+            <label class="flabel">Nouveau mot de passe</label>
+            <input type="password" class="finput" id="adm-pwd-new" autocomplete="new-password" placeholder="6 caractères minimum" minlength="6">
+          </div>
+
+          <div class="fgroup">
+            <label class="flabel">Confirmer le nouveau mot de passe</label>
+            <input type="password" class="finput" id="adm-pwd-confirm" autocomplete="new-password" placeholder="••••••••">
+          </div>
+
+          <button class="btn btn-gold btn-full" id="adm-pwd-save-btn" onclick="changeAdminPassword()">
+            🔐 Modifier le mot de passe
+          </button>
+        </div>
+
+<!-- Sessions / Déconnexion globale -->
+        <div class="sd-section">
+          <div class="sd-section-title">📱 Sessions</div>
+          <p class="text-sm text-muted" style="margin-bottom:14px;">
+            Déconnecte tous les appareils où ce compte admin est resté connecté
+            (téléphone perdu, ordi partagé, etc.). La session actuelle sera aussi déconnectée.
+          </p>
+          <button class="btn btn-ghost btn-full" onclick="confirmRevokeAllAdminSessions()"
+                  style="border-color: rgba(255,90,90,.4); color:#ff9090;">
+            🔒 Déconnecter tous les appareils
+          </button>
+        </div>
+
+
+        <div class="sd-section">
+          <div class="sd-section-title">🔞 Classifications d'âge</div>
+          <p class="text-sm text-muted" style="margin-bottom:12px;">
+            Récupère sur TMDB la classification française (TP, -10, -12, -16, -18) des films du catalogue et des propositions en attente qui n'en ont pas encore. Les nouveaux films la récupèrent automatiquement.
+          </p>
+          <button class="btn btn-ghost btn-full" id="age-backfill-btn" onclick="backfillAgeRatings()">Récupérer les classifications</button>
+          <div id="age-backfill-result" class="text-sm text-muted" style="margin-top:10px;"></div>
+        </div>
+
+        <div class="sd-section">
+          <div class="sd-section-title">🛠️ Mode maintenance</div>
+
+          <div class="fgroup">
+            <label class="flabel">État</label>
+            <div class="cc-toggle-group" role="group" aria-label="Mode maintenance" style="margin-bottom:4px;">
+              <button class="cc-toggle active" data-maint-mode="off" onclick="setMaintenanceMode('off')">✅ Désactivé</button>
+              <button class="cc-toggle"        data-maint-mode="on"  onclick="setMaintenanceMode('on')">🛠️ Activé</button>
+            </div>
+            <div class="text-sm text-muted" style="margin-top:6px;font-size:11.5px;opacity:.7;">
+              Quand activé, seul l'admin et l'élève test ci-dessous peuvent se connecter.
+            </div>
+          </div>
+
+          <div class="fgroup">
+            <label class="flabel">Message affiché aux élèves bloqués</label>
+            <textarea class="finput" id="maintenance-message-input"
+                      placeholder="Application en maintenance. Merci de revenir plus tard."
+                      maxlength="280" rows="2"
+                      style="font-size:14px;resize:vertical;"></textarea>
+          </div>
+
+          <div class="fgroup">
+            <label class="flabel">Identifiant élève test autorisé</label>
+            <input type="text" class="finput" id="maintenance-test-uid-input"
+                   placeholder="ex : elv_xxxxxxxxxxxxxx"
+                   maxlength="60"
+                   style="font-size:14px;font-family:monospace;">
+            <div class="text-sm text-muted" style="margin-top:6px;font-size:11.5px;opacity:.7;">
+              Colle ici le 🪪 <code>eleve_uid</code> visible dans la fiche d'un élève. Laisse vide pour bloquer tous les élèves.
+            </div>
+          </div>
+
+          <button class="btn btn-gold btn-full" onclick="saveMaintenanceSettings()">Enregistrer la maintenance</button>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- ===== Barre d'onglets (placée HORS du sd-body pour rester collée
+         en bas du panel sur mobile, indépendamment du scroll).
+         Sur PC : remontée entre header et body via `order` en CSS. -->
+    <div class="sd-tabs sd-tabs-admin-settings">
+      <button class="sd-tab active" id="sd-stab-general" onclick="sdSwitchSettingsTab('general')"><span class="sd-tab-icon">⚙️</span><span class="sd-tab-label">Général</span></button>
+      <button class="sd-tab"        id="sd-stab-seances" onclick="sdSwitchSettingsTab('seances')"><span class="sd-tab-icon">🎟️</span><span class="sd-tab-label">Séances</span></button>
+      <button class="sd-tab"        id="sd-stab-eleves"  onclick="sdSwitchSettingsTab('eleves')"><span class="sd-tab-icon">👥</span><span class="sd-tab-label">Élèves</span></button>
+      <button class="sd-tab"        id="sd-stab-theme"   onclick="sdSwitchSettingsTab('theme')"><span class="sd-tab-icon">🎨</span><span class="sd-tab-label">Thème</span></button>
+      <button class="sd-tab"        id="sd-stab-xp"      onclick="sdSwitchSettingsTab('xp')"><span class="sd-tab-icon">⭐</span><span class="sd-tab-label">XP</span></button>
+      <button class="sd-tab"        id="sd-stab-systeme" onclick="sdSwitchSettingsTab('systeme')"><span class="sd-tab-icon">🛡️</span><span class="sd-tab-label">Système</span></button>
+    </div>
+  </div>
+    </div>
 
     <!-- Dashboard panel (desktop) -->
     <div class="admin-panel" id="ap-dashboard">
@@ -12172,53 +12636,6 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
   </div>
 </div>
 
-<div class="overlay hidden" id="modal-default-session-settings">
-  <div class="sheet" style="max-width:440px;">
-    <div class="sheet-handle"></div>
-    <div class="sheet-title">⚙️ Paramètres des séances</div>
-
-    <p class="text-sm text-muted" style="margin:-6px 0 18px;">
-      L'heure et la capacité sont préremplies à la création d'une nouvelle séance.
-    </p>
-
-    <div class="fgroup">
-      <label class="flabel">Heure de la séance</label>
-      <input type="time" class="finput" id="dss-time" style="font-size:15px;">
-    </div>
-
-    <div class="fgroup">
-      <label class="flabel">Capacité max (nombre d'inscrits)</label>
-      <input type="number" class="finput" id="dss-capacity"
-             min="1" max="99" step="1" style="font-size:15px;"
-             placeholder="20">
-      <div class="text-sm text-muted" style="margin-top:6px;font-size:11.5px;opacity:.7;">
-        Entre 1 et 99 inscrits maximum par séance
-      </div>
-    </div>
-
-    <div class="fgroup">
-      <label class="flabel">Fermeture des inscriptions</label>
-      <select class="finput" id="dss-lock" style="font-size:15px;"></select>
-      <div class="text-sm text-muted" style="margin-top:6px;font-size:11.5px;opacity:.7;">
-        S'applique à toutes les séances, y compris celles déjà créées. Tu peux toujours inscrire un élève toi-même après.
-      </div>
-    </div>
-
-    <div class="fgroup">
-      <label class="flabel">Désistement tardif</label>
-      <select class="finput" id="dss-late" style="font-size:15px;"></select>
-      <div class="text-sm text-muted" style="margin-top:6px;font-size:11.5px;opacity:.7;">
-        Un élève qui se désinscrit dans ce délai est prévenu, et son désistement est noté comme tardif.
-      </div>
-    </div>
-
-    <div style="display:flex;gap:8px;margin-top:18px;">
-      <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('modal-default-session-settings')">Annuler</button>
-      <button class="btn btn-gold" style="flex:1;" onclick="saveDefaultSessionSettings()">Enregistrer</button>
-    </div>
-  </div>
-</div>
-
 <!-- ================================================================
      MODAL: Programmer un film (date + création séance auto)
      ================================================================ -->
@@ -12364,372 +12781,6 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 <!-- ================================================================
      MODAL: Paramètres admin
      ================================================================ -->
-<div class="overlay hidden" id="modal-admin-settings">
-  <div class="sd-panel">
-    <div class="sd-header">
-      <button class="sd-header-close" onclick="closeModal('modal-admin-settings')">←</button>
-      <span class="sd-header-title">⚙ Paramètres</span>
-    </div>
-    <div class="sd-body">
-
-      <!-- ============================================================
-           ONGLET : ⚙️ GÉNÉRAL
-           ============================================================ -->
-      <div class="sd-tab-panel active" id="sd-spane-general">
-
-        <!-- Personnalisation -->
-        <div class="sd-section">
-          <div class="sd-section-title">Personnalisation</div>
-          <div class="fgroup">
-            <label class="flabel">Nom du surveillant</label>
-            <input type="text" class="finput" id="supervisor-name-input" 
-                   placeholder="Votre prénom (ex: Mathias)" 
-                   maxlength="30"
-                   style="font-size:15px;">
-            <div class="text-sm text-muted" style="margin-top:6px;font-size:11.5px;opacity:.7;">
-              Ce nom apparaîtra dans l'accès admin et la messagerie élève
-            </div>
-          </div>
-          <button class="btn btn-gold btn-full" onclick="saveSupervisorName()">Enregistrer</button>
-
-          <button class="btn btn-ghost btn-full" style="margin-top:18px;" onclick="openDefaultSessionSettings()">
-            ⚙️ Paramètres des séances (heure, places, fermeture)
-          </button>
-        </div>
-
-      </div>
-
-      <!-- ============================================================
-           ONGLET : 👥 ÉLÈVES (import, exports)
-           ============================================================ -->
-      <div class="sd-tab-panel" id="sd-spane-eleves">
-
-        <!-- Import élèves -->
-        <div class="sd-section">
-          <div class="sd-section-title">Import élèves</div>
-          <p class="text-sm text-muted" style="margin-bottom:14px;">
-            Format CSV : <code>prénom,nom,classe,eleveUid,année,sexe</code>
-            <br><span style="opacity:.6;font-size:11.5px;">L'année scolaire est lue automatiquement depuis le fichier (5e colonne). Le sexe (6e colonne) : <code>F</code> pour filles, <code>M</code> pour garçons.</span>
-          </p>
-
-          <!-- Switch mode -->
-          <div class="import-switch-wrap">
-            <button class="import-switch-btn active" id="import-btn-ponctuel"
-                    onclick="setImportMode('ponctuel')">
-              📋 Import ponctuel<br>
-              <span style="font-size:10.5px;font-weight:500;opacity:.7;">Ajoute / met à jour</span>
-            </button>
-            <button class="import-switch-btn annual" id="import-btn-annual"
-                    onclick="setImportMode('annual')">
-              🎓 Import annuel<br>
-              <span style="font-size:10.5px;font-weight:500;opacity:.7;">Rentrée / réinitialise</span>
-            </button>
-          </div>
-
-          <!-- Warning annuel (masqué par défaut) -->
-          <div class="import-annual-warning hidden" id="import-annual-warning">
-            ⚠️ Cet import mettra à jour l'année scolaire active, archivera les élèves absents du fichier et <strong>supprimera les votes, refusera les propositions en attente et clôturera les conversations des élèves archivés</strong>. Les comptes test (classe se terminant par TEST) ne sont jamais archivés. XP, badges et historique sont conservés pour tout le monde.
-          </div>
-
-          <!-- CSV -->
-          <div class="fgroup">
-            <label class="flabel">Données CSV</label>
-            <textarea class="ftextarea" id="csv-data" rows="6"
-              placeholder="Jean,Dupont,Terminale A,UID123,2025-2026&#10;Marie,Martin,Première B,UID456,2025-2026&#10;..."></textarea>
-          </div>
-
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
-            <input type="file" id="csv-file" accept=".csv,.txt" style="display:none;" onchange="onCSVFile(event)">
-            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('csv-file').click()">📁 Charger fichier</button>
-          </div>
-
-          <!-- Mot de passe annuel (masqué par défaut) -->
-          <div class="fgroup hidden" id="import-annual-pwd-wrap">
-            <label class="flabel">Mot de passe admin (obligatoire pour import annuel)</label>
-            <input type="password" class="finput" id="import-annual-pwd" placeholder="••••••••">
-          </div>
-
-          <button class="btn btn-gold btn-full" onclick="importStudentsFromSettings()">Importer les élèves ↑</button>
-
-          <!-- Résultat import -->
-          <div id="import-result" class="hidden"></div>
-        </div>
-
-        <!-- Export codes -->
-        <div class="sd-section">
-          <div class="sd-section-title">Export codes</div>
-          <p class="text-sm text-muted" style="margin-bottom:12px;">
-            Exporte les codes d'activation des élèves.
-          </p>
-          <button class="btn btn-ghost btn-full" onclick="exportCodes()">⬇ Télécharger codes CSV</button>
-        </div>
-
-        <!-- Export PDF élèves -->
-        <div class="sd-section">
-          <div class="sd-section-title">📄 Export PDF élèves</div>
-          <p class="text-sm text-muted" style="margin-bottom:12px;">
-            Génère une fiche PDF pour les <strong>élèves actifs qui n'ont pas encore activé leur compte</strong>. Tu choisis ensuite qui inclure (filles, garçons, comptes test).<br>
-            <span style="opacity:.7;font-size:11px;">Ordre : filles puis garçons, par ordre alphabétique. Format : 10 fiches par page A4.</span>
-          </p>
-          <button class="btn btn-gold btn-full" onclick="exportStudentsPDF()">
-            📄 Générer le PDF des fiches
-          </button>
-          <p class="text-sm text-muted" style="margin:16px 0 10px;">
-            Liste des identifiants des élèves actifs qui ont <strong>déjà activé</strong> leur compte (sans code PIN : ils gardent le leur). Filles puis garçons, et dans chaque groupe : secondes, premières, terminales. Comptes test exclus.
-          </p>
-          <button class="btn btn-ghost btn-full" onclick="exportActivatedLoginsPDF()">
-            📋 Liste des identifiants (comptes activés)
-          </button>
-          <button class="btn btn-ghost btn-full" style="margin-top:8px;" onclick="exportLoginTicketsPDF()">
-            ✂️ Tickets « nouvel identifiant » à découper
-          </button>
-          <p class="text-sm text-muted" style="margin-top:6px;font-size:11px;opacity:.75;">
-            Tickets : élèves inscrits avant cette rentrée ayant activé leur compte (ceux dont l'identifiant a changé). 24 par page, filles puis garçons.
-          </p>
-        </div>
-
-        <!-- Polices PDF Cinzel -->
-        <div class="sd-section">
-          <div class="sd-section-title">🎨 Police PDF (Cinzel)</div>
-          <p class="text-sm text-muted" style="margin-bottom:12px;">
-            <span id="cinzel-status-text">
-              Les polices Cinzel sont chargées automatiquement depuis les CDN. Si ça ne fonctionne pas, vous pouvez les uploader manuellement.
-            </span>
-          </p>
-          <div id="cinzel-upload-zone" style="display:none;">
-            <div class="fgroup">
-              <label class="flabel">Cinzel-Regular.ttf</label>
-              <input type="file" class="finput" id="cinzel-regular-file" accept=".ttf" style="padding:8px;">
-            </div>
-            <div class="fgroup">
-              <label class="flabel">Cinzel-Bold.ttf</label>
-              <input type="file" class="finput" id="cinzel-bold-file" accept=".ttf" style="padding:8px;">
-            </div>
-            <button class="btn btn-gold btn-full" onclick="uploadCinzelFonts()">📥 Installer les polices</button>
-            <p class="text-sm text-muted" style="margin-top:8px;font-size:11px;opacity:.7;">
-              Téléchargez les fichiers depuis <a href="https://fonts.google.com/specimen/Cinzel" target="_blank" style="color:var(--gold);">Google Fonts</a>
-            </p>
-          </div>
-          <button class="btn btn-ghost btn-full" id="cinzel-toggle-btn" onclick="toggleCinzelUpload()">
-            📤 Uploader manuellement
-          </button>
-          <button class="btn btn-ghost btn-full" id="cinzel-clear-btn" onclick="clearCinzelFonts()" style="display:none;">
-            🗑️ Supprimer les polices stockées
-          </button>
-        </div>
-
-      </div>
-
-      <!-- ============================================================
-           ONGLET : 🎨 THÈME & ÉVÉNEMENTS
-           ============================================================ -->
-      <div class="sd-tab-panel" id="sd-spane-theme">
-
-        <div class="text-sm text-muted" id="theme-event-status" style="margin:0 0 14px;"></div>
-
-        <!-- Thème visuel -->
-        <div class="sd-section">
-          <div class="sd-section-title">🎨 Thème visuel</div>
-          <p class="text-sm text-muted" style="margin-bottom:14px;">
-            Change uniquement l'apparence de l'application (couleurs, décor, image de connexion). En lançant un thème, tu pourras choisir de lancer aussi l'événement assorti.
-          </p>
-          <div class="fgroup">
-            <div class="cc-toggle-group" id="theme-mode-buttons" role="group" aria-label="Thème visuel" style="margin-bottom:4px;flex-wrap:wrap;"></div>
-            <div class="text-sm text-muted" style="margin-top:6px;font-size:11.5px;opacity:.7;">
-              Le changement s'applique immédiatement à tous les élèves connectés.
-            </div>
-          </div>
-          <button class="btn btn-gold btn-full" onclick="saveEventTheme()">Appliquer le thème</button>
-        </div>
-
-        <!-- Événement -->
-        <div class="sd-section">
-          <div class="sd-section-title">🎉 Événement</div>
-          <p class="text-sm text-muted" style="margin-bottom:14px;">
-            Active la mécanique d'événement : vote de film spécial, case « pour l'événement » à la proposition, séance événement. Indépendant du thème visuel.
-          </p>
-          <div class="fgroup">
-            <div class="cc-toggle-group" id="event-mode-buttons" role="group" aria-label="Événement" style="margin-bottom:4px;flex-wrap:wrap;"></div>
-          </div>
-          <button class="btn btn-ghost btn-full" onclick="saveEventMode()">Appliquer l'événement</button>
-        </div>
-
-      </div>
-
-      <!-- ============================================================
-           ONGLET : ⭐ XP & BADGES
-           ============================================================ -->
-      <div class="sd-tab-panel" id="sd-spane-xp">
-
-        <div class="sd-section">
-          <div class="sd-section-title">Taux XP — Gains</div>
-          <p class="text-sm text-muted" style="margin-bottom:14px;">
-            Modifie les points gagnés pour chaque action. Les changements
-            s'appliquent <strong>uniquement aux futurs gains</strong> : l'XP déjà
-            attribué et les niveaux actuels ne bougent pas.
-          </p>
-          <div id="xp-amounts-fields"><!-- généré par renderXpSettingsFields() --></div>
-        </div>
-
-        <div class="sd-section">
-          <div class="sd-section-title">Réglages avancés</div>
-          <p class="text-sm text-muted" style="margin-bottom:14px;">
-            Limites quotidiennes et conditions. Valeurs entières positives.
-          </p>
-          <div id="xp-tuning-fields"><!-- généré par renderXpSettingsFields() --></div>
-
-          <div class="fgroup" style="margin-top:14px;opacity:.6;">
-            <label class="flabel">Niveau maximum (lecture seule)</label>
-            <input type="number" class="finput" value="25" disabled
-                   style="font-size:15px;cursor:not-allowed;">
-            <div class="text-sm text-muted" style="margin-top:6px;font-size:11.5px;">
-              Non modifiable ici : changer le niveau max recalculerait toute la
-              courbe de progression et ferait bouger les niveaux des élèves.
-            </div>
-          </div>
-        </div>
-
-        <div style="display:flex;gap:8px;margin-top:4px;">
-          <button class="btn btn-ghost" style="flex:1;" onclick="resetXpSettings()">↺ Réinitialiser</button>
-          <button class="btn btn-gold" style="flex:1;" onclick="saveXpSettings()">Enregistrer</button>
-        </div>
-
-      </div>
-
-      <!-- ============================================================
-           ONGLET : 🛡️ SYSTÈME (sécurité, notifications admin, maintenance)
-           ============================================================ -->
-      <div class="sd-tab-panel" id="sd-spane-systeme">
-
-        <!-- Notifications push admin -->
-        <div class="sd-section">
-          <div class="sd-section-title">Notifications</div>
-          <button class="profile-install-card profile-push-card" data-push-toggle onclick="togglePushNotifications()" style="border:none;width:100%;text-align:left;font-family:inherit;cursor:pointer;margin-bottom:0;">
-            <div class="profile-install-icon" data-push-icon>🔕</div>
-            <div class="profile-install-content">
-              <div class="profile-install-title" data-push-label>Activer les notifications</div>
-              <div class="profile-install-text" data-push-sub>Sois averti des nouvelles demandes, désistements tardifs et propositions</div>
-            </div>
-            <div class="profile-install-arrow">›</div>
-          </button>
-        </div>
-
-<!-- Rester connecté sur cet appareil (toggle par device) -->
-        <div class="sd-section">
-          <div class="sd-section-title">Session</div>
-          <button class="profile-install-card" id="admin-persist-card" onclick="toggleAdminPersist()" style="border:none;width:100%;text-align:left;font-family:inherit;cursor:pointer;margin-bottom:0;">
-            <div class="profile-install-icon" id="admin-persist-icon">🔓</div>
-            <div class="profile-install-content">
-              <div class="profile-install-title" id="admin-persist-title">Rester connecté sur cet appareil</div>
-              <div class="profile-install-text" id="admin-persist-sub">Désactive la déconnexion automatique. À activer uniquement sur tes appareils personnels.</div>
-            </div>
-            <div class="profile-install-arrow" id="admin-persist-arrow">›</div>
-          </button>
-        </div>
-
-<!-- Mot de passe admin -->
-        <div class="sd-section">
-          <div class="sd-section-title">🔐 Mot de passe admin</div>
-          <p class="text-sm text-muted" style="margin-bottom:14px;">
-            Modifie le mot de passe utilisé pour accéder à l'espace admin.
-          </p>
-
-          <div class="fgroup">
-            <label class="flabel">Mot de passe actuel</label>
-            <input type="password" class="finput" id="adm-pwd-current" autocomplete="current-password" placeholder="••••••••">
-          </div>
-
-          <div class="fgroup">
-            <label class="flabel">Nouveau mot de passe</label>
-            <input type="password" class="finput" id="adm-pwd-new" autocomplete="new-password" placeholder="6 caractères minimum" minlength="6">
-          </div>
-
-          <div class="fgroup">
-            <label class="flabel">Confirmer le nouveau mot de passe</label>
-            <input type="password" class="finput" id="adm-pwd-confirm" autocomplete="new-password" placeholder="••••••••">
-          </div>
-
-          <button class="btn btn-gold btn-full" id="adm-pwd-save-btn" onclick="changeAdminPassword()">
-            🔐 Modifier le mot de passe
-          </button>
-        </div>
-
-<!-- Sessions / Déconnexion globale -->
-        <div class="sd-section">
-          <div class="sd-section-title">📱 Sessions</div>
-          <p class="text-sm text-muted" style="margin-bottom:14px;">
-            Déconnecte tous les appareils où ce compte admin est resté connecté
-            (téléphone perdu, ordi partagé, etc.). La session actuelle sera aussi déconnectée.
-          </p>
-          <button class="btn btn-ghost btn-full" onclick="confirmRevokeAllAdminSessions()"
-                  style="border-color: rgba(255,90,90,.4); color:#ff9090;">
-            🔒 Déconnecter tous les appareils
-          </button>
-        </div>
-
-
-        <div class="sd-section">
-          <div class="sd-section-title">🔞 Classifications d'âge</div>
-          <p class="text-sm text-muted" style="margin-bottom:12px;">
-            Récupère sur TMDB la classification française (TP, -10, -12, -16, -18) des films du catalogue et des propositions en attente qui n'en ont pas encore. Les nouveaux films la récupèrent automatiquement.
-          </p>
-          <button class="btn btn-ghost btn-full" id="age-backfill-btn" onclick="backfillAgeRatings()">Récupérer les classifications</button>
-          <div id="age-backfill-result" class="text-sm text-muted" style="margin-top:10px;"></div>
-        </div>
-
-        <div class="sd-section">
-          <div class="sd-section-title">🛠️ Mode maintenance</div>
-
-          <div class="fgroup">
-            <label class="flabel">État</label>
-            <div class="cc-toggle-group" role="group" aria-label="Mode maintenance" style="margin-bottom:4px;">
-              <button class="cc-toggle active" data-maint-mode="off" onclick="setMaintenanceMode('off')">✅ Désactivé</button>
-              <button class="cc-toggle"        data-maint-mode="on"  onclick="setMaintenanceMode('on')">🛠️ Activé</button>
-            </div>
-            <div class="text-sm text-muted" style="margin-top:6px;font-size:11.5px;opacity:.7;">
-              Quand activé, seul l'admin et l'élève test ci-dessous peuvent se connecter.
-            </div>
-          </div>
-
-          <div class="fgroup">
-            <label class="flabel">Message affiché aux élèves bloqués</label>
-            <textarea class="finput" id="maintenance-message-input"
-                      placeholder="Application en maintenance. Merci de revenir plus tard."
-                      maxlength="280" rows="2"
-                      style="font-size:14px;resize:vertical;"></textarea>
-          </div>
-
-          <div class="fgroup">
-            <label class="flabel">Identifiant élève test autorisé</label>
-            <input type="text" class="finput" id="maintenance-test-uid-input"
-                   placeholder="ex : elv_xxxxxxxxxxxxxx"
-                   maxlength="60"
-                   style="font-size:14px;font-family:monospace;">
-            <div class="text-sm text-muted" style="margin-top:6px;font-size:11.5px;opacity:.7;">
-              Colle ici le 🪪 <code>eleve_uid</code> visible dans la fiche d'un élève. Laisse vide pour bloquer tous les élèves.
-            </div>
-          </div>
-
-          <button class="btn btn-gold btn-full" onclick="saveMaintenanceSettings()">Enregistrer la maintenance</button>
-        </div>
-
-      </div>
-
-    </div>
-
-    <!-- ===== Barre d'onglets (placée HORS du sd-body pour rester collée
-         en bas du panel sur mobile, indépendamment du scroll).
-         Sur PC : remontée entre header et body via `order` en CSS. -->
-    <div class="sd-tabs sd-tabs-admin-settings">
-      <button class="sd-tab active" id="sd-stab-general" onclick="sdSwitchSettingsTab('general')"><span class="sd-tab-icon">⚙️</span><span class="sd-tab-label">Général</span></button>
-      <button class="sd-tab"        id="sd-stab-eleves"  onclick="sdSwitchSettingsTab('eleves')"><span class="sd-tab-icon">👥</span><span class="sd-tab-label">Élèves</span></button>
-      <button class="sd-tab"        id="sd-stab-theme"   onclick="sdSwitchSettingsTab('theme')"><span class="sd-tab-icon">🎨</span><span class="sd-tab-label">Thème</span></button>
-      <button class="sd-tab"        id="sd-stab-xp"      onclick="sdSwitchSettingsTab('xp')"><span class="sd-tab-icon">⭐</span><span class="sd-tab-label">XP</span></button>
-      <button class="sd-tab"        id="sd-stab-systeme" onclick="sdSwitchSettingsTab('systeme')"><span class="sd-tab-icon">🛡️</span><span class="sd-tab-label">Système</span></button>
-    </div>
-  </div>
-</div>
-
 <!-- ================================================================
      MODAL: Notification générale à tous les élèves (ouverte depuis l'Accueil admin)
      ================================================================ -->
@@ -14260,6 +14311,7 @@ async function loadMaintenanceFromDB() {
     S.maintenance = next;
     await _resolveMaintenanceTestStudentId();
     S.maintenance.loadedAt = Date.now();
+    if (typeof _updateAdminMaintPill === 'function') _updateAdminMaintPill();
   } catch (err) {
     console.warn('[maintenance] load exception:', err);
   }
@@ -24741,7 +24793,7 @@ async function openStudentSessionDetail(sessionId) {
 /* ================================================================
    ADMIN — TAB SWITCHING
    ================================================================ */
-const PANELS = ['dashboard','votes','proposals','messages','films','sessions','requests','students','leaderboard','tutorials'];
+const PANELS = ['dashboard','votes','proposals','messages','films','sessions','requests','students','leaderboard','tutorials','settings'];
 
 /* Libellés pour le titre dynamique du header admin sur mobile.
    Mapping panel → emoji + label. */
@@ -24755,8 +24807,49 @@ const PANEL_TITLES = {
   requests:  '📨 Demandes',
   students:  '👥 Élèves',
   leaderboard: '🏆 Classement',
-  tutorials: '📚 Tutoriels'
+  tutorials: '📚 Tutoriels',
+  settings:  '⚙️ Paramètres'
 };
+
+/* Boutons d'action dans la barre du haut, selon la page (PC) */
+const ADMIN_HEAD_ACTIONS = {
+  dashboard: [['📢 Notification générale', "openModal('modal-broadcast')"], ['🎟️ Créer une séance', "aTab('sessions'); openCreateSessionModal()", true]],
+  sessions:  [['🎟️ Créer une séance', 'openCreateSessionModal()', true]],
+  votes:     [['🗳️ Sondage de film', 'openPollCreate()', true]],
+  films:     [['🎬 Ajouter un film', "openModal('modal-add-film')", true]],
+  students:  [['📥 Importer des élèves', "aTab('settings'); sdSwitchSettingsTab('eleves')"]],
+};
+function _renderAdminHeadActions(tab) {
+  const el = document.getElementById('admin-head-actions');
+  if (!el) return;
+  el.innerHTML = (ADMIN_HEAD_ACTIONS[tab] || []).map(([label, action, gold]) =>
+    `<button class="btn ${gold ? 'btn-gold' : 'btn-ghost'} admin-head-btn" onclick="${action}">${label}</button>`).join('');
+  const sub = document.getElementById('admin-brand-sub');
+  if (sub && typeof getSupervisorName === 'function') {
+    const n = getSupervisorName();
+    sub.textContent = /^le |^la /i.test(n) ? 'Administration' : `Admin · ${n.charAt(0).toUpperCase() + n.slice(1)}`;
+  }
+}
+/* Rappel « Maintenance active » en bas de la barre de gauche */
+function _updateAdminMaintPill() {
+  document.getElementById('admin-maint-pill')?.classList.toggle('hidden', !(S.maintenance && S.maintenance.mode === 'on'));
+}
+/* Ouverture des Paramètres (ancien contenu de la fenêtre, maintenant une page) */
+function _adminSettingsOnOpen() {
+  setImportMode('ponctuel');
+  document.getElementById('import-result')?.classList.add('hidden');
+  loadSupervisorName();
+  loadMaintenanceFromDB().then(() => { loadMaintenanceUI(); _updateAdminMaintPill(); });
+  loadEventThemeFromDB().then(() => loadEventThemeUI());
+  sdSwitchSettingsTab('general');
+  ['adm-pwd-current','adm-pwd-new','adm-pwd-confirm'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  if (typeof _refreshPushButtons === 'function') _refreshPushButtons();
+  if (typeof refreshAdminPersistCard === 'function') refreshAdminPersistCard();
+  if (typeof updateCinzelStatus === 'function') { try { updateCinzelStatus(); } catch (_) {} }
+}
 
 /* UUIDs exclus des classements (comptes test ayant tout débloqué manuellement) */
 // Exclusion du classement : comptes test (classe se terminant par TEST), cf _isTestClass().
@@ -25241,7 +25334,11 @@ function aTab(tab) {
     case 'students':  loadAdminStudents();  break;
     case 'leaderboard': loadAdminLeaderboard(); break;
     case 'tutorials': loadTutorialsAdminPanel(); break;
+    case 'settings':  _adminSettingsOnOpen(); break;
   }
+  _renderAdminHeadActions(tab);
+  _updateAdminMaintPill();
+  document.querySelector('#screen-admin .admin-panels-container')?.scrollTo(0, 0);
 }
 
 /* ============================================================================
@@ -32749,7 +32846,7 @@ function sdSwitchTab(tab) {
    ---------------------------------------------------------------- */
 function sdSwitchSettingsTab(tab) {
   // 5 onglets : Général · Élèves · Thème & événements · XP · Système
-  ['general','eleves','theme','xp','systeme'].forEach(t => {
+  ['general','seances','eleves','theme','xp','systeme'].forEach(t => {
     document.getElementById(`sd-stab-${t}`)?.classList.toggle('active', t === tab);
     document.getElementById(`sd-spane-${t}`)?.classList.toggle('active', t === tab);
   });
@@ -32761,6 +32858,7 @@ function sdSwitchSettingsTab(tab) {
   if (tab === 'xp' && typeof renderXpSettingsFields === 'function') {
     renderXpSettingsFields();
   }
+  if (tab === 'seances') _fillDefaultSessionSettings();
 }
 
 /* ----------------------------------------------------------------
@@ -34895,7 +34993,12 @@ async function loadSupervisorName() {
 /* ----------------------------------------------------------------
    Paramètres séance par défaut : ouverture + sauvegarde groupée
    ---------------------------------------------------------------- */
-async function openDefaultSessionSettings() {
+/* « Paramètres des séances » : rubrique Séances de l'onglet Paramètres */
+function openDefaultSessionSettings() {
+  aTab('settings');
+  sdSwitchSettingsTab('seances');
+}
+async function _fillDefaultSessionSettings() {
   const inpTime = document.getElementById('dss-time');
   const inpCap  = document.getElementById('dss-capacity');
   if (!inpTime || !inpCap) return;
@@ -34929,8 +35032,6 @@ async function openDefaultSessionSettings() {
     ).join('');
     selLate.value = String(_LATE_CANCEL_HOURS);
   }
-
-  openModal('modal-default-session-settings');
 }
 
 async function saveDefaultSessionSettings() {
@@ -35600,23 +35701,10 @@ function openModal(id) {
     if (S.user && !S.isAdmin) navigateTo('profile');
     return;
   }
-  // Réinitialiser le switch import à l'ouverture des Paramètres
+  // Les Paramètres admin sont devenus un onglet (plus de fenêtre)
   if (id === 'modal-admin-settings') {
-    setImportMode('ponctuel');
-    document.getElementById('import-result')?.classList.add('hidden');
-    loadSupervisorName();
-    // Maintenance : recharger depuis la DB puis remplir l'UI (au cas où une
-    // autre tab admin aurait modifié les valeurs).
-    loadMaintenanceFromDB().then(() => loadMaintenanceUI());
-    // Thème événementiel : pareil, refresh + remplir le sélecteur
-    loadEventThemeFromDB().then(() => loadEventThemeUI());
-    // Reset onglet : toujours ouvrir sur "Général"
-    sdSwitchSettingsTab('general');
-    // Reset champs mot de passe admin (sécurité : ne jamais pré-remplir)
-    ['adm-pwd-current','adm-pwd-new','adm-pwd-confirm'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.value = '';
-    });
+    if (typeof aTab === 'function') aTab('settings');
+    return;
   }
 
   // Notification générale (depuis l'Accueil admin) : champs vides + compteur à jour
