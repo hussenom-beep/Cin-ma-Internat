@@ -9457,6 +9457,30 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 .admin-head-btn.btn-ghost { background: rgba(8,8,15,.85); border-color: rgba(255,255,255,.18); color: var(--text); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
 .admin-brand-txt b, .admin-brand-txt small, #admin-header-title { text-shadow: 0 1px 6px rgba(0,0,0,.85), 0 0 2px rgba(0,0,0,.9); }
 .admin-brand-txt small { color: #c9c9d6; }
+
+/* Paramètres › Thème : cartes de choix */
+.th-now { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 18px; }
+.th-now-item { padding: 14px 16px; border-radius: 16px; background: var(--surface); border: 1px solid var(--border); display: flex; flex-direction: column; gap: 4px; }
+.th-now-item span { font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--text-3); }
+.th-now-item b { font-size: 17px; }
+.th-now-item.on { border-color: rgba(240,165,0,.45); background: radial-gradient(120% 120% at 100% 0%, rgba(240,165,0,.12), transparent 60%), var(--surface); }
+.th-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
+.th-card { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 16px 16px 14px; min-height: 132px; border-radius: 16px; text-align: left; cursor: pointer;
+  background: var(--surface-2); border: 1.5px solid var(--border-2); color: var(--text); font-family: inherit; transition: border-color .15s, background .15s, transform .15s; }
+.th-card:hover { border-color: rgba(240,165,0,.4); transform: translateY(-1px); }
+.th-card-emoji { font-size: 28px; line-height: 1; }
+.th-card-name { font-size: 16px; font-weight: 800; }
+.th-card-desc { font-size: 12.5px; color: var(--text-2); line-height: 1.4; }
+.th-card-now { display: none; position: absolute; top: 12px; right: 12px; font-size: 11px; font-weight: 800; color: var(--green); background: rgba(74,222,128,.12); border: 1px solid rgba(74,222,128,.35); padding: 2px 8px; border-radius: 999px; }
+.th-card.is-current .th-card-now { display: inline-block; }
+.th-card.sel { border-color: var(--gold); background: radial-gradient(120% 120% at 100% 0%, rgba(240,165,0,.16), transparent 60%), var(--surface-2); box-shadow: 0 0 0 1px var(--gold) inset; }
+.th-card.th-halloween.sel { background: radial-gradient(120% 120% at 100% 0%, rgba(255,122,0,.22), transparent 60%), var(--surface-2); }
+.th-card.th-christmas.sel { background: radial-gradient(120% 120% at 100% 0%, rgba(193,39,45,.25), transparent 60%), linear-gradient(135deg, rgba(25,90,60,.25), var(--surface-2)); }
+.th-apply { display: flex; align-items: center; justify-content: flex-end; gap: 14px; margin-top: 14px; flex-wrap: wrap; }
+.th-apply-hint { font-size: 13px; color: var(--text-2); margin-right: auto; }
+.th-apply .btn { border-radius: 999px; padding: 11px 22px; }
+.th-apply .btn:disabled { opacity: .4; cursor: not-allowed; filter: grayscale(.6); }
+@media (max-width: 520px) { .th-now { grid-template-columns: 1fr; } .th-apply .btn { width: 100%; } }
   </style>
 <body>
 <script>
@@ -10094,33 +10118,33 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
            ============================================================ -->
       <div class="sd-tab-panel" id="sd-spane-theme">
 
-        <div class="text-sm text-muted" id="theme-event-status" style="margin:0 0 14px;"></div>
+        <!-- En ce moment -->
+        <div class="th-now" id="theme-event-status"></div>
 
         <!-- Thème visuel -->
         <div class="sd-section">
           <div class="sd-section-title">🎨 Thème visuel</div>
           <p class="text-sm text-muted" style="margin-bottom:14px;">
-            Change uniquement l'apparence de l'application (couleurs, décor, image de connexion). En lançant un thème, tu pourras choisir de lancer aussi l'événement assorti.
+            Change uniquement l'apparence de l'appli pour tous les élèves : couleurs, bandeaux, écran de connexion.
           </p>
-          <div class="fgroup">
-            <div class="cc-toggle-group" id="theme-mode-buttons" role="group" aria-label="Thème visuel" style="margin-bottom:4px;flex-wrap:wrap;"></div>
-            <div class="text-sm text-muted" style="margin-top:6px;font-size:11.5px;opacity:.7;">
-              Le changement s'applique immédiatement à tous les élèves connectés.
-            </div>
+          <div class="th-cards" id="theme-mode-buttons" role="radiogroup" aria-label="Thème visuel"></div>
+          <div class="th-apply">
+            <span class="th-apply-hint" id="theme-apply-hint"></span>
+            <button class="btn btn-gold" id="theme-apply-btn" onclick="saveEventTheme()">Appliquer le thème</button>
           </div>
-          <button class="btn btn-gold btn-full" onclick="saveEventTheme()">Appliquer le thème</button>
         </div>
 
         <!-- Événement -->
         <div class="sd-section">
           <div class="sd-section-title">🎉 Événement</div>
           <p class="text-sm text-muted" style="margin-bottom:14px;">
-            Active la mécanique d'événement : vote de film spécial, case « pour l'événement » à la proposition, séance événement. Indépendant du thème visuel.
+            Lance la partie « événement » de l'appli, indépendamment du thème : vote de film spécial, case « pour l'événement » quand un élève propose un film, séance événement où tout l'internat est convié.
           </p>
-          <div class="fgroup">
-            <div class="cc-toggle-group" id="event-mode-buttons" role="group" aria-label="Événement" style="margin-bottom:4px;flex-wrap:wrap;"></div>
+          <div class="th-cards" id="event-mode-buttons" role="radiogroup" aria-label="Événement"></div>
+          <div class="th-apply">
+            <span class="th-apply-hint" id="event-apply-hint"></span>
+            <button class="btn btn-gold" id="event-apply-btn" onclick="saveEventMode()">Appliquer l'événement</button>
           </div>
-          <button class="btn btn-ghost btn-full" onclick="saveEventMode()">Appliquer l'événement</button>
         </div>
 
       </div>
@@ -14393,7 +14417,7 @@ function hideMaintenanceBanner() {
  *  persistance via le bouton "Enregistrer la maintenance". */
 function setMaintenanceMode(mode) {
   if (mode !== 'on' && mode !== 'off') return;
-  document.querySelectorAll('#modal-admin-settings [data-maint-mode]').forEach(btn => {
+  document.querySelectorAll('[data-maint-mode]').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.maintMode === mode);
   });
 }
@@ -14411,7 +14435,7 @@ function loadMaintenanceUI() {
 /** Enregistre les 3 valeurs en BDD + met à jour le cache mémoire */
 async function saveMaintenanceSettings() {
   // Lire l'état UI courant
-  const activeBtn = document.querySelector('#modal-admin-settings [data-maint-mode].active');
+  const activeBtn = document.querySelector('[data-maint-mode].active');
   const mode    = activeBtn?.dataset.maintMode === 'on' ? 'on' : 'off';
   const message = (document.getElementById('maintenance-message-input')?.value || '').trim() || _MAINT_DEFAULT_MSG;
   const testUid = (document.getElementById('maintenance-test-uid-input')?.value || '').trim();
@@ -19098,49 +19122,76 @@ function applyEventTheme() {
 /** Charge l'UI des deux sélecteurs (thème visuel + événement) dans les paramètres admin.
     Les boutons sont générés depuis THEME_CATALOG : un nouveau thème apparaît tout seul. */
 function loadEventThemeUI() {
+  const THEME_DESC = {
+    none: "L'apparence normale de l'appli.",
+    halloween: 'Orange et violet, bandeau et écran de connexion Halloween.',
+    christmas: 'Vert sapin et or, flocons, bandeau et écran de connexion de Noël.',
+  };
+  const EVENT_DESC = {
+    none: 'Pas de vote spécial ni de séance événement.',
+    halloween: 'Films Halloween à part dans les votes, séance où tout l\'internat est convié.',
+    christmas: 'Films de Noël à part dans les votes, soirée de Noël pour tout l\'internat.',
+  };
+  const card = (attr, k, desc) => `
+    <button type="button" class="th-card th-${k}" ${attr}="${k}" role="radio"
+      onclick="${attr === 'data-theme-mode' ? 'setEventThemeMode' : 'setEventModeChoice'}('${k}')">
+      <span class="th-card-emoji">${THEME_CATALOG[k]?.emoji || (attr === 'data-theme-mode' ? '🎬' : '⏸️')}</span>
+      <span class="th-card-name">${k === 'none' ? (attr === 'data-theme-mode' ? 'Classique' : 'Aucun') : _escapeHtml(THEME_CATALOG[k].label)}</span>
+      <span class="th-card-desc">${desc[k] || ''}</span>
+      <span class="th-card-now">● En cours</span>
+    </button>`;
   const themeBox = document.getElementById('theme-mode-buttons');
-  if (themeBox) {
-    themeBox.innerHTML = EVENT_THEMES.map(k =>
-      `<button class="cc-toggle" data-theme-mode="${k}" onclick="setEventThemeMode('${k}')">${_themeLabel(k)}</button>`
-    ).join('');
-  }
+  if (themeBox) themeBox.innerHTML = EVENT_THEMES.map(k => card('data-theme-mode', k, THEME_DESC)).join('');
   const eventBox = document.getElementById('event-mode-buttons');
-  if (eventBox) {
-    eventBox.innerHTML = EVENT_MODES.map(k =>
-      `<button class="cc-toggle" data-event-mode="${k}" onclick="setEventModeChoice('${k}')">${_themeLabel(k)}</button>`
-    ).join('');
-  }
-  // Mémoriser les choix pendant que l'admin est dans la modale
-  // (utilisés par saveEventTheme / saveEventMode tant qu'il n'a pas validé)
+  if (eventBox) eventBox.innerHTML = EVENT_MODES.map(k => card('data-event-mode', k, EVENT_DESC)).join('');
   setEventThemeMode(S.eventTheme || 'none');
   setEventModeChoice(S.eventMode || 'none');
   _refreshEventStatusLine();
 }
 
-/* Ligne d'état : "Thème : Halloween · Événement : aucun" */
+/* « En ce moment » + carte marquée « En cours » */
 function _refreshEventStatusLine() {
-  const el = document.getElementById('theme-event-status');
-  if (!el) return;
   const t = S.eventTheme || 'none', m = S.eventMode || 'none';
-  el.innerHTML = `En ce moment — thème : <strong>${t === 'none' ? 'aucun' : _themeLabel(t)}</strong> · événement : <strong>${m === 'none' ? 'aucun' : _themeLabel(m)}</strong>`;
+  const el = document.getElementById('theme-event-status');
+  const lbl = (k, none) => k === 'none' ? none : _themeLabel(k);
+  if (el) el.innerHTML = `
+    <div class="th-now-item${t !== 'none' ? ' on' : ''}"><span>Thème visuel</span><b>${lbl(t, '🎬 Classique')}</b></div>
+    <div class="th-now-item${m !== 'none' ? ' on' : ''}"><span>Événement</span><b>${lbl(m, 'Aucun')}</b></div>`;
+  document.querySelectorAll('[data-theme-mode]').forEach(b => b.classList.toggle('is-current', b.dataset.themeMode === t));
+  document.querySelectorAll('[data-event-mode]').forEach(b => b.classList.toggle('is-current', b.dataset.eventMode === m));
+  _refreshThemeApplyState();
+}
+
+/* Boutons « Appliquer » actifs seulement si le choix change quelque chose */
+function _refreshThemeApplyState() {
+  const t = S.eventTheme || 'none', m = S.eventMode || 'none';
+  const lbl = (k, none) => k === 'none' ? none : _themeLabel(k);
+  const tb = document.getElementById('theme-apply-btn'), th = document.getElementById('theme-apply-hint');
+  if (tb) tb.disabled = (_pendingEventTheme || 'none') === t;
+  if (th) th.innerHTML = (_pendingEventTheme || 'none') === t ? 'Choisis un autre thème pour le changer.' : `${lbl(t, 'Classique')} → <strong>${lbl(_pendingEventTheme, 'Classique')}</strong>`;
+  const eb = document.getElementById('event-apply-btn'), eh = document.getElementById('event-apply-hint');
+  if (eb) eb.disabled = (_pendingEventMode || 'none') === m;
+  if (eh) eh.innerHTML = (_pendingEventMode || 'none') === m ? 'Choisis un autre événement pour le changer.' : `${lbl(m, 'Aucun')} → <strong>${lbl(_pendingEventMode, 'Aucun')}</strong>`;
 }
 
 /** Pré-sélection visuelle d'un thème (sans sauvegarde) */
 let _pendingEventTheme = 'none';
 function setEventThemeMode(mode) {
   _pendingEventTheme = mode;
-  document.querySelectorAll('#modal-admin-settings [data-theme-mode]').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.themeMode === mode);
+  document.querySelectorAll('[data-theme-mode]').forEach(btn => {
+    btn.classList.toggle('sel', btn.dataset.themeMode === mode);
   });
+  _refreshThemeApplyState();
 }
 
 /** Pré-sélection visuelle d'un événement (sans sauvegarde) */
 let _pendingEventMode = 'none';
 function setEventModeChoice(mode) {
   _pendingEventMode = mode;
-  document.querySelectorAll('#modal-admin-settings [data-event-mode]').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.eventMode === mode);
+  document.querySelectorAll('[data-event-mode]').forEach(btn => {
+    btn.classList.toggle('sel', btn.dataset.eventMode === mode);
   });
+  _refreshThemeApplyState();
 }
 
 /* Rafraîchit tout ce qui dépend de l'événement (votes élève, filtres admin) */
@@ -19173,6 +19224,7 @@ async function _writeEventMode(mode) {
   S.eventMode = mode;
   S._eventModeKeyExists = true;
   _refreshEventMechanicsUI();
+  _refreshEventStatusLine();
   return true;
 }
 
