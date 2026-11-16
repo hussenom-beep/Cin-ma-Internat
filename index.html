@@ -9524,14 +9524,16 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
   .abn-i { font-size: 20px; line-height: 1; }
   .abn.active { color: var(--gold); background: linear-gradient(180deg, rgba(240,165,0,.16), rgba(240,165,0,.06)); box-shadow: inset 0 0 0 1px rgba(240,165,0,.22); }
   .abn { flex: 1 1 0; }
-  .abn-t { max-width: 100%; padding: 0 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; letter-spacing: -.01em; }
+  .abn-t { max-width: 100%; padding: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; letter-spacing: -.02em; }
+  .abn { font-size: 10px; }
+  .admin-bnav { padding: 0 2px; }
   .abn-center { flex: 0 0 64px; }
   .abn-center .abn-i { width: 56px; height: 56px; margin-top: -30px; border-radius: 50%; background: linear-gradient(135deg, #ffbe33, var(--gold)); color: #1a1200; font-size: 32px; font-weight: 800; display: flex; align-items: center; justify-content: center;
     box-shadow: 0 6px 18px rgba(240,165,0,.45), 0 0 0 5px var(--bg); }
   .abn-bd { position: absolute; top: 2px; right: calc(50% - 22px); min-width: 18px; height: 18px; border-radius: 9px; background: var(--red); color: #fff; font-size: 10.5px; font-weight: 800; display: flex; align-items: center; justify-content: center; padding: 0 5px; border: 2px solid #0e0e16; }
   .abn-bd.hidden { display: none; }
 }
-@media (max-width: 380px) { .abn { font-size: 9.5px; } .abn-center { flex-basis: 58px; } }
+@media (max-width: 380px) { .abn { font-size: 9.2px; } .abn-center { flex-basis: 56px; } }
 .aq-list { display: flex; flex-direction: column; gap: 8px; }
 .aq-row { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--border); color: var(--text); font-family: inherit; text-align: left; cursor: pointer; }
 .aq-row b { display: block; font-size: 14.5px; }
@@ -9545,6 +9547,58 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 .am-logout { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin-top: 14px; padding: 13px; border-radius: 14px; border: 1.5px solid rgba(232,64,64,.5); background: rgba(232,64,64,.08); color: #ff7b7b; font: 700 14.5px/1 inherit; font-family: inherit; cursor: pointer; }
 .ws-list { display: flex; flex-direction: column; gap: 6px; max-height: 52vh; overflow-y: auto; margin-top: 10px; }
 .ws-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 11px 12px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border); color: var(--text); font: 600 14px/1.2 inherit; font-family: inherit; cursor: pointer; text-align: left; }
+
+/* ===== Votes admin : cartes ===== */
+.vc-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+@media (min-width: 1024px) { .vc-grid { grid-template-columns: 1fr 1fr; gap: 12px; } }
+.vc { position: relative; display: flex; gap: 13px; padding: 12px; border-radius: 18px; background: var(--surface); border: 1px solid var(--border); transition: border-color .15s, box-shadow .15s; }
+.vc.top1 { border-color: rgba(240,165,0,.5); background: radial-gradient(120% 120% at 100% 0%, rgba(240,165,0,.12), transparent 60%), var(--surface); }
+.vc.selecting { cursor: pointer; }
+.vc.sel { border-color: var(--gold); box-shadow: inset 0 0 0 1px var(--gold); }
+.vc.nopoll { opacity: .45; cursor: default; }
+.vc-nopoll { color: #ff8a8a; font-weight: 700; }
+.vc-poster { position: relative; width: 64px; height: 96px; flex-shrink: 0; border-radius: 10px; background: var(--surface-3); display: flex; align-items: center; justify-content: center; font-size: 22px; }
+.vc-poster img { width: 100%; height: 100%; object-fit: cover; border-radius: 10px; }
+.vc-rank { position: absolute; top: -7px; left: -7px; width: 25px; height: 25px; border-radius: 50%; background: #0e0e16; border: 1.5px solid var(--gold); color: var(--gold); font-size: 11.5px; font-weight: 800; display: flex; align-items: center; justify-content: center; }
+.vc-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.vc.selecting .vc-body { padding-right: 34px; }
+.vc-title { font-weight: 800; font-size: 15px; line-height: 1.25; overflow-wrap: anywhere; }
+.vc-bar { height: 8px; border-radius: 999px; background: var(--surface-3); margin: 9px 0 5px; overflow: hidden; }
+.vc-bar i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #c98a00, var(--gold)); transition: width .6s cubic-bezier(.4,0,.2,1); }
+.vc-count { font-size: 12.5px; color: var(--text-2); }
+.vc-count b { color: var(--text); font-size: 14px; }
+.vc-actions { display: flex; gap: 7px; margin-top: auto; padding-top: 9px; flex-wrap: wrap; }
+.vc-btn { padding: 8px 12px; border-radius: 999px; font: 700 12.5px/1 inherit; font-family: inherit; border: 1px solid var(--border-2); background: var(--surface-2); color: var(--text); cursor: pointer; white-space: nowrap; }
+.vc-btn.gold { background: linear-gradient(135deg, #ffbe33, var(--gold)); color: #1a1200; border: none; }
+.vc-btn:disabled { opacity: .45; cursor: not-allowed; }
+.vc-check { position: absolute; top: 12px; right: 12px; width: 26px; height: 26px; border-radius: 8px; border: 2px solid var(--border-2); display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 15px; color: #1a1200; }
+.vc.sel .vc-check { background: var(--gold); border-color: var(--gold); }
+.vc-pollbtn { width: 100%; margin-bottom: 12px; padding: 12px; border-radius: 14px; border: 1.5px dashed rgba(240,165,0,.55); background: rgba(240,165,0,.05); color: var(--gold); font: 800 14px/1.2 inherit; font-family: inherit; cursor: pointer; }
+.vc-hint { font-size: 13px; color: var(--text-2); margin: 0 2px 12px; }
+.vc-selbar { position: sticky; bottom: 16px; z-index: 20; margin-top: 14px; display: flex; align-items: center; gap: 8px; padding: 11px 12px 11px 14px; border-radius: 16px; background: #1a1a28; border: 1px solid rgba(240,165,0,.45); box-shadow: 0 10px 30px rgba(0,0,0,.6); }
+.vc-selbar span { flex: 1; font-size: 13px; color: var(--text-2); min-width: 0; }
+.vc-selbar b { color: var(--text); }
+@media (max-width: 1023.98px) { .vc-selbar { bottom: calc(88px + env(safe-area-inset-bottom, 0px)); } }
+
+/* ===== Menus ➕ / Plus (téléphone) : déroulé vers le haut, sans panneau ===== */
+.afab-backdrop { position: fixed; inset: 0; z-index: 298; background: rgba(5,5,10,.55); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); opacity: 0; pointer-events: none; transition: opacity .25s ease; }
+.afab-backdrop.open { opacity: 1; pointer-events: auto; }
+.afab-menu { position: fixed; left: 50%; transform: translateX(-50%); width: calc(100% - 28px); max-width: 500px; bottom: calc(92px + env(safe-area-inset-bottom, 0px)); z-index: 299; pointer-events: none; display: flex; flex-direction: column; gap: 9px; }
+.afab-menu.open { pointer-events: auto; }
+.afab-menu .aq-row, .afab-menu .am-tile, .afab-menu .am-logout {
+  opacity: 0; transform: translateY(26px) scale(.94); transform-origin: 50% 100%;
+  transition: opacity .16s ease, transform .16s ease; box-shadow: 0 10px 26px rgba(0,0,0,.55); }
+.afab-menu.open .aq-row, .afab-menu.open .am-tile, .afab-menu.open .am-logout {
+  opacity: 1; transform: none;
+  transition: opacity .28s ease calc(var(--i, 0) * 45ms), transform .38s cubic-bezier(.2,.9,.25,1.15) calc(var(--i, 0) * 45ms); }
+.afab-menu .aq-row { background: rgba(26,26,40,.97); border-color: rgba(255,255,255,.08); }
+.afab-menu .am-tile { background: rgba(26,26,40,.97); border-color: rgba(255,255,255,.08); }
+.afab-menu .am-logout { margin-top: 0; background: rgba(40,16,20,.96); }
+.afab-more .am-grid { gap: 9px; }
+@media (min-width: 1024px) { .afab-backdrop, .afab-menu { display: none; } }
+.abn-center .abn-i { transition: transform .3s cubic-bezier(.2,.9,.25,1.2); }
+.admin-bnav.fab-quick .abn-center .abn-i { transform: rotate(45deg); }
+.admin-bnav.fab-more .abn[data-bn="more"] { color: var(--gold); }
   </style>
 <body>
 <script>
@@ -9990,6 +10044,30 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     <button class="abn" data-bn="votes" onclick="aTab('votes')"><span class="abn-i">🗳️</span><span class="abn-t">Votes</span></button>
     <button class="abn" data-bn="more" onclick="openAdminMore()"><span class="abn-i">☰</span><span class="abn-t">Plus</span><span class="abn-bd hidden" id="abn-bd-more"></span></button>
   </nav>
+
+  <!-- Menus du ➕ et de « Plus » : les éléments se déroulent vers le haut -->
+  <div class="afab-backdrop" id="afab-backdrop" onclick="closeAdminFab()"></div>
+  <div class="afab-menu afab-quick" id="afab-quick" aria-hidden="true">
+    <button class="aq-row" style="--i:4" onclick="closeAdminFab(); aTab('sessions'); openCreateSessionModal()"><span class="aq-i">🎟️</span><span><b>Créer une séance</b><small>Date, film, places</small></span></button>
+    <button class="aq-row" style="--i:3" onclick="closeAdminFab(); openModal('modal-broadcast')"><span class="aq-i">📢</span><span><b>Notification générale</b><small>À tous les élèves</small></span></button>
+    <button class="aq-row" style="--i:2" onclick="closeAdminFab(); openPollCreate()"><span class="aq-i">🗳️</span><span><b>Sondage de film</b><small>Les élèves choisissent le film</small></span></button>
+    <button class="aq-row" style="--i:1" onclick="closeAdminFab(); aTab('films'); openModal('modal-add-film')"><span class="aq-i">🎬</span><span><b>Ajouter un film</b><small>Recherche TMDB</small></span></button>
+    <button class="aq-row" style="--i:0" onclick="closeAdminFab(); openWriteToStudent()"><span class="aq-i">✉️</span><span><b>Écrire à un élève</b><small>Choisis l'élève, puis écris-lui</small></span></button>
+  </div>
+  <div class="afab-menu afab-more" id="afab-more" aria-hidden="true">
+    <div class="am-grid">
+      <button class="am-tile" style="--i:3" onclick="adminMoreGo('sessions')"><span class="am-i">🎟️</span>Séances</button>
+      <button class="am-tile" style="--i:3" onclick="adminMoreGo('messages')"><span class="am-i">💬</span>Messages<span class="abn-bd hidden" id="am-bd-messages"></span></button>
+      <button class="am-tile" style="--i:3" onclick="adminMoreGo('requests')"><span class="am-i">📨</span>Demandes<span class="abn-bd hidden" id="am-bd-requests"></span></button>
+      <button class="am-tile" style="--i:2" onclick="adminMoreGo('students')"><span class="am-i">👥</span>Élèves</button>
+      <button class="am-tile" style="--i:2" onclick="adminMoreGo('films')"><span class="am-i">🎬</span>Films</button>
+      <button class="am-tile" style="--i:2" onclick="adminMoreGo('leaderboard')"><span class="am-i">🏆</span>Classement</button>
+      <button class="am-tile" style="--i:1" onclick="adminMoreGo('tutorials')"><span class="am-i">📚</span>Tutoriels</button>
+      <button class="am-tile" style="--i:1" onclick="adminMoreGo('import')"><span class="am-i">🔄</span>Import élèves</button>
+      <button class="am-tile" style="--i:1" onclick="adminMoreGo('exports')"><span class="am-i">📄</span>Exports PDF</button>
+    </div>
+    <button class="am-logout" style="--i:0" onclick="closeAdminFab(); logout()"><svg class="ic-power" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 3v8"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/></svg> Déconnexion</button>
+  </div>
 
   <div class="admin-panels-container">
 
@@ -12878,39 +12956,6 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 <!-- ================================================================
      MODAL: Paramètres admin
      ================================================================ -->
-<div class="overlay hidden" id="modal-admin-quick" onclick="if(event.target===this)closeModal('modal-admin-quick')">
-  <div class="sheet">
-    <div class="sheet-handle"></div>
-    <div class="sheet-title">Actions rapides</div>
-    <div class="aq-list">
-      <button class="aq-row" onclick="closeModal('modal-admin-quick'); aTab('sessions'); openCreateSessionModal()"><span class="aq-i">🎟️</span><span><b>Créer une séance</b><small>Date, film, places</small></span></button>
-      <button class="aq-row" onclick="closeModal('modal-admin-quick'); openModal('modal-broadcast')"><span class="aq-i">📢</span><span><b>Notification générale</b><small>À tous les élèves</small></span></button>
-      <button class="aq-row" onclick="closeModal('modal-admin-quick'); openPollCreate()"><span class="aq-i">🗳️</span><span><b>Sondage de film</b><small>Les élèves choisissent le film</small></span></button>
-      <button class="aq-row" onclick="closeModal('modal-admin-quick'); aTab('films'); openModal('modal-add-film')"><span class="aq-i">🎬</span><span><b>Ajouter un film</b><small>Recherche TMDB</small></span></button>
-      <button class="aq-row" onclick="closeModal('modal-admin-quick'); openWriteToStudent()"><span class="aq-i">✉️</span><span><b>Écrire à un élève</b><small>Choisis l'élève, puis écris-lui</small></span></button>
-    </div>
-  </div>
-</div>
-
-<div class="overlay hidden" id="modal-admin-more" onclick="if(event.target===this)closeModal('modal-admin-more')">
-  <div class="sheet">
-    <div class="sheet-handle"></div>
-    <div class="sheet-title">Plus</div>
-    <div class="am-grid">
-      <button class="am-tile" onclick="adminMoreGo('sessions')"><span class="am-i">🎟️</span>Séances</button>
-      <button class="am-tile" onclick="adminMoreGo('messages')"><span class="am-i">💬</span>Messages<span class="abn-bd hidden" id="am-bd-messages"></span></button>
-      <button class="am-tile" onclick="adminMoreGo('requests')"><span class="am-i">📨</span>Demandes<span class="abn-bd hidden" id="am-bd-requests"></span></button>
-      <button class="am-tile" onclick="adminMoreGo('students')"><span class="am-i">👥</span>Élèves</button>
-      <button class="am-tile" onclick="adminMoreGo('films')"><span class="am-i">🎬</span>Films</button>
-      <button class="am-tile" onclick="adminMoreGo('leaderboard')"><span class="am-i">🏆</span>Classement</button>
-      <button class="am-tile" onclick="adminMoreGo('tutorials')"><span class="am-i">📚</span>Tutoriels</button>
-      <button class="am-tile" onclick="adminMoreGo('import')"><span class="am-i">🔄</span>Import élèves</button>
-      <button class="am-tile" onclick="adminMoreGo('exports')"><span class="am-i">📄</span>Exports PDF</button>
-    </div>
-    <button class="am-logout" onclick="closeModal('modal-admin-more'); logout()"><svg class="ic-power" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 3v8"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/></svg> Déconnexion</button>
-  </div>
-</div>
-
 <div class="overlay hidden" id="modal-write-student" onclick="if(event.target===this)closeModal('modal-write-student')">
   <div class="sheet">
     <div class="sheet-handle"></div>
@@ -25031,10 +25076,21 @@ function _syncAdminBottomNavBadges() {
   set('am-bd-requests', req);
   set('abn-bd-more', msg + req);
 }
-function openAdminQuick() { openModal('modal-admin-quick'); }
-function openAdminMore() { _syncAdminBottomNavBadges(); openModal('modal-admin-more'); }
+let _adminFabOpen = null;   // 'quick' | 'more' | null
+function _setAdminFab(which) {
+  _adminFabOpen = which;
+  document.getElementById('afab-quick')?.classList.toggle('open', which === 'quick');
+  document.getElementById('afab-more')?.classList.toggle('open', which === 'more');
+  document.getElementById('afab-backdrop')?.classList.toggle('open', !!which);
+  document.getElementById('admin-bnav')?.classList.toggle('fab-quick', which === 'quick');
+  document.getElementById('admin-bnav')?.classList.toggle('fab-more', which === 'more');
+}
+function openAdminQuick() { _setAdminFab(_adminFabOpen === 'quick' ? null : 'quick'); }
+function openAdminMore() { _syncAdminBottomNavBadges(); _setAdminFab(_adminFabOpen === 'more' ? null : 'more'); }
+function closeAdminFab() { if (_adminFabOpen) _setAdminFab(null); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAdminFab(); });
 function adminMoreGo(where) {
-  closeModal('modal-admin-more');
+  closeAdminFab();
   if (where === 'import' || where === 'exports') {
     aTab('settings');
     sdSwitchSettingsTab('eleves');
@@ -25562,6 +25618,7 @@ function aTab(tab) {
   // Fermer le drawer mobile s'il est ouvert
   if (typeof adminDrawerClose === 'function') adminDrawerClose();
   // Charger les données du panel
+  if (tab === 'votes' && typeof _votesPollSel !== 'undefined') _votesPollSel = null;
   switch(tab) {
     case 'dashboard': loadAdminDashboard(); break;
     case 'films':     loadAdminFilms();     break;
@@ -25578,6 +25635,7 @@ function aTab(tab) {
   _renderAdminHeadActions(tab);
   _updateAdminMaintPill();
   _syncAdminBottomNavActive(tab);
+  if (typeof closeAdminFab === 'function') closeAdminFab();
   document.querySelector('#screen-admin .admin-panels-container')?.scrollTo(0, 0);
 }
 
@@ -28846,7 +28904,7 @@ async function loadAdminVotes() {
   updateAdminVoteEventFilterUI();
 
   const [{ data: films }, { data: votes }] = await Promise.all([
-    db.from('films').select('id,title,poster_url,event_tag').eq('status','active'),
+    db.from('films').select('id,title,poster_url,event_tag,age_rating').eq('status','active'),
     db.from('votes').select('film_id')
   ]);
 
@@ -28882,9 +28940,74 @@ async function loadAdminVotes() {
   const counts = {};
   (votes || []).forEach(v => counts[v.film_id] = (counts[v.film_id] || 0) + 1);
   const sorted = filteredFilms.map(f => ({ ...f, n: counts[f.id] || 0 })).sort((a, b) => b.n - a.n);
-  const max = Math.max(...sorted.map(f => f.n), 1);
+  _votesSorted = sorted;
+  _renderAdminVoteCards();
+}
 
-  list.innerHTML = sorted.map((f, i) => `
+/* Cartes des résultats (+ mode « sondage » : on coche les films) */
+let _votesSorted = [];
+let _votesPollSel = null;   // Set des films cochés quand le mode sondage est actif
+function _renderAdminVoteCards() {
+  const list = document.getElementById('admin-votes-list');
+  if (!list) return;
+  const sorted = _votesSorted;
+  const max = Math.max(...sorted.map(f => f.n), 1);
+  const sel = _votesPollSel;
+  const card = (f, i) => {
+    const on = !!(sel && sel.has(f.id));
+    const noPoll = !!(sel && f.age_rating === '18');   // les films -18 ne vont jamais dans un sondage
+    const pct = Math.round(f.n / max * 100);
+    const safeTitle = String(f.title).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    return `
+    <div class="vc${i === 0 && f.n > 0 ? ' top1' : ''}${sel ? ' selecting' : ''}${on ? ' sel' : ''}${noPoll ? ' nopoll' : ''}" ${sel && !noPoll ? `onclick="votesPollToggle('${f.id}')"` : ''}>
+      <div class="vc-poster">
+        ${f.poster_url ? `<img src="${_escapeHtml(f.poster_url)}" alt="" loading="lazy">` : '<span>🎬</span>'}
+        <span class="vc-rank">${i + 1}</span>
+      </div>
+      <div class="vc-body">
+        <div class="vc-title">${_escapeHtml(f.title)}${_filmEventBadgeHtml(f.event_tag, 'inline')}</div>
+        <div class="vc-bar"><i style="width:${pct}%"></i></div>
+        <div class="vc-count"><b>${f.n}</b> vote${f.n !== 1 ? 's' : ''}${noPoll ? ' · <span class="vc-nopoll">🔞 pas de sondage pour un film -18</span>' : ''}</div>
+        ${sel ? '' : `<div class="vc-actions">
+          <button class="vc-btn" onclick="viewFilmVoters('${f.id}', '${safeTitle}')">👥 Votants</button>
+          <button class="vc-btn gold" onclick="openCreateSessionModal('${f.id}')">📅 Programmer</button>
+        </div>`}
+      </div>
+      ${sel && !noPoll ? `<span class="vc-check">${on ? '✓' : ''}</span>` : ''}
+    </div>`;
+  };
+  const top = sorted.length < 2 ? '' : (sel
+    ? `<div class="vc-hint">Coche les films à mettre dans le sondage. Les 3 premiers sont déjà cochés.</div>`
+    : `<button class="vc-pollbtn" onclick="votesPollStart()">🗳️ Créer un sondage avec ces films</button>`);
+  const n = sel ? sel.size : 0;
+  const bar = sel ? `
+    <div class="vc-selbar">
+      <span><b>${n} film${n > 1 ? 's' : ''}</b> choisi${n > 1 ? 's' : ''}${n < 2 ? ' · 2 minimum' : ''}</span>
+      <button class="vc-btn" onclick="votesPollCancel()">Annuler</button>
+      <button class="vc-btn gold" onclick="votesPollCreate()" ${n < 2 ? 'disabled' : ''}>Créer le sondage ›</button>
+    </div>` : '';
+  list.innerHTML = top + `<div class="vc-grid">${sorted.map(card).join('')}</div>` + bar;
+}
+function votesPollStart() {
+  _votesPollSel = new Set(_votesSorted.filter(f => f.age_rating !== '18').slice(0, 3).map(f => f.id));
+  _renderAdminVoteCards();
+}
+function votesPollToggle(id) {
+  if (!_votesPollSel) return;
+  if (_votesPollSel.has(id)) _votesPollSel.delete(id); else _votesPollSel.add(id);
+  _renderAdminVoteCards();
+}
+function votesPollCancel() { _votesPollSel = null; _renderAdminVoteCards(); }
+function votesPollCreate() {
+  const ids = _votesPollSel ? [..._votesPollSel] : [];
+  if (ids.length < 2) { toast('Choisis au moins 2 films', 'error'); return; }
+  _votesPollSel = null;
+  _renderAdminVoteCards();
+  openPollCreate(ids);
+}
+
+function _legacyVoteRows(sorted, max) {
+  return sorted.map((f, i) => `
     <div class="vote-bar-row" style="cursor:pointer;" onclick="viewFilmVoters('${f.id}', '${String(f.title).replace(/'/g, "\\'")}')">
       <div class="vbr-rank">${i + 1}</div>
       <div class="vote-bar-poster">
@@ -32299,7 +32422,8 @@ function _pollCreateSetKind(kind) {
   }
   _pollDeadlinePreview('pollc');
 }
-async function openPollCreate() {
+async function openPollCreate(preselect) {
+  const pre = Array.isArray(preselect) ? preselect : null;
   const { data: existing, error: exErr } = await db.from('film_polls').select('id').eq('status', 'open').limit(1);
   if (exErr) { toast('Lance d\'abord le SQL du sondage (sondage_1_tables.sql)', 'error', 5000); return; }
   if (existing && existing.length) {
@@ -32338,7 +32462,17 @@ async function openPollCreate() {
     const evBtn = kindBox.querySelector('[data-k="event"]');
     if (evBtn) evBtn.textContent = `${_pollEventEmoji(evMode)} ${_pollEventLabel(evMode)}`;
   }
-  _pollCreateSetKind(evMode !== 'none' ? 'event' : 'classic');
+  if (pre && pre.length) {
+    // Films choisis depuis les Votes : on se place sur la bonne liste et on les coche
+    const preFilms = _pollCreateAll.filter(f => pre.includes(f.id));
+    const isEvent = evMode !== 'none' && preFilms.some(f => f.event_tag === evMode);
+    _pollCreateSetKind(isEvent ? 'event' : 'classic');
+    const kept = pre.filter(id => _pollCreateFilms.some(f => f.id === id));
+    _pollCreateRender(new Set(kept));
+    if (kept.length < pre.length) toast(`${pre.length - kept.length} film(s) ne peuvent pas être dans ce sondage (autre catégorie ou -18)`, 'info', 4000);
+  } else {
+    _pollCreateSetKind(evMode !== 'none' ? 'event' : 'classic');
+  }
   // Durées manquantes → TMDB, puis on redessine en gardant les cases cochées
   _autoFillDurations(_pollCreateAll, () => _pollCreateRender(new Set(_pollCreateSelected())));
 }
