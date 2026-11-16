@@ -9501,6 +9501,50 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 .ip-actions { display: flex; gap: 8px; margin-top: 14px; }
 .ip-actions .btn { flex: 1; }
 .btn.btn-danger { background: var(--red); color: #fff; border: none; }
+
+/* ================================================================
+   ADMIN TÉLÉPHONE — bandeau fixe + barre du bas + panneaux
+   ================================================================ */
+.admin-head-mobile { display: none; }
+.admin-bnav { display: none; }
+@media (max-width: 1023.98px) {
+  .admin-burger, #admin-burger-dot { display: none !important; }
+  #admin-tabs, .admin-drawer-backdrop { display: none !important; }
+  #screen-admin .s-header { gap: 10px; }
+  #admin-header-title { flex: 1; min-width: 0; font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 6px rgba(0,0,0,.85); }
+  .admin-head-mobile { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .admin-gear { width: 40px; height: 40px; border-radius: 12px; background: rgba(26,26,40,.88); border: 1px solid var(--border-2); font-size: 19px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .admin-maint-mini { padding: 5px 10px; border-radius: 999px; background: rgba(232,64,64,.18); border: 1px solid rgba(232,64,64,.5); color: #ff8a8a; font: 800 11.5px/1.2 inherit; font-family: inherit; cursor: pointer; white-space: nowrap; }
+  .admin-maint-mini.hidden { display: none; }
+  .admin-panels-container { padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)); }
+  #ap-settings .sd-tabs.sd-tabs-admin-settings { top: var(--header-h); }
+  .admin-bnav { display: flex; position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(10px + env(safe-area-inset-bottom, 0px)); width: calc(100% - 20px); max-width: 520px; height: 66px; z-index: 300;
+    align-items: center; border-radius: 22px; background: rgba(14,14,22,.94); border: 1px solid rgba(240,165,0,.2); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); box-shadow: 0 12px 30px rgba(0,0,0,.6); padding: 0 4px; }
+  .abn { flex: 1; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; height: 56px; border: none; background: none; border-radius: 16px; color: rgba(255,255,255,.5); font: 700 10.5px/1 inherit; font-family: inherit; cursor: pointer; min-width: 0; }
+  .abn-i { font-size: 20px; line-height: 1; }
+  .abn.active { color: var(--gold); background: linear-gradient(180deg, rgba(240,165,0,.16), rgba(240,165,0,.06)); box-shadow: inset 0 0 0 1px rgba(240,165,0,.22); }
+  .abn { flex: 1 1 0; }
+  .abn-t { max-width: 100%; padding: 0 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; letter-spacing: -.01em; }
+  .abn-center { flex: 0 0 64px; }
+  .abn-center .abn-i { width: 56px; height: 56px; margin-top: -30px; border-radius: 50%; background: linear-gradient(135deg, #ffbe33, var(--gold)); color: #1a1200; font-size: 32px; font-weight: 800; display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 6px 18px rgba(240,165,0,.45), 0 0 0 5px var(--bg); }
+  .abn-bd { position: absolute; top: 2px; right: calc(50% - 22px); min-width: 18px; height: 18px; border-radius: 9px; background: var(--red); color: #fff; font-size: 10.5px; font-weight: 800; display: flex; align-items: center; justify-content: center; padding: 0 5px; border: 2px solid #0e0e16; }
+  .abn-bd.hidden { display: none; }
+}
+@media (max-width: 380px) { .abn { font-size: 9.5px; } .abn-center { flex-basis: 58px; } }
+.aq-list { display: flex; flex-direction: column; gap: 8px; }
+.aq-row { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--border); color: var(--text); font-family: inherit; text-align: left; cursor: pointer; }
+.aq-row b { display: block; font-size: 14.5px; }
+.aq-row small { display: block; font-size: 12px; color: var(--text-2); margin-top: 2px; }
+.aq-i { width: 38px; height: 38px; border-radius: 11px; background: var(--surface-3); display: flex; align-items: center; justify-content: center; font-size: 19px; flex-shrink: 0; }
+.am-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.am-tile { position: relative; display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 16px 6px 14px; border-radius: 16px; background: var(--surface-2); border: 1px solid var(--border); color: var(--text); font: 700 12.5px/1.2 inherit; font-family: inherit; cursor: pointer; text-align: center; }
+.am-i { font-size: 25px; line-height: 1; }
+.am-tile .abn-bd { position: absolute; top: 8px; right: 10px; min-width: 18px; height: 18px; border-radius: 9px; background: var(--red); color: #fff; font-size: 10.5px; font-weight: 800; display: flex; align-items: center; justify-content: center; padding: 0 5px; }
+.am-tile .abn-bd.hidden { display: none; }
+.am-logout { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin-top: 14px; padding: 13px; border-radius: 14px; border: 1.5px solid rgba(232,64,64,.5); background: rgba(232,64,64,.08); color: #ff7b7b; font: 700 14.5px/1 inherit; font-family: inherit; cursor: pointer; }
+.ws-list { display: flex; flex-direction: column; gap: 6px; max-height: 52vh; overflow-y: auto; margin-top: 10px; }
+.ws-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 11px 12px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border); color: var(--text); font: 600 14px/1.2 inherit; font-family: inherit; cursor: pointer; text-align: left; }
   </style>
 <body>
 <script>
@@ -9894,6 +9938,10 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     </div>
     <h1 id="admin-header-title">⚙️ Administration</h1>
     <div class="admin-head-actions admin-desktop-only" id="admin-head-actions"></div>
+    <div class="admin-head-mobile">
+      <button class="admin-maint-mini hidden" id="admin-maint-mini" onclick="aTab('settings'); sdSwitchSettingsTab('systeme')">🛠 Maintenance</button>
+      <button class="admin-gear" onclick="aTab('settings')" aria-label="Paramètres" title="Paramètres">⚙️</button>
+    </div>
   </div>
 
   <!-- Backdrop du drawer mobile (clic pour fermer) -->
@@ -9933,6 +9981,15 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     <button class="admin-tab admin-tab-logout admin-desktop-only" onclick="logout()"><span class="at-ic"><svg class="ic-power" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 3v8"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/></svg></span><span class="at-tx">Déconnexion</span></button>
     </div>
   </div>
+
+  <!-- Barre du bas (téléphone) : Accueil · Propositions · ➕ · Votes · Plus -->
+  <nav class="admin-bnav" id="admin-bnav">
+    <button class="abn" data-bn="dashboard" onclick="aTab('dashboard')"><span class="abn-i">🏠</span><span class="abn-t">Accueil</span></button>
+    <button class="abn" data-bn="proposals" onclick="aTab('proposals')"><span class="abn-i">💡</span><span class="abn-t">Propositions</span><span class="abn-bd hidden" id="abn-bd-proposals"></span></button>
+    <button class="abn abn-center" onclick="openAdminQuick()" aria-label="Actions rapides"><span class="abn-i">+</span></button>
+    <button class="abn" data-bn="votes" onclick="aTab('votes')"><span class="abn-i">🗳️</span><span class="abn-t">Votes</span></button>
+    <button class="abn" data-bn="more" onclick="openAdminMore()"><span class="abn-i">☰</span><span class="abn-t">Plus</span><span class="abn-bd hidden" id="abn-bd-more"></span></button>
+  </nav>
 
   <div class="admin-panels-container">
 
@@ -12821,6 +12878,49 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 <!-- ================================================================
      MODAL: Paramètres admin
      ================================================================ -->
+<div class="overlay hidden" id="modal-admin-quick" onclick="if(event.target===this)closeModal('modal-admin-quick')">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Actions rapides</div>
+    <div class="aq-list">
+      <button class="aq-row" onclick="closeModal('modal-admin-quick'); aTab('sessions'); openCreateSessionModal()"><span class="aq-i">🎟️</span><span><b>Créer une séance</b><small>Date, film, places</small></span></button>
+      <button class="aq-row" onclick="closeModal('modal-admin-quick'); openModal('modal-broadcast')"><span class="aq-i">📢</span><span><b>Notification générale</b><small>À tous les élèves</small></span></button>
+      <button class="aq-row" onclick="closeModal('modal-admin-quick'); openPollCreate()"><span class="aq-i">🗳️</span><span><b>Sondage de film</b><small>Les élèves choisissent le film</small></span></button>
+      <button class="aq-row" onclick="closeModal('modal-admin-quick'); aTab('films'); openModal('modal-add-film')"><span class="aq-i">🎬</span><span><b>Ajouter un film</b><small>Recherche TMDB</small></span></button>
+      <button class="aq-row" onclick="closeModal('modal-admin-quick'); openWriteToStudent()"><span class="aq-i">✉️</span><span><b>Écrire à un élève</b><small>Choisis l'élève, puis écris-lui</small></span></button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay hidden" id="modal-admin-more" onclick="if(event.target===this)closeModal('modal-admin-more')">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Plus</div>
+    <div class="am-grid">
+      <button class="am-tile" onclick="adminMoreGo('sessions')"><span class="am-i">🎟️</span>Séances</button>
+      <button class="am-tile" onclick="adminMoreGo('messages')"><span class="am-i">💬</span>Messages<span class="abn-bd hidden" id="am-bd-messages"></span></button>
+      <button class="am-tile" onclick="adminMoreGo('requests')"><span class="am-i">📨</span>Demandes<span class="abn-bd hidden" id="am-bd-requests"></span></button>
+      <button class="am-tile" onclick="adminMoreGo('students')"><span class="am-i">👥</span>Élèves</button>
+      <button class="am-tile" onclick="adminMoreGo('films')"><span class="am-i">🎬</span>Films</button>
+      <button class="am-tile" onclick="adminMoreGo('leaderboard')"><span class="am-i">🏆</span>Classement</button>
+      <button class="am-tile" onclick="adminMoreGo('tutorials')"><span class="am-i">📚</span>Tutoriels</button>
+      <button class="am-tile" onclick="adminMoreGo('import')"><span class="am-i">🔄</span>Import élèves</button>
+      <button class="am-tile" onclick="adminMoreGo('exports')"><span class="am-i">📄</span>Exports PDF</button>
+    </div>
+    <button class="am-logout" onclick="closeModal('modal-admin-more'); logout()"><svg class="ic-power" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 3v8"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/></svg> Déconnexion</button>
+  </div>
+</div>
+
+<div class="overlay hidden" id="modal-write-student" onclick="if(event.target===this)closeModal('modal-write-student')">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">✉️ Écrire à un élève</div>
+    <input class="finput" id="ws-search" placeholder="Nom, prénom ou classe…" autocomplete="off" oninput="_renderWriteToStudent()">
+    <div class="ws-list" id="ws-list"></div>
+    <button class="btn btn-ghost btn-full mt-2" onclick="closeModal('modal-write-student')">Annuler</button>
+  </div>
+</div>
+
 <!-- ================================================================
      MODAL: Notification générale à tous les élèves (ouverte depuis l'Accueil admin)
      ================================================================ -->
@@ -24898,9 +24998,80 @@ function _renderAdminHeadActions(tab) {
     sub.textContent = /^le |^la /i.test(n) ? 'Administration' : `Admin · ${n.charAt(0).toUpperCase() + n.slice(1)}`;
   }
 }
-/* Rappel « Maintenance active » en bas de la barre de gauche */
+/* Rappel « Maintenance active » (barre de gauche sur PC, bandeau du haut sur téléphone) */
 function _updateAdminMaintPill() {
-  document.getElementById('admin-maint-pill')?.classList.toggle('hidden', !(S.maintenance && S.maintenance.mode === 'on'));
+  const on = !!(S.maintenance && S.maintenance.mode === 'on');
+  document.getElementById('admin-maint-pill')?.classList.toggle('hidden', !on);
+  document.getElementById('admin-maint-mini')?.classList.toggle('hidden', !on);
+}
+
+/* ---------- Téléphone : barre du bas, « Actions rapides », « Plus » ---------- */
+function _syncAdminBottomNavActive(tab) {
+  const main = ['dashboard', 'proposals', 'votes'];
+  document.querySelectorAll('#admin-bnav .abn[data-bn]').forEach(b => {
+    b.classList.toggle('active', main.includes(tab) ? b.dataset.bn === tab : b.dataset.bn === 'more');
+  });
+}
+function _syncAdminBottomNavBadges() {
+  const get = id => {
+    const el = document.getElementById(id);
+    if (!el || el.classList.contains('hidden')) return 0;
+    const n = parseInt(el.textContent, 10);
+    return Number.isFinite(n) ? n : 0;
+  };
+  const set = (id, n) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = n > 99 ? '99+' : String(n);
+    el.classList.toggle('hidden', !n);
+  };
+  const msg = get('pending-messages-badge'), req = get('pending-requests-badge');
+  set('abn-bd-proposals', get('pending-proposals-badge'));
+  set('am-bd-messages', msg);
+  set('am-bd-requests', req);
+  set('abn-bd-more', msg + req);
+}
+function openAdminQuick() { openModal('modal-admin-quick'); }
+function openAdminMore() { _syncAdminBottomNavBadges(); openModal('modal-admin-more'); }
+function adminMoreGo(where) {
+  closeModal('modal-admin-more');
+  if (where === 'import' || where === 'exports') {
+    aTab('settings');
+    sdSwitchSettingsTab('eleves');
+    if (where === 'exports') {
+      setTimeout(() => {
+        const btn = document.querySelector('#sd-spane-eleves [onclick="exportStudentsPDF()"]');
+        btn?.closest('.sd-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 150);
+    }
+    return;
+  }
+  aTab(where);
+}
+
+/* « Écrire à un élève » : choisir l'élève, puis ouvrir la conversation */
+let _wsStudents = [];
+async function openWriteToStudent() {
+  const input = document.getElementById('ws-search');
+  const list = document.getElementById('ws-list');
+  input.value = '';
+  list.innerHTML = '<div class="loader" style="padding:20px;"><div class="spinner"></div></div>';
+  openModal('modal-write-student');
+  const { data } = await db.from('students').select('id, first_name, last_name, class_name').eq('is_active', true);
+  _wsStudents = (data || []).sort((a, b) => `${a.last_name} ${a.first_name}`.localeCompare(`${b.last_name} ${b.first_name}`, 'fr'));
+  _renderWriteToStudent();
+  setTimeout(() => { try { input.focus(); } catch (_) {} }, 250);
+}
+function _renderWriteToStudent() {
+  const list = document.getElementById('ws-list');
+  if (!list) return;
+  const q = _importNorm(document.getElementById('ws-search').value);
+  const rows = _wsStudents.filter(st => !q || _importNorm(`${st.first_name} ${st.last_name} ${st.class_name || ''}`).includes(q)).slice(0, 60);
+  list.innerHTML = rows.length
+    ? rows.map(st => `<button class="ws-row" onclick="closeModal('modal-write-student'); openAdminToStudentMessaging('${st.id}')">
+        <span>${_escapeHtml(`${st.first_name || ''} ${st.last_name || ''}`.trim())}</span>
+        <span class="badge badge-muted">${_escapeHtml(st.class_name || '—')}</span></button>`).join('')
+    : '<p class="text-sm text-muted" style="padding:12px 4px;">Aucun élève trouvé.</p>';
 }
 /* Ouverture des Paramètres (ancien contenu de la fenêtre, maintenant une page) */
 function _adminSettingsOnOpen() {
@@ -25406,6 +25577,7 @@ function aTab(tab) {
   }
   _renderAdminHeadActions(tab);
   _updateAdminMaintPill();
+  _syncAdminBottomNavActive(tab);
   document.querySelector('#screen-admin .admin-panels-container')?.scrollTo(0, 0);
 }
 
@@ -25609,6 +25781,7 @@ function _refreshAdminBurgerNotifDot() {
                 get('pending-messages-badge') +
                 get('pending-requests-badge');
   dot.classList.toggle('hidden', total === 0);
+  if (typeof _syncAdminBottomNavBadges === 'function') _syncAdminBottomNavBadges();
 }
 
 async function loadAdmin() {
