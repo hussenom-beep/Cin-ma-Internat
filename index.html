@@ -9340,6 +9340,63 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
   .pp-stat b { font-size: 17px; }
   .pp-stat span { font-size: 9.5px; }
 }
+
+/* ================================================================
+   PROFIL PERSONNALISÉ — couleur, film culte, profil public
+   ================================================================ */
+.student-deco.has-color .student-deco-title { color: var(--deco-c); background: var(--deco-bg); border-color: var(--deco-bd); }
+.student-deco.has-color .student-deco-badge-emoji { border-color: var(--deco-bd); }
+.pp-card.has-cult, .cz-preview.has-cult { background-size: cover; background-position: center; }
+.pp-seeme { background: none; border: none; color: var(--text-2); font: 600 12.5px/1.2 inherit; font-family: inherit; cursor: pointer; padding: 2px 6px; }
+.cz-pal { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; max-width: 360px; }
+.cz-sw { aspect-ratio: 1; border-radius: 50%; border: 3px solid transparent; cursor: pointer; padding: 0; box-shadow: inset 0 0 0 1px rgba(0,0,0,.25); }
+.cz-sw.sel { border-color: #fff; box-shadow: 0 0 0 2px var(--bg) inset; }
+.cz-cult { display: flex; gap: 12px; align-items: center; padding: 10px; border-radius: 16px; background: var(--surface); border: 1px solid var(--border); }
+.cz-cult-img { width: 128px; aspect-ratio: 16/9; border-radius: 10px; background: var(--surface-3) center/cover; flex-shrink: 0; }
+.cz-cult-t { font-weight: 700; font-size: 14.5px; line-height: 1.25; overflow-wrap: anywhere; }
+.cz-cult-actions { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.cz-cult-actions .btn { padding: 6px 12px; font-size: 12.5px; border-radius: 999px; }
+.cz-cult-empty { width: 100%; padding: 16px; border-radius: 16px; border: 1.5px dashed var(--border-2); background: var(--surface); color: var(--text-2); font: 700 14px/1.3 inherit; font-family: inherit; cursor: pointer; }
+.cult-search { display: flex; gap: 8px; margin-bottom: 12px; }
+.cult-search .finput { flex: 1; min-width: 0; }
+.cult-results { display: flex; flex-direction: column; gap: 6px; max-height: 50vh; overflow-y: auto; }
+.cult-res { display: flex; gap: 10px; align-items: center; padding: 8px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--border); cursor: pointer; text-align: left; color: var(--text); font-family: inherit; width: 100%; }
+.cult-res img, .cult-res .ph { width: 40px; height: 60px; border-radius: 6px; object-fit: cover; flex-shrink: 0; background: var(--surface-3); display: flex; align-items: center; justify-content: center; }
+.cult-res b { display: block; font-size: 14px; line-height: 1.25; }
+.cult-res span { font-size: 12px; color: var(--text-2); }
+.cult-film-name { font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 700; margin: 8px 0 2px; }
+.cult-hint { font-size: 12.5px; color: var(--text-2); margin-bottom: 10px; }
+.cult-images { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; max-height: 52vh; overflow-y: auto; }
+.cult-img { aspect-ratio: 16/9; border-radius: 10px; background: var(--surface-3) center/cover; border: 2px solid transparent; cursor: pointer; padding: 0; }
+.cult-img:active { border-color: var(--gold); }
+/* Profil public */
+.pub-hero { position: relative; height: 190px; background: radial-gradient(120% 90% at 50% 0%, rgba(240,165,0,.18), transparent 70%), var(--surface); background-size: cover; background-position: center; }
+.pub-hero::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(8,8,15,.1), rgba(8,8,15,.55) 55%, var(--bg)); }
+.pub-top { position: absolute; top: 14px; left: 14px; right: 14px; display: flex; justify-content: space-between; align-items: center; gap: 10px; z-index: 1; }
+.pub-top .pp-iconbtn { background: rgba(8,8,15,.65); }
+.pub-tag { font-size: 11px; font-weight: 700; color: #e8e8f0; background: rgba(8,8,15,.65); padding: 4px 10px; border-radius: 999px; border: 1px solid rgba(255,255,255,.15); max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pub-id { margin-top: -70px; position: relative; z-index: 2; text-align: center; padding: 0 16px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.pub-id .profile-xp-ring { width: 96px; height: 96px; }
+.pub-id .profile-xp-ring .xp-ring-level { font-size: 32px; }
+.pub-hint { font-size: 11.5px; color: var(--text-3); }
+.pub-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 16px 16px 0; }
+.pub-stats div { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 10px 4px; text-align: center; min-width: 0; }
+.pub-stats b { display: block; font-size: 18px; line-height: 1.25; }
+.pub-stats span { font-size: 10.5px; color: var(--text-2); font-weight: 600; }
+.pub-cult { display: flex; gap: 12px; align-items: center; padding: 12px; border-radius: 16px; background: var(--surface); border: 1px solid var(--border); cursor: pointer; }
+.pub-cult .p { width: 52px; height: 78px; border-radius: 9px; flex-shrink: 0; background: var(--surface-3) center/cover; }
+.pub-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.pub-grid button { aspect-ratio: 2/3; border-radius: 9px; position: relative; border: none; padding: 0; background: var(--surface-3) center/cover; cursor: pointer; color: var(--text-2); font: 700 12px/1.2 inherit; font-family: inherit; overflow: hidden; }
+.pub-grid button .nt { position: absolute; inset: auto 4px 4px 4px; font-size: 9.5px; color: #fff; text-shadow: 0 1px 3px #000; text-align: left; line-height: 1.15; }
+.pub-grid button.common::after { content: '👥'; position: absolute; right: 4px; top: 4px; font-size: 11px; background: rgba(8,8,15,.75); border-radius: 6px; padding: 1px 3px; }
+.pub-common { margin-top: 10px; padding: 10px 12px; border-radius: 12px; background: var(--gold-dim); border: 1px solid rgba(240,165,0,.3); font-size: 13px; font-weight: 600; }
+.pub-private { margin: 18px 16px 0; padding: 16px; border-radius: 16px; background: var(--surface); border: 1px solid var(--border); text-align: center; color: var(--text-2); font-size: 13.5px; line-height: 1.45; }
+.pub-name-link { cursor: pointer; text-decoration: underline; text-decoration-color: rgba(240,165,0,.35); text-underline-offset: 3px; }
+.jrn-rank-row.is-link { cursor: pointer; }
+.sd-perso { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12px; color: var(--text-2); }
+.sd-perso .chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border-2); }
+.sd-perso .dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+.sd-perso button { background: none; border: none; color: var(--red); font: 700 11.5px/1 inherit; font-family: inherit; cursor: pointer; padding: 0 2px; }
   </style>
 <body>
 <script>
@@ -9664,6 +9721,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     <span class="pp-chip" id="prof-class">—</span>
     <div class="pp-deco" id="profile-deco-row"></div>
     <button class="pp-custom-btn" onclick="navigateTo('customize')">✏️ Personnaliser mon profil</button>
+    <button class="pp-seeme" onclick="openPublicProfile(S.user.id)">👁 Voir mon profil comme les autres</button>
   </div>
   <div class="pp-xp">
     <div class="pp-xp-top">
@@ -9702,6 +9760,10 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     <h1>Réglages</h1>
   </div>
   <div id="settings-body"></div>
+</div>
+
+<div class="screen hidden" id="screen-public-profile">
+  <div id="pub-body"></div>
 </div>
 
 <div class="screen hidden" id="screen-customize">
@@ -10578,6 +10640,27 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 <!-- ================================================================
      MODAL: Profil élève — version premium
      ================================================================ -->
+<div class="overlay hidden" id="modal-cult-film">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">🎬 Mon film culte</div>
+    <div id="cult-step-search">
+      <div class="cult-search">
+        <input class="finput" id="cult-q" placeholder="Titre du film…" autocomplete="off" onkeydown="if(event.key==='Enter'){event.preventDefault();cultSearch();}">
+        <button class="btn btn-gold" onclick="cultSearch()">🔍</button>
+      </div>
+      <div id="cult-results" class="cult-results"></div>
+    </div>
+    <div id="cult-step-images" class="hidden">
+      <button class="pp-link" onclick="cultBackToSearch()">‹ Choisir un autre film</button>
+      <div class="cult-film-name" id="cult-film-name"></div>
+      <div class="cult-hint">Touche l'image qui servira de fond à ta carte :</div>
+      <div id="cult-images" class="cult-images"></div>
+    </div>
+    <button class="btn btn-ghost btn-full mt-2" onclick="closeModal('modal-cult-film')">Annuler</button>
+  </div>
+</div>
+
 <!-- ================================================================
      MODAL: Rappel date de naissance (Batch C2b)
      Modale "rappel" non bloquante : 1 fois par session avec bouton "Plus tard"
@@ -12188,6 +12271,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
           </div>
           <!-- Ligne déco : titre + 3 badges + compteur X / 44 -->
           <div class="sd-deco-row" id="sd-deco-row" style="display:none;"></div>
+          <div class="sd-perso" id="sd-perso-row" style="display:none;"></div>
           <!-- Bouton Contacter l'élève -->
           <div id="sd-contact-btn" style="margin-top:10px;"></div>
           <!-- Bouton Inscrire à une séance (admin force-register) -->
@@ -16372,10 +16456,16 @@ async function loadStudentsBusinessCards(studentIds) {
     try {
       // 1. pinned_* + date_of_birth depuis students (date_of_birth utilisée
       //    pour afficher le 🎂 anniversaire dans la déco)
-      const { data: students, error: studErr } = await db
-        .from('students')
-        .select('id, pinned_badges, pinned_title_slug, date_of_birth')
-        .in('id', toFetch);
+      // + couleur / film culte / visibilité (colonnes ajoutées par profil_perso.sql ;
+      //   si elles n'existent pas encore, on relit sans elles)
+      let { data: students, error: studErr } = _profileColsOk
+        ? await db.from('students').select('id, pinned_badges, pinned_title_slug, date_of_birth, profile_color, cult_film, profile_public').in('id', toFetch)
+        : { data: null, error: { code: 'skip' } };
+      if (studErr) {
+        if (studErr.code !== 'skip') { _profileColsOk = false; console.warn('[deco] colonnes profil absentes (profil_perso.sql) :', studErr.message); }
+        ({ data: students, error: studErr } = await db.from('students')
+          .select('id, pinned_badges, pinned_title_slug, date_of_birth').in('id', toFetch));
+      }
       if (studErr) throw studErr;
 
       // 2. xp_events agrégé pour ces élèves (uniquement events arrivés)
@@ -16417,6 +16507,9 @@ async function loadStudentsBusinessCards(studentIds) {
         const pinnedFiltered = pinnedRaw.filter(slug => ownedSet.has(slug));
 
         _studentDecoCache.set(s.id, {
+          color:           _validProfileColor(s.profile_color),
+          cultFilm:        (s.cult_film && s.cult_film.tmdb_id) ? s.cult_film : null,
+          isPublic:        s.profile_public !== false,
           pinnedBadges:    pinnedFiltered,
           pinnedTitleSlug: s.pinned_title_slug || null,
           level:           levelFromXp(xp),
@@ -16535,7 +16628,9 @@ function renderStudentDecorationHTML(deco, options = {}) {
   }
 
   if (parts.length === 0) return '';
-  return `<span class="student-deco${compact ? ' compact' : ''}">${parts.join('')}</span>`;
+  const col = _validProfileColor(deco.color);
+  const colStyle = col ? ` style="--deco-c:${col};--deco-bg:${_hexA(col, .12)};--deco-bd:${_hexA(col, .45)};"` : '';
+  return `<span class="student-deco${compact ? ' compact' : ''}${col ? ' has-color' : ''}"${colStyle}>${parts.join('')}</span>`;
 }
 
 /* Handler de clic sur un badge dans une carte de visite : popup détail
@@ -18502,7 +18597,7 @@ function _journeyRenderRank() {
   // ---- Liste : top 3 + fenêtre autour de moi (ou tout si déplié) ----
   const medals = ['🥇','🥈','🥉'];
   const row = (r, i) => `
-    <div class="jrn-rank-row${r.id === S.user.id ? ' me' : ''}">
+    <div class="jrn-rank-row is-link${r.id === S.user.id ? ' me' : ''}" onclick="openPublicProfile('${r.id}', () => openStudentJourney('rank'))">
       <div class="jrn-rank-pos${i < 3 ? ' medal' : ''}">${i < 3 ? medals[i] : i + 1}</div>
       <div class="jrn-rank-name">${r.id === S.user.id ? 'Toi' : _escapeHtml(r.name)}</div>
       <div class="jrn-rank-metric">${metric(r)}</div>
@@ -19710,6 +19805,7 @@ async function navigateTo(id, isBack = false) {
     case 'profile':   await loadProfileScreen(); break;
     case 'settings':  await loadSettingsScreen(); break;
     case 'customize': await loadCustomizeScreen(); break;
+    case 'public-profile': await loadPublicProfileScreen(); break;
     case 'films':   await loadFilms(); break;
     case 'propose':
       if (!isBack) _tmdbSearchState = null;
@@ -21171,8 +21267,10 @@ async function loadProfileScreen() {
   }).catch(() => {});
 
   loadStudentsBusinessCards([S.user.id]).then(map => {
+    const deco = map.get(S.user.id) || {};
     const el = document.getElementById('profile-deco-row');
-    if (el) el.innerHTML = renderStudentDecorationHTML(map.get(S.user.id), { compact: false });
+    if (el) el.innerHTML = renderStudentDecorationHTML(deco, { compact: false });
+    _applyProfileLook(document.querySelector('#screen-profile .pp-card'), deco);
   }).catch(() => {});
 
   _renderProfileStats();
@@ -21246,6 +21344,8 @@ async function loadSettingsScreen() {
   const pushOn = !!sub && status === 'granted';
   const inPwa = _pwaIsStandalone();
   const persistOn = isStudentPersistEnabled();
+  let myPublic = true;
+  try { myPublic = ((await loadStudentsBusinessCards([S.user.id])).get(S.user.id) || {}).isPublic !== false; } catch (_) {}
   const sw = on => `<span class="pp-switch${on ? ' on' : ''}"></span>`;
   const arrow = '<span class="pp-ar">›</span>';
 
@@ -21272,6 +21372,13 @@ async function loadSettingsScreen() {
         <button class="pp-row" onclick="openChangePIN()"><span class="pp-ic">🔐</span><span class="pp-tx">Changer mon code secret</span>${arrow}</button>
       </div>
     </div>
+    ${_profileColsOk ? `
+    <div class="pp-sec">
+      <div class="pp-sec-t">Confidentialité</div>
+      <div class="pp-list">
+        <button class="pp-row" onclick="settingsTogglePublic()"><span class="pp-ic">${myPublic ? '👁' : '🔒'}</span><span class="pp-tx">Profil visible par les autres<span class="pp-sub">${myPublic ? 'Les autres voient ta carte, tes films vus et ton film culte' : 'Les autres ne voient que ton nom, ta classe et ton niveau'}</span></span>${sw(myPublic)}</button>
+      </div>
+    </div>` : ''}
     ${inPwa ? '' : `
     <div class="pp-sec">
       <div class="pp-sec-t">Application</div>
@@ -21307,9 +21414,26 @@ async function loadCustomizeScreen() {
   } catch (e) { console.warn('[customize] load:', e); }
   const level = computeXpProgress(totalXp || 0).level;
   _czState = { level, pinnedTitle };
+  invalidateStudentDecoCache(S.user.id);
+  let me = {};
+  try { me = (await loadStudentsBusinessCards([S.user.id])).get(S.user.id) || {}; } catch (_) {}
+  const myColor = me.color || null, myCult = me.cultFilm || null;
   const effective = getEffectiveTitle(level, pinnedTitle);
   const full = [S.user.firstName, S.user.lastName].filter(Boolean).join(' ');
-  const deco = renderStudentDecorationHTML({ level, pinnedTitleSlug: pinnedTitle, pinnedBadges: pinnedBadges || [] }, { compact: false });
+  const deco = renderStudentDecorationHTML({ level, pinnedTitleSlug: pinnedTitle, pinnedBadges: pinnedBadges || [], color: myColor }, { compact: false });
+  const palette = PROFILE_COLORS.map(c => `<button class="cz-sw${(myColor || PROFILE_COLORS[0]) === c ? ' sel' : ''}" style="background:${c}" onclick="customizeSetColor('${c}')" aria-label="Couleur ${c}"></button>`).join('');
+  const cultHtml = myCult
+    ? `<div class="cz-cult">
+         <div class="cz-cult-img" style="background-image:url('${_tmdbImg(myCult.backdrop_path || myCult.poster_path, 'w300')}')"></div>
+         <div style="min-width:0;flex:1;">
+           <div class="cz-cult-t">${_escapeHtml(myCult.title || '')}${myCult.year ? ` <span style="color:var(--text-3);font-weight:500;">(${myCult.year})</span>` : ''}</div>
+           <div class="cz-cult-actions">
+             <button class="btn btn-ghost" onclick="openCultFilmPicker()">Changer</button>
+             <button class="btn btn-ghost" onclick="customizeRemoveCult()">Retirer</button>
+           </div>
+         </div>
+       </div>`
+    : `<button class="cz-cult-empty" onclick="openCultFilmPicker()">🔍 Choisir mon film culte</button>`;
 
   const titles = LEVEL_TITLES.map(t => {
     const ok = level >= t.min;
@@ -21327,7 +21451,7 @@ async function loadCustomizeScreen() {
   const nUnlocked = (unlocked || []).length;
 
   body.innerHTML = `
-    <div class="cz-preview">
+    <div class="cz-preview" id="cz-preview">
       <div class="profile-xp-ring"><svg class="xp-ring-svg" viewBox="0 0 80 80"><circle class="xp-ring-track" cx="40" cy="40" r="36"></circle>
         <circle class="xp-ring-progress" cx="40" cy="40" r="36" stroke-dasharray="226.2" stroke-dashoffset="${(226.2 * (1 - computeXpProgress(totalXp || 0).percent / 100)).toFixed(1)}"></circle></svg>
         <span class="xp-ring-level">${level}</span></div>
@@ -21337,6 +21461,17 @@ async function loadCustomizeScreen() {
       </div>
     </div>
     <div class="cz-hint">Aperçu : c'est ce que les autres voient à côté de ton nom</div>
+    ${_profileColsOk ? `
+    <div class="pp-sec">
+      <div class="pp-sec-t">🎨 Ma couleur</div>
+      <div class="cz-pal">${palette}</div>
+      <div class="cz-note" style="text-align:left;">Elle colore ton anneau, ton titre et le contour de ta carte.</div>
+    </div>
+    <div class="pp-sec">
+      <div class="pp-sec-t">🎬 Mon film culte</div>
+      ${cultHtml}
+      <div class="cz-note" style="text-align:left;">Son image sert de fond à ta carte, et les autres le voient sur ton profil.</div>
+    </div>` : ''}
     <div class="pp-sec">
       <div class="pp-sec-t">🎭 Mon titre</div>
       <div class="cz-titles">${titles}</div>
@@ -21348,6 +21483,7 @@ async function loadCustomizeScreen() {
       <div class="cz-note">${nUnlocked ? `Tu as débloqué ${nUnlocked} badge${nUnlocked > 1 ? 's' : ''}.` : 'Tu n\'as pas encore de badge : participe aux séances, vote et propose des films !'}</div>
     </div>
     <div style="height:8px;"></div>`;
+  _applyProfileLook(document.getElementById('cz-preview'), { color: myColor, cultFilm: myCult });
 }
 async function customizeSetTitle(slug) {
   if (!S.user) return;
@@ -21358,6 +21494,306 @@ async function customizeSetTitle(slug) {
   await setStudentPinnedTitle(S.user.id, newPinned);
   toast('🎭 Titre mis à jour', 'success', 1500);
   loadCustomizeScreen();
+}
+
+
+/* ================================================================
+   PROFIL PERSONNALISÉ — couleur, film culte, profil public
+   ================================================================ */
+const PROFILE_COLORS = ['#f0a500', '#5aa9ff', '#4ade80', '#2dd4bf', '#c084fc', '#f472b6',
+                        '#ff6b6b', '#fb923c', '#facc15', '#a3e635', '#94a3b8', '#f0f0ee'];
+let _profileColsOk = true;   // false tant que profil_perso.sql n'a pas été lancé
+function _validProfileColor(c) { return (typeof c === 'string' && /^#[0-9a-f]{6}$/i.test(c)) ? c : null; }
+function _hexA(hex, a) {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+}
+function _tmdbImg(path, size) { return path ? `https://image.tmdb.org/t/p/${size || 'w780'}${path}` : ''; }
+
+/* Couleur (anneau, contour) + image du film culte en fond d'une carte */
+function _applyProfileLook(card, deco) {
+  if (!card) return;
+  const col = _validProfileColor(deco && deco.color);
+  const cult = deco && deco.cultFilm;
+  card.style.borderColor = col ? _hexA(col, .55) : '';
+  card.querySelectorAll('.xp-ring-progress').forEach(c => { c.style.stroke = col || ''; });
+  card.querySelectorAll('.xp-ring-level').forEach(c => { c.style.color = col || ''; });
+  card.querySelectorAll('.xp-ring-track').forEach(c => { c.style.stroke = col ? _hexA(col, .2) : ''; });
+  const img = cult ? _tmdbImg(cult.backdrop_path || cult.poster_path, 'w780') : '';
+  card.classList.toggle('has-cult', !!img);
+  card.style.backgroundImage = img ? `linear-gradient(180deg, rgba(8,8,15,.55), rgba(8,8,15,.92)), url('${img}')` : '';
+}
+
+async function _saveMyProfile(fields, okMsg) {
+  if (!S.user) return false;
+  const { error } = await db.from('students').update(fields).eq('id', S.user.id);
+  if (error) {
+    console.warn('[profil] save:', error);
+    toast('Impossible d\'enregistrer pour le moment', 'error');
+    return false;
+  }
+  invalidateStudentDecoCache(S.user.id);
+  if (okMsg) toast(okMsg, 'success', 1500);
+  return true;
+}
+async function customizeSetColor(c) {
+  const col = _validProfileColor(c);
+  if (!col) return;
+  if (await _saveMyProfile({ profile_color: col === PROFILE_COLORS[0] ? null : col }, '🎨 Couleur enregistrée')) loadCustomizeScreen();
+}
+async function customizeRemoveCult() {
+  if (!confirm('Retirer ton film culte ?')) return;
+  if (await _saveMyProfile({ cult_film: null }, 'Film culte retiré')) loadCustomizeScreen();
+}
+async function settingsTogglePublic() {
+  const cur = ((await loadStudentsBusinessCards([S.user.id])).get(S.user.id) || {}).isPublic !== false;
+  if (await _saveMyProfile({ profile_public: !cur }, cur ? '🔒 Ton profil est masqué' : '👁 Ton profil est visible')) loadSettingsScreen();
+}
+
+/* ---------- Choix du film culte : recherche → film → image large ---------- */
+let _cult = { results: [], film: null, images: [] };
+function _studentAgeNow() {
+  const dob = S.user?.dateOfBirth;
+  if (!dob) return null;
+  const b = new Date(String(dob).slice(0, 10) + 'T12:00:00'), t = new Date();
+  let age = t.getFullYear() - b.getFullYear();
+  const m = t.getMonth() - b.getMonth();
+  if (m < 0 || (m === 0 && t.getDate() < b.getDate())) age--;
+  return age;
+}
+function openCultFilmPicker() {
+  _cult = { results: [], film: null, images: [] };
+  document.getElementById('cult-step-search').classList.remove('hidden');
+  document.getElementById('cult-step-images').classList.add('hidden');
+  document.getElementById('cult-results').innerHTML = '';
+  const q = document.getElementById('cult-q'); q.value = '';
+  openModal('modal-cult-film');
+  setTimeout(() => { try { q.focus(); } catch (_) {} }, 250);
+}
+function cultBackToSearch() {
+  document.getElementById('cult-step-search').classList.remove('hidden');
+  document.getElementById('cult-step-images').classList.add('hidden');
+}
+async function cultSearch() {
+  const q = (document.getElementById('cult-q').value || '').trim();
+  const box = document.getElementById('cult-results');
+  if (q.length < 2) { box.innerHTML = '<p class="text-sm text-muted">Tape au moins 2 lettres.</p>'; return; }
+  if (!CFG.TMDB_KEY) { box.innerHTML = '<p class="text-sm text-muted">Recherche indisponible.</p>'; return; }
+  box.innerHTML = '<div class="loader" style="padding:20px;"><div class="spinner"></div></div>';
+  try {
+    const params = new URLSearchParams({ api_key: CFG.TMDB_KEY, query: q, language: 'fr-FR', include_adult: 'false' });
+    const r = await fetch(`https://api.themoviedb.org/3/search/movie?${params.toString()}`);
+    const data = await r.json();
+    _cult.results = (data.results || []).filter(m => !m.adult).slice(0, 12);
+    if (!_cult.results.length) { box.innerHTML = '<p class="text-sm text-muted">Aucun film trouvé.</p>'; return; }
+    box.innerHTML = _cult.results.map((m, i) => `
+      <button class="cult-res" onclick="cultPickFilm(${i})">
+        ${m.poster_path ? `<img src="${_tmdbImg(m.poster_path, 'w92')}" alt="" loading="lazy">` : '<div class="ph">🎬</div>'}
+        <div style="min-width:0;"><b>${_escapeHtml(m.title || '')}</b><span>${(m.release_date || '').slice(0, 4) || '—'}</span></div>
+      </button>`).join('');
+  } catch (e) {
+    console.warn('[cult] search:', e);
+    box.innerHTML = '<p class="text-sm text-muted">Erreur de recherche, réessaie.</p>';
+  }
+}
+async function cultPickFilm(i) {
+  const m = _cult.results[i];
+  if (!m) return;
+  // Classification : film déconseillé pour l'âge de l'élève → refusé
+  const rating = parseInt(await _fetchFrAgeRating(m.id), 10);
+  const age = _studentAgeNow();
+  if (Number.isFinite(rating) && age !== null && age < rating) {
+    toast(`🔞 Film déconseillé aux moins de ${rating} ans : choisis-en un autre.`, 'error', 3500);
+    return;
+  }
+  _cult.film = m;
+  document.getElementById('cult-step-search').classList.add('hidden');
+  document.getElementById('cult-step-images').classList.remove('hidden');
+  document.getElementById('cult-film-name').textContent = m.title + (m.release_date ? ` (${m.release_date.slice(0, 4)})` : '');
+  const box = document.getElementById('cult-images');
+  box.innerHTML = '<div class="loader" style="padding:20px;grid-column:1/-1;"><div class="spinner"></div></div>';
+  let imgs = [];
+  try {
+    const r = await fetch(`https://api.themoviedb.org/3/movie/${m.id}/images?api_key=${CFG.TMDB_KEY}&include_image_language=null,fr,en`);
+    const j = await r.json();
+    // Images sans texte d'abord, puis les mieux notées
+    imgs = (j.backdrops || []).slice().sort((a, b) =>
+      ((a.iso_639_1 ? 1 : 0) - (b.iso_639_1 ? 1 : 0)) || ((b.vote_average || 0) - (a.vote_average || 0)))
+      .slice(0, 12).map(x => x.file_path);
+  } catch (e) { console.warn('[cult] images:', e); }
+  if (!imgs.length && m.backdrop_path) imgs = [m.backdrop_path];
+  _cult.images = imgs;
+  box.innerHTML = imgs.length
+    ? imgs.map((pth, k) => `<button class="cult-img" style="background-image:url('${_tmdbImg(pth, 'w300')}')" onclick="cultChooseImage(${k})" aria-label="Image ${k + 1}"></button>`).join('')
+    : `<p class="text-sm text-muted" style="grid-column:1/-1;">Pas d'image large pour ce film.</p>
+       <button class="btn btn-gold btn-full" style="grid-column:1/-1;" onclick="cultChooseImage(-1)">Utiliser l'affiche</button>`;
+}
+async function cultChooseImage(k) {
+  const m = _cult.film;
+  if (!m) return;
+  const film = {
+    tmdb_id: m.id,
+    title: m.title || '',
+    year: (m.release_date || '').slice(0, 4) || null,
+    backdrop_path: k >= 0 ? (_cult.images[k] || null) : null,
+    poster_path: m.poster_path || null
+  };
+  if (await _saveMyProfile({ cult_film: film }, '🎬 Film culte enregistré')) {
+    closeModal('modal-cult-film');
+    loadCustomizeScreen();
+  }
+}
+
+/* ---------- Profil public : ce que les autres voient en touchant un nom ---------- */
+let _pub = { id: null, from: 'home', reopen: null };
+function openPublicProfile(studentId, reopen) {
+  if (!studentId) return;
+  if (S.isAdmin) { if (typeof openStudentDetail === 'function') openStudentDetail(studentId); return; }
+  const from = (S.screen === 'public-profile' || S.screen === 'tmdb-detail') ? (_pub.from || 'home') : S.screen;
+  _modalStack.slice().forEach(id => closeModal(id));
+  _pub = { id: studentId, from, reopen: typeof reopen === 'function' ? reopen : null };
+  navigateTo('public-profile');
+}
+async function publicProfileBack() {
+  const { from, reopen } = _pub;
+  await navigateTo(from && from !== 'public-profile' ? from : 'home');
+  if (reopen) { try { reopen(); } catch (_) {} }
+}
+async function loadPublicProfileScreen() {
+  const body = document.getElementById('pub-body');
+  const id = _pub.id;
+  if (!body || !id || !S.user) return;
+  body.innerHTML = '<div class="loader" style="padding:60px;"><div class="spinner"></div></div>';
+  const isMe = id === S.user.id;
+
+  const { data: st } = await db.from('students')
+    .select('id, first_name, last_name, class_name, activated_at, created_at').eq('id', id).maybeSingle();
+  if (!st) {
+    body.innerHTML = `<div class="pp-head"><button class="pp-iconbtn back" onclick="publicProfileBack()">‹</button><h1>Profil</h1></div>
+      <div class="empty"><div class="icon">🙈</div><h3>Élève introuvable</h3></div>`;
+    return;
+  }
+  if (isMe) invalidateStudentDecoCache(id);
+  const deco = (await loadStudentsBusinessCards([id])).get(id) || { level: 1, pinnedBadges: [] };
+  const level = deco.level || 1;
+  const percent = computeXpProgress(deco.totalXp || 0).percent;
+  const name = [st.first_name, st.last_name].filter(Boolean).join(' ');
+  const cult = deco.cultFilm;
+  const isPublic = deco.isPublic !== false;
+  const heroImg = isPublic && cult ? _tmdbImg(cult.backdrop_path || cult.poster_path, 'w780') : '';
+  const ring = `
+    <div class="profile-xp-ring">
+      <svg class="xp-ring-svg" viewBox="0 0 80 80"><circle class="xp-ring-track" cx="40" cy="40" r="36"></circle>
+      <circle class="xp-ring-progress" cx="40" cy="40" r="36" stroke-dasharray="226.2" stroke-dashoffset="${(226.2 * (1 - percent / 100)).toFixed(1)}"></circle></svg>
+      <span class="xp-ring-level">${level}</span>
+    </div>`;
+  const head = `
+    <div class="pub-hero"${heroImg ? ` style="background-image:url('${heroImg}')"` : ''}>
+      <div class="pub-top">
+        <button class="pp-iconbtn back" onclick="publicProfileBack()" aria-label="Retour">‹</button>
+        ${heroImg ? `<span class="pub-tag">🎬 Film culte : ${_escapeHtml(cult.title || '')}</span>` : ''}
+      </div>
+    </div>`;
+
+  if (!isPublic) {
+    body.innerHTML = head + `
+      <div class="pub-id" id="pub-id">${ring}
+        <div class="pp-name">${_escapeHtml(name)}</div>
+        <span class="pp-chip">${_escapeHtml(st.class_name || '—')}</span>
+      </div>
+      <div class="pub-private">🔒 ${isMe ? 'Ton profil est masqué : les autres ne voient que ton nom, ta classe et ton niveau.<br><button class="pp-link" style="margin-top:8px;" onclick="navigateTo(\'settings\')">Changer dans les Réglages ›</button>' : 'Cet élève a choisi de garder son profil privé.'}</div>`;
+    _applyProfileLook(document.getElementById('pub-id'), { color: deco.color });
+    document.getElementById('pub-id').style.borderColor = '';
+    return;
+  }
+
+  // Films vus (avec les miens pour « vus ensemble »), propositions acceptées
+  const [watchedRes, mineRes, propsRes] = await Promise.all([
+    db.from('student_watched_films')
+      .select('film_id, watched_at, films!student_watched_films_film_id_fkey(id, title, poster_url, tmdb_id)')
+      .eq('student_id', id).order('watched_at', { ascending: false }),
+    isMe ? Promise.resolve({ data: [] }) : db.from('student_watched_films').select('film_id').eq('student_id', S.user.id),
+    db.from('proposals').select('*').eq('student_id', id).eq('status', 'accepted').order('reviewed_at', { ascending: false })
+  ]);
+  const watched = (watchedRes.data || []).filter(w => w.films);
+  const mine = new Set((mineRes.data || []).map(w => w.film_id));
+  const common = isMe ? 0 : watched.filter(w => mine.has(w.film_id)).length;
+  const props = propsRes.data || [];
+  const since = st.activated_at || st.created_at;
+  const sinceLabel = since ? new Date(since).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' }) : '—';
+
+  const cultCard = cult ? `
+    <div class="pp-sec"><div class="pp-sec-t">🎬 Son film culte</div>
+      <div class="pub-cult" onclick="openTMDBDetail(${parseInt(cult.tmdb_id, 10)}, 'student')">
+        <div class="p" style="background-image:url('${_tmdbImg(cult.poster_path || cult.backdrop_path, 'w185')}')"></div>
+        <div style="flex:1;min-width:0;"><div class="pp-name" style="font-size:18px;text-align:left;">${_escapeHtml(cult.title || '')}</div>
+          <div class="pp-sub">${cult.year || ''}${cult.year ? ' · ' : ''}Voir la fiche et la bande-annonce</div></div>
+        <span class="pp-ar">›</span>
+      </div></div>` : '';
+
+  const showAll = !!_pub.allFilms;
+  const shown = showAll ? watched : watched.slice(0, 8);
+  const more = watched.length - shown.length;
+  const tile = w => {
+    const f = w.films;
+    const click = f.tmdb_id ? `onclick="openTMDBDetail(${parseInt(f.tmdb_id, 10)}, 'student')"` : '';
+    return `<button class="${mine.has(w.film_id) ? 'common' : ''}" ${click} style="${f.poster_url ? `background-image:url('${_escapeHtml(f.poster_url)}')` : ''}" title="${_escapeHtml(f.title || '')}">${f.poster_url ? '' : `<span class="nt">${_escapeHtml(f.title || '')}</span>`}</button>`;
+  };
+  const filmsSec = `
+    <div class="pp-sec"><div class="pp-sec-t">🎞 ${isMe ? 'Mes' : 'Ses'} films vus à l'internat</div>
+      ${watched.length ? `<div class="pub-grid">${shown.map(tile).join('')}${more > 0 ? `<button onclick="_pub.allFilms=true;loadPublicProfileScreen()">+${more}</button>` : ''}</div>` : '<p class="text-sm text-muted">Pas encore de film vu.</p>'}
+      ${common ? `<div class="pub-common">👥 Vous avez vu <b>${common} film${common > 1 ? 's' : ''}</b> ensemble</div>` : ''}
+    </div>`;
+  const propsSec = props.length ? `
+    <div class="pp-sec"><div class="pp-sec-t">💡 ${isMe ? 'Mes' : 'Ses'} propositions acceptées</div>
+      <div class="pp-list">${props.slice(0, 10).map(pr => `
+        <button class="pp-row" ${pr.tmdb_id ? `onclick="openTMDBDetail(${parseInt(pr.tmdb_id, 10)}, 'student')"` : 'disabled style="opacity:1;cursor:default;"'}>
+          <span class="pp-ic" style="${pr.poster_url ? `background:url('${_escapeHtml(pr.poster_url)}') center/cover;` : ''}">${pr.poster_url ? '' : '🎬'}</span>
+          <span class="pp-tx">${_escapeHtml(pr.title || '')}<span class="pp-sub">${pr.reviewed_at ? 'Accepté en ' + new Date(pr.reviewed_at).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }) : 'Accepté'}</span></span>
+          ${pr.tmdb_id ? '<span class="pp-ar">›</span>' : ''}
+        </button>`).join('')}</div></div>` : '';
+
+  body.innerHTML = head + `
+    <div class="pub-id" id="pub-id">${ring}
+      <div class="pp-name">${_escapeHtml(name)}</div>
+      <span class="pp-chip">${_escapeHtml(st.class_name || '—')}</span>
+      ${renderStudentDecorationHTML(deco, { compact: false })}
+      ${(deco.pinnedBadges || []).length ? '<div class="pub-hint">Touche un badge pour savoir comment l\'avoir</div>' : ''}
+    </div>
+    <div class="pub-stats">
+      <div><b>${watched.length}</b><span>film${watched.length > 1 ? 's' : ''} vu${watched.length > 1 ? 's' : ''}</span></div>
+      <div><b>${props.length}</b><span>film${props.length > 1 ? 's' : ''} proposé${props.length > 1 ? 's' : ''}<br>et accepté${props.length > 1 ? 's' : ''}</span></div>
+      <div><b>${sinceLabel}</b><span>membre depuis</span></div>
+    </div>
+    ${cultCard}
+    ${filmsSec}
+    ${propsSec}
+    ${isMe ? '<div class="pp-foot">C\'est ce que voient les autres élèves en touchant ton nom.</div>' : ''}
+    <div style="height:10px;"></div>`;
+  _applyProfileLook(document.getElementById('pub-id'), { color: deco.color });
+  document.getElementById('pub-id').style.borderColor = '';
+}
+
+/* ---------- Admin : voir / retirer la personnalisation d'un élève ---------- */
+function _sdRenderPerso(studentId, deco) {
+  const row = document.getElementById('sd-perso-row');
+  if (!row) return;
+  const parts = [];
+  if (deco && deco.color) parts.push(`<span class="chip"><span class="dot" style="background:${deco.color}"></span>Couleur <button onclick="adminResetPerso('${studentId}','color')">Retirer</button></span>`);
+  if (deco && deco.cultFilm) parts.push(`<span class="chip">🎬 ${_escapeHtml(deco.cultFilm.title || 'Film culte')} <button onclick="adminResetPerso('${studentId}','cult')">Retirer</button></span>`);
+  if (deco && deco.isPublic === false) parts.push('<span class="chip">🔒 Profil masqué aux élèves</span>');
+  row.innerHTML = parts.join('');
+  row.style.display = parts.length ? '' : 'none';
+}
+async function adminResetPerso(studentId, what) {
+  const label = what === 'cult' ? 'le film culte' : 'la couleur';
+  if (!confirm(`Retirer ${label} de cet élève ?`)) return;
+  const { error } = await db.from('students').update(what === 'cult' ? { cult_film: null } : { profile_color: null }).eq('id', studentId);
+  if (error) { toast('Erreur', 'error'); return; }
+  invalidateStudentDecoCache(studentId);
+  toast(what === 'cult' ? 'Film culte retiré' : 'Couleur retirée', 'success');
+  const deco = (await loadStudentsBusinessCards([studentId])).get(studentId);
+  _sdRenderPerso(studentId, deco);
 }
 
 /* ================================================================
@@ -24191,7 +24627,7 @@ async function viewStudentRegistrants(sesId, date) {
         <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--surface-2);border-radius:8px;gap:10px;flex-wrap:wrap;">
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0;flex:1;">
             ${levelHtml}
-            <span style="font-weight:600;font-size:14px;">${firstName} ${lastName}</span>
+            <span class="pub-name-link" style="font-weight:600;font-size:14px;" onclick="openPublicProfile('${r.student_id}', () => viewStudentRegistrants('${sesId}', '${date}'))">${firstName} ${lastName}</span>
             ${decoHtml}
           </div>
           <span class="badge badge-muted">${className}</span>
@@ -32603,6 +33039,7 @@ async function _sdLoadCinemaProfile(studentId) {
       decoRow.innerHTML = `${decoHtml}<span class="sd-deco-badges-count">🏅 ${badgeCount} / ${totalBadges} badges</span>`;
       decoRow.style.display = '';
     }
+    _sdRenderPerso(studentId, deco);
   } catch (e) {
     console.warn('[sdCinema] error:', e);
   }
