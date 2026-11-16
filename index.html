@@ -9481,6 +9481,26 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 .th-apply .btn { border-radius: 999px; padding: 11px 22px; }
 .th-apply .btn:disabled { opacity: .4; cursor: not-allowed; filter: grayscale(.6); }
 @media (max-width: 520px) { .th-now { grid-template-columns: 1fr; } .th-apply .btn { width: 100%; } }
+
+/* Aperçu de la synchronisation des élèves */
+.ip-box { margin-top: 16px; padding: 16px; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--border-2); }
+.ip-box.is-alert { border-color: rgba(232,64,64,.6); box-shadow: 0 0 0 1px rgba(232,64,64,.25) inset; }
+.ip-title { font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--text-3); margin-bottom: 12px; }
+.ip-alert { padding: 11px 13px; border-radius: 10px; background: rgba(232,64,64,.12); border: 1px solid rgba(232,64,64,.45); color: #ff8a8a; font-size: 13px; line-height: 1.5; margin-bottom: 12px; }
+.ip-group { border-top: 1px solid var(--border); padding: 9px 0; font-size: 13.5px; }
+.ip-group:first-of-type { border-top: none; }
+.ip-group summary, .ip-sum { cursor: pointer; color: var(--text-2); list-style: none; }
+.ip-group summary::-webkit-details-marker { display: none; }
+.ip-group summary::before { content: '▸ '; color: var(--text-3); }
+.ip-group[open] summary::before { content: '▾ '; }
+.ip-group b { color: var(--text); font-size: 15px; margin-right: 2px; }
+.ip-new b { color: var(--green); } .ip-back b { color: var(--gold); } .ip-arch b { color: #ff7b7b; } .ip-name b { color: #8fb0ff; }
+.ip-names { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.ip-names span { padding: 4px 9px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border); font-size: 12.5px; }
+.ip-cls { color: var(--text-3); font-size: 11px; margin-left: 3px; }
+.ip-actions { display: flex; gap: 8px; margin-top: 14px; }
+.ip-actions .btn { flex: 1; }
+.btn.btn-danger { background: var(--red); color: #fff; border: none; }
   </style>
 <body>
 <script>
@@ -9999,36 +10019,23 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 
         <!-- Import élèves -->
         <div class="sd-section">
-          <div class="sd-section-title">Import élèves</div>
-          <p class="text-sm text-muted" style="margin-bottom:14px;">
+          <div class="sd-section-title">🔄 Synchroniser les élèves</div>
+          <p class="text-sm text-muted" style="margin-bottom:12px;">
+            Colle ou charge la <strong>liste complète des internes</strong> exportée depuis l'appli internat.
             Format CSV : <code>prénom,nom,classe,eleveUid,année,sexe</code>
-            <br><span style="opacity:.6;font-size:11.5px;">L'année scolaire est lue automatiquement depuis le fichier (5e colonne). Le sexe (6e colonne) : <code>F</code> pour filles, <code>M</code> pour garçons.</span>
+            <br><span style="opacity:.6;font-size:11.5px;">L'année scolaire est lue dans la 5e colonne. Sexe (6e colonne) : <code>F</code> ou <code>M</code>.</span>
           </p>
-
-          <!-- Switch mode -->
-          <div class="import-switch-wrap">
-            <button class="import-switch-btn active" id="import-btn-ponctuel"
-                    onclick="setImportMode('ponctuel')">
-              📋 Import ponctuel<br>
-              <span style="font-size:10.5px;font-weight:500;opacity:.7;">Ajoute / met à jour</span>
-            </button>
-            <button class="import-switch-btn annual" id="import-btn-annual"
-                    onclick="setImportMode('annual')">
-              🎓 Import annuel<br>
-              <span style="font-size:10.5px;font-weight:500;opacity:.7;">Rentrée / réinitialise</span>
-            </button>
-          </div>
-
-          <!-- Warning annuel (masqué par défaut) -->
-          <div class="import-annual-warning hidden" id="import-annual-warning">
-            ⚠️ Cet import mettra à jour l'année scolaire active, archivera les élèves absents du fichier et <strong>supprimera les votes, refusera les propositions en attente et clôturera les conversations des élèves archivés</strong>. Les comptes test (classe se terminant par TEST) ne sont jamais archivés. XP, badges et historique sont conservés pour tout le monde.
+          <div class="import-annual-warning">
+            Les nouveaux élèves sont créés, les autres mis à jour (ils <strong>gardent leur identifiant et leur code</strong>), les élèves archivés présents dans la liste reviennent.
+            Les élèves <strong>absents de la liste sont archivés</strong> : leurs votes sont supprimés, leurs propositions en attente refusées, leurs conversations clôturées. XP, badges et historique sont conservés. Les comptes test ne sont jamais archivés.
+            <br><strong>Un aperçu s'affiche avant toute modification.</strong>
           </div>
 
           <!-- CSV -->
           <div class="fgroup">
             <label class="flabel">Données CSV</label>
             <textarea class="ftextarea" id="csv-data" rows="6"
-              placeholder="Jean,Dupont,Terminale A,UID123,2025-2026&#10;Marie,Martin,Première B,UID456,2025-2026&#10;..."></textarea>
+              placeholder="Jean,Dupont,Terminale A,UID123,2025-2026,M&#10;Marie,Martin,Première B,UID456,2025-2026,F&#10;..."></textarea>
           </div>
 
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
@@ -10036,13 +10043,15 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
             <button class="btn btn-ghost btn-sm" onclick="document.getElementById('csv-file').click()">📁 Charger fichier</button>
           </div>
 
-          <!-- Mot de passe annuel (masqué par défaut) -->
-          <div class="fgroup hidden" id="import-annual-pwd-wrap">
-            <label class="flabel">Mot de passe admin (obligatoire pour import annuel)</label>
-            <input type="password" class="finput" id="import-annual-pwd" placeholder="••••••••">
+          <div class="fgroup">
+            <label class="flabel">Mot de passe admin</label>
+            <input type="password" class="finput" id="import-annual-pwd" placeholder="••••••••" autocomplete="current-password">
           </div>
 
-          <button class="btn btn-gold btn-full" onclick="importStudentsFromSettings()">Importer les élèves ↑</button>
+          <button class="btn btn-gold btn-full" id="import-preview-btn" onclick="importPreview()">👁 Voir l'aperçu</button>
+
+          <!-- Aperçu avant synchronisation -->
+          <div id="import-preview" class="hidden"></div>
 
           <!-- Résultat import -->
           <div id="import-result" class="hidden"></div>
@@ -35139,279 +35148,235 @@ async function saveDefaultSessionSettings() {
 /* ----------------------------------------------------------------
    Import élèves : mode toggle
    ---------------------------------------------------------------- */
-function setImportMode(mode) {
-  _importMode = mode;
-  document.getElementById('import-btn-ponctuel').classList.toggle('active', mode === 'ponctuel');
-  document.getElementById('import-btn-annual').classList.toggle('active', mode === 'annual');
-  document.getElementById('import-annual-warning').classList.toggle('hidden', mode === 'ponctuel');
-  document.getElementById('import-annual-pwd-wrap').classList.toggle('hidden', mode === 'ponctuel');
-  if (mode === 'annual') {
-    setTimeout(() => document.getElementById('import-annual-pwd')?.focus(), 80);
-  }
+/* Ouverture des Paramètres : on repart d'un écran propre (plus de choix de mode :
+   une seule synchronisation, avec aperçu). */
+function setImportMode() {
+  _importPlan = null;
+  document.getElementById('import-preview')?.classList.add('hidden');
 }
 
-async function importStudentsFromSettings() {
-  const csv = document.getElementById('csv-data').value.trim();
-  if (!csv) { toast('Colle ou charge un fichier CSV', 'error'); return; }
+/* ================================================================
+   SYNCHRONISATION DES ÉLÈVES (liste complète de l'appli internat)
+   1. importPreview()  : vérifie le mot de passe, calcule ce qui va changer, l'affiche
+   2. importConfirm()  : applique exactement ce qui a été affiché
+   Un élève déjà connu GARDE TOUJOURS son identifiant et son code :
+   - reconnu par son eleveUid ;
+   - à défaut, par son prénom + nom (une seule correspondance possible).
+   ================================================================ */
+let _importPlan = null;
 
-  // ---- Vérification mot de passe admin si mode annuel ----
-  if (_importMode === 'annual') {
-    const pwd = document.getElementById('import-annual-pwd').value.trim();
-    if (!pwd) {
-      toast('Mot de passe admin obligatoire pour l\'import annuel', 'error');
-      document.getElementById('import-annual-pwd').focus();
-      return;
-    }
-    const { data: ok, error: rpcErr } = await db.rpc('verify_admin_password', { p_password: pwd });
-    if (rpcErr) { toast('Erreur de vérification admin', 'error'); return; }
-    if (!ok) {
-      toast('Mot de passe admin incorrect', 'error');
-      document.getElementById('import-annual-pwd').value = '';
-      document.getElementById('import-annual-pwd').focus();
-      return;
-    }
-  }
-
-  // ---- Parser le CSV ----
-  const rows = [];
+function _importNorm(v) {
+  return String(v || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+}
+function _parseImportCsv(csv) {
+  const rows = [], seen = new Set();
   let detectedYear = null;
-
-  for (const line of csv.split('\n')) {
-    const parts = line.split(',').map(p => p.replace(/["']/g,'').trim());
+  for (const line of csv.split(/\r?\n/)) {
+    const parts = line.split(',').map(x => x.replace(/["']/g, '').trim());
     if (parts.length < 2) continue;
-    const [fn, ln, cn, uid, yr, sx] = parts; // ⭐ Ajout sexe (6e colonne)
-    if (['prénom','prenom','firstname','first_name','nom'].includes((fn||'').toLowerCase())) continue;
+    const [fn, ln, cn, uid, yr, sx] = parts;
+    if (['prénom','prenom','firstname','first_name','nom'].includes((fn || '').toLowerCase())) continue;
     if (!fn || !ln) continue;
+    const key = uid ? 'u:' + uid : 'n:' + _importNorm(fn) + '|' + _importNorm(ln);
+    if (seen.has(key)) continue;           // ligne en double dans le fichier
+    seen.add(key);
     if (yr && !detectedYear) detectedYear = yr;
-    rows.push({ first_name: fn, last_name: ln, class_name: cn || null,
-                eleve_uid: uid || null, school_year: yr || null, sexe: sx || null }); // ⭐ Ajout sexe
+    rows.push({ first_name: fn, last_name: ln, class_name: cn || null, eleve_uid: uid || null, school_year: yr || null, sexe: sx || null });
   }
+  return { rows, year: detectedYear || getCurrentSchoolYear() };
+}
 
+async function importPreview() {
+  const csv = document.getElementById('csv-data').value.trim();
+  const box = document.getElementById('import-preview');
+  document.getElementById('import-result')?.classList.add('hidden');
+  if (!csv) { toast('Colle ou charge un fichier CSV', 'error'); return; }
+  const pwdEl = document.getElementById('import-annual-pwd');
+  const pwd = pwdEl.value.trim();
+  if (!pwd) { toast('Mot de passe admin obligatoire', 'error'); pwdEl.focus(); return; }
+  const { data: okPwd, error: rpcErr } = await db.rpc('verify_admin_password', { p_password: pwd });
+  if (rpcErr) { toast('Erreur de vérification admin', 'error'); return; }
+  if (!okPwd) { toast('Mot de passe admin incorrect', 'error'); pwdEl.value = ''; pwdEl.focus(); return; }
+
+  const { rows, year } = _parseImportCsv(csv);
   if (!rows.length) { toast('Aucun élève détecté', 'error'); return; }
 
-  const year = detectedYear || getCurrentSchoolYear();
-
-  // ---- Charger tous les élèves existants ----
-  const { data: existing } = await db.from('students').select('id, eleve_uid, login_identifier, is_active, is_activated, activation_code, class_name');
-  const byUid  = {};
-  const allLogins = new Set();
-  (existing || []).forEach(s => {
-    if (s.eleve_uid) byUid[s.eleve_uid] = s;
-    if (s.login_identifier) allLogins.add(s.login_identifier);
-  });
-
-  // ---- Uid présents dans le fichier (pour archivage annuel) ----
+  const { data: existing, error } = await db.from('students')
+    .select('id, first_name, last_name, eleve_uid, login_identifier, is_active, is_activated, activation_code, class_name');
+  if (error) { toast('Impossible de lire les élèves', 'error'); return; }
+  const all = existing || [];
+  const byUid = {};
+  all.forEach(st => { if (st.eleve_uid) byUid[st.eleve_uid] = st; });
   const incomingUids = new Set(rows.map(r => r.eleve_uid).filter(Boolean));
+  const used = new Set();
 
-  // ---- Compteurs résumé ----
-  let created = 0, updated = 0, unarchived = 0, archived = 0;
-
-  // ---- Upsert ligne par ligne ----
+  const plan = { csv, year, items: [], archive: [] };
   for (const r of rows) {
-    const existing_s = r.eleve_uid ? byUid[r.eleve_uid] : null;
+    let match = r.eleve_uid ? byUid[r.eleve_uid] : null;
+    let byName = false;
+    if (match && used.has(match.id)) match = null;
+    if (!match) {
+      // Roue de secours : même prénom + même nom, sans autre eleveUid présent dans le fichier
+      const cands = all.filter(st => !used.has(st.id)
+        && _importNorm(st.first_name) === _importNorm(r.first_name)
+        && _importNorm(st.last_name) === _importNorm(r.last_name)
+        && !(st.eleve_uid && st.eleve_uid !== r.eleve_uid && incomingUids.has(st.eleve_uid)));
+      if (cands.length === 1) { match = cands[0]; byName = true; }
+    }
+    if (match) used.add(match.id);
+    plan.items.push({ row: r, match, byName, kind: !match ? 'create' : (match.is_active ? 'update' : 'back') });
+  }
+  plan.archive = all.filter(st => st.is_active && !used.has(st.id) && !_isTestClass(st.class_name));
+  const activeCount = all.filter(st => st.is_active && !_isTestClass(st.class_name)).length;
+  plan.alert = activeCount > 0 && plan.archive.length > Math.max(3, activeCount * 0.2);
+  _importPlan = plan;
 
-    if (existing_s) {
-      // Élève existant : on CONSERVE toujours son identifiant (il n'est créé
-      // que s'il n'en a pas). Pour le changer : fiche élève → Modifier l'élève.
-      const _cur  = existing_s.login_identifier || '';
-      const _keep = !!_cur;
-      let newLogin = _keep ? _cur : buildLoginIdentifier(r.first_name, r.last_name);
-      let attempts = 0;
-      // Garantir l'unicité en régénérant les 3 chiffres si besoin
-      while (allLogins.has(newLogin) && newLogin !== existing_s.login_identifier && attempts < 50) {
-        newLogin = buildLoginIdentifier(r.first_name, r.last_name);
-        attempts++;
-      }
-      // Si toujours en conflit après 50 tentatives, ajouter un suffixe
-      if (allLogins.has(newLogin) && newLogin !== existing_s.login_identifier) {
-        const base = newLogin.substring(0, newLogin.length - 3);
-        let n = 2;
-        while (allLogins.has(newLogin)) {
-          newLogin = base + (1000 + n).toString().substring(1); n++;
-        }
-      }
-      
-      // Mettre à jour allLogins
-      if (existing_s.login_identifier) allLogins.delete(existing_s.login_identifier);
-      allLogins.add(newLogin);
+  const nm = x => _escapeHtml(`${x.first_name || ''} ${x.last_name || ''}`.trim()) + (x.class_name ? ` <span class="ip-cls">${_escapeHtml(x.class_name)}</span>` : '');
+  const list = (title, cls, arr, toName) => arr.length ? `
+    <details class="ip-group ${cls}"${arr.length <= 12 ? ' open' : ''}>
+      <summary><b>${arr.length}</b> ${typeof title === 'function' ? title(arr.length > 1) : title}</summary>
+      <div class="ip-names">${arr.map(toName).map(n => `<span>${n}</span>`).join('')}</div>
+    </details>` : '';
+  const created = plan.items.filter(x => x.kind === 'create');
+  const back    = plan.items.filter(x => x.kind === 'back');
+  const updated = plan.items.filter(x => x.kind === 'update');
+  const named   = plan.items.filter(x => x.byName);
+  box.innerHTML = `
+    <div class="ip-box${plan.alert ? ' is-alert' : ''}">
+      <div class="ip-title">Aperçu de la synchronisation · année ${_escapeHtml(year)}</div>
+      ${plan.alert ? `<div class="ip-alert">⚠️ <strong>${plan.archive.length} élèves sur ${activeCount}</strong> vont être archivés. Si ton fichier ne contient pas <strong>tous</strong> les internes, annule : ils perdraient leurs votes.</div>` : ''}
+      ${list(pl => pl ? 'nouveaux élèves (identifiant et code créés)' : 'nouvel élève (identifiant et code créés)', 'ip-new', created, x => nm(x.row))}
+      ${list(pl => pl ? 'élèves qui reviennent (même identifiant)' : 'élève qui revient (même identifiant)', 'ip-back', back, x => nm(x.row))}
+      ${updated.length ? `<div class="ip-group ip-upd"><div class="ip-sum"><b>${updated.length}</b> élève${updated.length > 1 ? 's' : ''} mis à jour (identifiant et code inchangés)</div></div>` : ''}
+      ${list(pl => pl ? 'reconnus par leur nom (eleveUid absent ou différent) : leur compte est repris' : 'reconnu par son nom (eleveUid absent ou différent) : son compte est repris', 'ip-name', named, x => nm(x.row))}
+      ${list(pl => pl ? 'élèves à archiver (absents de la liste)' : 'élève à archiver (absent de la liste)', 'ip-arch', plan.archive, st => nm(st))}
+      <div class="ip-actions">
+        <button class="btn btn-ghost" onclick="importCancel()">Annuler</button>
+        <button class="btn ${plan.alert ? 'btn-danger' : 'btn-gold'}" id="import-confirm-btn" onclick="importConfirm()">✓ Confirmer la synchronisation</button>
+      </div>
+    </div>`;
+  box.classList.remove('hidden');
+  box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
 
-      const patch = {
-        first_name:       r.first_name,
-        last_name:        r.last_name,
-        class_name:       r.class_name,
-        school_year:      year,
-        login_identifier: newLogin,
-        sexe:             r.sexe || null, // ⭐ Ajout sexe
-      };
-      
-      // TOUJOURS générer un nouveau PIN initial si l'élève n'en a pas OU n'est pas activé
-      // Cela permet de corriger les élèves créés avec l'ancien système
-      if (!existing_s.is_activated || !existing_s.activation_code) {
-        const initialPIN = generateInitialPIN();
-        const pinHash = await sha256(initialPIN);
-        patch.password_hash = pinHash;
-        patch.activation_code = initialPIN; // Stockage temporaire pour export
-        patch.is_activated = false; // Forcer non activé si on régénère le PIN
+function importCancel() {
+  _importPlan = null;
+  document.getElementById('import-preview').classList.add('hidden');
+  toast('Synchronisation annulée', 'info');
+}
+
+async function importConfirm() {
+  const plan = _importPlan;
+  if (!plan) return;
+  if (document.getElementById('csv-data').value.trim() !== plan.csv) {
+    toast('La liste a changé depuis l\'aperçu : refais l\'aperçu', 'error');
+    return;
+  }
+  const btn = document.getElementById('import-confirm-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Synchronisation…'; }
+  _importPlan = null;
+
+  const { data: logins } = await db.from('students').select('login_identifier');
+  const allLogins = new Set((logins || []).map(x => x.login_identifier).filter(Boolean));
+  const uniqueLogin = (fn, ln) => {
+    let login = buildLoginIdentifier(fn, ln), tries = 0;
+    while (allLogins.has(login) && tries++ < 50) login = buildLoginIdentifier(fn, ln);
+    if (allLogins.has(login)) {
+      const base = login.substring(0, login.length - 3); let n = 2;
+      while (allLogins.has(login)) { login = base + (1000 + n).toString().substring(1); n++; }
+    }
+    allLogins.add(login);
+    return login;
+  };
+
+  let created = 0, updated = 0, unarchived = 0, archived = 0, errors = 0;
+  for (const it of plan.items) {
+    const r = it.row, m = it.match;
+    if (m) {
+      const patch = { first_name: r.first_name, last_name: r.last_name, class_name: r.class_name, school_year: plan.year, sexe: r.sexe || null };
+      // Identifiant : TOUJOURS conservé ; créé seulement s'il n'existe pas
+      if (!m.login_identifier) patch.login_identifier = uniqueLogin(r.first_name, r.last_name);
+      // eleveUid : mis à jour si le fichier en donne un (compte repris par le nom)
+      if (r.eleve_uid && r.eleve_uid !== m.eleve_uid) patch.eleve_uid = r.eleve_uid;
+      // Code initial : créé seulement si l'élève n'est pas activé ET n'en a aucun
+      // (sinon le code imprimé sur sa fiche changerait)
+      if (!m.is_activated && !m.activation_code) {
+        const pin = generateInitialPIN();
+        patch.password_hash = await sha256(pin);
+        patch.activation_code = pin;
+        patch.is_activated = false;
       }
-      
-      // Désarchiver si archivé
-      if (!existing_s.is_active) {
-        patch.is_active = true;
-        unarchived++;
-      } else {
-        updated++;
-      }
-      await db.from('students').update(patch).eq('id', existing_s.id);
+      if (!m.is_active) { patch.is_active = true; unarchived++; } else updated++;
+      const { error } = await db.from('students').update(patch).eq('id', m.id);
+      if (error) { errors++; console.warn('[sync] update:', error); }
     } else {
-      // Création — générer identifiant unique + PIN initial
-      let login = buildLoginIdentifier(r.first_name, r.last_name);
-      let attempts = 0;
-      // Garantir l'unicité
-      while (allLogins.has(login) && attempts < 50) {
-        login = buildLoginIdentifier(r.first_name, r.last_name);
-        attempts++;
-      }
-      if (allLogins.has(login)) {
-        const base = login.substring(0, login.length - 3);
-        let n = 2;
-        while (allLogins.has(login)) {
-          login = base + (1000 + n).toString().substring(1); n++;
-        }
-      }
-      allLogins.add(login);
-
-      // Générer PIN initial
-      const initialPIN = generateInitialPIN();
-      const pinHash = await sha256(initialPIN);
-
-      await db.from('students').insert({
-        first_name:       r.first_name,
-        last_name:        r.last_name,
-        class_name:       r.class_name,
-        school_year:      year,
-        eleve_uid:        r.eleve_uid || null,
-        login_identifier: login,
-        activation_code:  initialPIN, // Stockage temporaire pour export
-        password_hash:    pinHash,
-        is_activated:     false,
-        is_active:        true,
-        sexe:             r.sexe || null, // ⭐ Ajout sexe
+      const pin = generateInitialPIN();
+      const { error } = await db.from('students').insert({
+        first_name: r.first_name, last_name: r.last_name, class_name: r.class_name, school_year: plan.year,
+        eleve_uid: r.eleve_uid || null, login_identifier: uniqueLogin(r.first_name, r.last_name),
+        activation_code: pin, password_hash: await sha256(pin), is_activated: false, is_active: true, sexe: r.sexe || null,
       });
-      if (r.eleve_uid) byUid[r.eleve_uid] = { id: null, eleve_uid: r.eleve_uid, login_identifier: login, is_active: true };
-      created++;
+      if (error) { errors++; console.warn('[sync] insert:', error); } else created++;
     }
   }
 
-  // ---- Import annuel : archiver les absents + supprimer leurs votes ----
+  // Archivage des absents (+ notifications coupées, votes supprimés, propositions refusées, conversations clôturées)
   let votesDeleted = 0, proposalsRejected = 0, conversationsClosed = 0;
-  if (_importMode === 'annual') {
-    // Archiver les élèves actifs absents
-    // Comptes test (classe se terminant par TEST) jamais archivés.
-    const toArchive = (existing || []).filter(s =>
-      s.is_active && s.eleve_uid && !incomingUids.has(s.eleve_uid) && !_isTestClass(s.class_name)
-    );
-    if (toArchive.length) {
-      const archivedIds = toArchive.map(s => s.id);
-      await db.from('students').update({ is_active: false })
-        .in('id', archivedIds);
-      archived = toArchive.length;
-
-      // Couper les notifications push de tous les élèves archivés en masse
-      // (sinon ils continueraient à recevoir les notifs sur leur device)
+  if (plan.archive.length) {
+    const archivedIds = plan.archive.map(st => st.id);
+    const { error: arcErr } = await db.from('students').update({ is_active: false }).in('id', archivedIds);
+    if (arcErr) { errors++; console.warn('[sync] archive:', arcErr); }
+    else {
+      archived = archivedIds.length;
       try {
-        const { error: pushErr } = await db.from('push_subscriptions')
-          .update({
-            active: false,
-            last_error: 'student_archived',
-            last_seen_at: new Date().toISOString(),
-          })
-          .in('student_id', archivedIds)
-          .eq('active', true);
-        if (pushErr) console.warn('[bulk archive] update push_subs:', pushErr);
-      } catch (e) {
-        console.warn('[bulk archive] push sync exception:', e);
-      }
-
-      // Supprimer uniquement les votes des élèves archivés.
-      // Les votes des élèves qui restent sont conservés d'une année sur
-      // l'autre pour éviter qu'ils aient à re-voter pour des films déjà
-      // soutenus l'année précédente.
-      const { data: deletedVotes, error: votesErr } = await db.from('votes')
-        .delete()
-        .in('student_id', archivedIds)
-        .select('id'); // .select pour récupérer le count
-      if (votesErr) {
-        console.warn('[bulk archive] delete votes archived students:', votesErr);
-      } else {
-        votesDeleted = (deletedVotes || []).length;
-      }
-
-      // Propositions en attente des archivés → refusées (traçable dans
-      // l'historique, motif conservé en métadonnée). Pas de suppression.
+        await db.from('push_subscriptions')
+          .update({ active: false, last_error: 'student_archived', last_seen_at: new Date().toISOString() })
+          .in('student_id', archivedIds).eq('active', true);
+      } catch (e) { console.warn('[sync] push:', e); }
       try {
-        const { data: rejProps, error: propErr } = await db.from('proposals')
-          .update({
-            status: 'rejected',
-            reviewed_at: new Date().toISOString(),
-            admin_refusal_reason: 'Élève archivé (import annuel)'
-          })
-          .in('student_id', archivedIds)
-          .eq('status', 'pending')
-          .select('id');
-        if (propErr) console.warn('[bulk archive] reject proposals:', propErr);
-        else proposalsRejected = (rejProps || []).length;
-      } catch (e) { console.warn('[bulk archive] proposals exception:', e); }
-
-      // Conversations actives des archivés → clôturées.
+        const { data: dv } = await db.from('votes').delete().in('student_id', archivedIds).select('id');
+        votesDeleted = (dv || []).length;
+      } catch (e) { console.warn('[sync] votes:', e); }
       try {
-        const { data: closedConvs, error: convErr } = await db.from('conversations')
+        const { data: rp } = await db.from('proposals')
+          .update({ status: 'rejected', reviewed_at: new Date().toISOString(), admin_refusal_reason: 'Élève archivé (synchronisation)' })
+          .in('student_id', archivedIds).eq('status', 'pending').select('id');
+        proposalsRejected = (rp || []).length;
+      } catch (e) { console.warn('[sync] proposals:', e); }
+      try {
+        const { data: cc } = await db.from('conversations')
           .update({ status: 'closed', closed_at: new Date().toISOString() })
-          .in('student_id', archivedIds)
-          .eq('status', 'active')
-          .select('id');
-        if (convErr) console.warn('[bulk archive] close conversations:', convErr);
-        else conversationsClosed = (closedConvs || []).length;
-      } catch (e) { console.warn('[bulk archive] conversations exception:', e); }
+          .in('student_id', archivedIds).eq('status', 'active').select('id');
+        conversationsClosed = (cc || []).length;
+      } catch (e) { console.warn('[sync] conversations:', e); }
     }
   }
 
-  // ---- Résumé ----
   document.getElementById('csv-data').value = '';
-  if (_importMode === 'annual') {
-    document.getElementById('import-annual-pwd').value = '';
-  }
-
+  document.getElementById('import-annual-pwd').value = '';
+  document.getElementById('import-preview').classList.add('hidden');
   const resultEl = document.getElementById('import-result');
-  const row = (label, val, cls = '') =>
-    `<div class="import-result-row">
-       <span>${label}</span>
-       <span class="import-result-val ${cls}">${val}</span>
-     </div>`;
-
+  const row = (label, val, cls = '') => `<div class="import-result-row"><span>${label}</span><span class="import-result-val ${cls}">${val}</span></div>`;
   resultEl.classList.remove('hidden');
   resultEl.innerHTML = `
     <div class="import-result-block">
-      <div style="font-size:11px;font-weight:800;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;">
-        Résumé de l'import
-      </div>
-      ${row('Type d\'import', _importMode === 'annual' ? '🎓 Annuel' : '📋 Ponctuel', _importMode === 'annual' ? 'gold' : '')}
-      ${row('Année scolaire détectée', year, 'gold')}
+      <div style="font-size:11px;font-weight:800;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;">Synchronisation terminée</div>
+      ${row('Année scolaire', _escapeHtml(plan.year), 'gold')}
       ${row('Élèves créés', created, created > 0 ? 'green' : '')}
       ${row('Élèves mis à jour', updated)}
-      ${row('Élèves désarchivés', unarchived, unarchived > 0 ? 'green' : '')}
+      ${row('Élèves revenus', unarchived, unarchived > 0 ? 'green' : '')}
       ${row('Élèves archivés', archived, archived > 0 ? 'red' : '')}
-      ${row('Votes supprimés (élèves archivés)', votesDeleted, votesDeleted > 0 ? 'red' : '')}
-      ${row('Propositions refusées (élèves archivés)', proposalsRejected, proposalsRejected > 0 ? 'red' : '')}
-      ${row('Conversations clôturées (élèves archivés)', conversationsClosed, conversationsClosed > 0 ? 'red' : '')}
+      ${row('Votes supprimés (archivés)', votesDeleted, votesDeleted > 0 ? 'red' : '')}
+      ${row('Propositions refusées (archivés)', proposalsRejected, proposalsRejected > 0 ? 'red' : '')}
+      ${row('Conversations clôturées (archivés)', conversationsClosed, conversationsClosed > 0 ? 'red' : '')}
+      ${errors ? row('Erreurs (voir la console)', errors, 'red') : ''}
     </div>`;
-
-  toast(`Import terminé — ${created} créé${created !== 1 ? 's' : ''}, ${updated + unarchived} mis à jour`, 'success');
-
-  // Rafraîchir si onglet Élèves ouvert
-  if (!document.getElementById('ap-students')?.classList.contains('hidden')) {
-    loadAdminStudents();
-  }
+  toast(`Synchronisation terminée — ${created} créé${created !== 1 ? 's' : ''}, ${updated + unarchived} mis à jour, ${archived} archivé${archived !== 1 ? 's' : ''}`, errors ? 'error' : 'success');
+  if (!document.getElementById('ap-students')?.classList.contains('hidden')) loadAdminStudents();
 }
+
+/* Ancien nom conservé (raccourcis éventuels) : passe par l'aperçu */
+function importStudentsFromSettings() { return importPreview(); }
 
 /* Archiver / désarchiver un élève */
 /* Archiver / Désarchiver un élève — protégé par mot de passe admin */
