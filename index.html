@@ -9232,6 +9232,114 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
   .admin-tab { border-radius: var(--radius-sm); }
 }
 
+
+/* ================================================================
+   ONGLET PROFIL ÉLÈVE — page Profil, Réglages, Personnaliser
+   + accueil avec plusieurs séances
+   ================================================================ */
+.nav-ring-wrap { position: relative; display: inline-flex; }
+.home-profile-btn.nav-ring { width: 26px; height: 26px; margin: 0; background: transparent; box-shadow: none; cursor: inherit; }
+.home-profile-btn.nav-ring:hover { transform: none; box-shadow: none; }
+.home-profile-btn.nav-ring .xp-ring-level { font-size: 11px; }
+.home-profile-btn.nav-ring .xp-ring-track { stroke-width: 4; }
+.home-profile-btn.nav-ring .xp-ring-progress { stroke-width: 4; filter: none; }
+.nav-btn:not(.active) .home-profile-btn.nav-ring { opacity: .7; }
+.nav-dot { position: absolute; top: -2px; right: -5px; width: 10px; height: 10px; border-radius: 50%; background: var(--red); border: 2px solid #0e0e16; }
+.nav-dot.hidden { display: none; }
+
+.pp-head { display: flex; align-items: center; gap: 12px; padding: 18px 18px 8px; }
+.pp-head h1 { flex: 1; font-family: 'Playfair Display', serif; font-size: 26px; font-weight: 700; line-height: 1.1; }
+.pp-iconbtn { width: 42px; height: 42px; flex-shrink: 0; border-radius: 13px; background: var(--surface-2); border: 1px solid var(--border-2); color: var(--text); font-size: 19px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-family: inherit; }
+.pp-iconbtn.back { font-size: 24px; line-height: 1; }
+.pp-card { margin: 6px 16px 0; padding: 22px 16px 18px; border-radius: 24px; text-align: center; border: 1px solid rgba(240,165,0,.35);
+  background: radial-gradient(120% 80% at 50% 0%, rgba(240,165,0,.16), transparent 65%), var(--surface);
+  display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.pp-card .profile-xp-ring { width: 96px; height: 96px; }
+.pp-card .profile-xp-ring .xp-ring-level { font-size: 32px; }
+.pp-name { font-family: 'Playfair Display', serif; font-size: 23px; font-weight: 700; line-height: 1.2; overflow-wrap: anywhere; }
+.pp-chip { display: inline-block; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border-2); color: var(--text-2); }
+.pp-deco:empty { display: none; }
+.pp-deco .student-deco { justify-content: center; }
+.pp-custom-btn { margin-top: 4px; display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 999px; border: 1.5px solid var(--gold); background: transparent; color: var(--gold); font: 700 14px/1.2 inherit; font-family: inherit; cursor: pointer; }
+.pp-xp { margin: 12px 16px 0; padding: 13px 15px; border-radius: 16px; background: var(--surface); border: 1px solid var(--border); }
+.pp-xp-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.pp-xp-lvl { font-size: 14px; font-weight: 700; }
+.pp-xp-lvl b { color: var(--gold); }
+.pp-link { background: none; border: none; padding: 0; color: var(--gold); font: 700 12.5px/1.2 inherit; font-family: inherit; cursor: pointer; text-align: right; }
+.pp-xp .profile-xp-milestone { text-align: left; margin-top: 6px; }
+.pp-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 12px 16px 0; }
+.pp-stat { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 10px 2px; text-align: center; cursor: pointer; font-family: inherit; color: var(--text); min-width: 0; }
+.pp-stat b { display: block; font-size: 19px; line-height: 1.2; }
+.pp-stat span { font-size: 10.5px; color: var(--text-2); font-weight: 600; }
+.pp-sec { padding: 0 16px; margin-top: 22px; }
+.pp-sec-t { font-size: 11px; font-weight: 800; letter-spacing: .12em; color: var(--text-3); text-transform: uppercase; margin: 0 4px 8px; }
+.pp-list { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+.pp-row { display: flex; align-items: center; gap: 12px; width: 100%; padding: 13px 14px; border: none; border-top: 1px solid var(--border); background: none; color: var(--text); font: 600 14.5px/1.3 inherit; font-family: inherit; text-align: left; cursor: pointer; }
+.pp-row:first-child { border-top: none; }
+.pp-row:disabled { cursor: default; opacity: .6; }
+.pp-ic { width: 32px; height: 32px; border-radius: 10px; background: var(--surface-2); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+.pp-tx { flex: 1; min-width: 0; }
+.pp-sub { display: block; font-size: 12px; color: var(--text-2); font-weight: 500; margin-top: 2px; }
+.pp-ar { color: var(--text-3); font-size: 20px; line-height: 1; }
+.pp-new { font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 999px; background: var(--red); color: #fff; }
+.pp-new.hidden { display: none; }
+.pp-switch { width: 46px; height: 28px; border-radius: 999px; background: var(--border-2); position: relative; flex-shrink: 0; transition: background .2s; }
+.pp-switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #b9b9c6; transition: left .2s, background .2s; }
+.pp-switch.on { background: var(--gold); }
+.pp-switch.on::after { left: 21px; background: #1a1200; }
+.pp-logout { display: block; width: calc(100% - 32px); margin: 26px 16px 0; padding: 14px; border-radius: 14px; border: 1.5px solid rgba(232,64,64,.55); background: rgba(232,64,64,.08); color: #ff6b6b; font: 700 15px/1.2 inherit; font-family: inherit; cursor: pointer; }
+.pp-who { text-align: center; font-size: 11.5px; color: var(--text-3); margin: 8px 16px 0; overflow-wrap: anywhere; }
+.tp-navmock { display: flex; justify-content: space-around; margin: 6px auto 14px; max-width: 300px; padding: 8px 6px; border-radius: 18px; background: rgba(14,14,22,.9); border: 1px solid rgba(240,165,0,.25); }
+.tp-navmock span { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 18px; opacity: .55; padding: 4px 8px; border-radius: 12px; }
+.tp-navmock span.on { opacity: 1; background: rgba(240,165,0,.14); box-shadow: inset 0 0 0 1px rgba(240,165,0,.3); }
+.tp-navmock small { font-size: 10px; font-weight: 700; color: var(--text-2); }
+.tp-navmock span.on small { color: var(--gold); }
+.pp-foot { text-align: center; font-size: 11.5px; color: var(--text-3); margin-top: 22px; }
+/* Personnaliser */
+.cz-preview { margin: 6px 16px 0; padding: 16px; border-radius: 22px; border: 1px solid rgba(240,165,0,.35); display: flex; gap: 14px; align-items: center;
+  background: radial-gradient(120% 80% at 0% 0%, rgba(240,165,0,.14), transparent 65%), var(--surface); }
+.cz-preview .profile-xp-ring { width: 64px; height: 64px; }
+.cz-preview .profile-xp-ring .xp-ring-level { font-size: 22px; }
+.cz-preview .pp-name { font-size: 19px; text-align: left; }
+.cz-preview .student-deco { margin-top: 6px; }
+.cz-hint { text-align: center; font-size: 11.5px; color: var(--text-3); margin: 6px 16px 0; }
+.cz-titles { display: flex; flex-wrap: wrap; gap: 8px; }
+.cz-title { display: inline-flex; align-items: center; gap: 5px; padding: 7px 12px; border-radius: 999px; border: 1px solid var(--border-2); background: var(--surface-2); color: var(--text-2); font: 700 13px/1.2 inherit; font-family: inherit; cursor: pointer; }
+.cz-title.active { color: var(--gold); border-color: rgba(240,165,0,.55); background: var(--gold-dim); }
+.cz-title:disabled { opacity: .4; cursor: default; }
+.cz-slots { display: flex; gap: 14px; justify-content: center; margin-bottom: 12px; }
+.cz-slot { width: 64px; height: 64px; border-radius: 50%; border: 1.5px dashed var(--border-2); background: var(--surface); display: flex; align-items: center; justify-content: center; font-size: 26px; color: var(--text-3); cursor: pointer; padding: 0; overflow: hidden; }
+.cz-slot.filled { border: 1.5px solid rgba(240,165,0,.55); background: radial-gradient(circle at 35% 30%, #3a3a58, #1c1c2c); }
+.cz-slot img { width: 100%; height: 100%; object-fit: cover; }
+.cz-note { font-size: 12px; color: var(--text-2); text-align: center; margin-top: 8px; }
+/* Accueil : séances suivantes */
+.hms-event { display: flex; gap: 13px; align-items: center; padding: 14px; border-radius: 20px; cursor: pointer; border: 1px solid rgba(240,165,0,.4);
+  background: radial-gradient(120% 120% at 100% 0%, rgba(240,165,0,.18), transparent 60%), var(--surface); }
+.hms-event.hms-christmas { border-color: rgba(255,110,100,.45); background: radial-gradient(120% 120% at 100% 0%, rgba(193,39,45,.35), transparent 60%), linear-gradient(135deg, rgba(25,90,60,.35), rgba(17,17,25,.92)); }
+.hms-event.hms-halloween { border-color: rgba(255,122,0,.5); background: radial-gradient(120% 120% at 100% 0%, rgba(255,122,0,.28), transparent 60%), linear-gradient(135deg, rgba(60,20,80,.35), rgba(17,17,25,.92)); }
+.hms-poster { width: 64px; height: 96px; border-radius: 10px; flex-shrink: 0; overflow: hidden; background: var(--surface-3); display: flex; align-items: center; justify-content: center; font-size: 26px; border: 1px solid rgba(255,255,255,.1); }
+.hms-poster img { width: 100%; height: 100%; object-fit: cover; }
+.hms-info { min-width: 0; flex: 1; }
+.hms-kicker { font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--gold); }
+.hms-christmas .hms-kicker { color: #ff8a80; }
+.hms-halloween .hms-kicker { color: #ff9d3d; }
+.hms-title { font-family: 'Playfair Display', serif; font-size: 19px; font-weight: 700; line-height: 1.2; margin-top: 3px; overflow-wrap: anywhere; }
+.hms-sub { font-size: 12px; color: var(--text-2); margin-top: 4px; line-height: 1.35; }
+.hms-count { display: inline-block; margin-top: 8px; font-size: 11.5px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: rgba(240,165,0,.12); color: var(--gold); border: 1px solid rgba(240,165,0,.35); }
+.hms-christmas .hms-count { background: rgba(255,138,128,.14); color: #ff9d94; border-color: rgba(255,138,128,.4); }
+.hms-halloween .hms-count { background: rgba(255,122,0,.14); color: #ffb066; border-color: rgba(255,122,0,.4); }
+.hms-label { font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--text-3); margin: 0 2px 8px; }
+.hms-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 14px; background: var(--surface); border: 1px solid var(--border); cursor: pointer; margin-bottom: 8px; }
+.hms-row .hms-poster { width: 38px; height: 56px; font-size: 16px; border-radius: 7px; }
+.hms-row-t { font-weight: 700; font-size: 14px; line-height: 1.3; overflow-wrap: anywhere; }
+.hms-row-s { font-size: 12px; color: var(--text-2); margin-top: 2px; }
+.hms-row .badge { flex-shrink: 0; }
+@keyframes hmsFlash { 0%, 100% { box-shadow: none; } 30% { box-shadow: 0 0 0 3px rgba(240,165,0,.55); } }
+.hms-flash { animation: hmsFlash 1.4s ease 2; border-radius: 22px; }
+@media (max-width: 360px) {
+  .pp-stat b { font-size: 17px; }
+  .pp-stat span { font-size: 9.5px; }
+}
   </style>
 <body>
 <script>
@@ -9393,14 +9501,6 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       <div class="home-greeting">Bienvenue, <span id="home-uname">toi</span></div>
       <div class="home-sub">Ton espace cinéma du mercredi soir</div>
     </div>
-    <!-- Bouton profil — card avec anneau XP + Prénom Nom (Batch C2a v2) -->
-    <button class="home-profile-card" id="home-profile-card" onclick="openModal('modal-profile'); refreshStudentPersistCard()" title="Mon profil">
-      <span class="home-profile-btn" id="home-profile-btn"></span>
-      <span class="home-profile-card-name">
-        <span class="home-profile-card-firstname" id="home-card-firstname">—</span>
-        <span class="home-profile-card-lastname"  id="home-card-lastname">—</span>
-      </span>
-    </button>
   </div>
 
   <!-- Sondage « Quel film mercredi ? » (visible seulement pendant un sondage) -->
@@ -9410,10 +9510,12 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
   </div>
 
   <!-- Prochaine séance : une seule fois, en haut -->
-  <div class="home-section" style="margin-top:20px;">
+  <div class="home-section" id="home-next-section" style="margin-top:20px;">
     <div class="home-section-title">🎟 Prochaine séance</div>
     <div id="home-next-session"></div>
   </div>
+  <!-- Séances suivantes : soirée événement + « Aussi prévu » -->
+  <div id="home-more-sessions"></div>
 
   <!-- ================================================================
        BANNIÈRE D'INSTALLATION PWA
@@ -9444,7 +9546,6 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 <div class="screen hidden" id="screen-films">
   <div class="s-header">
     <h1>🎬 Films en vote</h1>
-    <button class="home-profile-btn" onclick="openModal('modal-profile'); refreshStudentPersistCard()" title="Mon profil">?</button>
   </div>
   <!-- Toggle de filtre événement (visible uniquement si thème actif) -->
   <div id="films-event-filter" class="event-filter-bar hidden">
@@ -9489,7 +9590,6 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 <div class="screen hidden" id="screen-propose">
   <div class="s-header">
     <h1>💡 Proposer un film</h1>
-    <button class="home-profile-btn" onclick="openModal('modal-profile'); refreshStudentPersistCard()" title="Mon profil">?</button>
   </div>
   <div class="propose-body">
     <p class="text-sm text-muted mb-2">Recherche un film et propose-le. L'admin le validera avant qu'il apparaisse.</p>
@@ -9538,11 +9638,78 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 <div class="screen hidden" id="screen-session">
   <div class="s-header">
     <h1>🎟️ Séances</h1>
-    <button class="home-profile-btn" onclick="openModal('modal-profile'); refreshStudentPersistCard()" title="Mon profil">?</button>
   </div>
   <div class="sessions-body" id="sessions-body">
     <div class="loader"><div class="spinner"></div></div>
   </div>
+</div>
+
+<!-- ================================================================
+     SCREEN: PROFIL (onglet élève) + RÉGLAGES + PERSONNALISER
+     ================================================================ -->
+<div class="screen hidden" id="screen-profile">
+  <div class="pp-head">
+    <h1>Profil</h1>
+    <button class="pp-iconbtn" onclick="navigateTo('settings')" aria-label="Réglages" title="Réglages">⚙️</button>
+  </div>
+  <div class="pp-card">
+    <div class="profile-xp-ring" id="prof-xp-ring">
+      <svg class="xp-ring-svg" viewBox="0 0 80 80">
+        <circle class="xp-ring-track" cx="40" cy="40" r="36"></circle>
+        <circle class="xp-ring-progress" id="prof-xp-ring-progress" cx="40" cy="40" r="36" stroke-dasharray="226.2" stroke-dashoffset="226.2"></circle>
+      </svg>
+      <span class="xp-ring-level" id="prof-xp-ring-level">1</span>
+    </div>
+    <div class="pp-name" id="prof-fullname">—</div>
+    <span class="pp-chip" id="prof-class">—</span>
+    <div class="pp-deco" id="profile-deco-row"></div>
+    <button class="pp-custom-btn" onclick="navigateTo('customize')">✏️ Personnaliser mon profil</button>
+  </div>
+  <div class="pp-xp">
+    <div class="pp-xp-top">
+      <span class="pp-xp-lvl">Niveau <b id="pp-xp-level">—</b><span id="prof-xp-title" hidden></span></span>
+      <button class="pp-link" onclick="openStudentXpGuide()">Gagner de l'XP ›</button>
+    </div>
+    <div class="profile-xp-bar"><div class="profile-xp-bar-fill" id="prof-xp-bar-fill" style="width:0%;"></div></div>
+    <div class="profile-xp-progress-text" id="prof-xp-progress-text"></div>
+    <div class="profile-xp-milestone hidden" id="prof-xp-milestone"></div>
+  </div>
+  <div class="pp-stats" id="pp-stats"></div>
+  <div class="pp-sec">
+    <div class="pp-sec-t">Mon cinéma</div>
+    <div class="pp-list">
+      <button class="pp-row" onclick="openStudentJourney()"><span class="pp-ic">📜</span><span class="pp-tx">Mon parcours</span><span class="pp-ar">›</span></button>
+      <button class="pp-row" onclick="openStudentWatchedFilms()"><span class="pp-ic">🎞</span><span class="pp-tx">Mes films vus</span><span class="pp-ar">›</span></button>
+      <button class="pp-row" onclick="openStudentBadges()"><span class="pp-ic">🏅</span><span class="pp-tx">Mes badges</span><span class="pp-new hidden" id="pp-badges-new">Nouveau</span><span class="pp-ar">›</span></button>
+    </div>
+  </div>
+  <div class="pp-sec">
+    <div class="pp-sec-t">Besoin d'aide ?</div>
+    <div class="pp-list">
+      <button class="pp-row" onclick="openStudentMessaging()"><span class="pp-ic">💬</span><span class="pp-tx" id="profile-messaging-label">Messagerie</span><span class="pp-ar">›</span></button>
+      <button class="pp-row" onclick="openStudentArchivedConversations()"><span class="pp-ic">📂</span><span class="pp-tx">Conversations archivées</span><span class="pp-ar">›</span></button>
+      <button class="pp-row" onclick="openStudentTutos()"><span class="pp-ic">📚</span><span class="pp-tx">Revoir les tutos</span><span class="pp-ar">›</span></button>
+      <button class="pp-row" onclick="openStudentFAQ()"><span class="pp-ic">❔</span><span class="pp-tx">Aide / FAQ</span><span class="pp-ar">›</span></button>
+    </div>
+  </div>
+  <button class="pp-logout" onclick="profileLogout()">⏻ Se déconnecter</button>
+  <div class="pp-who" id="prof-identifier"></div>
+</div>
+
+<div class="screen hidden" id="screen-settings">
+  <div class="pp-head">
+    <button class="pp-iconbtn back" onclick="navigateTo('profile')" aria-label="Retour">‹</button>
+    <h1>Réglages</h1>
+  </div>
+  <div id="settings-body"></div>
+</div>
+
+<div class="screen hidden" id="screen-customize">
+  <div class="pp-head">
+    <button class="pp-iconbtn back" onclick="navigateTo('profile')" aria-label="Retour">‹</button>
+    <h1>Personnaliser</h1>
+  </div>
+  <div id="customize-body"></div>
 </div>
 
 <!-- ================================================================
@@ -9914,9 +10081,9 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
     Proposer
   </button>
-  <button class="nav-btn" id="nav-session" onclick="navigateTo('session')">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
-    Séances
+  <button class="nav-btn" id="nav-profile" onclick="navigateTo('profile')">
+    <span class="nav-ring-wrap"><span class="home-profile-btn nav-ring"></span><span class="nav-dot hidden" id="nav-profile-dot"></span></span>
+    Profil
   </button>
 </nav>
 
@@ -10411,157 +10578,6 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 <!-- ================================================================
      MODAL: Profil élève — version premium
      ================================================================ -->
-<div class="overlay hidden" id="modal-profile">
-  <div class="sheet">
-    <div class="sheet-handle"></div>
-
-    <!-- En-tête : bloc XP + nom + classe + identifiant (Batch C2a) -->
-    <div class="profile-header">
-      <!-- Bloc XP : grand anneau + niveau + titre + barre de progression -->
-      <div class="profile-xp-block" id="prof-xp-block">
-        <div class="profile-xp-row">
-          <div class="profile-xp-ring" id="prof-xp-ring">
-            <svg class="xp-ring-svg" viewBox="0 0 80 80">
-              <circle class="xp-ring-track" cx="40" cy="40" r="36"></circle>
-              <circle class="xp-ring-progress" id="prof-xp-ring-progress" cx="40" cy="40" r="36"
-                stroke-dasharray="226.2" stroke-dashoffset="226.2"></circle>
-            </svg>
-            <span class="xp-ring-level" id="prof-xp-ring-level">1</span>
-          </div>
-          <div class="profile-xp-info">
-            <div class="profile-xp-level-label">Niveau</div>
-            <div class="profile-xp-title" id="prof-xp-title">🎟 Spectateur</div>
-            <div class="profile-xp-bar">
-              <div class="profile-xp-bar-fill" id="prof-xp-bar-fill" style="width:0%;"></div>
-            </div>
-            <div class="profile-xp-progress-text" id="prof-xp-progress-text">0 / 0 XP</div>
-          </div>
-        </div>
-        <div class="profile-xp-milestone hidden" id="prof-xp-milestone"></div>
-      </div>
-      <div class="profile-name" id="prof-fullname">—</div>
-      <div class="profile-class" id="prof-class">—</div>
-      <div class="profile-identifier" id="prof-identifier"></div>
-      <!-- Carte de visite (titre + 3 badges épinglés) — Batch C3 Phase 2C -->
-      <div class="profile-deco-row" id="profile-deco-row"></div>
-    </div>
-
-    <!-- Carte installation mise en avant — masquée automatiquement si déjà en PWA -->
-    <div class="profile-install-card" id="profile-install-card" onclick="openAddToHome()">
-      <div class="profile-install-icon">📲</div>
-      <div class="profile-install-content">
-        <div class="profile-install-title">Installer l'application</div>
-        <div class="profile-install-text">Ajoute Cinéma Internat sur ton écran d'accueil pour l'ouvrir facilement.</div>
-      </div>
-      <div class="profile-install-arrow">›</div>
-    </div>
-
-    <!-- Actions organisées par sections -->
-    <div class="profile-actions">
-      
-      <!-- Section Mon cinéma -->
-      <div class="profile-section">
-        <div class="profile-section-title">MON CINÉMA</div>
-        <button class="profile-action-btn" onclick="openStudentJourney()">
-          <span class="pa-icon">📜</span>
-          <span class="pa-text">Mon parcours</span>
-          <span class="pa-arrow">›</span>
-        </button>
-        <button class="profile-action-btn" onclick="openStudentBadges()">
-          <span class="pa-icon">🏅</span>
-          <span class="pa-text">Mes badges</span>
-          <span class="pa-arrow">›</span>
-        </button>
-        <button class="profile-action-btn" onclick="openStudentTitleModal()">
-          <span class="pa-icon">🎭</span>
-          <span class="pa-text">Mon titre</span>
-          <span class="pa-arrow">›</span>
-        </button>
-        <button class="profile-action-btn" onclick="openStudentWatchedFilms()">
-          <span class="pa-icon">🎞</span>
-          <span class="pa-text">Mes films vus</span>
-          <span class="pa-arrow">›</span>
-        </button>
-      </div>
-
-      <!-- Section Mon compte -->
-      <div class="profile-section">
-        <div class="profile-section-title">MON COMPTE</div>
-        <button class="profile-action-btn" onclick="openChangePIN()">
-          <span class="pa-icon">🔐</span>
-          <span class="pa-text">Changer mon code secret</span>
-          <span class="pa-arrow">›</span>
-        </button>
-        <!-- Notifications push : déplacé du haut du profil vers ici (Bug C5) -->
-        <button class="profile-action-btn profile-push-btn" data-push-toggle onclick="togglePushNotifications()">
-          <span class="pa-icon" data-push-icon>🔕</span>
-          <span class="pa-text" data-push-label>Activer les notifications</span>
-          <span class="pa-arrow">›</span>
-        </button>
-        <!-- Encart d'aide : visible si needs_pwa (géré par _refreshPushButtons) -->
-        <div class="push-help-box hidden" data-push-help style="margin:8px 0 0;">
-          <div class="push-help-box-icon">💡</div>
-          <div>
-            <div class="push-help-box-title">Comment activer les notifications ?</div>
-            1. Installe l'application en suivant <strong>📲 Installer l'application</strong> en haut du profil.<br>
-            2. Une fois l'app ouverte depuis l'icône sur ton écran d'accueil, reviens ici et appuie sur <strong>🔕 Activer les notifications</strong>.
-          </div>
-        </div>
-
-        <!-- Toggle "Rester connecté" — visible uniquement en PWA (sinon caché au load) -->
-        <button class="profile-action-btn" id="student-persist-card" onclick="toggleStudentPersist()" style="display:none;">
-          <span class="pa-icon" id="student-persist-icon">🔓</span>
-          <span class="pa-text">
-            <span id="student-persist-title" style="display:block;">Rester connecté sur cet appareil</span>
-            <span id="student-persist-sub" style="display:block;font-size:11.5px;color:var(--text-3);font-weight:500;margin-top:2px;">Évite de retaper ton code à chaque ouverture.</span>
-          </span>
-          <span class="pa-arrow">›</span>
-        </button>
-      </div>
-
-      <!-- Section Besoin d'aide -->
-      <div class="profile-section">
-        <div class="profile-section-title">BESOIN D'AIDE ?</div>
-        <button class="profile-action-btn" onclick="openStudentMessaging()">
-          <span class="pa-icon">💬</span>
-          <span class="pa-text" id="profile-messaging-label">Messagerie</span>
-          <span class="pa-arrow">›</span>
-        </button>
-        <button class="profile-action-btn" onclick="openStudentArchivedConversations()">
-          <span class="pa-icon">📂</span>
-          <span class="pa-text">Conversations archivées</span>
-          <span class="pa-arrow">›</span>
-        </button>
-        <button class="profile-action-btn" onclick="openStudentXpGuide()">
-          <span class="pa-icon">💡</span>
-          <span class="pa-text">Comment gagner de l'XP ?</span>
-          <span class="pa-arrow">›</span>
-        </button>
-        <button class="profile-action-btn" onclick="openStudentFAQ()">
-          <span class="pa-icon">❔</span>
-          <span class="pa-text">Aide / FAQ</span>
-          <span class="pa-arrow">›</span>
-        </button>
-        <button class="profile-action-btn" onclick="openStudentTutos()">
-          <span class="pa-icon">📚</span>
-          <span class="pa-text">Mes tutos</span>
-          <span class="pa-arrow">›</span>
-        </button>
-      </div>
-
-      <!-- Déconnexion séparée -->
-      <button class="btn-logout" onclick="closeModal('modal-profile'); logout();">
-        <span class="btn-logout-icon">⏻</span>
-        Se déconnecter
-      </button>
-    </div>
-
-    <div class="profile-close-row">
-      <button class="profile-close-link" onclick="closeModal('modal-profile')">Fermer</button>
-    </div>
-  </div>
-</div>
-
 <!-- ================================================================
      MODAL: Rappel date de naissance (Batch C2b)
      Modale "rappel" non bloquante : 1 fois par session avec bouton "Plus tard"
@@ -11192,7 +11208,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       Fermer
     </button>
     <div style="text-align:center;margin-top:14px;font-size:12px;color:var(--text-3);line-height:1.5;">
-      💡 Tu pourras toujours activer cette option<br>plus tard depuis ton profil.
+      💡 Tu pourras toujours activer cette option<br>plus tard dans Profil › ⚙️ Réglages.
     </div>
   </div>
 </div>
@@ -11342,8 +11358,8 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
           <span class="faq-arrow">›</span>
         </div>
         <div class="faq-answer hidden">
-          1. Installe l'application en suivant le tuto <strong>📲 Installer l'application</strong> en haut de ton profil.<br>
-          2. Une fois l'app ouverte depuis l'icône sur ton écran d'accueil, appuie sur <strong>🔕 Activer les notifications</strong> dans ton profil.
+          1. Installe l'application : <strong>Profil › ⚙️ Réglages › 📲 Installer l'application</strong>.<br>
+          2. Une fois l'app ouverte depuis l'icône sur ton écran d'accueil, active <strong>🔔 Notifications</strong> dans <strong>Profil › ⚙️ Réglages</strong>.
         </div>
       </div>
       
@@ -11354,7 +11370,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
           <span class="faq-arrow">›</span>
         </div>
         <div class="faq-answer hidden">
-          Va dans <strong>Séances</strong>, puis appuie sur <strong>S'inscrire</strong>.<br>
+          Sur l'<strong>Accueil</strong>, appuie sur <strong>S'inscrire</strong> sur la carte de la séance (ou touche la carte pour voir la fiche).<br>
           Si la séance est pleine, tu peux rejoindre la liste d'attente.
         </div>
       </div>
@@ -15689,6 +15705,7 @@ async function checkAndUnlockBadges(studentId) {
       setTimeout(() => {
         for (const b of newlyUnlocked) notifyBadgeUnlocked(b);
       }, 1200);
+      _refreshProfileDot();
     }
 
     return newlyUnlocked;
@@ -15905,6 +15922,7 @@ async function openStudentBadges() {
     _renderBadgesFilters();
     _renderBadgesGrid();
     _updateBadgesCounter();
+    _markBadgesSeen();
   } catch (e) {
     console.warn('[badges] openStudentBadges error:', e);
     document.getElementById('badges-grid').innerHTML = '<div class="badges-empty">Erreur de chargement.</div>';
@@ -17195,6 +17213,35 @@ async function replayHistoricalXP(opts = {}) {
 // }
 const WHATSNEW_TUTORIALS = [
   {
+    slug: 'nav_profile_2026',
+    category: 'features',
+    title: '👤 Nouveau : l\'onglet Profil',
+    createdAt: '2026-11-16',
+    slides: [
+      {
+        title: '👤 Ta barre a changé',
+        bodyHtml: `
+          <div class="tp-navmock">
+            <span>🏠<small>Accueil</small></span><span>🎬<small>Votes</small></span><span>➕<small>Proposer</small></span><span class="on">👤<small>Profil</small></span>
+          </div>
+          <p class="whatsnew-slide-body">
+            L'onglet <strong>Séances</strong> laisse sa place à ton <strong>Profil</strong>, tout à droite.
+            Le petit anneau, c'est ton niveau. Un <strong style="color:#e84040">point rouge</strong> apparaît quand tu débloques un nouveau badge.
+          </p>
+        `
+      },
+      {
+        title: '🎟 Les séances sont sur l\'Accueil',
+        body: 'La prochaine séance est en grand en haut de l\'Accueil, avec le bouton pour t\'inscrire. S\'il y a une soirée spéciale (Noël, Halloween…) ou d\'autres séances prévues, elles s\'affichent juste en dessous.'
+      },
+      {
+        title: '✏️ Personnalise ton profil',
+        body: 'Dans ton Profil, choisis ton titre et les 3 badges que les autres voient à côté de ton nom. Les notifications, « rester connecté » et ton code secret sont dans ⚙️ Réglages, en haut à droite. Le bouton pour te déconnecter est tout en bas.'
+      }
+    ],
+    cta: { label: 'Voir mon profil', action: 'goToProfile' }
+  },
+  {
     slug: 'xp_and_badges_2026',
     category: 'features',
     title: '🎬 Système XP & Badges',
@@ -17978,7 +18025,7 @@ function stayLoggedPromptActivate() {
 /* Bouton "Fermer" (le report éventuel est déjà enregistré par la case) */
 function stayLoggedPromptClose() {
   closeModal('modal-stay-logged-firstlogin');
-  toast('Tu retrouves cette option dans ton profil 👤', 'info', 3500);
+  toast('Tu retrouves cette option dans Profil › ⚙️ Réglages', 'info', 3500);
 }
 
 /* Vérifie si l'élève a des tutos non vus, et les affiche le cas échéant.
@@ -19629,10 +19676,11 @@ function showScreen(id) {
   const isStudent = !S.isAdmin && id !== 'login' && id !== 'admin';
   nav.classList.toggle('hidden', !isStudent);
 
-  // Update nav active state
-  ['home','films','propose','session'].forEach(n => {
+  // Update nav active state (Réglages / Personnaliser restent dans l'onglet Profil)
+  const navKey = ['profile', 'settings', 'customize'].includes(id) ? 'profile' : id;
+  ['home','films','propose','profile'].forEach(n => {
     const el = document.getElementById('nav-' + n);
-    if (el) el.classList.toggle('active', n === id);
+    if (el) el.classList.toggle('active', n === navKey);
   });
 
   window.scrollTo(0, 0);
@@ -19649,9 +19697,19 @@ async function navigateTo(id, isBack = false) {
     id = 'propose';
   }
 
+  // L'onglet Séances n'existe plus : les séances sont sur l'Accueil
+  if (id === 'session') {
+    await navigateTo('home', isBack);
+    _flashHomeSessions();
+    return;
+  }
+
   showScreen(id);
   switch(id) {
     case 'home':    await loadHome(); break;
+    case 'profile':   await loadProfileScreen(); break;
+    case 'settings':  await loadSettingsScreen(); break;
+    case 'customize': await loadCustomizeScreen(); break;
     case 'films':   await loadFilms(); break;
     case 'propose':
       if (!isBack) _tmdbSearchState = null;
@@ -21088,6 +21146,305 @@ function logout(reason) {
   }
 }
 
+
+/* ================================================================
+   ONGLET PROFIL ÉLÈVE — page Profil, Réglages, Personnaliser
+   ================================================================ */
+
+/* Page Profil */
+async function loadProfileScreen() {
+  if (!S.user || S.isAdmin) return;
+  const full = [S.user.firstName, S.user.lastName].filter(Boolean).join(' ') || '—';
+  document.getElementById('prof-fullname').textContent = full;
+  document.getElementById('prof-class').textContent = S.user.className || '—';
+  const who = document.getElementById('prof-identifier');
+  if (who) who.textContent = `Connecté en tant que ${full}` + (S.user.loginIdentifier ? ` · ${S.user.loginIdentifier}` : '');
+
+  const sup = getSupervisorName();
+  const msgLabel = document.getElementById('profile-messaging-label');
+  if (msgLabel) msgLabel.textContent = `Contacter ${sup.charAt(0).toUpperCase() + sup.slice(1)}`;
+
+  renderProfileXpBlock();
+  getStudentTotalXp(S.user.id).then(xp => {
+    const lv = document.getElementById('pp-xp-level');
+    if (lv) lv.textContent = computeXpProgress(xp || 0).level;
+  }).catch(() => {});
+
+  loadStudentsBusinessCards([S.user.id]).then(map => {
+    const el = document.getElementById('profile-deco-row');
+    if (el) el.innerHTML = renderStudentDecorationHTML(map.get(S.user.id), { compact: false });
+  }).catch(() => {});
+
+  _renderProfileStats();
+  _refreshProfileDot();
+}
+
+async function _renderProfileStats() {
+  const el = document.getElementById('pp-stats');
+  if (!el || !S.user) return;
+  const id = S.user.id;
+  const count = q => q.then(r => r.count || 0, () => 0);
+  const [films, votes, props, badges] = await Promise.all([
+    count(db.from('student_watched_films').select('film_id', { count: 'exact', head: true }).eq('student_id', id)),
+    count(db.from('votes').select('film_id', { count: 'exact', head: true }).eq('student_id', id)),
+    count(db.from('proposals').select('id', { count: 'exact', head: true }).eq('student_id', id)),
+    count(db.from('student_badges').select('badge_slug', { count: 'exact', head: true }).eq('student_id', id)),
+  ]);
+  const st = (n, label, action) => `<button class="pp-stat" onclick="${action}"><b>${n}</b><span>${label}</span></button>`;
+  el.innerHTML =
+    st(films, films > 1 ? 'films vus' : 'film vu', 'openStudentWatchedFilms()') +
+    st(votes, votes > 1 ? 'votes' : 'vote', "navigateTo('films')") +
+    st(props, props > 1 ? 'proposés' : 'proposé', "navigateTo('propose')") +
+    st(badges, badges > 1 ? 'badges' : 'badge', 'openStudentBadges()');
+}
+
+/* Déconnexion (avec confirmation) */
+function profileLogout() {
+  if (!confirm('Te déconnecter ?\n\nTu devras retaper ton identifiant et ton code secret pour revenir.')) return;
+  logout();
+}
+
+/* Point rouge sur l'onglet Profil : nouveau badge pas encore vu.
+   Mémorisé sur le téléphone (heure de la dernière ouverture de « Mes badges »). */
+function _badgesSeenKey() { return 'ci_badges_seen_' + (S.user?.id || ''); }
+async function _refreshProfileDot() {
+  if (!S.user || S.isAdmin) return;
+  let list = [];
+  try { list = await getStudentBadges(S.user.id); } catch (_) {}
+  const latest = (list || []).reduce((m, b) => Math.max(m, Date.parse(b.unlocked_at) || 0), 0);
+  let seen = null;
+  try { seen = localStorage.getItem(_badgesSeenKey()); } catch (_) {}
+  if (seen === null) {               // 1re fois sur ce téléphone : rien de « nouveau »
+    seen = String(latest);
+    try { localStorage.setItem(_badgesSeenKey(), seen); } catch (_) {}
+  }
+  const isNew = latest > (parseInt(seen, 10) || 0);
+  document.getElementById('nav-profile-dot')?.classList.toggle('hidden', !isNew);
+  document.getElementById('pp-badges-new')?.classList.toggle('hidden', !isNew);
+}
+function _markBadgesSeen() {
+  if (!S.user) return;
+  try { localStorage.setItem(_badgesSeenKey(), String(Date.now())); } catch (_) {}
+  document.getElementById('nav-profile-dot')?.classList.add('hidden');
+  document.getElementById('pp-badges-new')?.classList.add('hidden');
+}
+
+/* Réglages */
+let _settingsBusy = false;
+async function loadSettingsScreen() {
+  const body = document.getElementById('settings-body');
+  if (!body || !S.user) return;
+  const status = _getPushSupportStatus();
+  // L'abonnement n'est lu que si la permission est donnée (évite d'attendre un
+  // service worker qui ne répond pas), et jamais plus de 2 s.
+  let sub = null;
+  if (status === 'granted') {
+    try {
+      sub = await Promise.race([_getCurrentPushSubscription(), new Promise(r => setTimeout(() => r(null), 2000))]);
+    } catch (_) {}
+  }
+  const pushOn = !!sub && status === 'granted';
+  const inPwa = _pwaIsStandalone();
+  const persistOn = isStudentPersistEnabled();
+  const sw = on => `<span class="pp-switch${on ? ' on' : ''}"></span>`;
+  const arrow = '<span class="pp-ar">›</span>';
+
+  let pushRow;
+  if (status === 'unsupported') {
+    pushRow = `<button class="pp-row" disabled><span class="pp-ic">🔕</span><span class="pp-tx">Notifications<span class="pp-sub">Ce navigateur ne les gère pas</span></span></button>`;
+  } else if (status === 'needs_pwa') {
+    pushRow = `<button class="pp-row" onclick="openAddToHome()"><span class="pp-ic">🔕</span><span class="pp-tx">Notifications<span class="pp-sub">Installe d'abord l'appli sur ton écran d'accueil</span></span>${arrow}</button>`;
+  } else if (status === 'denied') {
+    pushRow = `<button class="pp-row" disabled><span class="pp-ic">🔕</span><span class="pp-tx">Notifications bloquées<span class="pp-sub">À débloquer dans les réglages du téléphone</span></span></button>`;
+  } else {
+    pushRow = `<button class="pp-row" onclick="settingsTogglePush()"><span class="pp-ic">${pushOn ? '🔔' : '🔕'}</span><span class="pp-tx">Notifications<span class="pp-sub">${pushOn ? 'Séances, sondages, messages de l\'équipe' : 'Sois prévenu des nouvelles séances et des sondages'}</span></span>${sw(pushOn)}</button>`;
+  }
+
+  body.innerHTML = `
+    <div class="pp-sec" style="margin-top:12px;">
+      <div class="pp-sec-t">Notifications</div>
+      <div class="pp-list">${pushRow}</div>
+    </div>
+    <div class="pp-sec">
+      <div class="pp-sec-t">Connexion</div>
+      <div class="pp-list">
+        ${inPwa ? `<button class="pp-row" onclick="settingsTogglePersist()"><span class="pp-ic">${persistOn ? '🔒' : '🔓'}</span><span class="pp-tx">Rester connecté<span class="pp-sub">Sur ce téléphone, sans retaper ton code</span></span>${sw(persistOn)}</button>` : ''}
+        <button class="pp-row" onclick="openChangePIN()"><span class="pp-ic">🔐</span><span class="pp-tx">Changer mon code secret</span>${arrow}</button>
+      </div>
+    </div>
+    ${inPwa ? '' : `
+    <div class="pp-sec">
+      <div class="pp-sec-t">Application</div>
+      <div class="pp-list">
+        <button class="pp-row" onclick="openAddToHome()"><span class="pp-ic">📲</span><span class="pp-tx">Installer l'application<span class="pp-sub">Ajoute-la sur ton écran d'accueil</span></span>${arrow}</button>
+      </div>
+    </div>`}
+    <div class="pp-foot">Cinéma Internat</div>`;
+}
+async function settingsTogglePush() {
+  if (_settingsBusy) return;
+  _settingsBusy = true;
+  try { await togglePushNotifications(); } finally { _settingsBusy = false; }
+  if (S.screen === 'settings') loadSettingsScreen();
+}
+function settingsTogglePersist() {
+  toggleStudentPersist();
+  loadSettingsScreen();
+}
+
+/* Personnaliser : titre + 3 badges affichés, avec aperçu */
+let _czState = { level: 1, pinnedTitle: null };
+async function loadCustomizeScreen() {
+  const body = document.getElementById('customize-body');
+  if (!body || !S.user) return;
+  if (!body.innerHTML) body.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
+  let totalXp = 0, pinnedTitle = null, pinnedBadges = [], unlocked = [];
+  try {
+    [totalXp, pinnedTitle, pinnedBadges, unlocked] = await Promise.all([
+      getStudentTotalXp(S.user.id), getStudentPinnedTitle(S.user.id),
+      getStudentPinnedBadges(S.user.id), getStudentBadges(S.user.id)
+    ]);
+  } catch (e) { console.warn('[customize] load:', e); }
+  const level = computeXpProgress(totalXp || 0).level;
+  _czState = { level, pinnedTitle };
+  const effective = getEffectiveTitle(level, pinnedTitle);
+  const full = [S.user.firstName, S.user.lastName].filter(Boolean).join(' ');
+  const deco = renderStudentDecorationHTML({ level, pinnedTitleSlug: pinnedTitle, pinnedBadges: pinnedBadges || [] }, { compact: false });
+
+  const titles = LEVEL_TITLES.map(t => {
+    const ok = level >= t.min;
+    return `<button class="cz-title${effective.slug === t.slug ? ' active' : ''}" ${ok ? `onclick="customizeSetTitle('${t.slug}')"` : 'disabled'}>
+      ${ok ? '' : '🔒 '}${t.emoji} ${_escapeHtml(t.label)}${ok ? '' : ` · niv. ${t.min}`}</button>`;
+  }).join('');
+
+  const slots = [0, 1, 2].map(i => {
+    const slug = (pinnedBadges || [])[i];
+    const b = slug && BADGES_CATALOG.find(x => x.slug === slug);
+    if (!b) return `<button class="cz-slot" onclick="openStudentBadges()" aria-label="Choisir un badge">+</button>`;
+    const url = getBadgeImageUrl(slug);
+    return `<button class="cz-slot filled" onclick="openStudentBadges()" title="${_escapeHtml(b.name)}">${url ? `<img src="${url}" alt="" onerror="this.outerHTML='${b.emoji || '🏅'}'">` : (b.emoji || '🏅')}</button>`;
+  }).join('');
+  const nUnlocked = (unlocked || []).length;
+
+  body.innerHTML = `
+    <div class="cz-preview">
+      <div class="profile-xp-ring"><svg class="xp-ring-svg" viewBox="0 0 80 80"><circle class="xp-ring-track" cx="40" cy="40" r="36"></circle>
+        <circle class="xp-ring-progress" cx="40" cy="40" r="36" stroke-dasharray="226.2" stroke-dashoffset="${(226.2 * (1 - computeXpProgress(totalXp || 0).percent / 100)).toFixed(1)}"></circle></svg>
+        <span class="xp-ring-level">${level}</span></div>
+      <div style="min-width:0;flex:1;">
+        <div class="pp-name">${_escapeHtml(full)}</div>
+        ${deco}
+      </div>
+    </div>
+    <div class="cz-hint">Aperçu : c'est ce que les autres voient à côté de ton nom</div>
+    <div class="pp-sec">
+      <div class="pp-sec-t">🎭 Mon titre</div>
+      <div class="cz-titles">${titles}</div>
+    </div>
+    <div class="pp-sec">
+      <div class="pp-sec-t">🏅 Mes 3 badges affichés</div>
+      <div class="cz-slots">${slots}</div>
+      <button class="btn btn-ghost btn-full" onclick="openStudentBadges()">Choisir mes badges</button>
+      <div class="cz-note">${nUnlocked ? `Tu as débloqué ${nUnlocked} badge${nUnlocked > 1 ? 's' : ''}.` : 'Tu n\'as pas encore de badge : participe aux séances, vote et propose des films !'}</div>
+    </div>
+    <div style="height:8px;"></div>`;
+}
+async function customizeSetTitle(slug) {
+  if (!S.user) return;
+  const level = _czState.level;
+  // Titre par défaut (= le plus haut atteint) : on enlève l'épinglage pour suivre les montées de niveau
+  const newPinned = getTitleForLevel(level).slug === slug ? null : slug;
+  if (newPinned === _czState.pinnedTitle) return;
+  await setStudentPinnedTitle(S.user.id, newPinned);
+  toast('🎭 Titre mis à jour', 'success', 1500);
+  loadCustomizeScreen();
+}
+
+/* ================================================================
+   ACCUEIL — séances suivantes (soirée événement + « Aussi prévu »)
+   ================================================================ */
+function _hmsDateLabel(s) {
+  const d = new Date(s.session_date + 'T12:00:00');
+  const day = d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
+  return `${day} • ${String(s.session_time || '20:00').slice(0, 5)}`;
+}
+function _hmsCountdown(s) {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const d = new Date(s.session_date + 'T00:00:00');
+  const n = Math.round((d - today) / 86400000);
+  if (n <= 0) return 'ce soir';
+  if (n === 1) return 'demain';
+  return `dans ${n} jours`;
+}
+async function _renderHomeMoreSessions(rest) {
+  const host = document.getElementById('home-more-sessions');
+  if (!host) return;
+  if (!rest || !rest.length || !S.user) { host.innerHTML = ''; return; }
+  const ev = rest.find(x => x.event_tag) || null;
+  const others = rest.filter(x => x !== ev).slice(0, 2);
+
+  const regs = {};
+  if (others.length) {
+    try {
+      const { data: r } = await db.from('registrations').select('session_id, status')
+        .eq('student_id', S.user.id).in('session_id', others.map(x => x.id));
+      (r || []).forEach(x => { regs[x.session_id] = x.status; });
+    } catch (_) {}
+  }
+  const poster = (s, emoji) => s.films?.poster_url
+    ? `<img src="${_escapeHtml(s.films.poster_url)}" alt="" loading="lazy">` : emoji;
+
+  let html = '';
+  if (ev) {
+    const tag = ev.event_tag;
+    const label = { christmas: '🎄 Soirée de Noël', halloween: '🎃 Soirée Halloween' }[tag] || (SESSION_EVENT_LABELS[tag] || '🎉 Soirée événement');
+    const emoji = { christmas: '🎄', halloween: '🎃' }[tag] || '🎉';
+    html += `
+      <div class="home-section" style="margin-top:18px;">
+        <div class="home-section-title">${label}</div>
+        <div class="hms-event hms-${_escapeHtml(tag)}" onclick="openStudentSessionDetail('${ev.id}')">
+          <div class="hms-poster">${poster(ev, emoji)}</div>
+          <div class="hms-info">
+            <div class="hms-kicker">${_hmsDateLabel(ev)}</div>
+            <div class="hms-title">${_escapeHtml(ev.films?.title || 'Film à annoncer')}</div>
+            <div class="hms-sub">🎉 Tout l'internat est convié · aucune inscription</div>
+            <span class="hms-count">⏳ ${_hmsCountdown(ev)}</span>
+          </div>
+        </div>
+      </div>`;
+  }
+  if (others.length) {
+    html += `<div class="home-section" style="margin-top:16px;"><div class="hms-label">Aussi prévu</div>` + others.map(x => {
+      let badge;
+      if (x.event_tag) badge = '<span class="badge badge-gold">🎉 Tous conviés</span>';
+      else if (regs[x.id] === 'registered') badge = '<span class="badge badge-green">✅ Inscrit(e)</span>';
+      else if (regs[x.id] === 'waitlist') badge = '<span class="badge badge-gold">⏳ Liste d\'attente</span>';
+      else if (x.registrations_open && !_isSessionLocked(x)) badge = '<span class="badge badge-green">Inscriptions ouvertes</span>';
+      else badge = '<span class="badge badge-muted">Bientôt</span>';
+      return `
+        <div class="hms-row" onclick="openStudentSessionDetail('${x.id}')">
+          <div class="hms-poster">${poster(x, '🎬')}</div>
+          <div style="flex:1;min-width:0;">
+            <div class="hms-row-t">${_escapeHtml(x.films?.title || 'Film à annoncer')}</div>
+            <div class="hms-row-s">📅 ${_hmsDateLabel(x)}</div>
+          </div>
+          ${badge}
+        </div>`;
+    }).join('') + `</div>`;
+  }
+  host.innerHTML = html;
+}
+/* Lien « séance » d'une nouveauté : on remonte sur les séances de l'accueil */
+function _flashHomeSessions() {
+  const sec = document.getElementById('home-next-section');
+  if (!sec) return;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  sec.classList.remove('hms-flash'); void sec.offsetWidth; sec.classList.add('hms-flash');
+  setTimeout(() => sec.classList.remove('hms-flash'), 3000);
+}
+/* CTA du tuto « Ta barre a changé » */
+function goToProfile() { if (typeof navigateTo === 'function') navigateTo('profile'); }
+
 /* ================================================================
    HOME
    ================================================================ */
@@ -21104,9 +21461,12 @@ async function loadHome() {
     .select('*, films(title, poster_url, duration)')
     .gte('session_date', today)
     .order('session_date', { ascending: true })
-    .limit(1);
+    .limit(4);
 
   const el = document.getElementById('home-next-session');
+  // Séances suivantes (soirée événement + « Aussi prévu »)
+  _renderHomeMoreSessions((data || []).slice(1));
+  _refreshProfileDot();
 
   if (!data?.length) {
     el.innerHTML = `<div class="session-banner-empty">
@@ -34787,54 +35147,10 @@ const _MODAL_Z_STEP = 10;
 function openModal(id) {
   // === Logiques métier existantes (préservées tel quel) ===
 
-  // Remplir les infos profil à chaque ouverture
-  if (id === 'modal-profile' && S.user) {
-    const fn = S.user.firstName || '';
-    const ln = S.user.lastName  || '';
-    document.getElementById('prof-fullname').textContent = [fn, ln].filter(Boolean).join(' ') || '—';
-    document.getElementById('prof-class').textContent    = S.user.className || '—';
-
-    // Bloc XP : grand anneau + niveau + titre + barre (Batch C2a)
-    if (typeof renderProfileXpBlock === 'function') {
-      renderProfileXpBlock();
-    }
-
-    // Carte de visite (titre + badges épinglés) sous le nom (Batch C3 Phase 2C)
-    if (typeof loadStudentsBusinessCards === 'function') {
-      loadStudentsBusinessCards([S.user.id]).then(map => {
-        const deco = map.get(S.user.id);
-        const el = document.getElementById('profile-deco-row');
-        if (el) el.innerHTML = renderStudentDecorationHTML(deco, { compact: false });
-      }).catch(() => {});
-    }
-
-    // Bug C5 — Cacher la carte "Installer l'application" si on est déjà en PWA.
-    // Détection : display-mode standalone (Chrome/Edge/etc) ou navigator.standalone (iOS).
-    try {
-      const installCard = document.getElementById('profile-install-card');
-      if (installCard) {
-        const isPwa =
-          (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
-          (window.navigator && window.navigator.standalone === true);
-        installCard.classList.toggle('hidden', !!isPwa);
-      }
-    } catch (e) { /* fallback : on laisse la carte visible */ }
-
-    // Afficher l'identifiant si disponible
-    const identEl = document.getElementById('prof-identifier');
-    if (identEl && S.user.loginIdentifier) {
-      identEl.textContent = `Identifiant : ${S.user.loginIdentifier}`;
-    } else if (identEl) {
-      identEl.textContent = '';
-    }
-    
-    // Personnaliser le label messagerie
-    const supervisorName = getSupervisorName();
-    const capitalizedName = supervisorName.charAt(0).toUpperCase() + supervisorName.slice(1);
-    const msgLabel = document.getElementById('profile-messaging-label');
-    if (msgLabel) {
-      msgLabel.textContent = `Contacter ${capitalizedName}`;
-    }
+  // L'ancienne fenêtre profil est devenue l'onglet Profil
+  if (id === 'modal-profile') {
+    if (S.user && !S.isAdmin) navigateTo('profile');
+    return;
   }
   // Réinitialiser le switch import à l'ouverture des Paramètres
   if (id === 'modal-admin-settings') {
@@ -34900,6 +35216,13 @@ function openModal(id) {
 function closeModal(id) {
   const el = document.getElementById(id);
   if (!el) return;
+
+  if ((id === 'modal-student-badges' || id === 'modal-student-title') && !el.classList.contains('hidden')) {
+    setTimeout(() => {
+      if (S.screen === 'customize') loadCustomizeScreen();
+      else if (S.screen === 'profile') loadProfileScreen();
+    }, 50);
+  }
 
   el.classList.add('hidden');
   el.style.removeProperty('z-index');
