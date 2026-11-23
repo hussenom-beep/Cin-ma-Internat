@@ -9903,7 +9903,6 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 .mj-imp-row .mj-img{width:58px;cursor:pointer}
 .mj-thumb{display:block;padding:0;border:0;background:none;min-height:0;line-height:0;cursor:pointer}
 .mj-imp-b a,#mj-i-body a{color:var(--gold);text-decoration:none;font-weight:700}
-#modal-mj-posters .mj-foot,#modal-mj-avatars .mj-foot{position:sticky;bottom:-1px;z-index:2;background:var(--surface,#12121c);padding:12px 0 4px;margin-bottom:-4px;border-top:1px solid var(--border)}
 .mj-imp-row.skip{opacity:.5}
 .mj-imp-b{display:flex;flex-direction:column;gap:5px;min-width:0}
 .mj-imp-b b{font-size:14px}
@@ -9995,6 +9994,41 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 .mj-k-prev figure.on{color:var(--text)}
 .mj-k-prev .mj-badge{width:52px}
 @media (prefers-reduced-motion:reduce){.mj-badge,.mj-badge::before,.mj-badge::after{animation:none!important}}
+
+.mj-m-head{display:flex;gap:14px;align-items:center;margin:2px 0 16px}
+.mj-m-head .mj-img{width:62px;flex:0 0 auto}
+.mj-m-head .mj-badge{width:64px;flex:0 0 auto}
+.mj-m-head b{display:block;font-size:16px;line-height:1.25}
+.mj-m-head small{display:block;margin-top:3px;color:var(--text-3);font-size:12.5px}
+.mj-m-sec{font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);margin:0 0 8px}
+.mj-m-rar{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-bottom:16px}
+.mj-m-rar button{min-height:42px;border-radius:11px;border:1.5px solid color-mix(in srgb,var(--mjc) 45%,transparent);background:color-mix(in srgb,var(--mjc) 10%,transparent);color:var(--mjc);font:inherit;font-weight:700;font-size:12.5px;cursor:pointer;padding:0 4px}
+.mj-m-rar button.on{background:var(--mjc);color:#0b0b12;border-color:var(--mjc);box-shadow:0 0 12px color-mix(in srgb,var(--mjc) 55%,transparent)}
+.mj-m-list{display:flex;flex-direction:column;border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.mj-m-list button{display:flex;align-items:center;gap:12px;padding:14px 16px;border:none;border-bottom:1px solid var(--border);background:var(--surface-2);color:var(--text);font:inherit;font-size:14.5px;text-align:left;cursor:pointer}
+.mj-m-list button span{width:22px;text-align:center;flex:0 0 auto}
+.mj-m-list button:last-child{border-bottom:none}
+.mj-m-list button:hover{background:rgba(255,255,255,.06)}
+.mj-m-list .danger{color:#ff8a8a}
+/* Barre du bas toujours visible dans les fenêtres du mini-jeu */
+.overlay[id^="modal-mj"] .sheet{padding-bottom:0}
+.overlay[id^="modal-mj"] .sheet>.mj-foot,.overlay[id^="modal-mj"] .sheet>div>.mj-foot,.overlay[id^="modal-mj"] .sheet>div>div>.mj-foot{position:sticky;bottom:0;z-index:5;background:var(--surface,#12121c);margin-top:14px;padding:12px 0 max(16px,env(safe-area-inset-bottom));border-top:1px solid var(--border);box-shadow:0 -10px 18px -12px rgba(0,0,0,.8)}
+@media (max-width:600px){
+  .overlay[id^="modal-mj"] .mj-foot{flex-wrap:wrap;gap:8px}
+  .overlay[id^="modal-mj"] .mj-foot .mj-note{flex:1 0 100%;margin:0}
+  .overlay[id^="modal-mj"] .mj-foot .btn{flex:1 1 0;min-width:0;min-height:44px;padding:10px 8px;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-right:0!important}
+  #mj-c-body .mj-seg{display:grid;grid-template-columns:1fr 1fr;width:100%}
+  #mj-c-body .mj-seg button{white-space:normal;line-height:1.2;padding:6px 8px;font-size:12.5px}
+}
+/* Légendaire : plus éclatant */
+@keyframes mj-glow-gold{0%,100%{box-shadow:0 0 12px rgba(245,184,46,.55),0 0 0 1px rgba(255,236,170,.55)}50%{box-shadow:0 0 24px rgba(255,200,64,.95),0 0 48px rgba(245,184,46,.5),0 0 0 1px #fff3c4}}
+.mj-badge.r-legendary{padding:5px;background:conic-gradient(from var(--mja),#fff7d6,#f5b82e 12%,#9c6200 25%,#ffe08a 37%,#f5b82e 50%,#fff7d6 62%,#b8790a 75%,#ffd45c 87%,#fff7d6);animation:mj-spin 4s linear infinite,mj-glow-gold 2.4s ease-in-out infinite}
+.mj-badge.r-legendary::before{content:'';position:absolute;inset:-24%;z-index:-1;border-radius:50%;background:repeating-conic-gradient(from var(--mja),rgba(255,214,102,.6) 0 5deg,transparent 5deg 30deg);-webkit-mask:radial-gradient(circle,transparent 40%,#000 47%,transparent 70%);mask:radial-gradient(circle,transparent 40%,#000 47%,transparent 70%);animation:mj-spin 16s linear infinite reverse}
+.mj-badge.r-legendary::after{inset:5px;background:linear-gradient(105deg,transparent 40%,rgba(255,248,220,.8) 50%,transparent 60%) no-repeat;background-size:250% 100%;animation:mj-sheen 3.2s ease-in-out infinite}
+.mj-img.mj-r-legendary{border-color:transparent;padding:3px;background:conic-gradient(from var(--mja),#fff7d6,#f5b82e 15%,#9c6200 30%,#ffe08a 45%,#f5b82e 60%,#fff7d6 75%,#b8790a 90%,#fff7d6) border-box;animation:mj-spin 4s linear infinite,mj-glow-gold 2.4s ease-in-out infinite}
+.mj-img.mj-r-legendary img{border-radius:8px}
+.mj-img.mj-r-legendary::after{content:'';position:absolute;inset:3px;border-radius:8px;background:linear-gradient(105deg,transparent 40%,rgba(255,248,220,.6) 50%,transparent 60%) no-repeat;background-size:250% 100%;animation:mj-sheen 3.6s ease-in-out infinite;pointer-events:none}
+@media (prefers-reduced-motion:reduce){.mj-img.mj-r-legendary,.mj-img.mj-r-legendary::after{animation:none!important}}
 
   </style>
 <body>
@@ -11527,7 +11561,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       <div id="mj-p-rows"></div>
       <div class="mj-foot">
         <span class="mj-note" id="mj-p-note"></span>
-        <button class="btn btn-ghost" onclick="mjPostersBack()">‹ Modifier la liste</button>
+        <button class="btn btn-ghost" onclick="mjPostersBack()">‹ Liste</button>
         <button class="btn btn-ghost" onclick="closeModal('modal-mj-posters')">Annuler</button>
         <button class="btn btn-gold" id="mj-p-save" onclick="mjPostersSave()">Ajouter</button>
       </div>
@@ -11560,6 +11594,14 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     <div class="sheet-handle"></div>
     <div class="sheet-title" id="mj-i-title">Modifier</div>
     <div id="mj-i-body"></div>
+  </div>
+</div>
+
+<!-- ═══ Mini-jeu : menu d'un objet (se ferme aussi en touchant à côté) ═══ -->
+<div class="overlay hidden" id="modal-mjmenu">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div id="mj-m-body"></div>
   </div>
 </div>
 
@@ -26378,7 +26420,7 @@ function _mjRenderCatalogue(keepFocus) {
     : `<button class="btn btn-gold" onclick="mjOpenCollection()">＋ Nouvelle collection</button>`;
   const tiles = list.map(i => {
     const c = _mjColl(i.collection_id) || MJ.collections.find(x => x.reward_item_id === i.id);
-    return `<button class="mj-tile mj-r-${i.rarity}" onclick="${isExc && c ? `mjOpenCollection('${c.id}')` : `mjEditItem('${i.id}')`}">
+    return `<button class="mj-tile mj-r-${i.rarity}" onclick="${isExc && c ? `mjOpenCollection('${c.id}')` : `mjItemMenu('${i.id}')`}">
       ${_mjImgHTML(i)}<span class="mj-tt">${_mjEsc(i.title)}</span>
       <span class="mj-meta"><span class="mj-rp">${MJ_RARITY_LABEL[i.rarity] || i.rarity}</span>${c ? _mjEsc(c.name) : ''}</span></button>`;
   }).join('');
@@ -26467,44 +26509,55 @@ async function mjPostersSearch() {
     btn.disabled = false;
     btn.textContent = '🔍 Chercher les affiches françaises';
   }
-  MJ.imp.forEach(r => { if (_mjImpDup(r) === 'same') r.skip = true; });
   document.getElementById('mj-p-step1').classList.add('hidden');
   document.getElementById('mj-p-step2').classList.remove('hidden');
   _mjRenderImport();
 }
-function _mjImpDup(r) {
-  if (!r.film) return '';
+/* État d'une ligne par rapport au catalogue : new | variant | move | block | none */
+function _mjImpState(r) {
+  if (!r.film || !r.poster) return { k: 'none' };
+  const coll = document.getElementById('mj-p-coll')?.value || '';
   const same = MJ.items.filter(i => i.kind === 'poster' && i.tmdb_id === r.film.id);
-  if (same.some(i => i.image_path === r.poster)) return 'same';
-  return same.length ? 'variant' : '';
+  const ex = same.find(i => i.image_path === r.poster);
+  if (ex) {
+    if (ex.rarity === 'exclusive' || _mjRewardIds().has(ex.id)) return { k: 'block', msg: 'c’est l’affiche exclusive d’une collection' };
+    if (coll && ex.collection_id === coll) return { k: 'block', msg: 'déjà dans cette collection' };
+    if (ex.collection_id) return { k: 'block', msg: `déjà dans la collection « ${_mjColl(ex.collection_id)?.name || '?'} » : retire-la d’abord de là-bas` };
+    if (coll) return { k: 'move', msg: 'déjà au catalogue : elle sera rangée dans cette collection', item: ex };
+    return { k: 'block', msg: 'déjà au catalogue' };
+  }
+  return same.length ? { k: 'variant', msg: 'autre affiche de ce film déjà au catalogue' } : { k: 'new' };
 }
+function _mjImpOn(r) { const k = _mjImpState(r).k; return !r.skip && (k === 'new' || k === 'variant' || k === 'move'); }
 function _mjRenderImport() {
   const box = document.getElementById('mj-p-rows');
   box.innerHTML = MJ.imp.map((r, i) => {
     if (!r.film) return `<div class="mj-imp-row skip"><span class="mj-img"></span><div class="mj-imp-b"><b>${_mjEsc(r.line)}</b><small>Film introuvable sur TMDB · essaie un autre titre ou ajoute l’année</small></div><div class="mj-imp-act"><button class="mj-x" aria-label="Retirer" onclick="mjImpRemove(${i})">✕</button></div></div>`;
-    const dup = _mjImpDup(r);
+    const st = _mjImpState(r);
+    const off = r.skip || st.k === 'block';
     const it = { kind: 'poster', image_path: r.poster, rarity: r.rarity };
     const films = r.results.length > 1 ? `<select class="fselect" aria-label="Choisir le bon film" onchange="mjImpFilm(${i}, this.value)">${r.results.map((f, k) => `<option value="${k}"${f.id === r.film.id ? ' selected' : ''}>${_mjEsc(f.title)}${f.year ? ' (' + f.year + ')' : ''}</option>`).join('')}</select>` : '';
     const strip = r.open ? `<div class="mj-strip">${r.posters.map(p => `<button class="${p.path === r.poster ? 'on' : ''}" onclick="mjImpPoster(${i}, '${p.path}')" aria-label="Choisir cette affiche"><img src="${_tmdbImg(p.path, 'w185')}" alt="" loading="lazy">${p.fr ? '<em>FR</em>' : ''}</button>`).join('')}</div>` : '';
-    return `<div class="mj-imp-row${r.skip ? ' skip' : ''}">
+    const msg = st.msg ? ` · <span class="${st.k === 'move' ? 'mj-ok' : 'mj-warn'}">${_mjEsc(st.msg)}</span>` : '';
+    return `<div class="mj-imp-row${off ? ' skip' : ''}">
       <button class="mj-thumb" onclick="mjImpToggle(${i})" aria-label="Changer d'affiche">${_mjImgHTML(it)}</button>
       <div class="mj-imp-b"><b>${_mjEsc(r.film.title)}${r.film.year ? ` <span style="color:var(--text-3);font-weight:500">(${r.film.year})</span>` : ''}</b>
-        <small>${r.posters.length} affiche${r.posters.length > 1 ? 's' : ''} trouvée${r.posters.length > 1 ? 's' : ''} · <a href="#" onclick="mjImpToggle(${i}); return false;">${r.open ? 'fermer' : 'changer d’affiche'}</a>${dup === 'same' ? ' · <span class="mj-warn">déjà au catalogue</span>' : dup === 'variant' ? ' · <span class="mj-warn">autre affiche de ce film déjà au catalogue</span>' : ''}</small>
+        <small>${r.posters.length} affiche${r.posters.length > 1 ? 's' : ''} trouvée${r.posters.length > 1 ? 's' : ''} · <a href="#" onclick="mjImpToggle(${i}); return false;">${r.open ? 'fermer' : 'changer d’affiche'}</a>${msg}</small>
         ${films}</div>
       <div class="mj-imp-act">
         <select class="fselect" aria-label="Rareté" onchange="mjImpRarity(${i}, this.value)">${_mjRarityOptions(r.rarity)}</select>
-        <button class="mj-x" aria-label="${r.skip ? 'Reprendre' : 'Retirer'}" onclick="mjImpRemove(${i})">${r.skip ? '↺' : '✕'}</button>
+        ${st.k === 'block' ? '' : `<button class="mj-x" aria-label="${r.skip ? 'Reprendre' : 'Retirer'}" onclick="mjImpRemove(${i})">${r.skip ? '↺' : '✕'}</button>`}
       </div>${strip}</div>`;
   }).join('');
-  const n = MJ.imp.filter(r => !r.skip && r.film && r.poster).length;
+  const n = MJ.imp.filter(_mjImpOn).length;
   const save = document.getElementById('mj-p-save');
   save.textContent = `Ajouter ${n} affiche${n > 1 ? 's' : ''}`;
   save.disabled = !n;
-  const mix = MJ_RARITIES.map(r => `${MJ.imp.filter(x => !x.skip && x.rarity === r.k).length} ${r.l.toLowerCase()}`).join(' · ');
+  const mix = MJ_RARITIES.map(r => `${MJ.imp.filter(x => _mjImpOn(x) && x.rarity === r.k).length} ${r.l.toLowerCase()}`).join(' · ');
   document.getElementById('mj-p-note').textContent = n ? mix : '';
 }
 function mjImpToggle(i) { MJ.imp[i].open = !MJ.imp[i].open; _mjRenderImport(); }
-function mjImpPoster(i, path) { const r = MJ.imp[i]; r.poster = path; if (_mjImpDup(r) !== 'same') r.skip = false; _mjRenderImport(); }
+function mjImpPoster(i, path) { const r = MJ.imp[i]; r.poster = path; r.skip = false; _mjRenderImport(); }
 function mjImpRarity(i, v) { MJ.imp[i].rarity = v; _mjRenderImport(); }
 function mjImpRemove(i) { const r = MJ.imp[i]; if (!r.film) { MJ.imp.splice(i, 1); } else r.skip = !r.skip; _mjRenderImport(); }
 async function mjImpFilm(i, k) {
@@ -26512,30 +26565,113 @@ async function mjImpFilm(i, k) {
   r.film = r.results[+k];
   r.posters = await _mjTmdbPosters(r.film.id, r.film.poster);
   r.poster = r.posters[0]?.path || null;
-  r.skip = !r.poster || _mjImpDup(r) === 'same';
+  r.skip = !r.poster;
   _mjRenderImport();
 }
 async function mjPostersSave() {
   const coll = document.getElementById('mj-p-coll').value || null;
-  const rows = MJ.imp.filter(r => !r.skip && r.film && r.poster).map(r => ({
+  const on = MJ.imp.filter(_mjImpOn);
+  const moves = on.filter(r => _mjImpState(r).k === 'move').map(r => ({ item: _mjImpState(r).item, rarity: r.rarity }));
+  const rows = on.filter(r => _mjImpState(r).k !== 'move').map(r => ({
     kind: 'poster', title: r.film.title, year: r.film.year ? +r.film.year : null, tmdb_id: r.film.id,
     image_path: r.poster, rarity: r.rarity, collection_id: coll,
   }));
-  if (!rows.length) return;
+  if (!rows.length && !moves.length) return;
   const btn = document.getElementById('mj-p-save');
   btn.disabled = true;
-  const { data, error } = await db.from('mj_items').insert(rows).select();
+  try {
+    if (rows.length) {
+      const { data, error } = await db.from('mj_items').insert(rows).select();
+      if (error) throw error;
+      MJ.items.push(...(data || rows));
+    }
+    for (const m of moves) {
+      const { error } = await db.from('mj_items').update({ collection_id: coll, rarity: m.rarity }).eq('id', m.item.id);
+      if (error) throw error;
+      Object.assign(m.item, { collection_id: coll, rarity: m.rarity });
+    }
+  } catch (e) {
+    btn.disabled = false;
+    toast(/duplicate|unique/i.test(e.message || '') ? 'Une de ces affiches est déjà au catalogue' : 'Erreur : ' + (e.message || e), 'error');
+    return;
+  }
   btn.disabled = false;
-  if (error) { toast(/duplicate|unique/i.test(error.message || '') ? 'Une de ces affiches est déjà au catalogue' : 'Erreur : ' + error.message, 'error'); return; }
-  MJ.items.push(...(data || rows));
   closeModal('modal-mj-posters');
-  toast(`✅ ${rows.length} affiche${rows.length > 1 ? 's' : ''} ajoutée${rows.length > 1 ? 's' : ''}`);
+  const n = rows.length + moves.length;
+  toast(`✅ ${n} affiche${n > 1 ? 's' : ''} ajoutée${n > 1 ? 's' : ''}`);
   MJ.kind = 'poster';
+  _mjRefreshAll();
+}
+function _mjRefreshAll() {
   _mjRenderSummary();
-  mjView(MJ.view === 'settings' ? 'catalogue' : MJ.view);
+  if (MJ.view !== 'settings') mjView(MJ.view);
   if (MJ.c && !document.getElementById('modal-mj-collection').classList.contains('hidden')) _mjRenderCollModal();
 }
 
+/* ---------- Menu d'un objet (clic sur une affiche ou un avatar) ---------- */
+function mjItemMenu(id) {
+  const it = _mjItem(id);
+  if (!it) return;
+  MJ.menu = id;
+  _mjRenderMenu();
+  openModal('modal-mjmenu');
+}
+function _mjRenderMenu() {
+  const it = _mjItem(MJ.menu);
+  if (!it) return;
+  const c = _mjColl(it.collection_id);
+  const isP = it.kind === 'poster';
+  document.getElementById('mj-m-body').innerHTML = `
+    <div class="mj-m-head">${_mjImgHTML(it)}<div><b>${_mjEsc(it.title)}</b><small>${isP ? 'Affiche' : 'Avatar'}${it.year ? ' · ' + it.year : ''} · ${c ? 'collection « ' + _mjEsc(c.name) + ' »' : 'sans collection'}${it.active === false ? ' · hors des coffres' : ''}</small></div></div>
+    <div class="mj-m-sec">Rareté</div>
+    <div class="mj-m-rar">${MJ_RARITIES.map(r => `<button class="mj-r-${r.k}${it.rarity === r.k ? ' on' : ''}" onclick="mjMenuRarity('${r.k}')">${r.l}</button>`).join('')}</div>
+    <div class="mj-m-list">
+      <button onclick="mjMenuImage()"><span>${isP ? '🖼️' : '✂️'}</span>${isP ? 'Changer l’affiche' : 'Changer l’image'}</button>
+      <button onclick="mjMenuEdit()"><span>✏️</span>Modifier le nom ou la collection</button>
+      <button onclick="mjMenuActive()"><span>${it.active === false ? '🎁' : '🙈'}</span>${it.active === false ? 'Remettre dans les coffres' : 'Retirer des coffres (garder en réserve)'}</button>
+      ${c ? `<button onclick="mjMenuUncollect()"><span>📤</span>Retirer de la collection</button>` : ''}
+      <button class="danger" onclick="mjMenuDelete()"><span>🗑</span>Supprimer du catalogue</button>
+    </div>
+    <div class="mj-foot"><button class="btn btn-ghost btn-full" onclick="closeModal('modal-mjmenu')">Fermer</button></div>`;
+}
+async function _mjMenuPatch(patch, msg) {
+  const it = _mjItem(MJ.menu);
+  const { error } = await db.from('mj_items').update(patch).eq('id', it.id);
+  if (error) { toast('Erreur : ' + error.message, 'error'); return false; }
+  Object.assign(it, patch);
+  if (msg) toast(msg);
+  _mjRefreshAll();
+  return true;
+}
+async function mjMenuRarity(k) { if (await _mjMenuPatch({ rarity: k }, `✅ Rareté : ${MJ_RARITY_LABEL[k]}`)) _mjRenderMenu(); }
+async function mjMenuActive() { const it = _mjItem(MJ.menu); if (await _mjMenuPatch({ active: it.active === false }, it.active === false ? '🎁 De retour dans les coffres' : '🙈 Retiré des coffres')) _mjRenderMenu(); }
+async function mjMenuUncollect() { if (await _mjMenuPatch({ collection_id: null }, '📤 Retiré de la collection')) closeModal('modal-mjmenu'); }
+function mjMenuEdit() { const id = MJ.menu; closeModal('modal-mjmenu'); mjEditItem(id); }
+function mjMenuImage() {
+  const it = _mjItem(MJ.menu);
+  closeModal('modal-mjmenu');
+  if (it.kind === 'poster') { mjEditItem(it.id); mjItemPosters(); return; }
+  mjCropOpen(null, async r => {
+    try {
+      const url = await _mjUpload(r.blob);
+      const { error } = await db.from('mj_items').update({ image_url: url }).eq('id', it.id);
+      if (error) throw error;
+      it.image_url = url;
+      toast('✅ Image changée');
+      _mjRefreshAll();
+    } catch (e) { toast('Erreur : ' + (e.message || e), 'error'); }
+  }, it.rarity);
+}
+async function mjMenuDelete() {
+  const it = _mjItem(MJ.menu);
+  if (!confirm(`Supprimer « ${it.title} » du catalogue ?`)) return;
+  const { error } = await db.from('mj_items').delete().eq('id', it.id);
+  if (error) { toast('Erreur : ' + error.message, 'error'); return; }
+  MJ.items = MJ.items.filter(i => i.id !== it.id);
+  closeModal('modal-mjmenu');
+  toast('🗑 Supprimé');
+  _mjRefreshAll();
+}
 /* ---------- Avatars : recadrage + envoi ---------- */
 function _mjProcessImage(file, size) {
   size = size || 320;
@@ -26719,8 +26855,7 @@ async function mjItemSave() {
     Object.assign(it, patch);
     closeModal('modal-mj-item');
     toast('✅ Enregistré');
-    _mjRenderSummary();
-    mjView(MJ.view);
+    _mjRefreshAll();
   } catch (e) {
     toast(/duplicate|unique/i.test(e.message || '') ? 'Cette affiche est déjà au catalogue' : 'Erreur : ' + (e.message || e), 'error');
   } finally { btn.disabled = false; }
@@ -26733,8 +26868,7 @@ async function mjItemDelete() {
   MJ.items = MJ.items.filter(i => i.id !== it.id);
   closeModal('modal-mj-item');
   toast('🗑 Supprimé');
-  _mjRenderSummary();
-  mjView(MJ.view);
+  _mjRefreshAll();
 }
 
 /* ---------- Collections ---------- */
@@ -26805,7 +26939,7 @@ function _mjRenderCollModal() {
     const st = _mjCollReady(_mjColl(C.id));
     itemsBlock = `<div class="mj-card" style="margin-top:14px">
       <div class="mj-row"><h3>${C.kind === 'poster' ? '🖼️ Affiches' : '🙂 Avatars'} de la collection · ${items.length}</h3><small class="${st.ok ? 'mj-ok' : 'mj-warn'}">${st.ok ? '✅ Prête' : '⏳ ' + st.why}</small></div>
-      ${items.length ? `<div class="mj-grid">${items.map(i => `<div class="mj-tile mj-r-${i.rarity}">${_mjImgHTML(i)}<span class="mj-tt">${_mjEsc(i.title)}</span><span class="mj-meta"><span class="mj-rp">${MJ_RARITY_LABEL[i.rarity]}</span><button class="btn btn-ghost" style="min-height:28px;padding:0 8px;font-size:12px" onclick="mjCRemoveItem('${i.id}')">Retirer</button></span></div>`).join('')}</div>` : '<p>Aucun objet pour l’instant.</p>'}
+      ${items.length ? `<p style="margin:0 0 10px">Touche une image pour changer sa rareté, son image, ou la retirer.</p><div class="mj-grid">${items.map(i => `<button class="mj-tile mj-r-${i.rarity}" onclick="mjItemMenu('${i.id}')">${_mjImgHTML(i)}<span class="mj-tt">${_mjEsc(i.title)}</span><span class="mj-meta"><span class="mj-rp">${MJ_RARITY_LABEL[i.rarity]}</span></span></button>`).join('')}</div>` : '<p>Aucun objet pour l’instant.</p>'}
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn btn-ghost" onclick="MJ.c.picking=!MJ.c.picking; MJ.c.sel=new Set(); _mjRenderCollModal()">${C.picking ? 'Fermer' : `＋ Choisir dans le catalogue (${free.length} libre${free.length > 1 ? 's' : ''})`}</button>
         <button class="btn btn-ghost" onclick="${C.kind === 'poster' ? `mjOpenAddPosters('${C.id}')` : `mjOpenAddAvatars('${C.id}')`}">${C.kind === 'poster' ? '🔍 Ajouter de nouvelles affiches' : '📁 Importer de nouveaux avatars'}</button>
@@ -26832,7 +26966,7 @@ function _mjRenderCollModal() {
     </div>
     ${itemsBlock}
     <div class="mj-foot">
-      ${C.id ? '<button class="btn btn-ghost" style="color:#ff8080;margin-right:auto" onclick="mjCDelete()">🗑 Supprimer la collection</button>' : ''}
+      ${C.id ? '<button class="btn btn-ghost" style="color:#ff8080;margin-right:auto" onclick="mjCDelete()" aria-label="Supprimer la collection">🗑 Supprimer</button>' : ''}
       <button class="btn btn-ghost" onclick="closeModal('modal-mj-collection'); MJ.c=null">Fermer</button>
       <button class="btn btn-gold" id="mj-c-save" ${ready ? '' : 'disabled'} onclick="mjCSave()">${C.id ? 'Enregistrer' : 'Créer la collection'}</button>
     </div>`;
