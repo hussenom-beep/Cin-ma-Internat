@@ -9920,7 +9920,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 .mj-foot{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:14px;align-items:center}
 .mj-foot .mj-note{margin-right:auto;font-size:12.5px;color:var(--text-2)}
 .mj-av-row{display:grid;grid-template-columns:64px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
-.mj-av-row img{width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid var(--border-2)}
+.mj-av-row>img{width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid var(--border-2)}
 .mj-av-row .finput{min-height:38px;padding:6px 10px;font-size:13.5px}
 .mj-pick{display:grid;grid-template-columns:repeat(auto-fill,minmax(86px,1fr));gap:10px;max-height:330px;overflow-y:auto;padding:4px}
 .mj-pick .mj-tile.on .mj-img{outline:3px solid var(--gold);outline-offset:2px}
@@ -9937,6 +9937,64 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
   .mj-grid{grid-template-columns:repeat(auto-fill,minmax(98px,1fr));gap:10px}
   .mj-colls{grid-template-columns:1fr}
 }
+
+.mj-k-file{display:flex;align-items:center;gap:12px;padding:14px 16px;border:1.5px dashed var(--border-2);border-radius:14px;cursor:pointer;font-size:22px;background:var(--surface-2)}
+.mj-k-file span{display:flex;flex-direction:column;font-size:14px}
+.mj-k-file small{font-size:12px;color:var(--text-3)}
+.mj-k-file input{display:none}
+.mj-k-file:hover{border-color:var(--gold)}
+.mj-k-or{text-align:center;font-size:12px;color:var(--text-3);margin:14px 0 10px;text-transform:uppercase;letter-spacing:.08em}
+.mj-k-search{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+.mj-k-search .finput{flex:1;min-width:0}
+.mj-k-search .mj-seg{flex:0 0 auto}
+.mj-k-film{display:flex;align-items:center;gap:10px;margin:4px 0 8px}
+.mj-k-h{font-size:12px;font-weight:700;color:var(--text-2);margin:10px 0 6px;text-transform:uppercase;letter-spacing:.06em}
+.mj-k-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.mj-k-grid.p{grid-template-columns:repeat(auto-fill,minmax(84px,1fr))}
+.mj-k-grid button{padding:0;border:2px solid transparent;border-radius:10px;overflow:hidden;background:var(--surface-2);cursor:pointer;aspect-ratio:16/9}
+.mj-k-grid.p button{aspect-ratio:2/3}
+.mj-k-grid button:hover{border-color:var(--gold)}
+.mj-k-grid img{width:100%;height:100%;object-fit:cover;display:block}
+.mj-k-err{background:rgba(255,90,90,.1);border:1px solid rgba(255,90,90,.35);color:#ffb0b0;border-radius:12px;padding:10px 12px;font-size:13px;margin-bottom:12px}
+.mj-k-vp{position:relative;width:min(100%,360px);aspect-ratio:1;margin:4px auto 0;border-radius:18px;overflow:hidden;background:#05050a;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}
+.mj-k-vp.drag{cursor:grabbing}
+.mj-k-vp img{position:absolute;left:0;top:0;max-width:none;max-height:none;transform-origin:0 0;pointer-events:none;-webkit-user-drag:none}
+.mj-k-ring{position:absolute;inset:0;border-radius:50%;box-shadow:0 0 0 2px var(--gold),0 0 0 999px rgba(5,5,10,.62);pointer-events:none}
+.mj-k-zoom{display:flex;align-items:center;gap:10px;width:min(100%,360px);margin:12px auto 0;color:var(--text-2);font-size:18px}
+.mj-k-zoom input{flex:1;accent-color:var(--gold)}
+.mj-av-row>img{cursor:pointer}
+.mj-recrop{position:relative;cursor:pointer}
+@media (max-width:600px){.mj-k-search{flex-wrap:wrap}.mj-k-search .finput{flex:1 1 60%}}
+/* Cadres d'avatar selon la rareté (ajoutés à l'affichage, jamais dans l'image) */
+@property --mja{syntax:'<angle>';inherits:false;initial-value:0deg}
+@keyframes mj-spin{to{--mja:360deg}}
+@keyframes mj-breath{0%,100%{opacity:.45;transform:scale(1)}50%{opacity:.9;transform:scale(1.06)}}
+@keyframes mj-sheen{0%,55%{background-position:160% 0}100%{background-position:-60% 0}}
+@keyframes mj-twinkle{0%,100%{opacity:.25}50%{opacity:1}}
+.mj-badge{--mjc:#a9aec2;position:relative;display:block;width:100%;aspect-ratio:1;border-radius:50%;padding:2px;background:linear-gradient(160deg,#d3d6e2,#7d8296);isolation:isolate}
+.mj-badge>img{position:relative;z-index:1;display:block;width:100%;height:100%;border-radius:50%;object-fit:cover;background:#15151f}
+.mj-badge.off{opacity:.45}
+.mj-badge .mj-hid{position:absolute;z-index:3;top:4%;left:50%;transform:translateX(-50%);font-size:10px;font-weight:800;padding:2px 6px;border-radius:6px;background:rgba(8,8,15,.85);color:var(--text-2)}
+.mj-badge.r-rare{--mjc:#5aa7ff;padding:3px;background:linear-gradient(150deg,#b9dcff,#3a86ea 55%,#1d4f9e);box-shadow:0 0 10px rgba(90,167,255,.45)}
+.mj-badge.r-epic{--mjc:#c084fc;padding:3px;background:conic-gradient(from 210deg,#f0c8ff,#9d4ded,#c084fc,#6d28d9,#f0c8ff);box-shadow:0 0 14px rgba(192,132,252,.55)}
+.mj-badge.r-epic::before{content:'';position:absolute;inset:-7%;border-radius:50%;z-index:-1;background:radial-gradient(circle,rgba(192,132,252,.55) 55%,transparent 72%);animation:mj-breath 3.2s ease-in-out infinite}
+.mj-badge.r-legendary{--mjc:#f5b82e;padding:4px;background:conic-gradient(from var(--mja),#f5b82e,#fff3c4,#b8790a,#f5b82e,#fff3c4,#b8790a,#f5b82e);animation:mj-spin 6s linear infinite;box-shadow:0 0 16px rgba(245,184,46,.6),0 0 2px #fff3c4 inset}
+.mj-badge.r-legendary::after{content:'';position:absolute;z-index:2;inset:4px;border-radius:50%;background:linear-gradient(105deg,transparent 42%,rgba(255,246,214,.6) 50%,transparent 58%) no-repeat;background-size:250% 100%;animation:mj-sheen 4.5s ease-in-out infinite;pointer-events:none}
+.mj-badge.r-exclusive{--mjc:#ff8ad8;padding:4px;background:conic-gradient(from var(--mja),#ff5ea8,#ffd36e,#6effb0,#5ec8ff,#b07bff,#ff5ea8);animation:mj-spin 5s linear infinite;box-shadow:0 0 18px rgba(255,138,216,.55),0 0 30px rgba(94,200,255,.25)}
+.mj-badge.r-exclusive::before{content:'';position:absolute;inset:-12%;z-index:2;pointer-events:none;background:
+  radial-gradient(circle at 12% 18%,#fff 0 1.6%,transparent 2.6%),radial-gradient(circle at 88% 14%,#fff 0 1.2%,transparent 2.2%),
+  radial-gradient(circle at 94% 70%,#fff 0 1.6%,transparent 2.6%),radial-gradient(circle at 8% 78%,#fff 0 1.2%,transparent 2.2%),
+  radial-gradient(circle at 50% 2%,#fff 0 1%,transparent 2%);animation:mj-twinkle 2.2s ease-in-out infinite}
+.mj-tile .mj-badge{width:82%;margin:8px auto 4px}
+.mj-pick .mj-tile.on .mj-badge{outline:3px solid var(--gold);outline-offset:3px}
+.mj-coll .mj-badge{width:64px;flex:0 0 auto}
+.mj-exc .mj-badge{width:72px;flex:0 0 auto}
+.mj-av-row>.mj-badge{width:60px;cursor:pointer}
+.mj-k-prev{display:flex;justify-content:center;gap:14px;flex-wrap:wrap;margin:14px auto 0;max-width:420px}
+.mj-k-prev figure{margin:0;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:11px;color:var(--text-3);width:58px}
+.mj-k-prev figure.on{color:var(--text)}
+.mj-k-prev .mj-badge{width:52px}
+@media (prefers-reduced-motion:reduce){.mj-badge,.mj-badge::before,.mj-badge::after{animation:none!important}}
 
   </style>
 <body>
@@ -11481,8 +11539,11 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
   <div class="sheet sheet-large">
     <div class="sheet-handle"></div>
     <div class="sheet-title">🙂 Ajouter des avatars</div>
-    <p class="text-sm text-muted" style="margin:-8px 0 12px">Choisis une ou plusieurs images. Elles sont recadrées en carré au centre et allégées automatiquement.</p>
-    <label class="btn btn-ghost btn-full" style="cursor:pointer">📁 Choisir des images<input type="file" id="mj-a-files" accept="image/*" multiple style="display:none" onchange="mjAvatarsPick(this.files)"></label>
+    <p class="text-sm text-muted" style="margin:-8px 0 12px">Prends des images sur ton appareil (plusieurs d’un coup) ou dans un film ou une série. Touche un avatar pour ajuster le rond. Le cadre de rareté est ajouté automatiquement.</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <label class="btn btn-ghost" style="cursor:pointer">📁 Mes images<input type="file" id="mj-a-files" accept="image/*" multiple style="display:none" onchange="mjAvatarsPick(this.files)"></label>
+      <button class="btn btn-ghost" onclick="mjAvFromFilm()">🎬 Film ou série</button>
+    </div>
     <div id="mj-a-rows" style="margin-top:8px"></div>
     <div class="mj-foot">
       <span class="mj-note" id="mj-a-note"></span>
@@ -11498,6 +11559,15 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
     <div class="sheet-handle"></div>
     <div class="sheet-title" id="mj-i-title">Modifier</div>
     <div id="mj-i-body"></div>
+  </div>
+</div>
+
+<!-- ═══ Mini-jeu : recadrer une image d'avatar ═══ -->
+<div class="overlay hidden" id="modal-mj-crop">
+  <div class="sheet sheet-large">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">✂️ Image de l’avatar</div>
+    <div id="mj-k-body"></div>
   </div>
 </div>
 
@@ -26167,6 +26237,7 @@ function _mjItem(id) { return MJ.items.find(i => i.id === id) || null; }
 function _mjRewardIds() { return new Set(MJ.collections.map(c => c.reward_item_id)); }
 function _mjImgHTML(it, extra) {
   const url = _mjImgUrl(it);
+  if (it.kind === 'avatar') return `<span class="mj-badge r-${it.rarity}${it.active === false ? ' off' : ''}${extra ? ' ' + extra : ''}">${url ? `<img src="${_mjEsc(url)}" alt="" loading="lazy">` : ''}${it.active === false ? '<span class="mj-hid">caché</span>' : ''}</span>`;
   return `<span class="mj-img mj-r-${it.rarity}${it.kind === 'avatar' ? ' av' : ''}${it.active === false ? ' off' : ''}${extra ? ' ' + extra : ''}">${url ? `<img src="${_mjEsc(url)}" alt="" loading="lazy">` : ''}${it.active === false ? '<span class="mj-hid">caché</span>' : ''}</span>`;
 }
 function _mjRarityOptions(sel, withExclusive) {
@@ -26508,7 +26579,7 @@ async function mjAvatarsPick(files) {
     try {
       const p = await _mjProcessImage(f);
       const name = f.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
-      MJ.av.push({ ...p, name: name.charAt(0).toUpperCase() + name.slice(1), rarity: 'common', coll: MJ.avColl || '' });
+      MJ.av.push({ ...p, src: { kind: 'file', file: f }, name: name.charAt(0).toUpperCase() + name.slice(1), rarity: 'common', coll: MJ.avColl || '' });
     } catch (e) { toast(`${f.name} : ${e.message}`, 'error'); }
   }
   _mjRenderAvRows();
@@ -26516,11 +26587,11 @@ async function mjAvatarsPick(files) {
 function _mjRenderAvRows() {
   const box = document.getElementById('mj-a-rows');
   box.innerHTML = MJ.av.map((a, i) => `<div class="mj-av-row">
-      <img src="${a.preview}" alt="">
+      <span class="mj-badge r-${a.rarity}" role="button" tabindex="0" title="Ajuster le rond" onclick="mjAvRecrop(${i})"><img src="${a.preview}" alt=""></span>
       <div style="display:flex;flex-direction:column;gap:6px;min-width:0">
         <input class="finput" value="${_mjEsc(a.name)}" aria-label="Nom de l'avatar" oninput="MJ.av[${i}].name=this.value">
         <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <select class="fselect" style="width:auto;min-height:34px;padding:4px 8px;font-size:12.5px" aria-label="Rareté" onchange="MJ.av[${i}].rarity=this.value">${_mjRarityOptions(a.rarity)}</select>
+          <select class="fselect" style="width:auto;min-height:34px;padding:4px 8px;font-size:12.5px" aria-label="Rareté" onchange="MJ.av[${i}].rarity=this.value; _mjRenderAvRows()">${_mjRarityOptions(a.rarity)}</select>
           <select class="fselect" style="width:auto;min-height:34px;padding:4px 8px;font-size:12.5px" aria-label="Collection" onchange="MJ.av[${i}].coll=this.value">${_mjCollOptions('avatar', a.coll)}</select>
         </div>
       </div>
@@ -26530,6 +26601,19 @@ function _mjRenderAvRows() {
   save.disabled = !n;
   save.textContent = n ? `Ajouter ${n} avatar${n > 1 ? 's' : ''}` : 'Ajouter';
   document.getElementById('mj-a-note').textContent = n ? 'Vérifie les noms : ils s’affichent sous l’avatar.' : '';
+}
+function mjAvFromFilm() {
+  mjCropOpen(null, r => {
+    MJ.av.push({ blob: r.blob, preview: r.preview, src: r.src, name: '', rarity: 'common', coll: MJ.avColl || '' });
+    _mjRenderAvRows();
+    const inputs = document.querySelectorAll('#mj-a-rows .finput');
+    inputs[inputs.length - 1]?.focus();
+  });
+}
+function mjAvRecrop(i) {
+  const a = MJ.av[i];
+  if (!a) return;
+  mjCropOpen(a.src || null, r => { Object.assign(a, { blob: r.blob, preview: r.preview, src: r.src }); _mjRenderAvRows(); }, a.rarity);
 }
 async function mjAvatarsSave() {
   if (!MJ.av.length) return;
@@ -26583,7 +26667,7 @@ function _mjRenderItem() {
       </div>
     </div>
     ${it.kind === 'poster' ? `<button class="btn btn-ghost btn-full" style="margin-top:12px" onclick="mjItemPosters()">${e.open ? 'Fermer' : '🖼️ Changer d’affiche'}</button>${strip}`
-      : `<label class="btn btn-ghost btn-full" style="margin-top:12px;cursor:pointer">📁 Remplacer l’image<input type="file" accept="image/*" style="display:none" onchange="mjItemImage(this.files[0])"></label>`}
+      : `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px"><label class="btn btn-ghost" style="cursor:pointer">📁 Mes images<input type="file" accept="image/*" style="display:none" onchange="mjItemImage(this.files[0])"></label><button class="btn btn-ghost" onclick="mjItemImage(null)">🎬 Film ou série</button></div>`}
     <div class="fgroup" style="margin-top:12px"><label class="flabel" for="mj-i-coll">Collection</label><select class="fselect" id="mj-i-coll">${_mjCollOptions(it.kind, it.collection_id)}</select></div>
     <label class="mj-row" style="margin-top:4px"><span>Peut sortir des coffres <small style="display:block;color:var(--text-3);font-size:12px">Décoche pour le garder en réserve sans le supprimer</small></span>
       <span class="mj-switch"><input type="checkbox" id="mj-i-active"${it.active !== false ? ' checked' : ''}><span></span></span></label>
@@ -26602,9 +26686,18 @@ async function mjItemPosters() {
     if (MJ.edit.open) _mjRenderItem();
   }
 }
-async function mjItemImage(file) {
-  if (!file) return;
-  try { MJ.edit.newImg = await _mjProcessImage(file); _mjRenderItem(); } catch (e) { toast(e.message, 'error'); }
+function mjItemImage(file) {
+  const rar = document.getElementById('mj-i-rar')?.value;
+  mjCropOpen(file ? { kind: 'file', file } : null, r => {
+    const keep = { title: document.getElementById('mj-i-name')?.value, rarity: rar, coll: document.getElementById('mj-i-coll')?.value, active: document.getElementById('mj-i-active')?.checked };
+    MJ.edit.newImg = r;
+    _mjRenderItem();
+    // garder ce qui avait été modifié dans la fenêtre
+    if (keep.title != null) document.getElementById('mj-i-name').value = keep.title;
+    if (keep.rarity) document.getElementById('mj-i-rar').value = keep.rarity;
+    if (keep.coll != null) document.getElementById('mj-i-coll').value = keep.coll;
+    if (keep.active != null) document.getElementById('mj-i-active').checked = keep.active;
+  }, rar);
 }
 async function mjItemSave() {
   const it = _mjItem(MJ.edit.id);
@@ -26692,7 +26785,8 @@ function _mjRenderCollModal() {
   if (C.kind === 'poster') {
     excEditor = `<div style="display:flex;flex-direction:column;gap:8px;flex:1;min-width:0">
       <input class="finput" id="mj-c-excname" placeholder="Nom de l'avatar exclusif" value="${_mjEsc(C.exc ? C.exc.name : (rew ? rew.title : ''))}" oninput="mjCExcName(this.value)">
-      <label class="btn btn-ghost" style="cursor:pointer;align-self:flex-start">📁 ${excPreview.includes('<img') ? 'Changer l’image' : 'Choisir l’image de l’avatar'}<input type="file" accept="image/*" style="display:none" onchange="mjCExcFile(this.files[0])"></label></div>`;
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><label class="btn btn-ghost" style="cursor:pointer">📁 Mes images<input type="file" accept="image/*" style="display:none" onchange="mjCExcFile(this.files[0])"></label><button class="btn btn-ghost" onclick="mjCExcFile(null)">🎬 Film ou série</button></div></div>`;
+    if (C.exc && C.exc.src) excPreview = `<button class="mj-thumb" title="Ajuster le rond" onclick="mjCExcRecrop()">${excPreview}</button>`;
   } else {
     const res = C.search ? (C.search.loading ? '<div class="loader"><div class="spinner"></div></div>'
       : C.search.results.length ? `<div class="mj-res">${C.search.results.map((f, k) => `<button onclick="mjCExcFilm(${k})">${f.poster ? `<img src="${_tmdbImg(f.poster, 'w92')}" alt="">` : ''}<span>${_mjEsc(f.title)}${f.year ? ' (' + f.year + ')' : ''}</span></button>`).join('')}</div>` : '<small class="text-muted">Aucun film trouvé</small>') : '';
@@ -26758,15 +26852,14 @@ function mjCName(v) {
 function mjCTitle(v) { MJ.c.title = v; MJ.c.titleTouched = true; }
 function mjCKind(k) { if (MJ.c.id) return; MJ.c.kind = k; MJ.c.exc = null; MJ.c.search = null; _mjRenderCollModal(); }
 function mjCExcName(v) { if (!MJ.c.exc) MJ.c.exc = { name: '', blob: null, preview: null }; MJ.c.exc.name = v; MJ.c.exc.nameTouched = true; _mjCRefreshSave(); }
-async function mjCExcFile(file) {
-  if (!file) return;
-  try {
-    const p = await _mjProcessImage(file);
-    const name = (MJ.c.exc && MJ.c.exc.name) || (MJ.c.rewardId ? _mjItem(MJ.c.rewardId)?.title : '') || (MJ.c.name.trim() ? 'Avatar ' + MJ.c.name.trim() : '');
-    MJ.c.exc = Object.assign({ nameTouched: !!(MJ.c.exc && MJ.c.exc.nameTouched) }, MJ.c.exc || {}, p, { name });
-    _mjRenderCollModal();
-  } catch (e) { toast(e.message, 'error'); }
+function _mjCExcSetAvatar(r) {
+  if (!MJ.c) return;
+  const name = (MJ.c.exc && MJ.c.exc.name) || (MJ.c.rewardId ? _mjItem(MJ.c.rewardId)?.title : '') || (MJ.c.name.trim() ? 'Avatar ' + MJ.c.name.trim() : '');
+  MJ.c.exc = Object.assign({ nameTouched: !!(MJ.c.exc && MJ.c.exc.nameTouched) }, MJ.c.exc || {}, { blob: r.blob, preview: r.preview, src: r.src }, { name });
+  _mjRenderCollModal();
 }
+function mjCExcFile(file) { mjCropOpen(file ? { kind: 'file', file } : null, _mjCExcSetAvatar, 'exclusive'); }
+function mjCExcRecrop() { if (MJ.c?.exc?.src) mjCropOpen(MJ.c.exc.src, _mjCExcSetAvatar, 'exclusive'); }
 async function mjCExcSearch(q) {
   q = (q || '').trim();
   if (!q) return;
@@ -26991,6 +27084,216 @@ async function mjSetTrades(on) {
   _mjRenderStatus();
   toast(on ? '🔁 Échanges ouverts' : '🔁 Échanges fermés');
 }
+/* ---------- Recadrage d'un avatar (mes images ou images TMDB) ---------- */
+const MJK = { rarity: '', cb: null, step: 'source', src: null, type: 'movie', q: '', results: null, film: null, images: null, err: '', ptrs: new Map(), pinch: null };
+/* src = { kind:'file', file } | { kind:'tmdb', path } ; cb(résultat) avec { blob, preview, src } */
+function mjCropOpen(src, cb, rarity) {
+  Object.assign(MJK, { cb, rarity: rarity || '', step: 'source', src: null, err: '', ptrs: new Map(), pinch: null });
+  openModal('modal-mj-crop');
+  if (src) _mjkStart(src); else _mjkRender();
+}
+function _mjkRender() {
+  const body = document.getElementById('mj-k-body');
+  if (!body) return;
+  const k = MJK;
+  if (k.step === 'crop') {
+    body.innerHTML = `
+      <div class="mj-k-vp" id="mj-k-vp"><img id="mj-k-img" alt="" draggable="false"><span class="mj-k-ring"></span></div>
+      <div class="mj-k-zoom"><span aria-hidden="true">−</span><input type="range" id="mj-k-zoom" min="0" max="100" step="0.5" value="0" aria-label="Zoom" oninput="_mjkSlider(this.value)"><span aria-hidden="true">+</span></div>
+      <p class="mj-note" style="text-align:center;margin:8px 0 0">Fais glisser l’image pour placer le personnage dans le rond, puis zoome.</p>
+      <div class="mj-k-prev" id="mj-k-prev" aria-label="Rendu selon la rareté">${['common', 'rare', 'epic', 'legendary', 'exclusive'].map(r => `<figure class="${r === k.rarity ? 'on' : ''}"><span class="mj-badge r-${r}"><img alt=""></span>${MJ_RARITY_LABEL[r]}</figure>`).join('')}</div>
+      <div class="mj-foot">
+        <button class="btn btn-ghost" style="margin-right:auto" onclick="_mjkBack()">‹ Autre image</button>
+        <button class="btn btn-ghost" onclick="closeModal('modal-mj-crop')">Annuler</button>
+        <button class="btn btn-gold" id="mj-k-ok" onclick="_mjkValidate()">Valider</button>
+      </div>`;
+    _mjkMount();
+    return;
+  }
+  // choix de la source
+  let list = '';
+  if (k.film) {
+    const im = k.images;
+    list = `<div class="mj-k-film"><button class="btn btn-ghost" onclick="MJK.film=null; MJK.images=null; _mjkRender()">‹ Résultats</button><b>${_mjEsc(k.film.title)}${k.film.year ? ' (' + k.film.year + ')' : ''}</b></div>`
+      + (!im ? '<div class="loader"><div class="spinner"></div></div>'
+        : (!im.scenes.length && !im.posters.length) ? '<p class="mj-note">Aucune image pour ce titre.</p>'
+        : `${im.scenes.length ? `<p class="mj-k-h">Scènes · ${im.scenes.length}</p><div class="mj-k-grid">${im.scenes.map(p => `<button onclick="_mjkStart({kind:'tmdb',path:'${p}'})" aria-label="Choisir cette image"><img src="${_tmdbImg(p, 'w300')}" alt="" loading="lazy"></button>`).join('')}</div>` : ''}
+           ${im.posters.length ? `<p class="mj-k-h">Affiches · ${im.posters.length}</p><div class="mj-k-grid p">${im.posters.map(p => `<button onclick="_mjkStart({kind:'tmdb',path:'${p}'})" aria-label="Choisir cette affiche"><img src="${_tmdbImg(p, 'w185')}" alt="" loading="lazy"></button>`).join('')}</div>` : ''}`);
+  } else if (k.results) {
+    list = k.results === 'loading' ? '<div class="loader"><div class="spinner"></div></div>'
+      : k.results.length ? `<div class="mj-res">${k.results.map((f, i) => `<button onclick="_mjkFilm(${i})">${f.poster ? `<img src="${_tmdbImg(f.poster, 'w92')}" alt="">` : ''}<span>${_mjEsc(f.title)}${f.year ? ' (' + f.year + ')' : ''}</span></button>`).join('')}</div>`
+      : '<p class="mj-note">Aucun résultat. Essaie le titre anglais.</p>';
+  }
+  body.innerHTML = `
+    ${k.err ? `<div class="mj-k-err">${_mjEsc(k.err)}</div>` : ''}
+    <label class="mj-k-file">📁 <span><b>Mes images</b><small>Photo, capture d’écran, image enregistrée</small></span><input type="file" accept="image/*" onchange="if(this.files[0]) _mjkStart({kind:'file', file:this.files[0]})"></label>
+    <div class="mj-k-or">ou dans un film ou une série</div>
+    <div class="mj-k-search">
+      <div class="mj-seg"><button class="${k.type === 'movie' ? 'on' : ''}" onclick="MJK.type='movie'">Film</button><button class="${k.type === 'tv' ? 'on' : ''}" onclick="MJK.type='tv'">Série</button></div>
+      <input class="finput" id="mj-k-q" placeholder="Ex. Toy Story, Les Simpson…" value="${_mjEsc(k.q)}" onkeydown="if(event.key==='Enter') _mjkSearch()">
+      <button class="btn btn-gold" onclick="_mjkSearch()" aria-label="Chercher">🔍</button>
+    </div>
+    ${list}`;
+  body.querySelectorAll('.mj-k-search .mj-seg button').forEach(b => b.addEventListener('click', () => {
+    body.querySelectorAll('.mj-k-search .mj-seg button').forEach(x => x.classList.toggle('on', x === b));
+  }));
+}
+async function _mjkSearch() {
+  const q = (document.getElementById('mj-k-q')?.value || '').trim();
+  if (!q) return;
+  Object.assign(MJK, { q, results: 'loading', film: null, images: null, err: '' });
+  _mjkRender();
+  try {
+    const p = new URLSearchParams({ api_key: CFG.TMDB_KEY, query: q, language: 'fr-FR', include_adult: 'false' });
+    const j = await (await fetch(`https://api.themoviedb.org/3/search/${MJK.type}?${p}`)).json();
+    MJK.results = (j.results || []).slice(0, 8).map(x => ({ id: x.id, type: MJK.type, title: x.title || x.name, year: (x.release_date || x.first_air_date || '').slice(0, 4), poster: x.poster_path }));
+  } catch (_) { MJK.results = []; }
+  _mjkRender();
+}
+async function _mjkFilm(i) {
+  const f = MJK.results[i];
+  Object.assign(MJK, { film: f, images: null });
+  _mjkRender();
+  let im = { scenes: [], posters: [] };
+  try {
+    const j = await (await fetch(`https://api.themoviedb.org/3/${f.type}/${f.id}/images?api_key=${CFG.TMDB_KEY}&include_image_language=null,fr,en`)).json();
+    const rank = l => l == null ? 0 : l === 'fr' ? 1 : 2;   // scènes sans texte d'abord
+    const sort = a => a.slice().sort((x, y) => rank(x.iso_639_1) - rank(y.iso_639_1) || (y.vote_average - x.vote_average));
+    im = { scenes: sort(j.backdrops || []).slice(0, 40).map(b => b.file_path), posters: sort(j.posters || []).slice(0, 12).map(b => b.file_path) };
+  } catch (_) {}
+  if (MJK.film === f) { MJK.images = im; _mjkRender(); }
+}
+function _mjkLoad(url, cors) {
+  return new Promise((res, rej) => {
+    const im = new Image();
+    if (cors) im.crossOrigin = 'anonymous';
+    im.onload = () => res(im);
+    im.onerror = () => rej(new Error('load'));
+    im.src = url;
+  });
+}
+async function _mjkStart(src) {
+  const k = MJK;
+  k.err = '';
+  let img;
+  try {
+    if (src.kind === 'file') {
+      if (k.objUrl) URL.revokeObjectURL(k.objUrl);
+      k.objUrl = URL.createObjectURL(src.file);
+      img = await _mjkLoad(k.objUrl, false);
+    } else {
+      img = await _mjkLoad(_tmdbImg(src.path, 'w1280'), true);
+    }
+  } catch (_) {
+    k.err = src.kind === 'file' ? 'Cette image ne peut pas être ouverte. Essaie une image JPG ou PNG.'
+      : 'Cette image ne peut pas être recadrée ici. Enregistre-la sur ton appareil, puis passe par « Mes images ».';
+    k.step = 'source';
+    _mjkRender();
+    return;
+  }
+  Object.assign(k, { src, img, w: img.naturalWidth, h: img.naturalHeight, step: 'crop' });
+  _mjkRender();
+}
+function _mjkMount() {
+  const k = MJK;
+  const vp = document.getElementById('mj-k-vp');
+  const el = document.getElementById('mj-k-img');
+  el.src = k.img.src;
+  k.V = vp.clientWidth || 320;
+  k.min = Math.max(k.V / k.w, k.V / k.h);
+  k.max = Math.max(k.min * 1.5, k.V / 120);        // au moins 120 px de l'image d'origine dans le rond
+  k.s = k.min;
+  k.x = (k.V - k.w * k.s) / 2;
+  k.y = (k.V - k.h * k.s) * 0.3;                     // portrait : on garde le haut
+  _mjkApply();
+  k.ptrs = new Map(); k.pinch = null;
+  const pt = e => { const r = vp.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+  const pinch = () => { const [a, b] = [...k.ptrs.values()]; return { cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2, d: Math.hypot(a.x - b.x, a.y - b.y) || 1 }; };
+  vp.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    vp.setPointerCapture?.(e.pointerId);
+    k.ptrs.set(e.pointerId, pt(e));
+    if (k.ptrs.size === 2) k.pinch = pinch();
+    vp.classList.add('drag');
+  });
+  vp.addEventListener('pointermove', e => {
+    if (!k.ptrs.has(e.pointerId)) return;
+    const prev = k.ptrs.get(e.pointerId), cur = pt(e);
+    k.ptrs.set(e.pointerId, cur);
+    if (k.ptrs.size === 1) { k.x += cur.x - prev.x; k.y += cur.y - prev.y; _mjkApply(); }
+    else if (k.ptrs.size === 2 && k.pinch) {
+      const p = pinch();
+      k.x += p.cx - k.pinch.cx; k.y += p.cy - k.pinch.cy;
+      _mjkZoom(k.s * p.d / k.pinch.d, p.cx, p.cy);
+      k.pinch = p;
+    }
+  });
+  const up = e => { k.ptrs.delete(e.pointerId); if (k.ptrs.size < 2) k.pinch = null; if (!k.ptrs.size) vp.classList.remove('drag'); };
+  vp.addEventListener('pointerup', up);
+  vp.addEventListener('pointercancel', up);
+  vp.addEventListener('wheel', e => { e.preventDefault(); const p = pt(e); _mjkZoom(k.s * Math.exp(-e.deltaY * 0.0015), p.x, p.y); }, { passive: false });
+}
+function _mjkApply() {
+  const k = MJK;
+  k.x = Math.min(0, Math.max(k.V - k.w * k.s, k.x));
+  k.y = Math.min(0, Math.max(k.V - k.h * k.s, k.y));
+  const el = document.getElementById('mj-k-img');
+  if (el) { el.style.width = k.w * k.s + 'px'; el.style.height = k.h * k.s + 'px'; el.style.transform = `translate3d(${k.x}px,${k.y}px,0)`; }
+  const z = document.getElementById('mj-k-zoom');
+  if (z && k.max > k.min) z.value = String(Math.log(k.s / k.min) / Math.log(k.max / k.min) * 100);
+  clearTimeout(k.prevT);
+  k.prevT = setTimeout(_mjkPreview, 60);
+}
+/* Aperçu du rond dans les 5 cadres de rareté */
+function _mjkPreview() {
+  const k = MJK, box = document.getElementById('mj-k-prev');
+  if (!box || !k.img) return;
+  try {
+    const cv = document.createElement('canvas');
+    cv.width = cv.height = 112;
+    cv.getContext('2d').drawImage(k.img, -k.x / k.s, -k.y / k.s, k.V / k.s, k.V / k.s, 0, 0, 112, 112);
+    const url = cv.toDataURL('image/png');
+    box.querySelectorAll('img').forEach(i => { i.src = url; });
+  } catch (_) {}
+}
+function _mjkZoom(s, cx, cy) {
+  const k = MJK;
+  s = Math.min(k.max, Math.max(k.min, s));
+  const ix = (cx - k.x) / k.s, iy = (cy - k.y) / k.s;
+  k.s = s; k.x = cx - ix * s; k.y = cy - iy * s;
+  _mjkApply();
+}
+function _mjkSlider(v) { const k = MJK; _mjkZoom(k.min * Math.pow(k.max / k.min, v / 100), k.V / 2, k.V / 2); }
+function _mjkBack() { MJK.step = 'source'; MJK.err = ''; _mjkRender(); }
+function _mjkValidate() {
+  const k = MJK, size = 320;
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = size;
+  const ctx = cv.getContext('2d');
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(k.img, -k.x / k.s, -k.y / k.s, k.V / k.s, k.V / k.s, 0, 0, size, size);
+  const btn = document.getElementById('mj-k-ok');
+  if (btn) btn.disabled = true;
+  const fail = () => { if (btn) btn.disabled = false; k.err = 'Cette image ne peut pas être recadrée ici. Enregistre-la sur ton appareil, puis passe par « Mes images ».'; k.step = 'source'; _mjkRender(); };
+  try {
+    cv.toBlob(b => {
+      if (!b) return fail();
+      const res = { blob: b, preview: cv.toDataURL(b.type || 'image/png'), src: k.src };
+      const cb = k.cb;
+      closeModal('modal-mj-crop');
+      if (cb) cb(res);
+    }, 'image/webp', 0.86);
+  } catch (_) { fail(); }
+}
+window.addEventListener('resize', () => {
+  const k = MJK, vp = document.getElementById('mj-k-vp');
+  if (k.step !== 'crop' || !vp || document.getElementById('modal-mj-crop').classList.contains('hidden')) return;
+  const V = vp.clientWidth; if (!V || V === k.V) return;
+  const r = V / k.V;
+  k.V = V; k.min *= r; k.max *= r; k.s *= r; k.x *= r; k.y *= r;
+  _mjkApply();
+});
+
 
 
 function aTab(tab) {
