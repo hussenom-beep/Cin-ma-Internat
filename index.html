@@ -11528,6 +11528,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
       <div class="mj-foot">
         <span class="mj-note" id="mj-p-note"></span>
         <button class="btn btn-ghost" onclick="mjPostersBack()">‹ Modifier la liste</button>
+        <button class="btn btn-ghost" onclick="closeModal('modal-mj-posters')">Annuler</button>
         <button class="btn btn-gold" id="mj-p-save" onclick="mjPostersSave()">Ajouter</button>
       </div>
     </div>
@@ -27133,7 +27134,8 @@ function _mjkRender() {
       <input class="finput" id="mj-k-q" placeholder="Ex. Toy Story, Les Simpson…" value="${_mjEsc(k.q)}" onkeydown="if(event.key==='Enter') _mjkSearch()">
       <button class="btn btn-gold" onclick="_mjkSearch()" aria-label="Chercher">🔍</button>
     </div>
-    ${list}`;
+    ${list}
+    <div class="mj-foot"><button class="btn btn-ghost" onclick="closeModal('modal-mj-crop')">Annuler</button></div>`;
   body.querySelectorAll('.mj-k-search .mj-seg button').forEach(b => b.addEventListener('click', () => {
     body.querySelectorAll('.mj-k-search .mj-seg button').forEach(x => x.classList.toggle('on', x === b));
   }));
@@ -38200,6 +38202,8 @@ document.querySelectorAll('.overlay').forEach(o => {
     // L'élève DOIT cliquer "Fermer" qui passe par closeMaintenanceLiveAndLogout()
     // pour garantir le logout. Sinon il pourrait bypass et garder sa session.
     if (o.id === 'modal-maintenance-live') return;
+    // Mini-jeu : un clic à côté ne ferme pas la fenêtre (on perdrait le travail en cours)
+    if (o.id.startsWith('modal-mj-')) return;
     closeModal(o.id);
   });
 });
