@@ -10030,6 +10030,24 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 .mj-img.mj-r-legendary::after{content:'';position:absolute;inset:3px;border-radius:8px;background:linear-gradient(105deg,transparent 40%,rgba(255,248,220,.6) 50%,transparent 60%) no-repeat;background-size:250% 100%;animation:mj-sheen 3.6s ease-in-out infinite;pointer-events:none}
 @media (prefers-reduced-motion:reduce){.mj-img.mj-r-legendary,.mj-img.mj-r-legendary::after{animation:none!important}}
 
+/* Progression des cadres : plus c'est rare, plus c'est stylé */
+@keyframes mj-glow-blue{0%,100%{box-shadow:0 0 7px rgba(90,167,255,.5)}50%{box-shadow:0 0 16px rgba(90,167,255,.9),0 0 26px rgba(90,167,255,.3)}}
+@keyframes mj-glow-purple{0%,100%{box-shadow:0 0 10px rgba(192,132,252,.5),0 0 0 1px rgba(240,200,255,.35)}50%{box-shadow:0 0 22px rgba(192,132,252,.9),0 0 40px rgba(157,77,237,.4),0 0 0 1px rgba(240,200,255,.7)}}
+@keyframes mj-glow-rainbow{0%,100%{box-shadow:0 0 16px rgba(255,138,216,.6),0 0 30px rgba(94,200,255,.3)}50%{box-shadow:0 0 26px rgba(110,255,176,.7),0 0 50px rgba(176,123,255,.45)}}
+/* Avatars */
+.mj-badge.r-common{padding:2px;box-shadow:none}
+.mj-badge.r-rare{padding:2.5px;animation:mj-glow-blue 3s ease-in-out infinite}
+.mj-badge.r-epic{padding:4px;background:conic-gradient(from var(--mja),#f3d4ff,#9d4ded 20%,#c084fc 40%,#6d28d9 60%,#e9b8ff 80%,#f3d4ff);animation:mj-spin 9s linear infinite,mj-glow-purple 2.8s ease-in-out infinite}
+.mj-badge.r-epic::before{inset:-10%;background:radial-gradient(circle,rgba(192,132,252,.6) 52%,transparent 72%)}
+.mj-badge.r-exclusive{padding:5px;animation:mj-spin 5s linear infinite,mj-glow-rainbow 3s ease-in-out infinite}
+/* Affiches */
+.mj-img.mj-r-common{box-shadow:none}
+.mj-img.mj-r-rare{animation:mj-glow-blue 3s ease-in-out infinite}
+.mj-img.mj-r-epic{border-color:transparent;padding:3px;background:conic-gradient(from var(--mja),#f3d4ff,#9d4ded 20%,#c084fc 40%,#6d28d9 60%,#e9b8ff 80%,#f3d4ff) border-box;animation:mj-spin 9s linear infinite,mj-glow-purple 2.8s ease-in-out infinite}
+.mj-img.mj-r-epic img{border-radius:8px}
+.mj-r-exclusive .mj-img,.mj-img.mj-r-exclusive{background:conic-gradient(from var(--mja),#ff5ea8,#ffd36e,#6effb0,#5ec8ff,#b07bff,#ff5ea8) border-box;animation:mj-spin 5s linear infinite,mj-glow-rainbow 3s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){.mj-img,.mj-badge{animation:none!important}}
+
   </style>
 <body>
 <script>
