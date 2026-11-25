@@ -10692,8 +10692,8 @@ html.mj-exc-rainbow .mjo-chg.end.c-exclusive{border-color:#b07bff;box-shadow:0 0
 .mjd-tl{font-size:10.5px;font-weight:900;letter-spacing:.06em;padding:2px 7px;border-radius:999px;background:rgba(245,184,46,.2);color:#ffd56b}
 
 /* Animation d'échange */
-.mjx-card{position:absolute;left:50%;top:clamp(120px,19vh,180px);width:min(56vw,220px);aspect-ratio:2/3;margin-left:calc(min(56vw,220px)/-2);z-index:5;perspective:1100px;animation:mjxin .5s cubic-bezier(.22,1.3,.36,1) both;transition:transform .75s cubic-bezier(.55,0,.3,1),opacity .75s,filter .75s}
-.mjx-card.away{transform:translateY(-26vh) scale(.16);opacity:.35;filter:blur(1px)}
+.mjx-card{position:absolute;left:50%;top:clamp(120px,19vh,180px);width:min(56vw,220px);aspect-ratio:2/3;margin-left:calc(min(56vw,220px)/-2);z-index:5;perspective:1100px;animation:mjxin .5s cubic-bezier(.22,1.3,.36,1) backwards;transition:transform .75s cubic-bezier(.55,0,.3,1),opacity .75s,filter .75s}
+.mjx-card.away{transform:translateY(-11vh) scale(.16) rotate(-6deg);opacity:.4;filter:blur(1px)}
 .mjx-card.back{transition:transform .8s cubic-bezier(.22,1,.36,1),opacity .6s,filter .6s}
 .mjx-card .mjo-fi{transition:transform .9s cubic-bezier(.45,0,.2,1)}
 .mjx-b{transform:rotateY(180deg)}
