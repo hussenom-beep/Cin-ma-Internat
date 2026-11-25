@@ -10716,6 +10716,10 @@ html.mj-exc-rainbow .mjo-chg.end.c-exclusive{border-color:#b07bff;box-shadow:0 0
 .ann-empty{padding:16px;text-align:center;color:var(--text-3);font-size:14px;border:1px dashed var(--border-2);border-radius:14px}
 .ann-old{margin-top:14px}
 .ann-old summary{cursor:pointer;font-size:13px;font-weight:700;color:var(--text-2);margin-bottom:10px}
+
+.mj-ses-coll{color:var(--text-3)}
+.mj-ses-coll.in{color:#9fd6a4}
+.mjc-sv-coll{display:block;margin-top:3px;color:#ffd56b;font-weight:700}
 </style>
 <body>
 <script>
@@ -28730,9 +28734,10 @@ function _mjRenderCollection() {
       + (cols.some(c => c.kind === ck) ? '' : '<div class="mjs-empty sm">Ces collections arrivent bientôt.</div>')
       : '<div class="mjs-empty">Les collections arrivent bientôt.</div>';
   } else if (G.cview === 'souvenirs') {
-    inner = sv ? `<p class="mjs-help">Une carte souvenir pour chaque séance où tu étais là. Elle compte dans les collections et ne s’échange pas.</p>
+    const svColl = tmdb => { const it = tmdb && Object.values(G.byId).find(i => i.kind === 'poster' && i.tmdb_id && +i.tmdb_id === +tmdb && i.collection_id); const c = it && G.colls.find(x => x.id === it.collection_id); return c ? c.name : null; };
+    inner = sv ? `<p class="mjs-help">Une carte souvenir pour chaque séance où tu étais là. Si le film fait partie d’une collection, elle la remplit. Elle ne s’échange pas.</p>
       <div class="mjc-grid">${G.st.souvenirs.map(s => `<div class="mjc-sv"><div class="mjc-sv-img">${s.poster_url ? `<img src="${_mjEsc(s.poster_url)}" alt="" loading="lazy">` : '🎬'}</div>
-        <div class="mjc-sv-stub"><b>${_mjEsc(s.title || 'Séance')}</b><small>Vu à l’internat · ${s.seen_on ? new Date(s.seen_on + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}</small></div></div>`).join('')}</div>`
+        <div class="mjc-sv-stub"><b>${_mjEsc(s.title || 'Séance')}</b><small>Vu à l’internat · ${s.seen_on ? new Date(s.seen_on + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}</small>${(() => { const cn = svColl(s.tmdb_id); return cn ? `<small class="mjc-sv-coll">📚 ${_mjEsc(cn)}</small>` : ''; })()}</div></div>`).join('')}</div>`
       : '<div class="mjs-empty">🎟️<br>Viens à une séance : le lendemain à 6 h, ta carte souvenir apparaît ici.</div>';
   } else {
     const kind = G.cview === 'avatars' ? 'avatar' : 'poster';
@@ -30043,13 +30048,16 @@ function _mjRenderLaunchBody() {
       <td class="n">${s.level}</td><td class="n">${s.bobines || '–'}</td><td class="n">${s.pellicules || '–'}</td>
       <td class="n">${s.golden ? '🎫' : '–'}</td><td class="n">${s.souvenirs || '–'}</td>
       <td class="n">${s.plays ? '<span class="mj-pill on">joue</span>' : ''}</td></tr>`).join('');
+  const collOf = tmdb => { const it = MJ.items.find(i => i.kind === 'poster' && i.tmdb_id && +i.tmdb_id === +tmdb && i.collection_id); const c = it && _mjColl(it.collection_id); return c ? c.name : null; };
   const sess = ss.map(s => {
     const img = s.poster_url || s.film_poster || '';
+    const cn = s.tmdb_id ? collOf(s.tmdb_id) : null;
     return `<div class="mj-ses${s.enabled ? '' : ' off'}">
       <span class="mj-ses-img">${img ? `<img src="${_mjEsc(img)}" alt="" loading="lazy">` : '🎬'}</span>
       <div class="mj-ses-b"><b>${_mjEsc(s.title || 'Film')}</b>
         <small>${new Date(s.date + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })} · ${s.present} présent${s.present > 1 ? 's' : ''}${s.given ? ` · ${s.given} carte${s.given > 1 ? 's' : ''} déjà donnée${s.given > 1 ? 's' : ''}` : ''}</small>
-        <small>${s.poster_url ? '🖼️ Affiche choisie' : 'Affiche du film'}${s.enabled ? '' : ' · <b style="color:#ff8080">pas de carte souvenir</b>'}</small></div>
+        <small>${s.poster_url ? '🖼️ Affiche choisie' : 'Affiche du film'}${s.enabled ? '' : ' · <b style="color:#ff8080">pas de carte souvenir</b>'}</small>
+        <small class="mj-ses-coll${cn ? ' in' : ''}">${cn ? `📚 Complète la collection « ${_mjEsc(cn)} »` : 'Hors collection : carte souvenir seule'}</small></div>
       <div class="mj-ses-a">
         ${s.tmdb_id ? `<button class="btn btn-ghost" onclick="mjSesPoster('${s.session_id}')">Changer l’affiche</button>` : ''}
         <label class="mj-switch" title="Donner la carte souvenir"><input type="checkbox"${s.enabled ? ' checked' : ''} onchange="mjSesToggle('${s.session_id}', this.checked)"><span></span></label>
@@ -30064,9 +30072,9 @@ function _mjRenderLaunchBody() {
       <div class="mj-launch-wrap"><table class="mj-launch"><thead><tr><th>Élève</th><th>Niv.</th><th>Bobines</th><th>Pellic.</th><th>🎫</th><th>Souv.</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
     </div>
     <div class="mj-card">
-      <h3>🎟️ Cartes souvenir des séances de l’année · ${ss.length}</h3>
-      <p>Chaque élève présent reçoit la carte du film le lendemain à 6 h (et, pour les séances passées, à l’ouverture du jeu). Choisis l’affiche de chaque carte, ou coupe la carte d’une séance.</p>
-      ${sess || '<p><i>Aucune séance avec appel validé cette année.</i></p>'}
+      <h3>🎟️ Cartes souvenir des séances depuis mai 2026 · ${ss.length}</h3>
+      <p>Chaque élève présent reçoit la carte du film le lendemain à 6 h (et, pour les séances passées, à l’ouverture du jeu). Si le film est aussi une affiche d’une collection, la carte souvenir la remplit. Choisis l’affiche de chaque carte, ou coupe la carte d’une séance.</p>
+      ${sess || '<p><i>Aucune séance avec appel validé depuis mai 2026.</i></p>'}
     </div>`;
 }
 function _isTestClassSafe(c) { return typeof _isTestClass === 'function' ? _isTestClass(c) : /TEST/i.test(c || ''); }
