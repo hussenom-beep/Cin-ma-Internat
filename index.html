@@ -10253,11 +10253,6 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 /* Étoiles du ticket d'or */
 .mj-stars{display:inline-block;margin-left:6px;font-size:12px;letter-spacing:-1px;filter:drop-shadow(0 0 4px rgba(245,184,46,.7));vertical-align:1px}
 /* Menu ➕ */
-.mjx{display:flex;flex-direction:column;gap:8px}
-.mjx button{display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:14px;border:1px solid var(--border);background:var(--surface-2);color:var(--text);font:inherit;font-size:15px;font-weight:600;text-align:left;cursor:pointer}
-.mjx button span{font-size:20px;width:26px;text-align:center}
-.mjx .gold-t{border-color:rgba(245,184,46,.55);background:linear-gradient(135deg,rgba(245,184,46,.16),rgba(245,184,46,.04));color:#ffd56b}
-.mjx .big{margin-top:6px;padding:18px;justify-content:center;font-size:17px;font-weight:800;border:none;background:radial-gradient(circle at 30% 20%,#ffd56b,var(--gold) 60%,#b87a00);color:#16110a;box-shadow:0 8px 24px rgba(240,165,0,.35)}
 /* Ticket d'or */
 .mjg-ticket{display:flex;gap:14px;align-items:center;padding:14px 16px;border-radius:16px;margin-bottom:6px;background:linear-gradient(120deg,#3a2b05,#7a5a0c 40%,#f5c95a 50%,#7a5a0c 60%,#3a2b05);background-size:300% 100%;animation:mjgold 5s linear infinite;color:#fff7dd;border:1px solid #f5c95a}
 @keyframes mjgold{from{background-position:100% 0}to{background-position:-100% 0}}
@@ -10684,6 +10679,31 @@ html.mj-exc-rainbow .mjo-chg.end.c-exclusive{border-color:#b07bff;box-shadow:0 0
 .mjo-ri.pz{display:flex;flex-direction:column;align-items:center;gap:8px}
 .mjo-ri.pz .mjo-pz{font-size:96px}
 .mjo-msg{margin:-6px 0 0;font-style:italic;color:var(--text-2);text-align:center;max-width:320px}
+
+/* Fiche d'une carte : fenêtre centrée (plus en bas de l'écran) */
+#modal-mjs-card{align-items:center;padding:14px}
+#modal-mjs-card>.sheet{border-radius:24px;border-bottom:1px solid var(--card-border);max-width:460px;max-height:min(90vh,820px);box-shadow:0 20px 60px rgba(0,0,0,.65);animation:mjdpop .32s cubic-bezier(.22,1.3,.36,1)}
+@keyframes mjdpop{from{transform:scale(.9);opacity:0}to{transform:none;opacity:1}}
+#modal-mjs-card .mjs-top.in-sheet{background:linear-gradient(180deg,#16161f 78%,rgba(22,22,31,0))}
+/* Bande-annonce dans un petit cadre doré */
+.mjd-trailer{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;margin-top:12px;padding:11px 14px;border-radius:14px;border:1.5px solid #c9a24a;background:linear-gradient(135deg,rgba(201,162,74,.16),rgba(201,162,74,.05));color:#f5dfa0;font:inherit;font-size:14px;font-weight:800;cursor:pointer;box-shadow:0 0 16px rgba(245,184,46,.15),inset 0 0 0 1px rgba(255,230,160,.12)}
+.mjd-trailer:active{transform:scale(.98)}
+.mjd-play{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#ffd56b,#c9930f);color:#1a1200;font-size:11px;padding-left:2px}
+.mjd-tl{font-size:10.5px;font-weight:900;letter-spacing:.06em;padding:2px 7px;border-radius:999px;background:rgba(245,184,46,.2);color:#ffd56b}
+
+/* Animation d'échange */
+.mjx-card{position:absolute;left:50%;top:clamp(120px,19vh,180px);width:min(56vw,220px);aspect-ratio:2/3;margin-left:calc(min(56vw,220px)/-2);z-index:5;perspective:1100px;animation:mjxin .5s cubic-bezier(.22,1.3,.36,1) both;transition:transform .75s cubic-bezier(.55,0,.3,1),opacity .75s,filter .75s}
+.mjx-card.away{transform:translateY(-26vh) scale(.16);opacity:.35;filter:blur(1px)}
+.mjx-card.back{transition:transform .8s cubic-bezier(.22,1,.36,1),opacity .6s,filter .6s}
+.mjx-card .mjo-fi{transition:transform .9s cubic-bezier(.45,0,.2,1)}
+.mjx-b{transform:rotateY(180deg)}
+.mjx .mjo-bk{border:3px solid #3a3248}
+@keyframes mjxin{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}
+.mjx-lbl{opacity:0;transition:opacity .4s}
+.mjx-lbl.on{opacity:1}
+.mjx-acts{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(26px + env(safe-area-inset-bottom));width:calc(100% - 40px);max-width:380px;display:flex;flex-direction:column;gap:8px;z-index:20}
+.mjx .mjo-hint{bottom:calc(30px + env(safe-area-inset-bottom))}
+@media (max-height:700px){.mjx-card{width:min(50vw,190px);margin-left:calc(min(50vw,190px)/-2);top:clamp(96px,15vh,130px)}}
 </style>
 <body>
 <script>
@@ -18049,6 +18069,8 @@ async function loadStudentsBusinessCards(studentIds) {
         console.warn('[deco] unlocked badges fetch error:', e);
       }
 
+      // films cultes : vérifiés avant d'être montrés (sexuel / -16 → retirés)
+      try { await _cultCheckMany((students || []).map(s => s.cult_film && s.cult_film.tmdb_id)); } catch (_) {}
       for (const s of (students || [])) {
         const xp = xpByStudent.get(s.id) || 0;
         const pinnedRaw = Array.isArray(s.pinned_badges) ? s.pinned_badges : [];
@@ -18058,7 +18080,7 @@ async function loadStudentsBusinessCards(studentIds) {
 
         _studentDecoCache.set(s.id, {
           color:           _validProfileColor(s.profile_color),
-          cultFilm:        (s.cult_film && s.cult_film.tmdb_id) ? s.cult_film : null,
+          cultFilm:        _cultSafe(s.cult_film),
           isPublic:        s.profile_public !== false,
           pinnedBadges:    pinnedFiltered,
           pinnedTitleSlug: s.pinned_title_slug || null,
@@ -21365,6 +21387,7 @@ function stopInactivityTimer() {
    ================================================================ */
 function showScreen(id) {
   if (typeof mjClosePlus === 'function') mjClosePlus();
+  if (typeof _mjTradeCheck === 'function') setTimeout(() => _mjTradeCheck(), 500);
   document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
   document.getElementById('screen-' + id).classList.remove('hidden');
   S.prevScreen = S.screen;
@@ -23221,6 +23244,53 @@ async function goChooseCultFilm() {
   openCultFilmPicker();
 }
 
+/* ---------- Films interdits en personnalisation : sexuel / pornographique / -16 ----------
+   Un film est refusé s'il est marqué « adulte » par TMDB, classé -16 ou -18 en France (NC-17 aux
+   États-Unis), ou si ses mots-clés parlent de sexe, nudité, érotisme… Le verdict est gardé en cache.
+   Tant qu'un film n'est pas vérifié, il n'est pas montré. */
+const _CULT_BAD_KW = /\b(sex|sexual|sexuality|sexy|erotic|erotica|érotique|porn|porno|pornography|pornographic|nudity|nude|naked|softcore|hardcore|bdsm|orgy|striptease|stripper|strip club|prostitut\w*|escort|brothel|incest|rape|fetish|lust|adultery|threesome|sex scene|nymphomania\w*)\b/i;
+const _cultVerdict = new Map();   // tmdb_id → true (bloqué) / false (ok)
+try { Object.entries(JSON.parse(localStorage.getItem('cult_verdict_v1') || '{}')).forEach(([k, v]) => _cultVerdict.set(+k, !!v)); } catch (_) {}
+function _cultSaveVerdicts() {
+  try { const o = {}; _cultVerdict.forEach((v, k) => { o[k] = v ? 1 : 0; }); localStorage.setItem('cult_verdict_v1', JSON.stringify(o)); } catch (_) {}
+}
+async function _cultCheckOne(id, adultFlag) {
+  id = +id;
+  if (!id) return true;
+  if (_cultVerdict.has(id)) return _cultVerdict.get(id);
+  if (adultFlag) { _cultVerdict.set(id, true); return true; }
+  try {
+    const [rd, kw] = await Promise.all([
+      fetch(`https://api.themoviedb.org/3/movie/${id}/release_dates?api_key=${CFG.TMDB_KEY}`).then(r => r.json()),
+      fetch(`https://api.themoviedb.org/3/movie/${id}/keywords?api_key=${CFG.TMDB_KEY}`).then(r => r.json())
+    ]);
+    let bad = false;
+    for (const c of (rd.results || [])) {
+      for (const d of (c.release_dates || [])) {
+        const cert = String(d.certification || '').trim();
+        if (c.iso_3166_1 === 'FR') { const n = parseInt(_normalizeFrCert(cert), 10); if (n >= 16) bad = true; }
+        if (c.iso_3166_1 === 'US' && /^NC-?17$/i.test(cert)) bad = true;
+        if (/^X$/i.test(cert)) bad = true;
+      }
+    }
+    if ((kw.keywords || []).some(k => _CULT_BAD_KW.test(k.name || ''))) bad = true;
+    _cultVerdict.set(id, bad);
+    _cultSaveVerdicts();
+    return bad;
+  } catch (_) { return null; }   // réseau : pas de verdict (le film reste caché)
+}
+async function _cultCheckMany(ids) {
+  if (!CFG.TMDB_KEY) return;
+  const todo = [...new Set((ids || []).map(Number).filter(x => x && !_cultVerdict.has(x)))];
+  for (let i = 0; i < todo.length; i += 8) await Promise.all(todo.slice(i, i + 8).map(x => _cultCheckOne(x)));
+}
+/* Le film culte à afficher, ou null s'il est interdit (ou pas encore vérifié) */
+function _cultSafe(c) {
+  if (!c || !c.tmdb_id) return null;
+  if (!CFG.TMDB_KEY) return c;
+  return _cultVerdict.get(+c.tmdb_id) === false ? c : null;
+}
+
 /* ---------- Choix du film culte : recherche → film → image large ---------- */
 let _cult = { results: [], film: null, images: [] };
 function _studentAgeNow() {
@@ -23255,7 +23325,10 @@ async function cultSearch() {
     const params = new URLSearchParams({ api_key: CFG.TMDB_KEY, query: q, language: 'fr-FR', include_adult: 'false' });
     const r = await fetch(`https://api.themoviedb.org/3/search/movie?${params.toString()}`);
     const data = await r.json();
-    _cult.results = (data.results || []).filter(m => !m.adult).slice(0, 12);
+    const raw = (data.results || []).filter(m => !m.adult).slice(0, 16);
+    // on retire tout film à caractère sexuel ou -16 : il n'apparaît même pas
+    const verdicts = await Promise.all(raw.map(m => _cultCheckOne(m.id, m.adult)));
+    _cult.results = raw.filter((m, k) => verdicts[k] === false).slice(0, 12);
     if (!_cult.results.length) { box.innerHTML = '<p class="text-sm text-muted">Aucun film trouvé.</p>'; return; }
     box.innerHTML = _cult.results.map((m, i) => `
       <button class="cult-res" onclick="cultPickFilm(${i})">
@@ -23270,6 +23343,7 @@ async function cultSearch() {
 async function cultPickFilm(i) {
   const m = _cult.results[i];
   if (!m) return;
+  if ((await _cultCheckOne(m.id, m.adult)) !== false) { toast('🔞 Ce film ne peut pas être choisi.', 'error', 3000); return; }
   // Classification : film déconseillé pour l'âge de l'élève → refusé
   const rating = parseInt(await _fetchFrAgeRating(m.id), 10);
   const age = _studentAgeNow();
@@ -23302,6 +23376,7 @@ async function cultPickFilm(i) {
 async function cultChooseImage(k) {
   const m = _cult.film;
   if (!m) return;
+  if ((await _cultCheckOne(m.id, m.adult)) !== false) { toast('🔞 Ce film ne peut pas être choisi.', 'error', 3000); return; }
   const film = {
     tmdb_id: m.id,
     title: m.title || '',
@@ -28321,7 +28396,7 @@ async function mjBoot(force) {
       await mjLoadMode();
       if (!G.can) { G.st = null; return; }
       const stale = Date.now() - G.syncAt > 5 * 60 * 1000 || G.syncDay !== _mjDayKey();
-      if (!force && !stale && G.st && G.cat) { await _mjCheckGifts(); return; }
+      if (!force && !stale && G.st && G.cat) { await _mjCheckGifts(); await _mjTradeCheck(); return; }
       let level = 1;
       try { level = levelFromXp(await getStudentTotalXp(S.user.id)); } catch (_) {}
       const res = await _mjRpc('mj_sync', { p_student: S.user.id, p_level: level });
@@ -28330,6 +28405,7 @@ async function mjBoot(force) {
       await Promise.all([mjRefreshState(), mjLoadCatalog()]);
       _mjQueueEvents(res.events || []);
       await _mjCheckGifts(true);
+      await _mjTradeCheck(true);
     } catch (e) { console.warn('[minijeu] démarrage :', e); }
     finally { G.booting = null; }
   })();
@@ -28694,10 +28770,13 @@ async function mjCardOpen(id) {
   openModal('modal-mjs-card');
   if (it.kind === 'poster' && it.tmdb_id && G.synopsis[it.tmdb_id] === undefined) {
     G.synopsis[it.tmdb_id] = null;
-    try {
-      const j = await (await fetch(`https://api.themoviedb.org/3/movie/${it.tmdb_id}?api_key=${CFG.TMDB_KEY}&language=fr-FR`)).json();
-      G.synopsis[it.tmdb_id] = (j && j.overview) || '';
-    } catch (_) { G.synopsis[it.tmdb_id] = ''; }
+    G.trailer = G.trailer || {};
+    const [syn, tr] = await Promise.all([
+      fetch(`https://api.themoviedb.org/3/movie/${it.tmdb_id}?api_key=${CFG.TMDB_KEY}&language=fr-FR`).then(r => r.json()).then(j => (j && j.overview) || '').catch(() => ''),
+      (typeof _fetchBestTrailer === 'function' ? _fetchBestTrailer(it.tmdb_id) : Promise.resolve(null)).catch(() => null)
+    ]);
+    G.synopsis[it.tmdb_id] = syn;
+    G.trailer[it.tmdb_id] = tr;
     if (G.card && G.card.id === id) _mjRenderCard();
   }
 }
@@ -28716,7 +28795,8 @@ function _mjRenderCard() {
     ? `<span class="mj-img mj-r-${it.rarity} mjd-poster${own || souv ? '' : ' mjc-ghost'}"><img src="${_mjEsc(_tmdbImg(it.image_path, 'w500'))}" alt="">${own || souv ? '' : '<i>?</i>'}</span>`
     : `<span class="mj-badge r-${it.rarity} mjd-av${own ? '' : ' mjc-ghost'}"><img src="${_mjEsc(it.image_url || '')}" alt="">${own ? '' : '<i>?</i>'}</span>`;
   const syn = it.kind === 'poster' && it.tmdb_id
-    ? `<div class="mjd-syn"><span class="mjd-syn-t">Synopsis</span>${G.synopsis[it.tmdb_id] === null || G.synopsis[it.tmdb_id] === undefined ? '<div class="loader"><div class="spinner"></div></div>' : _mjEsc(G.synopsis[it.tmdb_id] || 'Pas de résumé disponible pour ce film.')}</div>` : '';
+    ? `<div class="mjd-syn"><span class="mjd-syn-t">Synopsis</span>${G.synopsis[it.tmdb_id] === null || G.synopsis[it.tmdb_id] === undefined ? '<div class="loader"><div class="spinner"></div></div>' : _mjEsc(G.synopsis[it.tmdb_id] || 'Pas de résumé disponible pour ce film.')}</div>
+       ${(() => { const tr = (G.trailer || {})[it.tmdb_id]; return tr ? `<button class="mjd-trailer" onclick="openTrailer('${_mjEsc(tr.key)}', '${_mjEsc(tr.label)}')"><span class="mjd-play">▶</span>Voir la bande-annonce<span class="mjd-tl">${tr.label === 'FR' ? 'VF' : _mjEsc(tr.label)}</span></button>` : ''; })()}` : '';
   const n = own ? own.n : 0, free = own ? own.n - own.locked : 0;
   const isEx = it.rarity === 'exclusive';
   const acts = [];
@@ -28966,16 +29046,123 @@ function _mjTradesHTML() {
 async function mjTradeAnswer(id, accept) {
   const t = (G.st.trades || []).find(x => x.id === id);
   if (accept && !confirm('Accepter cet échange ? Les deux cartes changent de main tout de suite.')) return;
+  const had = t && accept ? ((_mjOwnedMap()[t.give_item] || {}).n || 0) : 0;
   try {
     const r = await _mjRpc('mj_trade_answer', { p_student: S.user.id, p_trade: id, p_accept: !!accept });
     if (!r.ok) { toast(_mjErr(r), 'error'); }
     else if (r.status === 'accepted') {
-      toast('🔁 Échange réussi !', 'success', 2000);
       if (t) _invokeSendPush({ type: 'student', id: t.from_id }, '🔁 Échange accepté', `${S.user.firstName || 'L’élève'} a accepté ton échange !`, '/');
+      // B voit tout de suite sa carte partir et la nouvelle arriver
+      if (t) mjTradeAnim({ other: t.from_name, give: t.want_item, get: t.give_item, isNew: had === 0 });
+      else toast('🔁 Échange réussi !', 'success', 2000);
     } else toast(r.status === 'refused' ? 'Proposition refusée' : 'Proposition annulée', '', 1600);
     await mjRefreshState();
     _mjRenderShop();
   } catch (e) { toast(_mjErr(e), 'error'); }
+}
+
+/* ---------- Animation d'un échange ----------
+   La carte donnée en grand → elle se retourne → s'éloigne en rapetissant → revient en grandissant
+   → se retourne : c'est la carte reçue (éclat à sa couleur). */
+const MJX = { timers: [] };
+function _mjxLater(ms, f) { MJX.timers.push(setTimeout(f, ms)); }
+function _mjxFace(it) {
+  const k = it.rarity || 'common';
+  return it.kind === 'poster'
+    ? `<div class="mjo-front po" style="--rc:${MJ_R_COLOR[k]}"><img src="${_mjEsc(_tmdbImg(it.image_path, 'w500'))}" alt=""><span class="mjo-ft">${_mjEsc(it.title)}</span></div>`
+    : `<div class="mjo-front av" style="--rc:${MJ_R_COLOR[k]}"><span class="mj-badge r-${k}"><img src="${_mjEsc(it.image_url || '')}" alt=""></span><span class="mjo-ft">${_mjEsc(it.title)}</span></div>`;
+}
+function mjTradeAnim(o) {
+  return new Promise(resolve => {
+    const give = G.byId[o.give], get = G.byId[o.get];
+    if (!give || !get) { toast('🔁 Échange réussi !', 'success', 2000); resolve(); return; }
+    MJX.timers.forEach(clearTimeout); MJX.timers = [];
+    document.getElementById('mj-trade')?.remove();
+    const el = document.createElement('div');
+    el.id = 'mj-trade';
+    el.className = 'mjo mjx';
+    el.style.setProperty('--rc', '#3a3a55');
+    el.innerHTML = `
+      <div class="mjo-top"><span class="mjo-chip">🔁 Échange avec ${_mjEsc(o.other || 'un élève')}</span><small>${o.late ? 'Ton échange a été accepté' : 'Échange accepté'}</small></div>
+      <div class="mjo-rays"></div>
+      <div class="mjx-card"><div class="mjo-fi"><div class="mjo-fc mjx-f">${_mjxFace(give)}</div><div class="mjo-fc mjo-bk mjx-b" style="background-image:url('${MJ_CARD_BACK}')"></div></div></div>
+      <div class="mjo-lbl on mjx-lbl"><strong style="color:${MJ_R_COLOR[give.rarity]}">Tu donnes</strong><div>${_mjEsc(give.title)}</div></div>
+      <div class="mjo-hint">Touche pour passer</div>
+      <div class="mjx-acts hidden"><button class="btn btn-ghost btn-full" data-a="coll">Voir ma collection</button><button class="btn btn-gold btn-full" data-a="ok">Super !</button></div>`;
+    document.body.appendChild(el);
+    document.body.classList.add('mjo-lock');
+    requestAnimationFrame(() => el.classList.add('on'));
+    const card = el.querySelector('.mjx-card'), fi = el.querySelector('.mjo-fi'), lbl = el.querySelector('.mjx-lbl');
+    const k = get.rarity || 'common';
+    let ended = false;
+    const finish = () => {
+      if (ended) return; ended = true;
+      MJX.timers.forEach(clearTimeout); MJX.timers = [];
+      el.querySelector('.mjx-f').innerHTML = _mjxFace(get);
+      card.className = 'mjx-card'; fi.style.transition = 'none'; fi.style.transform = 'rotateY(360deg)';
+      el.style.setProperty('--rc', MJ_R_COLOR[k]);
+      if (k !== 'common' && k !== 'rare') el.querySelector('.mjo-rays').classList.add('on');
+      lbl.innerHTML = `<strong style="color:${MJ_R_COLOR[k]}">Tu reçois · ${MJ_RARITY_LABEL[k]}</strong><div>${_mjEsc(get.title)} — ${o.isNew ? (get.kind === 'avatar' ? 'nouvel avatar !' : 'nouvelle carte !') : 'doublon'}</div>`;
+      lbl.classList.add('on');
+      el.querySelector('.mjo-hint').textContent = '';
+      el.querySelector('.mjx-acts').classList.remove('hidden');
+    };
+    const close = (after) => {
+      MJX.timers.forEach(clearTimeout); MJX.timers = [];
+      document.body.classList.remove('mjo-lock');
+      el.classList.remove('on'); setTimeout(() => el.remove(), 280);
+      mjRefreshState().then(() => {
+        if (S.screen === 'shop') _mjRenderShop();
+        if (S.screen === 'collection') _mjRenderCollection();
+        if (after) after();
+      }).catch(() => {});
+      resolve();
+    };
+    el.addEventListener('click', e => {
+      const a = e.target.closest('[data-a]');
+      if (a) { close(a.dataset.a === 'coll' ? () => { G.cview = get.kind === 'avatar' ? 'avatars' : 'posters'; G.coll = null; navigateTo('collection'); } : null); return; }
+      if (!ended) finish();
+    });
+    // 1. la carte donnée se retourne
+    _mjxLater(1300, () => { fi.style.transform = 'rotateY(180deg)'; lbl.classList.remove('on'); });
+    // 2. elle s'éloigne en rapetissant
+    _mjxLater(2200, () => { card.classList.add('away'); el.querySelector('.mjo-hint').textContent = 'Échange en cours…'; });
+    // 3. de loin, c'est déjà la nouvelle carte (on la voit de dos)
+    _mjxLater(3000, () => { el.querySelector('.mjx-f').innerHTML = _mjxFace(get); });
+    // 4. elle revient en grandissant
+    _mjxLater(3150, () => { card.classList.remove('away'); card.classList.add('back'); });
+    // 5. elle se retourne : la carte reçue, avec un éclat à sa couleur
+    _mjxLater(4000, () => { fi.style.transform = 'rotateY(360deg)'; el.querySelector('.mjo-hint').textContent = ''; });
+    _mjxLater(4450, () => {
+      el.style.setProperty('--rc', MJ_R_COLOR[k]);
+      el.insertAdjacentHTML('beforeend', `<span class="mjo-flash${k === 'legendary' || k === 'exclusive' ? ' leg' : ''}" style="--rc:${MJ_R_COLOR[k]}"></span>`);
+    });
+    _mjxLater(5100, finish);
+  });
+}
+/* Celui qui avait proposé : l'animation à sa connexion, ou au prochain écran s'il est déjà dans l'appli */
+async function _mjTradeCheck(force) {
+  try {
+    if (!G.can || !S.user || S.isAdmin) return;
+    if (!force && Date.now() - (G.tradeAt || 0) < 20000) return;
+    if (document.getElementById('mj-open') || document.getElementById('mj-trade')) return;   // pas pendant une ouverture
+    G.tradeAt = Date.now();
+    if (!G.cat) await mjLoadCatalog();
+    const list = await _mjRpc('mj_trades_unseen', { p_student: S.user.id });
+    if (!Array.isArray(list) || !list.length) return;
+    G.tradeSeen = G.tradeSeen || new Set();
+    const om = _mjOwnedMap();
+    list.forEach(t => {
+      if (G.tradeSeen.has(t.id)) return;
+      G.tradeSeen.add(t.id);
+      G.evQueue.push(async () => {
+        if (document.getElementById('mj-open')) { G.tradeSeen.delete(t.id); return; }   // un coffre s'ouvre : on reverra plus tard
+        _mjRpc('mj_trade_seen', { p_student: S.user.id, p_trade: t.id }).catch(() => {});
+        await mjTradeAnim({ other: t.other_name, give: t.give_item, get: t.want_item, isNew: ((om[t.want_item] || {}).n || 0) <= 1, late: true });
+      });
+    });
+    _mjNextEvent();
+  } catch (_) {}
 }
 
 /* ---------- Ouverture d'un coffre (coffre dessiné + dos de carte + retournement) ----------
@@ -29095,11 +29282,13 @@ function _mjoOpenNow() {
   MJO.stage = 'open';
   _mjoEl('.mjo-hint').textContent = '';
 }
+/* Coffre ouvert : la première carte sort toute seule (le toucher sert seulement à retourner) */
 function _mjoReady() {
   if (!document.getElementById('mj-open')) return;
   MJO.stage = 'ready'; MJO.busy = false;
-  _mjoEl('.mjo-hint').textContent = MJO.items && MJO.items.length > 1 ? 'Touche pour sortir la première carte' : 'Touche pour sortir la première carte';
+  _mjoEl('.mjo-hint').textContent = '';
   _mjoDots();
+  _mjoLater(250, () => { if (MJO.stage === 'ready') _mjoNext(); });
 }
 async function _mjoTap() {
   if (MJO.busy) return;
@@ -29149,8 +29338,10 @@ async function _mjoTap() {
     _mjoLater(ft, () => {
       MJO.phase = 'up'; MJO.busy = false;
       const lb = _mjoEl('.mjo-lbl'); if (lb) lb.classList.add('on');
-      _mjoEl('.mjo-hint').textContent = MJO.i < items.length - 1 ? 'Touche pour la carte suivante' : (MJO.gift ? 'Touche pour voir ta récompense' : MJO.present ? 'Touche pour continuer' : 'Touche pour voir tout ton coffre');
+      _mjoEl('.mjo-hint').textContent = '';
       _mjoDots();
+      // la carte suivante sort toute seule (toucher l'écran l'appelle tout de suite)
+      _mjoLater(k === 'legendary' || k === 'exclusive' ? 2600 : 1700, () => { if (MJO.stage === 'cards' && MJO.phase === 'up') _mjoNext(); });
     });
     return;
   }
@@ -39442,6 +39633,15 @@ function _renderNotifDot(student) {
   return `<span class="live-dot" data-state="${state}" data-notif-student="${student.id}" data-active="${student.is_active ? 1 : 0}" data-activated="${student.is_activated ? 1 : 0}" title="${title}"></span>`;
 }
 
+let _cultRerenderT = null;
+function _cultPendingRender() {
+  if (_cultRerenderT) return;
+  _cultRerenderT = setTimeout(async () => {
+    await _cultCheckMany((_studentsAll || []).map(s => s.cult_film && s.cult_film.tmdb_id));
+    _cultRerenderT = null;
+    if (typeof _renderStudentTable === 'function') _renderStudentTable();
+  }, 50);
+}
 function _renderStudentTable() {
   const q = _studentSearch.toLowerCase();
 
@@ -39539,7 +39739,8 @@ function _renderStudentTable() {
     const cakeInline = isBirthday ? _renderBirthdayCake() : '';
     // Couleur + film culte de l'élève
     const col = _validProfileColor(s.profile_color);
-    const cult = (s.cult_film && s.cult_film.tmdb_id) ? s.cult_film : null;
+    const cult = _cultSafe(s.cult_film);
+    if (s.cult_film && s.cult_film.tmdb_id && !_cultVerdict.has(+s.cult_film.tmdb_id)) _cultPendingRender();
     const cultImg = cult ? _tmdbImg(cult.backdrop_path || cult.poster_path, 'w300') : '';
     const risk = _stuRisk.get(s.id);
     const riskHtml = risk ? _renderRiskBadges(risk, { compact: true }) : '';
