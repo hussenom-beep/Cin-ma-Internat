@@ -9830,7 +9830,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
   .stu-cult { width: 55%; }
 }
 /* ═══════════ Mini-jeu — admin (préparation du catalogue) ═══════════ */
-.mj-r-common{--mjc:#a9aec2}.mj-r-rare{--mjc:#5aa7ff}.mj-r-epic{--mjc:#c084fc}.mj-r-legendary{--mjc:#f5b82e}.mj-r-exclusive{--mjc:#ff8ad8}
+.mj-r-common{--mjc:#a9aec2}.mj-r-rare{--mjc:#5aa7ff}.mj-r-epic{--mjc:#c084fc}.mj-r-legendary{--mjc:#f5b82e}.mj-r-exclusive{--mjc:#ff3b52}
 .mj-status{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:-4px 0 14px}
 .mj-pill{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:999px;font-size:12.5px;font-weight:700;border:1px solid var(--border-2);background:var(--surface-2);color:var(--text-2);white-space:nowrap}
 .mj-pill.off{color:#ff9a9a;border-color:rgba(232,64,64,.45);background:rgba(232,64,64,.1)}
@@ -9868,7 +9868,7 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 .mj-img.av{aspect-ratio:1;border-radius:50%}
 .mj-img.off{opacity:.45}
 .mj-img .mj-hid{position:absolute;top:6px;left:6px;font-size:10px;font-weight:800;padding:2px 6px;border-radius:6px;background:rgba(8,8,15,.85);color:var(--text-2)}
-.mj-r-exclusive .mj-img,.mj-img.mj-r-exclusive{border-color:transparent;background:conic-gradient(#ff5ea8,#ffd36e,#6effb0,#5ec8ff,#b07bff,#ff5ea8) border-box;padding:3px}
+.mj-r-exclusive .mj-img,.mj-img.mj-r-exclusive{border-color:transparent;background:conic-gradient(#2a0006,#ff2d46,#7a0414,#ff5a6c,#2a0006) border-box;padding:3px}
 .mj-r-exclusive .mj-img img,.mj-img.mj-r-exclusive img{border-radius:inherit}
 .mj-tt{font-size:13px;font-weight:700;line-height:1.25;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .mj-meta{display:flex;flex-wrap:wrap;gap:4px;align-items:center;font-size:11.5px;color:var(--text-3)}
@@ -9982,11 +9982,11 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 .mj-badge.r-epic::before{content:'';position:absolute;inset:-7%;border-radius:50%;z-index:-1;background:radial-gradient(circle,rgba(192,132,252,.55) 55%,transparent 72%);animation:mj-breath 3.2s ease-in-out infinite}
 .mj-badge.r-legendary{--mjc:#f5b82e;padding:4px;background:conic-gradient(from var(--mja),#f5b82e,#fff3c4,#b8790a,#f5b82e,#fff3c4,#b8790a,#f5b82e);animation:mj-spin 6s linear infinite;box-shadow:0 0 16px rgba(245,184,46,.6),0 0 2px #fff3c4 inset}
 .mj-badge.r-legendary::after{content:'';position:absolute;z-index:2;inset:4px;border-radius:50%;background:linear-gradient(105deg,transparent 42%,rgba(255,246,214,.6) 50%,transparent 58%) no-repeat;background-size:250% 100%;animation:mj-sheen 4.5s ease-in-out infinite;pointer-events:none}
-.mj-badge.r-exclusive{--mjc:#ff8ad8;padding:4px;background:conic-gradient(from var(--mja),#ff5ea8,#ffd36e,#6effb0,#5ec8ff,#b07bff,#ff5ea8);animation:mj-spin 5s linear infinite;box-shadow:0 0 18px rgba(255,138,216,.55),0 0 30px rgba(94,200,255,.25)}
+.mj-badge.r-exclusive{--mjc:#ff3b52;padding:4px;background:conic-gradient(from var(--mja),#2a0006,#7a0414 12%,#ff2d46 26%,#ffb3b8 31%,#ff2d46 36%,#7a0414 52%,#2a0006 64%,#c40c25 80%,#ff5a6c 90%,#2a0006);animation:mj-spin 3.2s linear infinite;box-shadow:0 0 18px rgba(255,45,70,.65),0 0 34px rgba(160,0,20,.45)}
 .mj-badge.r-exclusive::before{content:'';position:absolute;inset:-12%;z-index:2;pointer-events:none;background:
-  radial-gradient(circle at 12% 18%,#fff 0 1.6%,transparent 2.6%),radial-gradient(circle at 88% 14%,#fff 0 1.2%,transparent 2.2%),
-  radial-gradient(circle at 94% 70%,#fff 0 1.6%,transparent 2.6%),radial-gradient(circle at 8% 78%,#fff 0 1.2%,transparent 2.2%),
-  radial-gradient(circle at 50% 2%,#fff 0 1%,transparent 2%);animation:mj-twinkle 2.2s ease-in-out infinite}
+  radial-gradient(circle at 12% 18%,#ffd0d4 0 1.4%,#ff2d46 1.9%,transparent 2.8%),radial-gradient(circle at 88% 14%,#ffd0d4 0 1.1%,#ff2d46 1.6%,transparent 2.4%),
+  radial-gradient(circle at 94% 70%,#ffd0d4 0 1.4%,#ff2d46 1.9%,transparent 2.8%),radial-gradient(circle at 8% 78%,#ffd0d4 0 1.1%,#ff2d46 1.6%,transparent 2.4%),
+  radial-gradient(circle at 50% 2%,#ffd0d4 0 .9%,#ff2d46 1.4%,transparent 2.2%),radial-gradient(circle at 50% 98%,#ffd0d4 0 .9%,#ff2d46 1.4%,transparent 2.2%);animation:mj-twinkle 1.6s ease-in-out infinite}
 .mj-tile .mj-badge{width:82%;margin:8px auto 4px}
 .mj-pick .mj-tile.on .mj-badge{outline:3px solid var(--gold);outline-offset:3px}
 .mj-coll .mj-badge{width:64px;flex:0 0 auto}
@@ -10036,19 +10036,19 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 /* Progression des cadres : plus c'est rare, plus c'est stylé */
 @keyframes mj-glow-blue{0%,100%{box-shadow:0 0 7px rgba(90,167,255,.5)}50%{box-shadow:0 0 16px rgba(90,167,255,.9),0 0 26px rgba(90,167,255,.3)}}
 @keyframes mj-glow-purple{0%,100%{box-shadow:0 0 10px rgba(192,132,252,.5),0 0 0 1px rgba(240,200,255,.35)}50%{box-shadow:0 0 22px rgba(192,132,252,.9),0 0 40px rgba(157,77,237,.4),0 0 0 1px rgba(240,200,255,.7)}}
-@keyframes mj-glow-rainbow{0%,100%{box-shadow:0 0 16px rgba(255,138,216,.6),0 0 30px rgba(94,200,255,.3)}50%{box-shadow:0 0 26px rgba(110,255,176,.7),0 0 50px rgba(176,123,255,.45)}}
+@keyframes mj-glow-rainbow{0%,100%{box-shadow:0 0 14px rgba(255,45,70,.65),0 0 30px rgba(140,0,18,.5)}50%{box-shadow:0 0 26px rgba(255,70,90,.95),0 0 54px rgba(200,10,35,.65)}}
 /* Avatars */
 .mj-badge.r-common{padding:2px;box-shadow:none}
 .mj-badge.r-rare{padding:2.5px;animation:mj-glow-blue 3s ease-in-out infinite}
 .mj-badge.r-epic{padding:4px;background:conic-gradient(from var(--mja),#f3d4ff,#9d4ded 20%,#c084fc 40%,#6d28d9 60%,#e9b8ff 80%,#f3d4ff);animation:mj-spin 9s linear infinite,mj-glow-purple 2.8s ease-in-out infinite}
 .mj-badge.r-epic::before{inset:-10%;background:radial-gradient(circle,rgba(192,132,252,.6) 52%,transparent 72%)}
-.mj-badge.r-exclusive{padding:5px;animation:mj-spin 5s linear infinite,mj-glow-rainbow 3s ease-in-out infinite}
+.mj-badge.r-exclusive{padding:5px;animation:mj-spin 3.2s linear infinite,mj-glow-rainbow 1.8s ease-in-out infinite}
 /* Affiches */
 .mj-img.mj-r-common{box-shadow:none}
 .mj-img.mj-r-rare{animation:mj-glow-blue 3s ease-in-out infinite}
 .mj-img.mj-r-epic{border-color:transparent;padding:3px;background:conic-gradient(from var(--mja),#f3d4ff,#9d4ded 20%,#c084fc 40%,#6d28d9 60%,#e9b8ff 80%,#f3d4ff) border-box;animation:mj-spin 9s linear infinite,mj-glow-purple 2.8s ease-in-out infinite}
 .mj-img.mj-r-epic img{border-radius:8px}
-.mj-r-exclusive .mj-img,.mj-img.mj-r-exclusive{background:conic-gradient(from var(--mja),#ff5ea8,#ffd36e,#6effb0,#5ec8ff,#b07bff,#ff5ea8) border-box;animation:mj-spin 5s linear infinite,mj-glow-rainbow 3s ease-in-out infinite}
+.mj-r-exclusive .mj-img,.mj-img.mj-r-exclusive{background:conic-gradient(from var(--mja),#2a0006,#7a0414 12%,#ff2d46 26%,#ffb3b8 31%,#ff2d46 36%,#7a0414 52%,#2a0006 64%,#c40c25 80%,#ff5a6c 90%,#2a0006) border-box;animation:mj-spin 3.2s linear infinite,mj-glow-rainbow 1.8s ease-in-out infinite}
 @media (prefers-reduced-motion:reduce){.mj-img,.mj-badge{animation:none!important}}
 
 
@@ -10162,8 +10162,8 @@ code { font-family: 'Courier New', monospace; background: var(--surface-3); padd
 .mjc-ghost i{position:absolute;inset:0;z-index:3;display:flex;align-items:center;justify-content:center;font-style:normal;font-size:26px;font-weight:800;color:rgba(255,255,255,.75)}
 .mj-badge.mjc-ghost i{border-radius:50%}
 .mjc-card.missing .mjc-tt{color:var(--text-3)}
-.mjc-ribbon{position:absolute;z-index:4;top:10px;left:-4px;padding:2px 8px;border-radius:0 6px 6px 0;font-size:9.5px;font-weight:900;letter-spacing:.08em;color:#16110a;background:linear-gradient(90deg,#ff8ad8,#ffd36e,#6effb0,#5ec8ff);box-shadow:0 2px 8px rgba(0,0,0,.5)}
-.mjc-excount{position:absolute;z-index:4;bottom:28px;left:50%;transform:translateX(-50%);white-space:nowrap;padding:2px 7px;border-radius:8px;font-size:10px;font-weight:800;background:rgba(8,8,15,.85);color:#ffb8ec;border:1px solid rgba(255,138,216,.45)}
+.mjc-ribbon{position:absolute;z-index:4;top:10px;left:-4px;padding:2px 8px;border-radius:0 6px 6px 0;font-size:9.5px;font-weight:900;letter-spacing:.08em;color:#16110a;background:linear-gradient(90deg,#7a0414,#ff2d46 55%,#ff7a88);color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.5);box-shadow:0 2px 10px rgba(255,45,70,.5)}
+.mjc-excount{position:absolute;z-index:4;bottom:28px;left:50%;transform:translateX(-50%);white-space:nowrap;padding:2px 7px;border-radius:8px;font-size:10px;font-weight:800;background:rgba(20,2,6,.9);color:#ff8a96;border:1px solid rgba(255,45,70,.55)}
 .mjc-svtag{position:absolute;z-index:4;bottom:30px;left:50%;transform:translateX(-50%);white-space:nowrap;padding:2px 6px;border-radius:6px;font-size:9.5px;font-weight:800;background:#f6e7c1;color:#5a3d06}
 .mjc-sv{display:flex;flex-direction:column;border-radius:12px;overflow:hidden;background:#f6e7c1;color:#3d2a06;box-shadow:0 4px 14px rgba(0,0,0,.4)}
 .mjc-sv-img{aspect-ratio:2/3;background:#222;display:flex;align-items:center;justify-content:center;font-size:30px}
@@ -10351,7 +10351,7 @@ body.mjo-lock{overflow:hidden}
 @keyframes mjtrare{0%{background:#8cc2ff}100%{background:#5aa7ff}}
 @keyframes mjtepic{0%{background:#d6a8ff}100%{background:#c084fc}}
 @keyframes mjtleg{0%{background:#c084fc}62%{background:#c084fc}82%{background:#ffd56b}100%{background:#f5b82e}}
-@keyframes mjtexc{0%{background:#ff5ea8}25%{background:#ffd36e}50%{background:#6effb0}75%{background:#5ec8ff}100%{background:#b07bff}}
+@keyframes mjtexc{0%{background:#c084fc}55%{background:#c084fc}75%{background:#ff7a88}100%{background:#ff2d46}}
 @keyframes mjgrow{0%{transform:scale(1)}100%{transform:scale(1.9)}}
 .mjo-beam{position:absolute;left:50%;top:-40px;width:120px;height:44vh;margin-left:-60px;background:linear-gradient(0deg,var(--rc),transparent);transition:background .4s;filter:blur(16px);opacity:.5;z-index:3;pointer-events:none}
 .mjo-flash{position:absolute;inset:0;background:radial-gradient(circle at 50% 35%,#fff 0,var(--rc) 38%,color-mix(in srgb,var(--rc) 40%,transparent) 75%);opacity:0;z-index:15;pointer-events:none;animation:mjflash .5s ease-out forwards}
@@ -10498,10 +10498,11 @@ body.mjo-lock{overflow:hidden}
 .mjo.opened .mjo-light::before{animation:mjlburst 1s cubic-bezier(.22,1,.36,1) forwards}
 .mjo.opened .mjo-light::after{opacity:1}
 .mjo.cards .mjo-light{opacity:0;transition:opacity .4s}
-.mjo.cl-exc .mjo-light::before{animation:mjlrain 1.6s linear infinite}
+.mjo.cl-exc .mjo-light::before{animation:mjlred .5s ease-in-out infinite}
 @keyframes mjlpulse{0%,100%{opacity:.75}50%{opacity:1}}
 @keyframes mjlburst{0%{transform:translate(-50%,-50%) scale(1)}35%{transform:translate(-50%,-50%) scale(2.4)}100%{transform:translate(-50%,-50%) scale(1.6)}}
-@keyframes mjlrain{to{filter:blur(8px) hue-rotate(360deg)}}
+@keyframes mjlrain{0%,100%{opacity:1}50%{opacity:.7}}
+@keyframes mjlred{0%,100%{filter:blur(8px) brightness(1)}50%{filter:blur(8px) brightness(1.5)}}
 .mjo.shaking .mjo-glow{opacity:.75}.mjo.opened .mjo-glow{opacity:.9}
 .mjo.rc-exc .mjo-beam,.mjo.rc-exc .mjo-bk{animation:mjlrain 2s linear infinite}
 .mjo-skip{transition:opacity .3s}
@@ -10550,6 +10551,54 @@ body.mjo-lock{overflow:hidden}
 .mjgc p{margin:0;color:var(--text-2);font-size:14px;line-height:1.45}
 .mjgc small{color:var(--text-3);font-size:12px}
 .mjgc-b{display:grid;grid-template-columns:1fr 1.4fr;gap:10px;width:100%;margin-top:6px}
+
+/* Boutique : prix alignés, dernière ligne des coffres centrée */
+.mjs-wait{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}
+.mjs-wait .mjs-wc{flex:0 0 calc(50% - 5px);min-width:0}
+.mjs-di{height:100%}
+.mjs-di .mjc-card{flex:1 1 auto;justify-content:flex-end;width:100%}
+.mjs-di .btn{margin-top:auto}
+.mjs-bc small.mjs-gold{min-height:2.6em}
+.mjs-bc>small:not(.mjs-gold){min-height:2.6em}
+/* Collection : 4 onglets visibles sans défiler, sous-choix Affiches / Avatars */
+.mjs-seg.mjc-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));overflow:visible}
+.mjs-seg.mjc-tabs button{padding:7px 2px;font-size:12.5px;display:flex;flex-direction:column;align-items:center;gap:1px;line-height:1.2;min-width:0}
+.mjs-seg.mjc-tabs button small{font-size:10.5px}
+.mjs-seg.mjc-sub{display:flex;max-width:320px;margin:-6px auto 14px;padding:3px;border-radius:12px}
+.mjs-seg.mjc-sub button{font-size:13px;padding:7px 10px}
+
+/* Exclusif : reflet rouge qui balaie le rond, en plus des braises */
+.mj-badge.r-exclusive::after{content:'';position:absolute;z-index:2;inset:5px;border-radius:50%;background:linear-gradient(105deg,transparent 40%,rgba(255,200,205,.55) 50%,transparent 60%) no-repeat;background-size:250% 100%;animation:mj-sheen 2.6s ease-in-out infinite;pointer-events:none}
+.mj-img.mj-r-exclusive{position:relative}
+
+.mjt-dbl{color:var(--gold);font-weight:800}
+
+/* Ticket d'or d'anniversaire */
+.mjgu{z-index:10050}
+.mjgu.mjgu-out{opacity:0;transition:opacity .25s}
+.mjgu-ticket{position:relative;width:150px;height:150px;margin:14px auto 6px;display:flex;align-items:center;justify-content:center}
+.mjgu-rays{position:absolute;inset:-30px;border-radius:50%;background:repeating-conic-gradient(from 0deg,rgba(255,213,107,.55) 0 7deg,transparent 7deg 22deg);-webkit-mask:radial-gradient(circle,#000 18%,transparent 66%);mask:radial-gradient(circle,#000 18%,transparent 66%);animation:mjspin2 8s linear infinite}
+.mjgu-t{position:relative;font-size:92px;line-height:1;filter:drop-shadow(0 0 18px rgba(245,184,46,.9));animation:mjgupop .9s cubic-bezier(.22,1.6,.36,1) both,mjgufloat 2.4s ease-in-out .9s infinite}
+@keyframes mjgupop{0%{transform:scale(.2) rotate(-25deg);opacity:0}100%{transform:scale(1) rotate(-8deg);opacity:1}}
+@keyframes mjgufloat{0%,100%{transform:translateY(0) rotate(-8deg)}50%{transform:translateY(-7px) rotate(-4deg)}}
+
+/* Exclusifs en arc-en-ciel (ancien rendu, au choix dans Réglages admin) */
+.mj-exdemo-av{width:64px;height:64px;flex:0 0 64px;background-color:#284}
+html.mj-exc-rainbow .mj-r-exclusive{--mjc:#ff8ad8}
+html.mj-exc-rainbow .mj-badge.r-exclusive{--mjc:#ff8ad8;background:conic-gradient(from var(--mja),#ff5ea8,#ffd36e,#6effb0,#5ec8ff,#b07bff,#ff5ea8);animation:mj-spin 5s linear infinite,mj-glow-rb 3s ease-in-out infinite}
+html.mj-exc-rainbow .mj-badge.r-exclusive::before{background:
+  radial-gradient(circle at 12% 18%,#fff 0 1.6%,transparent 2.6%),radial-gradient(circle at 88% 14%,#fff 0 1.2%,transparent 2.2%),
+  radial-gradient(circle at 94% 70%,#fff 0 1.6%,transparent 2.6%),radial-gradient(circle at 8% 78%,#fff 0 1.2%,transparent 2.2%),
+  radial-gradient(circle at 50% 2%,#fff 0 1%,transparent 2%);animation:mj-twinkle 2.2s ease-in-out infinite}
+html.mj-exc-rainbow .mj-badge.r-exclusive::after{display:none}
+html.mj-exc-rainbow .mj-r-exclusive .mj-img,html.mj-exc-rainbow .mj-img.mj-r-exclusive{background:conic-gradient(from var(--mja),#ff5ea8,#ffd36e,#6effb0,#5ec8ff,#b07bff,#ff5ea8) border-box;animation:mj-spin 5s linear infinite,mj-glow-rb 3s ease-in-out infinite}
+@keyframes mj-glow-rb{0%,100%{box-shadow:0 0 16px rgba(255,138,216,.6),0 0 30px rgba(94,200,255,.3)}50%{box-shadow:0 0 26px rgba(110,255,176,.7),0 0 50px rgba(176,123,255,.45)}}
+html.mj-exc-rainbow .mjc-ribbon{color:#16110a;text-shadow:none;background:linear-gradient(90deg,#ff8ad8,#ffd36e,#6effb0,#5ec8ff);box-shadow:0 2px 8px rgba(0,0,0,.5)}
+html.mj-exc-rainbow .mjc-excount{background:rgba(8,8,15,.85);color:#ffb8ec;border-color:rgba(255,138,216,.45)}
+html.mj-exc-rainbow .mjo-chg.c-exclusive{animation-name:mjchgin,mjtexc-rb,mjgrow}
+@keyframes mjtexc-rb{0%{background:#c084fc}50%{background:#c084fc}62%{background:#ff5ea8}74%{background:#ffd36e}86%{background:#6effb0}100%{background:#5ec8ff}}
+html.mj-exc-rainbow .mjo.cl-exc .mjo-light::before,html.mj-exc-rainbow .mjo.rc-exc .mjo-beam{animation:mjl-rb 1.6s linear infinite}
+@keyframes mjl-rb{to{filter:blur(8px) hue-rotate(360deg)}}
 </style>
 <body>
 <script>
@@ -13231,7 +13280,7 @@ body.mjo-lock{overflow:hidden}
         </div>
         <div class="faq-answer hidden">
           <p>Tu gagnes des tickets 🎟️ en te connectant chaque jour, en votant, en venant aux séances et quand ta proposition est acceptée. Avec, tu achètes des coffres dans la Boutique : ils contiennent des affiches de films et des avatars, du commun au légendaire.</p>
-          <p>Complète une collection pour gagner un titre, des tickets et un objet exclusif. Les doubles peuvent être revendus ou échangés avec les autres élèves (une carte contre une carte de même rareté, 2 échanges par semaine).</p>
+          <p>Complète une collection pour gagner un titre, des tickets et un objet exclusif. Les doubles peuvent être revendus, et toutes tes cartes peuvent être échangées avec les autres élèves (une carte contre une carte de même rareté, 2 échanges par semaine).</p>
           <p>Le ticket d’or 🎫 fait compter ton vote triple, une fois par mois.</p>
           <p style="font-size:12px;color:var(--text-3)">Animation du coffre : junimotions (Rive, licence CC BY 4.0).</p>
         </div>
@@ -26983,7 +27032,7 @@ async function loadAdminMinijeu() {
     const [it, co, st] = await Promise.all([
       db.from('mj_items').select('*').order('created_at', { ascending: true }),
       db.from('mj_collections').select('*').order('created_at', { ascending: true }),
-      db.from('app_settings').select('key,value').in('key', ['minijeu_enabled', 'minijeu_trades', 'minijeu_settings', 'minijeu_testers', 'minijeu_exclusive_style']),
+      db.from('app_settings').select('key,value').in('key', ['minijeu_enabled', 'minijeu_trades', 'minijeu_settings', 'minijeu_testers', 'minijeu_exclusive_style', 'minijeu_exclusive_color']),
     ]);
     MJ.missing = _mjIsMissing(it.error) || _mjIsMissing(co.error);
     if (!MJ.missing) {
@@ -26997,6 +27046,8 @@ async function loadAdminMinijeu() {
     MJ.mode = ['off', 'test', 'on'].includes(map.minijeu_enabled) ? map.minijeu_enabled : 'off';
     try { MJ.testers = JSON.parse(map.minijeu_testers || '[]') || []; } catch (_) { MJ.testers = []; }
     MJ.exStyle = map.minijeu_exclusive_style || 'ribbon';
+    MJ.exColor = map.minijeu_exclusive_color === 'rainbow' ? 'rainbow' : 'red';
+    _mjApplyExColor(MJ.exColor);
     MJ.collections.forEach(c => { G.titles[c.id] = c.reward_title || ('Maître ' + c.name); });
     _mjTesterNames().then(() => { if (MJ.view === 'settings') _mjRenderSettings(); }).catch(() => {});
     MJ.settings = JSON.parse(JSON.stringify(MJ_SETTINGS_DEFAULTS));
@@ -28126,7 +28177,7 @@ const G = {
   boosts: { films: {}, polls: {} }, synopsis: {}, shop: null,
   cview: 'collections', coll: null, sview: 'chests', evQueue: [], evBusy: false,
 };
-const MJ_R_COLOR = { common: '#a9aec2', rare: '#5aa7ff', epic: '#c084fc', legendary: '#f5b82e', exclusive: '#ff8ad8' };
+const MJ_R_COLOR = { common: '#a9aec2', rare: '#5aa7ff', epic: '#c084fc', legendary: '#f5b82e', exclusive: '#ff2d46' };
 const MJ_R_RANK  = { common: 1, rare: 2, epic: 3, legendary: 4, exclusive: 5 };
 const MJ_CHESTS = {
   bobine:         { name: 'Bobine',      icon: '🎞️', cls: 'bobine',    line: '1 objet' },
@@ -28160,9 +28211,10 @@ function _mjCfg() { return (G.st && G.st.cfg) || MJ_SETTINGS_DEFAULTS; }
 /* ---------- Accès, synchronisation, état ---------- */
 async function mjLoadMode() {
   try {
-    const { data } = await db.from('app_settings').select('key,value').in('key', ['minijeu_enabled', 'minijeu_testers']);
+    const { data } = await db.from('app_settings').select('key,value').in('key', ['minijeu_enabled', 'minijeu_testers', 'minijeu_exclusive_color']);
     const m = {}; (data || []).forEach(r => { m[r.key] = r.value; });
     G.mode = m.minijeu_enabled || 'off';
+    _mjApplyExColor(m.minijeu_exclusive_color === 'rainbow' ? 'rainbow' : 'red');
     try { G.testers = JSON.parse(m.minijeu_testers || '[]') || []; } catch (_) { G.testers = []; }
   } catch (_) { G.mode = 'off'; }
   G.can = !!S.user && !S.isAdmin && (G.mode === 'on' || (G.mode === 'test' && G.testers.includes(S.user.id)));
@@ -28250,7 +28302,7 @@ function _mjQueueEvents(evs) {
   evs.forEach(e => {
     if (e.type === 'level') G.evQueue.push(() => _mjToastStep(`🎁 Niveau ${e.to} : de nouveaux coffres t’attendent dans la Boutique`));
     if (e.type === 'seance') G.evQueue.push(() => _mjToastStep(`🎬 Merci d’être venu à la séance ! ${e.souvenirs > 1 ? e.souvenirs + ' cartes souvenir' : 'Carte souvenir'}${e.tickets ? ' + ' + e.tickets + ' 🎟️' : ''}`));
-    if (e.type === 'golden_birthday') G.evQueue.push(() => _mjToastStep('🎂 Joyeux anniversaire ! Un ticket d’or t’attend'));
+    if (e.type === 'golden_birthday') G.evQueue.push(() => _mjGoldenUnlock());
   });
   _mjNextEvent();
 }
@@ -28260,6 +28312,28 @@ function _mjNextEvent() {
   if (!f) return;
   G.evBusy = true;
   Promise.resolve(f()).finally(() => { G.evBusy = false; setTimeout(_mjNextEvent, 250); });
+}
+/* Ticket d'or d'anniversaire : même mise en scène qu'un badge débloqué */
+function _mjGoldenUnlock() {
+  return new Promise(resolve => {
+    const mult = _mjGoldenMult();
+    const el = document.createElement('div');
+    el.className = 'overlay badge-unlock-overlay mjgu';
+    el.innerHTML = `<div class="levelup-confetti" aria-hidden="true">${'<span></span>'.repeat(16)}</div>
+      <div class="badge-unlock-card" style="--badge-rarity-color:#f5b82e;--badge-rarity-bg:rgba(245,184,46,.14)">
+        <div class="badge-unlock-banner">🎂 Joyeux anniversaire !</div>
+        <div class="badge-unlock-rarity">Cadeau</div>
+        <div class="mjgu-ticket"><span class="mjgu-rays"></span><span class="mjgu-t">🎫</span></div>
+        <div class="badge-unlock-name">Un ticket d’or</div>
+        <div class="badge-unlock-desc">Une fois par mois, ton vote peut compter <b>×${mult}</b> : touche « 🎫 Voter ×${mult} » sur un film ou dans le sondage.</div>
+        <button class="levelup-continue-btn" type="button">Super !</button>
+      </div>`;
+    document.body.appendChild(el);
+    let done = false;
+    const close = () => { if (done) return; done = true; el.classList.add('mjgu-out'); setTimeout(() => { el.remove(); resolve(); }, 260); };
+    el.querySelector('.levelup-continue-btn').onclick = close;
+    el.addEventListener('click', e => { if (e.target === el) close(); });
+  });
 }
 function _mjToastStep(msg) { return new Promise(r => { toast(msg, 'success', 3200); setTimeout(r, 2600); }); }
 function _mjShowWelcome(ev) {
@@ -28406,10 +28480,15 @@ function _mjRenderCollection() {
     };
     const part = (kind, title, help) => {
       const l = cols.filter(c => c.kind === kind);
-      return l.length ? `<div class="mjc-part"><div class="mjc-part-h">${title}</div><p class="mjs-help">${help}</p><div class="mjc-colls">${l.map(row).join('')}</div></div>` : '';
+      return l.length ? `<div class="mjc-part"><p class="mjs-help">${help}</p><div class="mjc-colls">${l.map(row).join('')}</div></div>` : '';
     };
-    inner = cols.length ? part('poster', '🖼️ Collections d’affiches', 'Réunis toutes les affiches d’une saga : tu gagnes un titre, des tickets et un <b>avatar exclusif</b>.')
-      + part('avatar', '🙂 Collections d’avatars', 'Réunis tous les personnages : tu gagnes un titre, des tickets et une <b>affiche exclusive</b>.')
+    const ck = G.ckind || 'poster';
+    const sub = k => `<button class="${ck === k ? 'on' : ''}" onclick="G.ckind='${k}'; _mjRenderCollection()">${k === 'poster' ? '🖼️ Affiches' : '🙂 Avatars'}</button>`;
+    inner = cols.length ? `<div class="mjs-seg mjc-sub">${sub('poster')}${sub('avatar')}</div>`
+      + (ck === 'poster'
+        ? part('poster', '🖼️ Collections d’affiches', 'Réunis toutes les affiches d’une saga : tu gagnes un titre, des tickets et un <b>avatar exclusif</b>.')
+        : part('avatar', '🙂 Collections d’avatars', 'Réunis tous les personnages : tu gagnes un titre, des tickets et une <b>affiche exclusive</b>.'))
+      + (cols.some(c => c.kind === ck) ? '' : '<div class="mjs-empty sm">Ces collections arrivent bientôt.</div>')
       : '<div class="mjs-empty">Les collections arrivent bientôt.</div>';
   } else if (G.cview === 'souvenirs') {
     inner = sv ? `<p class="mjs-help">Une carte souvenir pour chaque séance où tu étais là. Elle compte dans les collections et ne s’échange pas.</p>
@@ -28425,7 +28504,7 @@ function _mjRenderCollection() {
       : `<div class="mjs-empty">${kind === 'avatar' ? '🙂' : '🖼️'}<br>Aucune ${kind === 'avatar' ? 'carte avatar' : 'affiche'} pour l’instant : ouvre des coffres dans la Boutique !</div>`;
   }
   body.innerHTML = `
-    <div class="mjs-seg">${tab('collections', 'Collections')}${tab('posters', `Affiches <small>${hP}/${nP.length}</small>`)}${tab('avatars', `Avatars <small>${hA}/${nA.length}</small>`)}${tab('souvenirs', `Souvenirs${sv ? ` <small>${sv}</small>` : ''}`)}</div>
+    <div class="mjs-seg mjc-tabs">${tab('collections', `Collections<small>${G.colls.filter(c => (G.st.done || []).includes(c.id)).length}/${G.colls.filter(c => Object.values(G.byId).some(i => i.collection_id === c.id)).length}</small>`)}${tab('posters', `Affiches<small>${hP}/${nP.length}</small>`)}${tab('avatars', `Avatars<small>${hA}/${nA.length}</small>`)}${tab('souvenirs', `Souvenirs<small>${sv}</small>`)}</div>
     ${inner}`;
 }
 function mjOpenColl(id) { G.coll = id; _mjRenderCollection(); window.scrollTo(0, 0); }
@@ -28454,7 +28533,7 @@ function _mjRenderCollDetail() {
     </div>
     ${s.done ? '<div class="mjc-done">✅ Collection validée : la récompense est à toi pour toujours.</div>'
       : s.ready ? `<button class="btn btn-gold btn-full mjc-validate" onclick="mjValidate('${c.id}')">✨ Valider la collection</button>`
-      : `<p class="mjs-help">Touche une carte qui te manque pour voir qui l’a en double.</p>`}
+      : `<p class="mjs-help">Touche une carte qui te manque pour voir qui l’a.</p>`}
     <div class="mjc-grid ${c.kind === 'avatar' ? 'av' : ''}">${cards}</div>`;
 }
 async function mjValidate(id) {
@@ -28541,7 +28620,7 @@ function _mjRenderCard() {
       : `<button class="btn btn-gold btn-full" onclick="mjEquip('${it.id}')">😎 Mettre en avatar</button>`);
   }
   if (!isEx && n >= 2 && free >= 1) acts.push(`<button class="btn btn-ghost btn-full" onclick="mjSell('${it.id}')">💰 Revendre un double (+${(cfg.resell || {})[it.rarity] || 0} 🎟️)</button>`);
-  if (!isEx) acts.push(`<button class="btn btn-ghost btn-full" onclick="mjWho()">🔁 Qui l’a en double ?</button>`);
+  if (!isEx) acts.push(`<button class="btn btn-ghost btn-full" onclick="mjWho()">🔁 Qui l’a ?</button>`);
   body.innerHTML = `
     ${_mjTop("closeModal('modal-mjs-card')", col ? col.name : (it.kind === 'avatar' ? 'Avatar' : 'Affiche'), true)}
     <div class="mjd" style="--rc:${rc}">
@@ -28590,13 +28669,14 @@ function _mjWhoHTML(it) {
   const on = G.st && G.st.trades_on;
   const who = G.card.who;
   const list = who === null ? '<div class="loader"><div class="spinner"></div></div>'
-    : !who.length ? '<div class="mjs-empty">Personne ne l’a en double pour l’instant.</div>'
+    : !who.length ? '<div class="mjs-empty">Personne ne l’a encore.</div>'
     : `<div class="mjt-who">${who.map(w => `<div class="mjt-row">
         <span class="mjt-av">${w.avatar ? `<span class="mj-badge r-${w.avatar_rarity || 'common'}"><img src="${_mjEsc(w.avatar)}" alt=""></span>` : '🙂'}</span>
-        <span class="mjt-n"><b>${_mjEsc(w.name)}</b><small>${_mjEsc(w.class_name || '')} · l’a ×${w.count}</small></span>
+        <span class="mjt-n"><b>${_mjEsc(w.name)}</b><small>${_mjEsc(w.class_name || '')}${w.count > 1 ? ` · <b class="mjt-dbl">l’a en double ×${w.count}</b>` : ' · l’a en 1 exemplaire'}</small></span>
         ${on ? `<button class="btn btn-gold" onclick="mjGive('${w.student_id}')">Proposer</button>` : ''}</div>`).join('')}</div>`;
-  return `${_mjTop("G.card.step='main'; _mjRenderCard()", 'Qui l’a en double ?', true)}
-    <h3 class="mjt-h">🔁 Qui l’a en double ?</h3>
+  return `${_mjTop("G.card.step='main'; _mjRenderCard()", 'Qui l’a ?', true)}
+    <h3 class="mjt-h">🔁 Qui l’a ?</h3>
+    ${on && who && who.length ? '<p class="mjs-help">Ceux qui l’ont en double sont en premier : ils acceptent plus facilement.</p>' : ''}
     ${on ? '' : '<div class="mjs-closed">🔁 Les échanges sont indisponibles pour le moment.</div>'}
     ${list}
     <div class="mj-foot"><button class="btn btn-ghost btn-full" onclick="closeModal('modal-mjs-card')">Fermer</button></div>`;
@@ -28760,7 +28840,7 @@ function _mjTradesHTML() {
   const left = (t) => { const h = Math.max(0, Math.round((new Date(t.expires_at) - now) / 3600000)); return h > 1 ? `encore ${h} h` : 'expire bientôt'; };
   const ST = { accepted: '✅ Accepté', refused: '❌ Refusé', cancelled: 'Annulé', expired: '⌛ Expiré', annulled: '↩️ Annulé par le surveillant', pending: '⌛ Expiré' };
   return `
-    <p class="mjs-help">Cette semaine : <b>${G.st.trades_week || 0} / ${lim}</b> échanges. Pour proposer un échange, ouvre une carte qui te manque dans ta Collection, puis « Qui l’a en double ? ».</p>
+    <p class="mjs-help">Cette semaine : <b>${G.st.trades_week || 0} / ${lim}</b> échanges. Pour proposer un échange, ouvre une carte qui te manque dans ta Collection, puis « Qui l’a ? ». Tu peux aussi toucher une carte sur le profil d’un autre élève.</p>
     <div class="mjs-sec">Reçues${inc.length ? ' · ' + inc.length : ''}</div>
     ${inc.length ? inc.map(t => `<div class="mjt-card">
         <div class="mjt-top"><b>${_mjEsc(t.from_name)}</b> te propose <small>· ${left(t)}</small></div>
@@ -28977,7 +29057,7 @@ function _mjoNext() {
   const k = it.rarity;
   const big = k === 'legendary' || k === 'exclusive';
   // Couleur de la rareté dès le début (la légendaire part en violet puis explose en or)
-  root.style.setProperty('--rc', k === 'legendary' ? MJ_R_COLOR.epic : (MJ_R_COLOR[k] || MJ_R_COLOR.common));
+  root.style.setProperty('--rc', big ? MJ_R_COLOR.epic : (MJ_R_COLOR[k] || MJ_R_COLOR.common));
   root.classList.toggle('rc-exc', k === 'exclusive');
   _mjoEl('.mjo-hint').textContent = big ? '' : 'Touche pour aller plus vite';
   const charge = { common: 900, rare: 1100, epic: 1500, legendary: 2200, exclusive: 2200 }[k] || 900;
@@ -29334,13 +29414,14 @@ function _mjPubInner() {
       const img = own || souv ? _mjImgHTML(i)
         : `<span class="${i.kind === 'avatar' ? 'mj-badge' : 'mj-img'} mjc-ghost">${_mjImgUrl(i) ? `<img src="${_mjEsc(_mjImgUrl(i))}" alt="" loading="lazy">` : ''}<i>?</i></span>`;
       const tag = dbl ? `<span class="mjc-count">×${own}</span>` : souv ? '<span class="mjc-svtag">🎟️</span>' : '';
-      const act = !own && !souv ? '' : dbl && tradesOn ? `onclick="mjPubTrade('${i.id}')"` : `onclick="mjCardOpen('${i.id}')"`;
+      const free = ((p.tradeable || {})[i.id] || 0) >= 1 && i.rarity !== 'exclusive';
+      const act = !own && !souv ? '' : free && tradesOn ? `onclick="mjPubTrade('${i.id}')"` : `onclick="mjCardOpen('${i.id}')"`;
       return `<button class="mjc-card ${i.kind === 'avatar' ? 'av' : 'po'}${own || souv ? '' : ' missing'}${dbl ? ' dbl' : ''}" ${act}>${img}${tag}<span class="mjc-tt">${own || souv ? _mjEsc(i.title) : '???'}</span></button>`;
     }).join('');
     const nD = items.filter(i => ((p.tradeable || {})[i.id] || 0) >= 2).length;
     return `${_mjTop('mjPubColl(null)', 'Ses collections')}
       <div class="mjp-dh"><b>${_mjEsc(c ? c.name : '')}</b><small>${have} / ${items.length} cartes${nD ? ` · ${nD} double${nD > 1 ? 's' : ''}` : ''}</small></div>
-      ${nD && !mine ? `<p class="mjs-help">${tradesOn ? 'Touche une carte marquée ×2 pour lui proposer un échange.' : 'Les cartes marquées ×2 sont ses doubles : les échanges ouvriront bientôt.'}</p>` : ''}
+      ${have && !mine ? `<p class="mjs-help">${tradesOn ? 'Touche une de ses cartes pour lui proposer un échange. Celles marquées ×2 sont ses doubles : il les lâchera plus facilement.' : 'Les cartes marquées ×2 sont ses doubles. Les échanges ouvriront bientôt.'}</p>` : ''}
       <div class="mjc-grid ${c && c.kind === 'avatar' ? 'av' : ''}">${cards}</div>`;
   }
   const cols = G.colls.filter(c => c.kind === P.kind).map(c => {
@@ -29363,7 +29444,7 @@ function mjPubColl(id) {
   G.pub.coll = id; _mjPubRender();
   document.getElementById('mjp-root')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
-/* Toucher un double d'un autre élève : on lui propose directement un échange */
+/* Toucher une carte d'un autre élève : on lui propose directement un échange */
 function mjPubTrade(itemId) {
   if (!G.pub || !G.byId[itemId]) return;
   G.card = { id: itemId, step: 'give', who: [{ student_id: G.pub.id, name: G.pub.name || 'cet élève' }], to: G.pub.id };
@@ -29459,6 +29540,19 @@ async function mjResetTesters(one) {
   if (error || (data && data.ok === false)) { toast('Erreur : ' + ((error && error.message) || (data && data.error)), 'error'); return; }
   toast('🧹 Partie remise à zéro');
 }
+/* Couleur des exclusifs : rouge sombre brillant (par défaut) ou arc-en-ciel */
+function _mjApplyExColor(v) {
+  const rb = v === 'rainbow';
+  document.documentElement.classList.toggle('mj-exc-rainbow', rb);
+  try { MJ_R_COLOR.exclusive = rb ? '#ff8ad8' : '#ff2d46'; } catch (_) {}
+}
+async function mjSetExclusiveColor(v) {
+  const { error } = await db.from('app_settings').upsert({ key: 'minijeu_exclusive_color', value: v });
+  if (error) { toast('Erreur : ' + error.message, 'error'); return; }
+  MJ.exColor = v;
+  _mjApplyExColor(v);
+  _mjRenderSettings();
+}
 async function mjSetExclusiveStyle(v) {
   const { error } = await db.from('app_settings').upsert({ key: 'minijeu_exclusive_style', value: v });
   if (error) { toast('Erreur : ' + error.message, 'error'); return; }
@@ -29500,9 +29594,11 @@ function _mjModeCard() {
     <div class="mj-card">
       <h3>✨ Objets exclusifs</h3>
       <div class="mj-seg">${[['ribbon', 'Ruban « EXCLUSIF »'], ['count', '« X élèves l’ont »']].map(([k, l]) => `<button class="${MJ.exStyle === k ? 'on' : ''}" onclick="mjSetExclusiveStyle('${k}')">${l}</button>`).join('')}</div>
+      <div class="mj-seg" style="margin-top:8px">${[['red', '🔴 Rouge sombre'], ['rainbow', '🌈 Arc-en-ciel']].map(([k, l]) => `<button class="${(MJ.exColor || 'red') === k ? 'on' : ''}" onclick="mjSetExclusiveColor('${k}')">${l}</button>`).join('')}</div>
       <div class="mj-exdemo">
         <span class="mj-exdemo-c"><span class="mj-img mj-r-exclusive"></span>${MJ.exStyle === 'count' ? '<span class="mjc-excount">3 élèves l’ont</span>' : '<span class="mjc-ribbon">EXCLUSIF</span>'}</span>
-        <p>Ce que voient les élèves sur les cartes exclusives.</p>
+        <span class="mj-badge r-exclusive mj-exdemo-av"></span>
+        <p>Ce que voient les élèves sur les cartes et avatars exclusifs.</p>
       </div>
     </div>`;
 }
