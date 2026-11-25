@@ -10704,6 +10704,18 @@ html.mj-exc-rainbow .mjo-chg.end.c-exclusive{border-color:#b07bff;box-shadow:0 0
 .mjx-acts{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(26px + env(safe-area-inset-bottom));width:calc(100% - 40px);max-width:380px;display:flex;flex-direction:column;gap:8px;z-index:20}
 .mjx .mjo-hint{bottom:calc(30px + env(safe-area-inset-bottom))}
 @media (max-height:700px){.mjx-card{width:min(50vw,190px);margin-left:calc(min(50vw,190px)/-2);top:clamp(96px,15vh,130px)}}
+
+/* Admin : Nouveautés des élèves */
+.ann-card{position:relative;padding:12px 14px;border-radius:14px;background:var(--surface-2);border:1px solid var(--border);margin-bottom:10px}
+.ann-card.old{opacity:.7}
+.ann-card-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:15px}
+.ann-card-b{margin:6px 0 8px;font-size:14px;line-height:1.5;color:var(--text-2);white-space:pre-wrap;overflow-wrap:anywhere}
+.ann-card-m{font-size:12px;color:var(--text-3)}
+.ann-left{color:var(--gold);font-weight:700}
+.ann-del{margin-top:10px;width:100%;color:#ff8a8a;border-color:rgba(255,100,100,.3)}
+.ann-empty{padding:16px;text-align:center;color:var(--text-3);font-size:14px;border:1px dashed var(--border-2);border-radius:14px}
+.ann-old{margin-top:14px}
+.ann-old summary{cursor:pointer;font-size:13px;font-weight:700;color:var(--text-2);margin-bottom:10px}
 </style>
 <body>
 <script>
@@ -11193,6 +11205,7 @@ html.mj-exc-rainbow .mjo-chg.end.c-exclusive{border-color:#b07bff;box-shadow:0 0
       <button class="am-tile" style="--i:1" onclick="adminMoreGo('minijeu')"><span class="am-i">🎴</span>Mini-jeu</button>
       <button class="am-tile" style="--i:1" onclick="adminMoreGo('import')"><span class="am-i">🔄</span>Import élèves</button>
       <button class="am-tile" style="--i:1" onclick="adminMoreGo('exports')"><span class="am-i">📄</span>Exports PDF</button>
+      <button class="am-tile" style="--i:1" onclick="closeAdminFab(); openAnnList()"><span class="am-i">📰</span>Nouveautés élèves</button>
     </div>
     <button class="am-logout" style="--i:0" onclick="closeAdminFab(); logout()"><svg class="ic-power" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 3v8"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/></svg> Déconnexion</button>
   </div>
@@ -14326,7 +14339,7 @@ html.mj-exc-rainbow .mjo-chg.end.c-exclusive{border-color:#b07bff;box-shadow:0 0
           </p>
         </div>
         <div class="sd-section hidden" id="bcast-history-wrap">
-          <div class="flabel" style="margin-bottom:8px;">Messages affichés aux élèves (7 derniers jours)</div>
+          <div class="flabel" style="margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:8px;">Messages affichés aux élèves (7 derniers jours)<button class="btn btn-ghost btn-sm" onclick="closeModal('modal-broadcast'); openAnnList()">Tout voir ›</button></div>
           <div id="bcast-history"></div>
         </div>
         <div class="sd-section">
@@ -14351,6 +14364,20 @@ html.mj-exc-rainbow .mjo-chg.end.c-exclusive{border-color:#b07bff;box-shadow:0 0
           </div>
         </div>
     <button class="btn btn-ghost btn-full" style="margin-top:10px;" onclick="closeModal('modal-broadcast')">Fermer</button>
+  </div>
+</div>
+
+<!-- ================================================================
+     MODAL: Nouveautés des élèves — les messages affichés, avec retrait
+     ================================================================ -->
+<div class="overlay hidden" id="modal-ann-list">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">📰 Nouveautés des élèves</div>
+    <p class="text-sm text-muted" style="margin:-8px 0 14px;font-size:13px;line-height:1.5;">Les notifications générales restent <strong>7 jours</strong> en tête des Nouveautés, sur l'accueil des élèves. Tu peux les retirer à tout moment&nbsp;: elles disparaissent de l'appli tout de suite (la notification déjà reçue sur les téléphones, elle, ne peut pas être annulée).</p>
+    <div id="ann-list-body"><div class="loader"><div class="spinner"></div></div></div>
+    <button class="btn btn-gold btn-full" style="margin-top:14px;" onclick="closeModal('modal-ann-list'); openModal('modal-broadcast')">📢 Envoyer une nouvelle notification</button>
+    <button class="btn btn-ghost btn-full" style="margin-top:8px;" onclick="closeModal('modal-ann-list')">Fermer</button>
   </div>
 </div>
 
@@ -15645,8 +15672,40 @@ async function deleteAnnouncement(id) {
   if (!confirm('Retirer ce message des Nouveautés des élèves ?\n\n(La notification déjà reçue sur les téléphones ne peut pas être annulée.)')) return;
   const { error } = await db.from('announcements').delete().eq('id', id);
   if (error) { toast('Erreur lors de la suppression', 'error'); return; }
-  toast('Message retiré', 'success');
+  toast('Message retiré des Nouveautés', 'success');
   loadAnnouncementsHistory();
+  if (!document.getElementById('modal-ann-list')?.classList.contains('hidden')) renderAnnList();
+}
+
+/* Admin : toutes les notifications affichées (et celles des 30 derniers jours), avec retrait */
+function openAnnList() {
+  openModal('modal-ann-list');
+  renderAnnList();
+}
+async function renderAnnList() {
+  const el = document.getElementById('ann-list-body');
+  if (!el) return;
+  const since = new Date(Date.now() - 30 * 86400000).toISOString();
+  const { data, error } = await db.from('announcements')
+    .select('id, title, body, author, test_only, created_at')
+    .gte('created_at', since).order('created_at', { ascending: false }).limit(60);
+  if (error) { el.innerHTML = '<p class="text-sm text-muted">Impossible de charger les messages (as-tu lancé annonces.sql ?).</p>'; return; }
+  const now = Date.now(), lim = ANNOUNCEMENT_DAYS * 86400000;
+  const shown = (data || []).filter(a => now - new Date(a.created_at).getTime() < lim);
+  const old = (data || []).filter(a => now - new Date(a.created_at).getTime() >= lim);
+  const card = (a, live) => {
+    const left = Math.ceil((new Date(a.created_at).getTime() + lim - now) / 86400000);
+    return `<div class="ann-card${live ? '' : ' old'}">
+      <div class="ann-card-h"><b>${_escapeHtml(a.title)}</b>${a.test_only ? '<span class="badge badge-muted">compte test seulement</span>' : ''}</div>
+      <div class="ann-card-b">${_escapeHtml(a.body || '')}</div>
+      <div class="ann-card-m">${_escapeHtml(_annDateLabel(a.created_at))}${a.author ? ' · ' + _escapeHtml(a.author) : ''}${live ? ` · <span class="ann-left">encore ${left} jour${left > 1 ? 's' : ''}</span>` : ' · plus affiché'}</div>
+      <button class="btn btn-ghost btn-sm ann-del" onclick="deleteAnnouncement('${a.id}')">${live ? '🗑️ Retirer des Nouveautés' : '🗑️ Supprimer'}</button>
+    </div>`;
+  };
+  el.innerHTML = `
+    <div class="flabel" style="margin-bottom:8px;">Affichés en ce moment · ${shown.length}</div>
+    ${shown.length ? shown.map(a => card(a, true)).join('') : '<div class="ann-empty">Aucun message affiché aux élèves en ce moment.</div>'}
+    ${old.length ? `<details class="ann-old"><summary>Plus affichés (30 derniers jours) · ${old.length}</summary>${old.map(a => card(a, false)).join('')}</details>` : ''}`;
 }
 
 /* Élève : messages en tête des Nouveautés, point doré si pas encore vu */
@@ -26548,7 +26607,7 @@ const PANEL_TITLES = {
 
 /* Boutons d'action dans la barre du haut, selon la page (PC) */
 const ADMIN_HEAD_ACTIONS = {
-  dashboard: [['📢 Notification générale', "openModal('modal-broadcast')"], ['🎟️ Créer une séance', "aTab('sessions'); openCreateSessionModal()", true]],
+  dashboard: [['📰 Nouveautés élèves', 'openAnnList()'], ['📢 Notification générale', "openModal('modal-broadcast')"], ['🎟️ Créer une séance', "aTab('sessions'); openCreateSessionModal()", true]],
   sessions:  [['🎟️ Créer une séance', 'openCreateSessionModal()', true]],
   votes:     [['🗳️ Sondage de film', 'openPollCreate()', true]],
   films:     [['🎬 Ajouter un film', "openModal('modal-add-film')", true]],
