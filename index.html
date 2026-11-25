@@ -10596,7 +10596,7 @@ html.mj-exc-rainbow .mjo.cl-exc .mjo-light::before,html.mj-exc-rainbow .mjo.rc-e
 
 /* ════ Ouverture v2 : coffre dessiné, lumière blanche / bleue / violette, couleur sur le dos des cartes ════ */
 .mjo{--cl:#ffffff;background:radial-gradient(70% 42% at 50% 40%,color-mix(in srgb,var(--rc) 22%,transparent),transparent 70%),#05050b}
-.mjo-box{--s:min(54vw,210px);--c1:#b87333;--c2:#6b3a14;--c3:#e6a86a;position:absolute;left:50%;top:clamp(170px,30vh,260px);width:var(--s);height:calc(var(--s)*.82);margin-left:calc(var(--s)/-2);z-index:2;transition:transform .7s cubic-bezier(.22,1,.36,1),opacity .6s}
+.mjo-box{--s:min(54vw,210px);--c1:#b87333;--c2:#6b3a14;--c3:#e6a86a;position:absolute;left:50%;top:auto;bottom:calc(50% - var(--s)*.3);width:var(--s);height:calc(var(--s)*.82);margin-left:calc(var(--s)/-2);z-index:2;transform-origin:50% 100%;transition:bottom .8s cubic-bezier(.22,1,.36,1),transform .8s cubic-bezier(.22,1,.36,1),opacity .6s}
 .mjo-box.pellicule{--c1:#5f7fa8;--c2:#2b3d5c;--c3:#b9d3f2}
 .mjo-box.clap{--c1:#f0b52c;--c2:#8a5a00;--c3:#fff0b3}
 .mjo-box.welcome{--c1:#c0507a;--c2:#6b1f3d;--c3:#ffb3cf}
@@ -10615,9 +10615,16 @@ html.mj-exc-rainbow .mjo.cl-exc .mjo-light::before,html.mj-exc-rainbow .mjo.rc-e
 .mjo.opened .mjo-box .lid{transform:translateY(-150%) rotate(-28deg);opacity:0}
 .mjo.opened .mjo-box .lock{transform:translateY(-120%);opacity:0}
 .mjo.opened .mjo-box .seam{opacity:0}
-.mjo.opened .mjo-box .beam{height:min(46vh,340px)}
-.mjo.cards .mjo-box{transform:translateY(38vh) scale(.5);opacity:.14}
-.mjo.cards .mjo-box .beam{opacity:0}
+.mjo.opened .mjo-box{bottom:calc(52px + env(safe-area-inset-bottom));transform:scale(.8)}
+.mjo.opened .mjo-box .beam{height:min(52vh,420px);opacity:.75}
+.mjo.cards .mjo-box .beam{height:min(30vh,240px);opacity:.45}
+.mjo.opened .mjo-hint,.mjo.cards .mjo-hint{bottom:calc(14px + env(safe-area-inset-bottom))}
+.mjo.cards .mjo-box{opacity:1}
+.mjo.opened:not(.cards) .mjo-dots{opacity:0}
+/* La carte sort du coffre, de dos, et grandit jusqu'à sa vraie taille */
+.mjo-fl{animation:mjrise .85s cubic-bezier(.22,1,.36,1) both}
+@keyframes mjrise{0%{transform:translateY(var(--fy,260px)) scale(.16);opacity:0}12%{opacity:1}100%{transform:none;opacity:1}}
+@media (max-height:700px){.mjo-fl{width:min(50vw,190px);margin-left:calc(min(50vw,190px)/-2);top:clamp(96px,15vh,130px)}.mjo-lbl{top:calc(clamp(96px,15vh,130px) + min(75vw,285px) + 12px)}}
 /* Coffre en or (fin de collection) */
 .mjo-box.gold .box,.mjo-box.gold .lid{animation:mjchestshine 2.2s ease-in-out infinite}
 .mjo-box.gold .spark{inset:-30%;z-index:4;pointer-events:none;background:
@@ -10630,7 +10637,7 @@ html.mj-exc-rainbow .mjo.cl-exc .mjo-light::before,html.mj-exc-rainbow .mjo.rc-e
 /* Dos de carte neutre : la couleur vient de l'anneau qui monte */
 .mjo-bk{border:3px solid #3a3248;box-shadow:0 10px 30px rgba(0,0,0,.6)}
 .mjo-fl.wait .mjo-bk{animation:none}
-.mjo-chg{position:absolute;left:0;top:0;right:0;bottom:0;width:auto;height:auto;margin:0;z-index:4;border-radius:16px;border:3px solid transparent;filter:none;background:none;opacity:1;pointer-events:none;animation:var(--gn,mjg-common) var(--gd,600ms) ease-in .35s both;transition:opacity .5s}
+.mjo-chg{position:absolute;left:0;top:0;right:0;bottom:0;width:auto;height:auto;margin:0;z-index:4;border-radius:16px;border:3px solid transparent;filter:none;background:none;opacity:1;pointer-events:none;animation:var(--gn,mjg-common) var(--gd,600ms) ease-in .85s both;transition:opacity .5s}
 .mjo-chg.c-common{--gn:mjg-common}.mjo-chg.c-rare{--gn:mjg-rare}.mjo-chg.c-epic{--gn:mjg-epic}.mjo-chg.c-legendary{--gn:mjg-legendary}.mjo-chg.c-exclusive{--gn:mjg-exclusive}
 html.mj-exc-rainbow .mjo-chg.c-exclusive{--gn:mjg-exclusive-rb}
 .mjo-chg.end{animation:none}
@@ -10656,6 +10663,27 @@ html.mj-exc-rainbow .mjo-chg.end.c-exclusive{border-color:#b07bff;box-shadow:0 0
 .mjo-done h2{text-align:center}
 .mjo-done .mjw-burst{font-size:52px;margin-bottom:-6px}
 @media (prefers-reduced-motion:reduce){.mjo-box,.mjo-fl .mjo-fi{animation:none!important}}
+
+/* Admin : choisir une carte à offrir */
+.mj-g-ires{display:flex;flex-direction:column;gap:6px;margin-top:6px;max-height:320px;overflow-y:auto}
+.mj-g-it{display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:12px;border:1px solid var(--border);background:var(--surface-2);color:var(--text);font:inherit;text-align:left;cursor:pointer}
+.mj-g-it .mj-img{width:34px;flex:0 0 34px}.mj-g-it .mj-badge{width:38px;height:38px;flex:0 0 38px}
+.mj-g-it b{display:block;font-size:14px}.mj-g-it small{font-size:12px;font-weight:700}
+
+/* Coffre-cadeau du surveillant */
+.mjo-box.present{--c1:#d6334f;--c2:#7a1024;--c3:#ffd56b}
+.mjo-box.present .rib{left:50%;top:6%;bottom:0;width:14%;margin-left:-7%;z-index:2;background:linear-gradient(90deg,#c99a2e,#ffe9a8 50%,#c99a2e);border-radius:4px;transition:transform .55s cubic-bezier(.3,1.5,.5,1),opacity .55s;transform-origin:50% 100%}
+.mjo.opened .mjo-box.present .rib{transform:translateY(-150%) rotate(-28deg);opacity:0}
+.mjo-box.present .lock{background:radial-gradient(circle,#fff3c4,#e0b247 70%);border-radius:50%;width:24%;height:22%;margin-left:-12%;top:30%}
+.mjo.present .mjo-box{filter:drop-shadow(0 0 22px rgba(214,51,79,.45))}
+.mjo-chip.present{background:rgba(214,51,79,.18);border-color:rgba(255,120,140,.5);color:#ffd2da}
+.mjo-front.pz{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:radial-gradient(circle at 50% 38%,color-mix(in srgb,var(--rc) 35%,#1a1a26),#101018 75%)}
+.mjo-pz{font-size:84px;line-height:1;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 0 16px color-mix(in srgb,var(--rc) 70%,transparent))}
+.mjo-pzq{font-size:30px;font-weight:900;color:#fff;text-shadow:0 0 14px var(--rc)}
+.mjo-front.pz .mjo-ft{position:static;background:none}
+.mjo-ri.pz{display:flex;flex-direction:column;align-items:center;gap:8px}
+.mjo-ri.pz .mjo-pz{font-size:96px}
+.mjo-msg{margin:-6px 0 0;font-style:italic;color:var(--text-2);text-align:center;max-width:320px}
 </style>
 <body>
 <script>
@@ -28293,7 +28321,7 @@ async function mjBoot(force) {
       await mjLoadMode();
       if (!G.can) { G.st = null; return; }
       const stale = Date.now() - G.syncAt > 5 * 60 * 1000 || G.syncDay !== _mjDayKey();
-      if (!force && !stale && G.st && G.cat) return;
+      if (!force && !stale && G.st && G.cat) { await _mjCheckGifts(); return; }
       let level = 1;
       try { level = levelFromXp(await getStudentTotalXp(S.user.id)); } catch (_) {}
       const res = await _mjRpc('mj_sync', { p_student: S.user.id, p_level: level });
@@ -28301,6 +28329,7 @@ async function mjBoot(force) {
       G.syncAt = Date.now(); G.syncDay = _mjDayKey();
       await Promise.all([mjRefreshState(), mjLoadCatalog()]);
       _mjQueueEvents(res.events || []);
+      await _mjCheckGifts(true);
     } catch (e) { console.warn('[minijeu] démarrage :', e); }
     finally { G.booting = null; }
   })();
@@ -28334,12 +28363,14 @@ function _mjOwnedMap() {
   });
   return m;
 }
-function _mjSouvenirTmdb() { return new Set(((G.st && G.st.souvenirs) || []).map(s => s.tmdb_id).filter(Boolean)); }
+function _mjSouvenirTmdb() { return new Set(((G.st && G.st.souvenirs) || []).map(s => Number(s.tmdb_id)).filter(Boolean)); }
+/* Une affiche est « dans la collection » si on l'a, ou si on a vu le film en séance (carte souvenir) */
+function _mjSvCovers(i, sv) { return i.kind === 'poster' && !!i.tmdb_id && (sv || _mjSouvenirTmdb()).has(Number(i.tmdb_id)); }
 function _mjCollState(c) {
   const om = _mjOwnedMap(), sv = _mjSouvenirTmdb();
   const items = Object.values(G.byId).filter(i => i.collection_id === c.id);
   let have = 0;
-  items.forEach(i => { if (om[i.id] || (i.kind === 'poster' && i.tmdb_id && sv.has(i.tmdb_id))) have++; });
+  items.forEach(i => { if (om[i.id] || _mjSvCovers(i, sv)) have++; });
   const done = ((G.st && G.st.done) || []).includes(c.id);
   return { items, have, total: items.length, done, ready: !done && items.length > 0 && have === items.length };
 }
@@ -28350,6 +28381,22 @@ function _mjWallets() {
 }
 
 /* ---------- Événements du jour (bienvenue, série, niveau, séance, anniversaire) ---------- */
+/* Cadeaux du surveillant en attente : un coffre-cadeau chacun, après les autres annonces */
+async function _mjCheckGifts(force) {
+  if (!G.can || !S.user) return;
+  if (!force && Date.now() - (G.giftAt || 0) < 30000) return;
+  G.giftAt = Date.now();
+  let list = [];
+  try { list = (await _mjRpc('mj_gifts_pending', { p_student: S.user.id })) || []; } catch (_) { return; }
+  if (!Array.isArray(list)) return;
+  G.giftSeen = G.giftSeen || new Set();
+  list.forEach(g => {
+    if (G.giftSeen.has(g.id)) return;
+    G.giftSeen.add(g.id);
+    G.evQueue.push(() => mjOpenPresent(g));
+  });
+  _mjNextEvent();
+}
 function _mjQueueEvents(evs) {
   const welcome = evs.find(e => e.type === 'welcome');
   if (welcome) G.evQueue.push(() => _mjShowWelcome(welcome));
@@ -28517,7 +28564,8 @@ function _mjRenderCollection() {
   const om = _mjOwnedMap();
   const all = Object.values(G.byId).filter(i => i.rarity !== 'exclusive' && i.active !== false);
   const nP = all.filter(i => i.kind === 'poster'), nA = all.filter(i => i.kind === 'avatar');
-  const hP = nP.filter(i => om[i.id]).length, hA = nA.filter(i => om[i.id]).length;
+  const svT = _mjSouvenirTmdb();
+  const hP = nP.filter(i => om[i.id] || _mjSvCovers(i, svT)).length, hA = nA.filter(i => om[i.id]).length;
   const sv = (G.st.souvenirs || []).length;
   const tab = (k, l) => `<button class="${G.cview === k ? 'on' : ''}" onclick="mjCView('${k}')">${l}</button>`;
   let inner = '';
@@ -28553,10 +28601,10 @@ function _mjRenderCollection() {
       : '<div class="mjs-empty">🎟️<br>Viens à une séance : le lendemain à 6 h, ta carte souvenir apparaît ici.</div>';
   } else {
     const kind = G.cview === 'avatars' ? 'avatar' : 'poster';
-    const mine = Object.values(G.byId).filter(i => i.kind === kind && om[i.id])
+    const mine = Object.values(G.byId).filter(i => i.kind === kind && (om[i.id] || _mjSvCovers(i, svT)))
       .sort((a, b) => (MJ_R_RANK[b.rarity] - MJ_R_RANK[a.rarity]) || a.title.localeCompare(b.title));
     const eq = kind === 'avatar' && G.avatar ? `<div class="mjc-eq">Ton avatar : <span class="mj-badge r-${G.avatar.rarity}"><img src="${_mjEsc(G.avatar.url)}" alt=""></span><button class="btn btn-ghost" onclick="mjEquip(null)">Revenir au niveau</button></div>` : '';
-    inner = mine.length ? `${eq}<div class="mjc-grid ${kind === 'avatar' ? 'av' : ''}">${mine.map(i => _mjCardHTML(i, { count: om[i.id].n })).join('')}</div>`
+    inner = mine.length ? `${eq}<div class="mjc-grid ${kind === 'avatar' ? 'av' : ''}">${mine.map(i => _mjCardHTML(i, { count: om[i.id] ? om[i.id].n : 0, souvenir: !om[i.id] })).join('')}</div>`
       : `<div class="mjs-empty">${kind === 'avatar' ? '🙂' : '🖼️'}<br>Aucune ${kind === 'avatar' ? 'carte avatar' : 'affiche'} pour l’instant : ouvre des coffres dans la Boutique !</div>`;
   }
   body.innerHTML = `
@@ -28573,7 +28621,7 @@ function _mjRenderCollDetail() {
   const items = s.items.slice().sort((a, b) => (MJ_R_RANK[a.rarity] - MJ_R_RANK[b.rarity]) || a.title.localeCompare(b.title));
   const cards = items.map(i => {
     const own = om[i.id];
-    const souv = !own && i.kind === 'poster' && i.tmdb_id && sv.has(i.tmdb_id);
+    const souv = !own && _mjSvCovers(i, sv);
     return _mjCardHTML(i, { count: own ? own.n : 0, missing: !own && !souv, souvenir: souv });
   }).join('');
   body.innerHTML = `
@@ -28658,7 +28706,7 @@ function _mjRenderCard() {
   const it = G.byId[G.card.id];
   if (!body || !it) return;
   const om = _mjOwnedMap(), own = om[it.id];
-  const souv = !own && it.kind === 'poster' && it.tmdb_id && _mjSouvenirTmdb().has(it.tmdb_id);
+  const souv = !own && _mjSvCovers(it);
   const cfg = _mjCfg();
   const col = G.colls.find(c => c.id === it.collection_id);
   const rc = MJ_R_COLOR[it.rarity] || '#a9aec2';
@@ -28949,21 +28997,25 @@ function mjOpenChest(chestId) {
 function mjOpenGift(gift, item) {
   _mjoStart({ id: null, kind: 'gold' }, [{ ...item, new: true }], gift);
 }
-function _mjoStart(ch, items, gift) {
+/* Cadeau du surveillant : un coffre-cadeau, ouvert à la prochaine ouverture de l'appli */
+function mjOpenPresent(g) {
+  return new Promise(res => { _mjoStart({ id: null, kind: 'present' }, null, null, g); MJO.onClose = res; });
+}
+function _mjoStart(ch, items, gift, present) {
   _mjoClear();
-  Object.assign(MJO, { chest: ch, gift: gift || null, stage: 'closed', i: -1, phase: 'idle', items: items || null, golden: false, busy: false, fetchP: null, afterCharge: null, skipping: false });
-  const info = ch.kind === 'gold' ? { name: 'Coffre en or', cls: 'gold' } : MJ_CHESTS[ch.kind];
+  Object.assign(MJO, { chest: ch, gift: gift || null, present: present || null, onClose: null, stage: 'closed', i: -1, phase: 'idle', items: items || null, golden: false, busy: false, fetchP: null, afterCharge: null, skipping: false });
+  const info = ch.kind === 'gold' ? { name: 'Coffre en or', cls: 'gold' } : ch.kind === 'present' ? { name: 'Cadeau', cls: 'present' } : MJ_CHESTS[ch.kind];
   const nItems = items ? items.length : ch.kind === 'clap' ? 5 : ch.kind === 'pellicule' ? 2 : 1;
   const sameLeft = gift ? 0 : ((G.st && G.st.chests) || []).filter(c => c.id !== ch.id && c.kind === ch.kind).length;
   document.getElementById('mj-open')?.remove();
   const el = document.createElement('div');
   el.id = 'mj-open';
-  el.className = 'mjo' + (gift ? ' gift' : '');
+  el.className = 'mjo' + (gift ? ' gift' : '') + (present ? ' present' : '');
   el.style.setProperty('--rc', MJO_NEUTRAL);
   el.innerHTML = `
     <div class="mjo-dim"></div>
-    <div class="mjo-top"><span class="mjo-chip ${info.cls}">${gift ? '🏆 Collection « ' + _mjEsc(gift.name) + ' »' : `${info.name} · ${nItems} objet${nItems > 1 ? 's' : ''}`}</span><small>${gift ? 'Ta récompense t’attend dans le coffre en or' : sameLeft ? `Encore ${sameLeft} après celui-ci` : 'Le contenu a été tiré au moment où tu l’as eu'}</small></div>
-    <div class="mjo-box ${info.cls}"><i class="beam"></i><i class="seam"></i><i class="lid"></i><i class="box"></i><i class="lock"></i>${gift ? '<i class="spark"></i>' : ''}</div>
+    <div class="mjo-top"><span class="mjo-chip ${info.cls}">${present ? '🎁 Un cadeau de ' + _mjEsc(present.from_name || 'ton surveillant') : gift ? '🏆 Collection « ' + _mjEsc(gift.name) + ' »' : `${info.name} · ${nItems} objet${nItems > 1 ? 's' : ''}`}</span><small>${present ? (present.message ? '« ' + _mjEsc(present.message) + ' »' : 'Touche le coffre pour découvrir ce qu’il contient') : gift ? 'Ta récompense t’attend dans le coffre en or' : sameLeft ? `Encore ${sameLeft} après celui-ci` : 'Le contenu a été tiré au moment où tu l’as eu'}</small></div>
+    <div class="mjo-box ${info.cls}"><i class="beam"></i><i class="seam"></i><i class="lid"></i><i class="box"></i><i class="lock"></i>${gift || present ? '<i class="spark"></i>' : ''}${present ? '<i class="rib"></i>' : ''}</div>
     <div class="mjo-dots"></div>
     <div class="mjo-rays"></div>
     <div class="mjo-stage"></div>
@@ -28982,6 +29034,8 @@ function _mjoStart(ch, items, gift) {
 function _mjoEl(sel) { const r = document.getElementById('mj-open'); return r ? r.querySelector(sel) : null; }
 function _mjoClose(after) {
   _mjoClear();
+  const done = MJO.onClose; MJO.onClose = null; MJO.present = null;
+  if (done) setTimeout(done, 300);
   const el = document.getElementById('mj-open');
   document.body.classList.remove('mjo-lock');
   if (el) { el.classList.remove('on'); setTimeout(() => el.remove(), 280); }
@@ -28999,24 +29053,36 @@ function _mjoBest() {
 function _mjoTint() {
   const root = document.getElementById('mj-open'); if (!root) return;
   const b = _mjoBest();
-  root.style.setProperty('--cl', b === 'common' ? '#ffffff' : b === 'rare' ? MJ_R_COLOR.rare : MJ_R_COLOR.epic);
+  const pz = (MJO.items || [])[0] && MJO.items[0].pseudo;
+  root.style.setProperty('--cl', pz === 'golden' ? '#f5b82e' : b === 'common' ? '#ffffff' : b === 'rare' ? MJ_R_COLOR.rare : MJ_R_COLOR.epic);
 }
 function _mjoFetch() {
   if (MJO.items) return Promise.resolve(true);
   if (!MJO.fetchP) {
     const chest = MJO.chest;
+    const present = MJO.present;
     MJO.fetchP = (async () => {
       let res;
-      try { res = await _mjRpc('mj_open_chest', { p_student: S.user.id, p_chest: chest.id }); }
+      try { res = present ? await _mjRpc('mj_gift_open', { p_student: S.user.id, p_gift: present.id }) : await _mjRpc('mj_open_chest', { p_student: S.user.id, p_chest: chest.id }); }
       catch (e) { res = { ok: false, error: e.message }; }
       if (MJO.chest !== chest) return false;
       if (!res || !res.ok) { toast(_mjErr(res), 'error'); MJO.busy = false; _mjoClose(); return false; }
+      if (present) { MJO.items = [_mjGiftItem(res)]; MJO.presentRes = res; return true; }
       MJO.items = (res.items || []).map(x => ({ ...x, ...(G.byId[x.id] || {}), new: x.new }));
       MJO.golden = !!res.golden;
       return true;
     })();
   }
   return MJO.fetchP;
+}
+/* Contenu d'un cadeau → une « carte » à retourner */
+function _mjGiftItem(r) {
+  if (r.what === 'item' && r.item) return { ...r.item, ...(G.byId[r.item.id] || {}), new: !!r.item.new };
+  const q = r.qty || 1;
+  if (r.what === 'tickets') return { pseudo: 'tickets', id: 'gift-tickets', rarity: 'common', qty: q, title: `${q} ticket${q > 1 ? 's' : ''}` };
+  if (r.what === 'golden') return { pseudo: 'golden', id: 'gift-golden', rarity: 'legendary', qty: q, title: q > 1 ? `${q} tickets d’or` : 'Un ticket d’or' };
+  const ch = MJ_CHESTS[r.what] || { name: 'Coffre' };
+  return { pseudo: 'chest', chest: r.what, id: 'gift-chest', rarity: 'rare', qty: q, title: `${q > 1 ? q + ' coffres' : 'Un coffre'} ${ch.name}` };
 }
 function _mjoKnock(k) {
   const root = document.getElementById('mj-open'); if (!root) return;
@@ -29083,7 +29149,7 @@ async function _mjoTap() {
     _mjoLater(ft, () => {
       MJO.phase = 'up'; MJO.busy = false;
       const lb = _mjoEl('.mjo-lbl'); if (lb) lb.classList.add('on');
-      _mjoEl('.mjo-hint').textContent = MJO.i < items.length - 1 ? 'Touche pour la carte suivante' : (MJO.gift ? 'Touche pour voir ta récompense' : 'Touche pour voir tout ton coffre');
+      _mjoEl('.mjo-hint').textContent = MJO.i < items.length - 1 ? 'Touche pour la carte suivante' : (MJO.gift ? 'Touche pour voir ta récompense' : MJO.present ? 'Touche pour continuer' : 'Touche pour voir tout ton coffre');
       _mjoDots();
     });
     return;
@@ -29109,19 +29175,28 @@ function _mjoNext() {
   MJO.stage = 'cards'; MJO.i = n; MJO.phase = 'charge'; MJO.busy = false;
   root.classList.add('cards');
   const glow = MJO_GLOW[k] || 500;
-  const front = it.kind === 'poster'
+  const front = it.pseudo
+    ? `<div class="mjo-front pz" style="--rc:${MJ_R_COLOR[k]}"><span class="mjo-pz">${it.pseudo === 'chest' ? _mjChestVis(it.chest, 120) : it.pseudo === 'golden' ? '🎫' : '🎟️'}</span>${it.pseudo === 'tickets' ? `<b class="mjo-pzq">+${it.qty}</b>` : it.qty > 1 ? `<b class="mjo-pzq">×${it.qty}</b>` : ''}<span class="mjo-ft">${_mjEsc(it.title)}</span></div>`
+    : it.kind === 'poster'
     ? `<div class="mjo-front po" style="--rc:${MJ_R_COLOR[k]}"><img src="${_mjEsc(_tmdbImg(it.image_path, 'w500'))}" alt=""><span class="mjo-ft">${_mjEsc(it.title)}</span></div>`
     : `<div class="mjo-front av" style="--rc:${MJ_R_COLOR[k]}"><span class="mj-badge r-${k}"><img src="${_mjEsc(it.image_url || '')}" alt=""></span><span class="mjo-ft">${_mjEsc(it.title)}</span></div>`;
   const om = _mjOwnedMap();
   const had = om[it.id] ? om[it.id].n : 0;  // état avant ouverture (rafraîchi à la fermeture)
-  const note = MJO.gift ? (it.kind === 'avatar' ? 'Avatar exclusif de la collection' : 'Affiche exclusive de la collection')
+  const note = MJO.present ? `De la part de ${_mjEsc(MJO.present.from_name || 'ton surveillant')}`
+    : MJO.gift ? (it.kind === 'avatar' ? 'Avatar exclusif de la collection' : 'Affiche exclusive de la collection')
     : it.new ? (it.kind === 'avatar' ? 'Nouvel avatar !' : 'Nouvelle carte !') : `Doublon · tu en as ${had + items.slice(0, n).filter(x => x.id === it.id).length + 1}`;
   _mjoEl('.mjo-stage').innerHTML = `
     <div class="mjo-fl wait${big ? ' leg' : ''}" style="--rc:${MJ_R_COLOR[k]}">
       <div class="mjo-fi"><div class="mjo-fc mjo-bk" style="background-image:url('${MJ_CARD_BACK}')"></div><div class="mjo-fc mjo-fr">${front}</div></div>
       <span class="mjo-chg c-${k}" style="--gd:${glow}ms"></span>
     </div>
-    <div class="mjo-lbl"><strong style="color:${MJ_R_COLOR[k]}">${MJ_RARITY_LABEL[k]}</strong><div>${note}</div></div>`;
+    <div class="mjo-lbl"><strong style="color:${MJ_R_COLOR[k]}">${it.pseudo ? (it.pseudo === 'golden' ? 'Ticket d’or' : 'Cadeau') : MJ_RARITY_LABEL[k]}</strong><div>${note}</div></div>`;
+  // la carte part du haut du coffre ouvert
+  const fl = _mjoEl('.mjo-fl'), bx = _mjoEl('.mjo-box .box');
+  if (fl && bx) {
+    const r = bx.getBoundingClientRect();
+    fl.style.setProperty('--fy', Math.round(r.top + 8 - (fl.offsetTop + fl.offsetHeight / 2)) + 'px');
+  }
   _mjoEl('.mjo-hint').textContent = big ? '' : 'Touche pour aller plus vite';
   _mjoDots();
   MJO.afterCharge = () => {
@@ -29132,7 +29207,7 @@ function _mjoNext() {
     _mjoEl('.mjo-hint').textContent = 'Touche la carte pour la retourner';
     _mjoDots();
   };
-  _mjoLater(350 + glow, () => { if (MJO.afterCharge) MJO.afterCharge(); });
+  _mjoLater(850 + glow, () => { if (MJO.afterCharge) MJO.afterCharge(); });
 }
 async function _mjoSkip() {
   if (MJO.stage === 'done' || MJO.skipping) return;
@@ -29153,6 +29228,27 @@ function _mjoDone() {
   ['.mjo-skip', '.mjo-hint', '.mjo-tap', '.mjo-stage', '.mjo-dots'].forEach(s => { const e = _mjoEl(s); if (e) e.classList.add('hidden'); });
   const items = MJO.items || [];
   const d = _mjoEl('.mjo-done');
+  if (MJO.present) {
+    const pr = MJO.present, it = items[0] || {};
+    const vis = it.pseudo ? `<div class="mjo-ri big pz"><span class="mjo-pz">${it.pseudo === 'chest' ? _mjChestVis(it.chest, 120) : it.pseudo === 'golden' ? '🎫' : '🎟️'}</span><small>${_mjEsc(it.title)}</small></div>`
+      : `<div class="mjo-ri big">${_mjImgHTML(it)}<small>${_mjEsc(it.title || '')}</small></div>`;
+    const what = it.pseudo === 'tickets' ? `+${it.qty} 🎟️ ajoutés à tes tickets`
+      : it.pseudo === 'golden' ? 'Ton vote peut compter ×' + _mjGoldenMult() + ' : bouton « 🎫 Voter ×' + _mjGoldenMult() + ' » sur un film ou dans le sondage'
+      : it.pseudo === 'chest' ? `${_mjEsc(it.title)} ${it.qty > 1 ? 't’attendent' : 't’attend'} dans la Boutique`
+      : it.kind === 'avatar' ? 'Un nouvel avatar pour ta collection' : 'Une nouvelle affiche pour ta collection';
+    d.innerHTML = `<div class="mjw-burst">🎁</div><h2>Un cadeau de ${_mjEsc(pr.from_name || 'ton surveillant')}</h2>
+      ${pr.message ? `<p class="mjo-msg">« ${_mjEsc(pr.message)} »</p>` : ''}
+      <div class="mjo-res">${vis}</div>
+      <div class="mjw-gift">${what}</div>
+      <div class="mjo-actions">
+        ${it.pseudo === 'chest' ? `<button class="btn btn-gold btn-full" onclick="_mjoClose(() => navigateTo('shop'))">Ouvrir mes coffres</button>` : ''}
+        ${!it.pseudo && it.kind === 'avatar' ? `<button class="btn btn-gold btn-full" onclick="_mjoClose(() => mjEquip('${it.id}'))">Mettre cet avatar</button>` : ''}
+        ${!it.pseudo ? `<button class="btn btn-ghost btn-full" onclick="_mjoClose(() => { G.cview = '${it.kind === 'avatar' ? 'avatars' : 'posters'}'; navigateTo('collection'); })">Voir ma collection</button>` : ''}
+        <button class="btn ${it.pseudo && it.pseudo !== 'chest' ? 'btn-gold' : 'btn-ghost'} btn-full" onclick="_mjoClose()">Merci !</button>
+      </div>`;
+    d.classList.remove('hidden');
+    return;
+  }
   if (MJO.gift) {
     const g = MJO.gift, it = items[0];
     d.innerHTML = `<div class="mjw-burst">🏆</div><h2>Collection « ${_mjEsc(g.name)} » validée !</h2>
@@ -29463,10 +29559,10 @@ async function mjPublicSection(studentId) {
     return `<div class="mjp" id="mjp-root">${_mjPubInner()}</div>`;
   } catch (_) { return ''; }
 }
-function _mjPubHave(i, p, sv) { return ((p.owned || {})[i.id] || 0) > 0 || (i.kind === 'poster' && sv.has(i.tmdb_id)); }
+function _mjPubHave(i, p, sv) { return ((p.owned || {})[i.id] || 0) > 0 || (i.kind === 'poster' && !!i.tmdb_id && sv.has(Number(i.tmdb_id))); }
 function _mjPubInner() {
   const P = G.pub; if (!P) return '';
-  const p = P.p, sv = new Set(p.souvenirs || []);
+  const p = P.p, sv = new Set((p.souvenirs || []).map(Number));
   const total = Object.keys(p.owned || {}).length;
   const mine = P.id === (S.user && S.user.id);
   if (P.coll) {
@@ -29477,7 +29573,7 @@ function _mjPubInner() {
     const tradesOn = !!(G.st && G.st.trades_on) && G.can && !mine;
     const cards = items.map(i => {
       const own = (p.owned || {})[i.id] || 0, dbl = ((p.tradeable || {})[i.id] || 0) >= 2;
-      const souv = !own && i.kind === 'poster' && sv.has(i.tmdb_id);
+      const souv = !own && i.kind === 'poster' && !!i.tmdb_id && sv.has(Number(i.tmdb_id));
       const img = own || souv ? _mjImgHTML(i)
         : `<span class="${i.kind === 'avatar' ? 'mj-badge' : 'mj-img'} mjc-ghost">${_mjImgUrl(i) ? `<img src="${_mjEsc(_mjImgUrl(i))}" alt="" loading="lazy">` : ''}<i>?</i></span>`;
       const tag = dbl ? `<span class="mjc-count">×${own}</span>` : souv ? '<span class="mjc-svtag">🎟️</span>' : '';
@@ -29790,10 +29886,18 @@ async function _mjRenderJournal() {
         <div id="mj-g-res" class="mj-t-res"></div>
         <div id="mj-g-who" class="mj-note"></div>
         <div style="display:flex;gap:8px;margin-top:8px">
-          <select class="fselect" id="mj-g-what"><option value="tickets">🎟️ Tickets</option><option value="bobine">🎞️ Bobine</option><option value="pellicule">📽️ Pellicule</option><option value="clap">🎬 Clap d’or</option><option value="golden">🎫 Ticket d’or</option></select>
+          <select class="fselect" id="mj-g-what" onchange="_mjGiftWhat()"><option value="tickets">🎟️ Tickets</option><option value="bobine">🎞️ Bobine</option><option value="pellicule">📽️ Pellicule</option><option value="clap">🎬 Clap d’or</option><option value="golden">🎫 Ticket d’or</option><option value="item">🖼️ Une affiche ou un avatar précis</option></select>
           <input class="finput" id="mj-g-qty" type="number" min="1" value="1" style="width:90px">
-          <button class="btn btn-gold" onclick="mjGiftSend()">Offrir</button>
         </div>
+        <div id="mj-g-itembox" class="hidden" style="margin-top:8px">
+          <input class="finput" id="mj-g-iq" placeholder="Carte : tape son titre (exclusifs compris)…" oninput="_mjGiftItemSearch(this.value)">
+          <div id="mj-g-ires" class="mj-g-ires"></div>
+          <div id="mj-g-ipick" class="mj-note"></div>
+        </div>
+        <input class="finput" id="mj-g-from" style="margin-top:8px" maxlength="60" placeholder="De la part de (ex. M. Dupont)" value="${_mjEsc(_mjGiftFrom())}">
+        <input class="finput" id="mj-g-msg" style="margin-top:8px" maxlength="200" placeholder="Petit mot (facultatif)">
+        <button class="btn btn-gold btn-full" style="margin-top:10px" onclick="mjGiftSend()">🎁 Offrir</button>
+        <p class="mj-note" style="margin-top:6px">L’élève le découvre dans un coffre-cadeau à sa prochaine ouverture de l’appli.</p>
       </div>
       <div class="mj-card">
         <h3>🎫 Tickets d’or posés · ${(j.golden || []).length}</h3>
@@ -29824,14 +29928,44 @@ async function mjGiftSearch(q) {
   const { data } = await db.from('students').select('id,first_name,last_name,class_name').or(`first_name.ilike.${like},last_name.ilike.${like}`).limit(8);
   box.innerHTML = (data || []).map(s => `<button class="mj-t-add" onclick="MJ.giftTo={id:'${s.id}',name:'${_mjEsc((s.first_name || '') + ' ' + (s.last_name || '')).replace(/'/g, '’')}'}; document.getElementById('mj-g-who').textContent='Pour : '+MJ.giftTo.name; document.getElementById('mj-g-res').innerHTML=''">${_mjEsc(s.first_name || '')} ${_mjEsc(s.last_name || '')} <small>${_mjEsc(s.class_name || '')}</small></button>`).join('') || '<small class="text-muted">Aucun élève trouvé</small>';
 }
+function _mjGiftFrom() { try { return localStorage.getItem('mj_gift_from') || ''; } catch (_) { return ''; } }
+function _mjGiftWhat() {
+  const w = document.getElementById('mj-g-what').value;
+  document.getElementById('mj-g-itembox').classList.toggle('hidden', w !== 'item');
+  document.getElementById('mj-g-qty').classList.toggle('hidden', w === 'item' || w === 'golden');
+}
+function _mjGiftItemSearch(q) {
+  const box = document.getElementById('mj-g-ires');
+  q = (q || '').trim().toLowerCase();
+  if (q.length < 2) { box.innerHTML = ''; return; }
+  const RL = { common: 'Commun', rare: 'Rare', epic: 'Épique', legendary: 'Légendaire', exclusive: 'Exclusif' };
+  const list = MJ.items.filter(i => (i.title || '').toLowerCase().includes(q)).slice(0, 12);
+  box.innerHTML = list.length ? list.map(i => `<button class="mj-g-it" onclick="_mjGiftPick('${i.id}')">${_mjImgHTML(i)}<span><b>${_mjEsc(i.title)}</b><small class="mj-r-${i.rarity}" style="color:var(--mjc)">${i.kind === 'avatar' ? 'Avatar' : 'Affiche'} · ${RL[i.rarity] || i.rarity}</small></span></button>`).join('')
+    : '<p class="mj-note">Aucune carte trouvée.</p>';
+}
+function _mjGiftPick(id) {
+  const it = _mjItem(id); if (!it) return;
+  MJ.giftItem = id;
+  document.getElementById('mj-g-ires').innerHTML = '';
+  document.getElementById('mj-g-iq').value = it.title;
+  document.getElementById('mj-g-ipick').textContent = 'Carte choisie : ' + it.title;
+}
 async function mjGiftSend() {
   if (!MJ.giftTo) { toast('Choisis d’abord un élève', 'error'); return; }
   const what = document.getElementById('mj-g-what').value, qty = +document.getElementById('mj-g-qty').value || 1;
-  const { data, error } = await db.rpc('mj_admin_gift', { p_student: MJ.giftTo.id, p_what: what, p_qty: qty });
-  if (error || (data && data.ok === false)) { toast(data && data.error === 'pas_encore_joue' ? 'Cet élève n’a pas encore ouvert le jeu' : 'Erreur', 'error'); return; }
+  if (what === 'item' && !MJ.giftItem) { toast('Choisis la carte à offrir', 'error'); return; }
+  const from = document.getElementById('mj-g-from').value.trim(), msg = document.getElementById('mj-g-msg').value.trim();
+  try { localStorage.setItem('mj_gift_from', from); } catch (_) {}
+  const { data, error } = await db.rpc('mj_admin_gift', { p_student: MJ.giftTo.id, p_what: what, p_qty: what === 'golden' || what === 'item' ? 1 : qty,
+    p_item: what === 'item' ? MJ.giftItem : null, p_from: from || null, p_message: msg || null });
+  if (error || (data && data.ok === false)) {
+    const E = { eleve_introuvable: 'Élève introuvable', carte_introuvable: 'Carte introuvable', cadeau_inconnu: 'Cadeau inconnu' };
+    toast(error && /mj_gifts|function/.test(error.message || '') ? 'Lance d’abord minijeu_5_cadeaux.sql dans Supabase' : (data && E[data.error]) || 'Erreur', 'error');
+    return;
+  }
   toast(`🎁 Cadeau envoyé à ${MJ.giftTo.name}`);
-  _invokeSendPush({ type: 'student', id: MJ.giftTo.id }, '🎁 Un cadeau pour toi !', 'Le surveillant t’a fait un cadeau dans le mini-jeu. Ouvre la Boutique !', '/');
-  MJ.giftTo = null;
+  _invokeSendPush({ type: 'student', id: MJ.giftTo.id }, '🎁 Un cadeau t’attend !', `${from || 'Le surveillant'} t’a fait un cadeau. Ouvre l’appli pour le découvrir !`, '/');
+  MJ.giftTo = null; MJ.giftItem = null;
   _mjRenderJournal();
 }
 async function mjTradeCancel(id) {
